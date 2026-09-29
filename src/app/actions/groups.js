@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { canAdministerGroup, groupStanding } from '@/lib/access';
-import { canActOnRole, CHAT_MODES, GROUP_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
+import { canActOnRole, GROUP_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
@@ -39,7 +39,8 @@ export async function saveGroup(prev, fd) {
     const description = str(fd, 'description', 4000);
     // Icon / emoji / ≤2-letter text on a colour; unknown values are dropped (see lib/group-avatar).
     // Who may post in the discussion: everyone, or only admins, sub-admins and speakers.
-    const chatMode = oneOf(fd, 'chat_mode', CHAT_MODES, 'all');
+    // Group roles that may post; admin always may. Every role ticked = the default (stored as absence).
+    const chatRoles = GROUP_ROLES.filter((r) => r === 'admin' || fd.getAll('chat_roles').includes(r));
     const visibility = oneOf(fd, 'visibility', GROUP_VISIBILITY, 'public');
     const avatar = sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10));
 
@@ -60,8 +61,19 @@ export async function saveGroup(prev, fd) {
                 { gid, uid: actor.id },
             );
         }
-        // 'all' is the default, stored as absence.
-        await setMeta('admin_groups', gid, { description, ...avatar, chat_mode: chatMode === 'all' ? '' : chatMode, visibility: visibility === 'public' ? '' : visibility }, q);
+        // Defaults (every role posts, public) are stored as absence.
+        await setMeta(
+            'admin_groups',
+            gid,
+            {
+                description,
+                ...avatar,
+                chat_roles: chatRoles.length === GROUP_ROLES.length ? '' : chatRoles.join(','),
+                chat_mode: '', // the older setting, replaced by chat_roles
+                visibility: visibility === 'public' ? '' : visibility,
+            },
+            q,
+        );
         return gid;
     });
     await audit(actor.id, groupId ? 'group.update' : 'group.create', 'group', savedId, { name });

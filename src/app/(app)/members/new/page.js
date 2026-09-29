@@ -12,7 +12,7 @@ export async function generateMetadata() {
 }
 
 export default async function NewMemberPage() {
-    const user = await requireRole('up_sarpanch');
+    const user = await requireRole('sub_admin');
     const { t, locale } = await getT();
     const [villages, cities, castes] = await Promise.all([listVillages(), listCities(), casteOptions(locale)]);
     return (

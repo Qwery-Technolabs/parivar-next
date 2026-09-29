@@ -47,9 +47,9 @@ async function seedDemo() {
     const hash = await bcrypt.hash('parivar123', 10);
     // key, phone, name, name_local, gender, dob, blood, village, role
     const people = [
-        ['ramesh', '9825000001', 'Ramesh Patel', 'રમેશ પટેલ', 'male', '1958-03-12', 'B+', 'Vadnagar', 'sarpanch'],
+        ['ramesh', '9825000001', 'Ramesh Patel', 'રમેશ પટેલ', 'male', '1958-03-12', 'B+', 'Vadnagar', 'sub_admin'],
         ['savita', '9825000002', 'Savita Patel', 'સવિતા પટેલ', 'female', '1962-07-01', 'O+', 'Vadnagar', 'sabhyo'],
-        ['mahesh', '9825000003', 'Mahesh Patel', 'મહેશ પટેલ', 'male', '1984-11-20', 'O-', 'Vadnagar', 'up_sarpanch'],
+        ['mahesh', '9825000003', 'Mahesh Patel', 'મહેશ પટેલ', 'male', '1984-11-20', 'O-', 'Vadnagar', 'sabhyo'],
         ['kajal', '9825000004', 'Kajal Patel', 'કાજલ પટેલ', 'female', '1987-02-14', 'A+', 'Unjha', 'sabhyo'],
         ['nirav', '9825000005', 'Nirav Patel', 'નીરવ પટેલ', 'male', '1988-09-05', 'AB+', 'Vadnagar', 'sub_admin'],
         ['aarav', '9825000006', 'Aarav Patel', 'આરવ પટેલ', 'male', '2012-06-18', 'O+', 'Vadnagar', 'sabhyo'],

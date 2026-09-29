@@ -1,6 +1,6 @@
 import 'server-only';
 import { fundraisePermissions, groupStanding, isInFundraiseGroup } from './access';
-import { canPostIn } from './group-roles';
+import { canPostIn, chatRolesFrom } from './group-roles';
 import { query, queryOne, setMeta } from './db';
 import { canManageAllFundraises, canManageGroups } from './roles';
 
@@ -13,24 +13,26 @@ export const CHAT_MAX_LENGTH = 2000;
  * discussion is for the people in it.
  *   group     — that group's members, and app-level group managers
  *   fundraise — its team, members of any group it is shown in, and fundraise managers
- * A group admin may limit posting (admin_groupsmeta.chat_mode = 'restricted'): then only
- * admins, sub-admins and speakers post; everyone else in the group still reads.
- * @returns {Promise<{ allowed: boolean, canPost: boolean, moderate: boolean }>} moderate = may delete others' messages
+ * A group admin chooses which group roles may post (admin_groupsmeta.chat_roles); everyone
+ * else in the group still reads. postRoles lists them for the read-only notice.
+ * @returns {Promise<{ allowed: boolean, canPost: boolean, moderate: boolean, postRoles?: string[] }>} moderate = may delete others' messages
  */
 export async function chatAccess(user, scope, scopeId) {
     const none = { allowed: false, canPost: false, moderate: false };
     if (!user || !CHAT_SCOPES.includes(scope) || !scopeId) return none;
     if (scope === 'group') {
         const group = await queryOne(
-            `SELECT g.id, m.meta_value AS chat_mode FROM admin_groups g
+            `SELECT g.id, m.meta_value AS chat_mode, r.meta_value AS chat_roles FROM admin_groups g
                LEFT JOIN admin_groupsmeta m ON m.group_id = g.id AND m.meta_key = 'chat_mode'
+               LEFT JOIN admin_groupsmeta r ON r.group_id = g.id AND r.meta_key = 'chat_roles'
               WHERE g.id = :scopeId`,
             { scopeId },
         );
         if (!group) return none;
         const { standing, myRole } = await groupStanding(user, scopeId);
         if (!standing && !myRole) return none;
-        return { allowed: true, canPost: canPostIn(group.chat_mode, standing, myRole), moderate: Boolean(standing) };
+        const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
+        return { allowed: true, canPost: canPostIn(postRoles, standing, myRole), moderate: Boolean(standing), postRoles };
     }
     const campaign = await queryOne('SELECT id, group_id FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;

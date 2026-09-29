@@ -2,7 +2,7 @@
 // server actions call these same predicates, so hiding a button is never the only gate.
 
 /** Highest first. Rank is the index: lower = more power. */
-export const ROLES = ['super_admin', 'administrator', 'sub_admin', 'sarpanch', 'up_sarpanch', 'sabhyo'];
+export const ROLES = ['super_admin', 'administrator', 'sub_admin', 'sabhyo'];
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -34,11 +34,11 @@ export function atLeast(role, min) {
 
 // ── capabilities ──────────────────────────────────────────────────────────────
 
-/** Add / edit members, groups, events. Village leadership and up. */
-export const canManageMembers = (role) => atLeast(role, 'up_sarpanch');
+/** Add / edit members. Sub-admin and up. */
+export const canManageMembers = (role) => atLeast(role, 'sub_admin');
 
 /** Create groups and appoint group admins. */
-export const canManageGroups = (role) => atLeast(role, 'sarpanch');
+export const canManageGroups = (role) => atLeast(role, 'sub_admin');
 
 /**
  * Create and manage (record, edit, delete) any fundraise: super_admin, administrator, sub_admin.
@@ -46,7 +46,7 @@ export const canManageGroups = (role) => atLeast(role, 'sarpanch');
  */
 export const canManageAllFundraises = (role) => atLeast(role, 'sub_admin');
 
-export const canManageEvents = (role) => atLeast(role, 'up_sarpanch');
+export const canManageEvents = (role) => atLeast(role, 'sub_admin');
 
 export const canViewAudit = (role) => atLeast(role, 'sub_admin');
 

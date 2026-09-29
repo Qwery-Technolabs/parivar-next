@@ -21,7 +21,7 @@ const colourFor = (id) => NAME_COLOURS[(id ?? 0) % NAME_COLOURS.length];
  *                             kind?: 'meeting'|null, data?: object|null }> }} props
  * A message with a `kind` is a system note (e.g. a meeting was scheduled), shown centred.
  */
-export default function ChatThread({ scope, scopeId, me, moderate, canPost = true, messages }) {
+export default function ChatThread({ scope, scopeId, me, moderate, canPost = true, postRoles = [], messages }) {
     const { t, locale } = useT();
     const router = useRouter();
     const scroller = useRef(null);
@@ -127,7 +127,7 @@ export default function ChatThread({ scope, scopeId, me, moderate, canPost = tru
                 })}
             </div>
             {!canPost ? (
-                <p className="border-t border-surface-border bg-white px-3 py-3 text-center text-xs text-ink-gray">{t('chat.restricted')}</p>
+                <p className="border-t border-surface-border bg-white px-3 py-3 text-center text-xs text-ink-gray">{t('chat.restricted', { roles: postRoles.map((r) => t(`groups.roles.${r}`)).join(', ') })}</p>
             ) : (
             <form onSubmit={submit} className="flex items-end gap-2 border-t border-surface-border bg-white p-2">
                 <textarea

@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS users_list (
     city           VARCHAR(100)     NULL,                     -- current residence
     caste_id       INT UNSIGNED     NULL,                     -- admin_castes (parent_id NULL)
     subcaste_id    INT UNSIGNED     NULL,                     -- admin_castes (child of caste_id)
-    role           ENUM('super_admin','administrator','sub_admin','sarpanch','up_sarpanch','sabhyo')
+    role           ENUM('super_admin','administrator','sub_admin','sabhyo')
                                     NOT NULL DEFAULT 'sabhyo',
     language       ENUM('gu','en')  NOT NULL DEFAULT 'gu',
     is_blood_donor TINYINT(1)       NOT NULL DEFAULT 0,

@@ -123,8 +123,6 @@ const gu = {
         super_admin: 'સુપર એડમિન',
         administrator: 'વ્યવસ્થાપક',
         sub_admin: 'સહ એડમિન',
-        sarpanch: 'સરપંચ',
-        up_sarpanch: 'ઉપ સરપંચ',
         sabhyo: 'સભ્ય',
     },
     gender: { male: 'પુરુષ', female: 'સ્ત્રી', other: 'અન્ય' },
@@ -242,6 +240,7 @@ const gu = {
         empty: 'હજુ કોઈ પરિવાર જોડાયેલ નથી.',
     },
     groups: {
+        changeRole: 'ભૂમિકા બદલો',
         visibility: {
             label: 'દૃશ્યતા',
             hint: 'ખાનગી જૂથ ફક્ત તેના સભ્યોને જ દેખાય છે.',
@@ -251,10 +250,10 @@ const gu = {
         roles: { admin: 'એડમિન', sub_admin: 'સહ-એડમિન', speaker: 'વક્તા', member: 'સભ્ય' },
         makeRole: { admin: 'એડમિન બનાવો', sub_admin: 'સહ-એડમિન બનાવો', speaker: 'વક્તા બનાવો (સંદેશ મોકલી શકે)', member: 'સભ્ય બનાવો' },
         chatMode: {
+            placeholder: 'ભૂમિકા ઉમેરો',
+            allChosen: 'બધી ભૂમિકા પસંદ છે',
             label: 'કોણ સંદેશ મોકલી શકે',
-            hint: 'જૂથના બધા સભ્યો ચર્ચા હંમેશા વાંચી શકે છે.',
-            all: 'બધા સભ્યો',
-            restricted: 'ફક્ત એડમિન, સહ-એડમિન અને વક્તા',
+            hint: 'એડમિન હંમેશા સંદેશ મોકલી શકે. જૂથના બધા વાંચી શકે.',
         },
         invite: {
             deleteToo: 'તેમણે ક્યારેય લૉગ ઇન કર્યું નથી. તેમનું ખાતું પણ કાઢી નાખવું? (ફક્ત જો બીજા કોઈ જૂથમાં ન હોય તો.)',
@@ -697,7 +696,7 @@ const gu = {
         },
     },
     chat: {
-        restricted: 'આ જૂથમાં ફક્ત એડમિન, સહ-એડમિન અને વક્તા સંદેશ મોકલી શકે છે.',
+        restricted: 'આ જૂથમાં ફક્ત આ ભૂમિકાઓ સંદેશ મોકલી શકે: {roles}.',
         memberAdded: '{who}એ {names}ને ઉમેર્યા',
         memberRemoved: '{who}એ {names}ને કાઢ્યા',
         andMore: '+{count} વધુ',

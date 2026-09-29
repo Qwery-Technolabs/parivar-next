@@ -19,7 +19,7 @@ export async function generateMetadata() {
 
 const ENTITIES = ['user', 'group', 'fundraise', 'blood', 'event', 'caste', 'settings'];
 
-/** `{"from":"sabhyo","to":"sarpanch"}` → "from: sabhyo · to: sarpanch". */
+/** `{"from":"sabhyo","to":"sub_admin"}` → "from: sabhyo · to: sub_admin". */
 function compact(detail) {
     if (detail == null) return null;
     const obj = typeof detail === 'string' ? safeParse(detail) : detail;

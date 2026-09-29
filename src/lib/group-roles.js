@@ -3,8 +3,9 @@
 //   admin      runs the group: details, discussion setting, every member and role
 //   sub_admin  helps run it: adds / removes plain members and speakers, sets those two roles,
 //              schedules meetings — but never touches an admin or another sub-admin
-//   speaker    may post in the discussion even when it is limited (chat_mode = 'restricted')
-//   member     reads everything; posts only while the discussion is open to all
+//   speaker    a member whose role exists to be allowed to post when members may not
+//   member     reads everything; posts if the group lets members post
+// Who may post is chosen per group (admin_groupsmeta.chat_roles); admins always may.
 // "standing" is how the ACTOR relates to the group: 'app' (app-level group manager),
 // 'admin', 'sub_admin', or null (anyone else, including speakers and members).
 
@@ -13,8 +14,21 @@ export const GROUP_ROLES = ['admin', 'sub_admin', 'speaker', 'member'];
 /** Group visibility (admin_groupsmeta.visibility): public = listed for everyone; private = only its members (and app-level managers). */
 export const GROUP_VISIBILITY = ['public', 'private'];
 
-/** Discussion setting (admin_groupsmeta.chat_mode): everyone posts, or only admins, sub-admins and speakers. */
-export const CHAT_MODES = ['all', 'restricted'];
+/**
+ * Roles that may post in a group's discussion, from admin_groupsmeta: chat_roles is a comma
+ * list (absent = every role). Groups saved before it may still carry chat_mode = 'restricted',
+ * which meant admins, sub-admins and speakers. Admin is always included.
+ * @returns {string[]}
+ */
+export function chatRolesFrom(chatRoles, chatMode) {
+    let roles = chatRoles
+        ? String(chatRoles).split(',').filter((r) => GROUP_ROLES.includes(r))
+        : chatMode === 'restricted'
+          ? ['admin', 'sub_admin', 'speaker']
+          : [...GROUP_ROLES];
+    if (!roles.includes('admin')) roles = ['admin', ...roles];
+    return GROUP_ROLES.filter((r) => roles.includes(r));
+}
 
 const HELPER_ROLES = ['member', 'speaker'];
 
@@ -45,9 +59,8 @@ export function canActOnRole(standing, targetRole, nextRole) {
     return HELPER_ROLES.includes(targetRole ?? 'member') && (nextRole == null || HELPER_ROLES.includes(nextRole));
 }
 
-/** May post in a group discussion with this setting? */
-export function canPostIn(chatMode, standing, myRole) {
-    if (standing) return true;
-    if (!myRole) return false;
-    return chatMode !== 'restricted' || myRole === 'speaker';
+/** May post in a group discussion, given the roles allowed there (chatRolesFrom)? App-level managers always may. */
+export function canPostIn(allowedRoles, standing, myRole) {
+    if (standing === 'app') return true;
+    return Boolean(myRole) && allowedRoles.includes(myRole);
 }

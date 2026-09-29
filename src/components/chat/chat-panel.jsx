@@ -39,6 +39,7 @@ export default async function ChatPanel({ scope, scopeId }) {
             me={user.id}
             moderate={access.moderate}
             canPost={access.canPost}
+            postRoles={access.postRoles ?? []}
             messages={messages.map((m) => ({
                 id: m.id,
                 userId: m.user_id,

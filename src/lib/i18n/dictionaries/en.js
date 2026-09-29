@@ -122,8 +122,6 @@ const en = {
         super_admin: 'Super admin',
         administrator: 'Administrator',
         sub_admin: 'Sub admin',
-        sarpanch: 'Sarpanch',
-        up_sarpanch: 'Up-sarpanch',
         sabhyo: 'Member',
     },
     gender: { male: 'Male', female: 'Female', other: 'Other' },
@@ -241,6 +239,7 @@ const en = {
         empty: 'No family linked yet.',
     },
     groups: {
+        changeRole: 'Change role',
         visibility: {
             label: 'Visibility',
             hint: 'Private groups are seen only by the people in them.',
@@ -250,10 +249,10 @@ const en = {
         roles: { admin: 'Admin', sub_admin: 'Sub-admin', speaker: 'Speaker', member: 'Member' },
         makeRole: { admin: 'Make admin', sub_admin: 'Make sub-admin', speaker: 'Make speaker (can post)', member: 'Make member' },
         chatMode: {
+            placeholder: 'Add a role',
+            allChosen: 'All roles chosen',
             label: 'Who can send messages',
-            hint: 'Everyone in the group can always read the discussion.',
-            all: 'Every member',
-            restricted: 'Only admins, sub-admins and speakers',
+            hint: 'Admins can always post. Everyone in the group can read.',
         },
         invite: {
             deleteToo: 'They have never signed in. Also delete their account? (Only if they are in no other group.)',
@@ -696,7 +695,7 @@ const en = {
         },
     },
     chat: {
-        restricted: 'Only admins, sub-admins and speakers can send messages in this group.',
+        restricted: 'Only these roles can send messages in this group: {roles}.',
         memberAdded: '{who} added {names}',
         memberRemoved: '{who} removed {names}',
         andMore: '+{count} more',

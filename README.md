@@ -26,7 +26,7 @@ Production: `npm run build && npm start`.
 
 ## Roles
 
-`super_admin` › `administrator` › `sub_admin` › `sarpanch` › `up_sarpanch` › `sabhyo`
+`super_admin` › `administrator` › `sub_admin` › `sabhyo` (shown as Member)
 
 All rules live in `src/lib/roles.js` and are re-checked inside every server action;
 hiding a button is never the only gate. Nobody can assign a role equal to or above their

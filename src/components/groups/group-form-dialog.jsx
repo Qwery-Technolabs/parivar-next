@@ -6,6 +6,8 @@ import AvatarPicker from '@/components/groups/avatar-picker';
 import { Field, selectInput, textArea } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import BilingualName from '@/components/ui/bilingual-name';
+import ChatRolesSelect from '@/components/groups/chat-roles-select';
+import { chatRolesFrom } from '@/lib/group-roles';
 import { useT } from '@/lib/i18n/client';
 
 export default function GroupFormDialog({ group, onNavy = false }) {
@@ -54,18 +56,20 @@ export default function GroupFormDialog({ group, onNavy = false }) {
                             />
                         </div>
                     </div>
-                    <Field label={t('groups.visibility.label')} hint={t('groups.visibility.hint')}>
-                        <select name="visibility" defaultValue={group?.meta?.visibility || 'public'} className={`${selectInput()} w-full`}>
-                            <option value="public">{t('groups.visibility.public')}</option>
-                            <option value="private">{t('groups.visibility.private')}</option>
-                        </select>
-                    </Field>
-                    <Field label={t('groups.chatMode.label')} hint={t('groups.chatMode.hint')}>
-                        <select name="chat_mode" defaultValue={group?.meta?.chat_mode || 'all'} className={`${selectInput()} w-full`}>
-                            <option value="all">{t('groups.chatMode.all')}</option>
-                            <option value="restricted">{t('groups.chatMode.restricted')}</option>
-                        </select>
-                    </Field>
+                    {/* One row: who sees the group, and who may post in it. */}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label={t('groups.visibility.label')} hint={t('groups.visibility.hint')}>
+                            <select name="visibility" defaultValue={group?.meta?.visibility || 'public'} className={`${selectInput()} w-full`}>
+                                <option value="public">{t('groups.visibility.public')}</option>
+                                <option value="private">{t('groups.visibility.private')}</option>
+                            </select>
+                        </Field>
+                        <div className="min-w-0">
+                            <span className="mb-1 block text-xs font-medium text-ink-gray">{t('groups.chatMode.label')}</span>
+                            <ChatRolesSelect defaultValue={chatRolesFrom(group?.meta?.chat_roles, group?.meta?.chat_mode)} />
+                            <p className="mt-1 text-xs text-ink-gray">{t('groups.chatMode.hint')}</p>
+                        </div>
+                    </div>
                     <Field label={t('groups.description')}>
                         <textarea name="description" rows={3} defaultValue={group?.meta?.description ?? ''} className={`${textArea()} w-full`} />
                     </Field>

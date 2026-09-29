@@ -112,3 +112,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Sidebar: Home on its own; Members and Groups in the Community section
 - [x] Role label "Sabhyo" shown as "Member" (stored value unchanged)
 - [x] "Not registered yet" tag for people who never signed in: group Members tab, /members list and profile (admins only)
+- [x] Roles sarpanch / up-sarpanch removed (their rights now start at sub-admin); live enum updated
+- [x] Group edit: Visibility and "Who can send messages" on one row; posting chosen per role (admin always ticked); old two-choice setting still read
+- [x] "Who can send messages" is a multi-select tag selector (Admin always kept)
+- [x] Group member row menu: "Change role ›" submenu (current role ticked, ‹ Back), then Remove from group

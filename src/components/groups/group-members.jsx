@@ -1,5 +1,5 @@
 'use client';
-import { Megaphone, Phone, Shield, ShieldCheck, UserMinus, UserPlus, UserRound, UserRoundSearch } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Megaphone, Phone, Shield, ShieldCheck, UserCog, UserMinus, UserPlus, UserRound, UserRoundSearch } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -131,38 +131,19 @@ export default function GroupMembers({ groupId, members, standing, currentUserId
                                         {m.id !== currentUserId && canActOnRole(standing, m.member_role) && (
                                             <KebabMenu label={t('common.more')}>
                                                 {(close) => (
-                                                    <>
-                                                        {GROUP_ROLES.filter((r) => r !== m.member_role && canActOnRole(standing, m.member_role, r)).map((r) => {
-                                                            const RoleIcon = ROLE_UI[r].Icon;
-                                                            return (
-                                                                <MenuItem
-                                                                    key={r}
-                                                                    icon={RoleIcon}
-                                                                    onClick={() => {
-                                                                        close();
-                                                                        run(() => setGroupMemberRole(groupId, m.id, r));
-                                                                    }}
-                                                                >
-                                                                    {t(`groups.makeRole.${r}`)}
-                                                                </MenuItem>
-                                                            );
-                                                        })}
-                                                        <MenuSeparator />
-                                                        <MenuItem
-                                                            icon={UserMinus}
-                                                            danger
-                                                            onClick={() => {
-                                                                close();
-                                                                if (!window.confirm(`${t('groups.removeMember')}?`)) return;
-                                                                // Never signed in: offer to drop the unused account too (the server
-                                                                // only does it if they were invited and are in no other group).
-                                                                const alsoDelete = !m.last_login_at && window.confirm(t('groups.invite.deleteToo'));
-                                                                run(() => removeGroupMember(groupId, m.id, alsoDelete));
-                                                            }}
-                                                        >
-                                                            {t('groups.removeMember')}
-                                                        </MenuItem>
-                                                    </>
+                                                    <MemberMenu
+                                                        member={m}
+                                                        standing={standing}
+                                                        close={close}
+                                                        onRole={(r) => run(() => setGroupMemberRole(groupId, m.id, r))}
+                                                        onRemove={() => {
+                                                            if (!window.confirm(`${t('groups.removeMember')}?`)) return;
+                                                            // Never signed in: offer to drop the unused account too (the server
+                                                            // only does it if they were invited and are in no other group).
+                                                            const alsoDelete = !m.last_login_at && window.confirm(t('groups.invite.deleteToo'));
+                                                            run(() => removeGroupMember(groupId, m.id, alsoDelete));
+                                                        }}
+                                                    />
                                                 )}
                                             </KebabMenu>
                                         )}
@@ -217,6 +198,82 @@ function AddMemberFields({ fieldError, exclude }) {
                     <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">{t('groups.invite.passwordNote')}</p>
                 </>
             )}
+        </>
+    );
+}
+
+/**
+ * Row menu for one member: "Change role ›" opens the roles in place (with ‹ Back) — a
+ * side flyout would be clipped by the scrolling menu panel. Only roles the actor may give
+ * are listed; the current one is ticked.
+ */
+function MemberMenu({ member, standing, close, onRole, onRemove }) {
+    const { t } = useT();
+    const [view, setView] = useState('main');
+    const choices = GROUP_ROLES.filter((r) => r === member.member_role || canActOnRole(standing, member.member_role, r));
+
+    if (view === 'roles') {
+        return (
+            <div role="group" aria-label={t('groups.changeRole')}>
+                <button
+                    type="button"
+                    onClick={() => setView('main')}
+                    className="flex w-full items-center gap-1.5 border-b border-surface-border px-3 py-2 text-left text-xs font-semibold text-ink-gray hover:bg-accent"
+                >
+                    <ChevronLeft className="size-4" /> {t('groups.changeRole')}
+                </button>
+                {choices.map((r) => {
+                    const RoleIcon = ROLE_UI[r].Icon;
+                    const current = r === member.member_role;
+                    return (
+                        <button
+                            key={r}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={current}
+                            disabled={current}
+                            onClick={() => {
+                                close();
+                                onRole(r);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary hover:bg-accent disabled:cursor-default disabled:hover:bg-transparent"
+                        >
+                            <RoleIcon className="size-4 text-ink-gray" />
+                            <span className={`flex-1 ${current ? 'font-semibold' : ''}`}>{t(`groups.roles.${r}`)}</span>
+                            {current && <Check className="size-4 text-brand-orange-strong" />}
+                        </button>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    return (
+        <>
+            {choices.length > 1 && (
+                <button
+                    type="button"
+                    role="menuitem"
+                    aria-haspopup="menu"
+                    onClick={() => setView('roles')}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-primary hover:bg-accent"
+                >
+                    <UserCog className="size-4 text-ink-gray" />
+                    <span className="flex-1">{t('groups.changeRole')}</span>
+                    <ChevronRight className="size-4 text-ink-gray" />
+                </button>
+            )}
+            {choices.length > 1 && <MenuSeparator />}
+            <MenuItem
+                icon={UserMinus}
+                danger
+                onClick={() => {
+                    close();
+                    onRemove();
+                }}
+            >
+                {t('groups.removeMember')}
+            </MenuItem>
         </>
     );
 }
