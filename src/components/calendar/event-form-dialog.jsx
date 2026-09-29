@@ -128,7 +128,7 @@ function EventForm({ event, groups, types, defaultDate, onDone }) {
                     {t(state.error)}
                 </p>
             )}
-            <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <div className="flex flex-row gap-2 *:flex-1 sm:*:flex-none pt-1 sm:justify-end">
                 <button
                     type="button"
                     onClick={onDone}

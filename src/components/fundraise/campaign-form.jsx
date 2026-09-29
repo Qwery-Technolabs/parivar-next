@@ -158,7 +158,7 @@ export default function CampaignForm({
                 </p>
             )}
             {/* Pinned to the bottom of the screen: Save is reachable without scrolling back down. */}
-            <div className="sticky bottom-0 z-10 -mx-2 -mb-3 flex flex-col-reverse gap-2 border-t border-surface-border bg-white/95 px-2 py-2.5 backdrop-blur sm:-mx-3 sm:flex-row sm:justify-end sm:px-3 lg:-mx-4 lg:px-4">
+            <div className="sticky bottom-0 z-10 -mx-2 -mb-3 flex flex-row gap-2 *:flex-1 sm:*:flex-none border-t border-surface-border bg-white/95 px-2 py-2.5 backdrop-blur sm:-mx-3 sm:justify-end sm:px-3 lg:-mx-4 lg:px-4">
                 <Link
                     href={cancelHref}
                     className="inline-flex h-9 items-center justify-center rounded-md border border-surface-border bg-white px-4 text-sm font-medium text-primary hover:bg-accent"

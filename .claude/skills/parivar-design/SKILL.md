@@ -126,7 +126,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   dropdown (`LanguageSelect`) that saves on change — no big choice tiles.
 - Fundraise header "Add to group" (`AddToGroups`, FolderPlus): only when the person manages the fundraise and
   there is a group they may start a fundraise in that it is not in yet; icon-only on phones.
-- **Dialogs (FormDialog)**: Cancel + Save **side by side** on phones too (each `flex-1`, own width from sm);
+- **Every Cancel / Save bar** (dialogs, full-page forms like new fundraise, event, member, picture picker):
+  **side by side on phones** — `flex flex-row gap-2 *:flex-1 sm:*:flex-none sm:justify-end`; never `flex-col-reverse`.
+- **Dialogs (FormDialog)**: Cancel + Save side by side on phones too (each `flex-1`, own width from sm);
   **no field autofocus** — the dialog itself takes focus (`DialogContent focusPopup`) so no keyboard pops up.
 - **Status dot on pictures** (fundraise header + list, group header + list): small bottom-right dot with a
   ring in the background colour — green active · grey draft/archived · red closed/inactive. Maps and sizes in

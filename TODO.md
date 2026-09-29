@@ -214,3 +214,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Status dot on fundraise list pictures too; all status dots a bit smaller (size-2.5, size-2 on small pictures)
 - [x] Vercel functions pinned to bom1 (Mumbai), next to the database — pages were slow from the default US region
 - [x] DB connections: pool 2 on Vercel / 3 locally, idle connections kept (host limit 500 new connections/hour per user); README: separate DB user for local dev, Fluid Compute
+- [x] All Cancel / Save bars side by side on phones (new / edit fundraise, event forms, member form, picture picker, dialog footer)

@@ -60,7 +60,7 @@ export default function MemberForm({ roles, villages, cities = [], casteOptions 
                     {t(state.error)}
                 </p>
             )}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="flex flex-row gap-2 *:flex-1 sm:*:flex-none sm:justify-end">
                 <button
                     type="button"
                     onClick={() => router.back()}

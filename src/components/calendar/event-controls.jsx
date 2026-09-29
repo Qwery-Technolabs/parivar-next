@@ -100,7 +100,7 @@ export function EventRowMenu({ event, groups, types }) {
                         <DialogTitle className="text-base font-semibold text-primary">{t('common.delete')}</DialogTitle>
                         <DialogDescription className="text-sm text-ink-gray">{t('common.confirmDelete')}</DialogDescription>
                     </DialogHeader>
-                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <div className="flex flex-row gap-2 *:flex-1 sm:*:flex-none sm:justify-end">
                         <button
                             type="button"
                             onClick={() => setConfirmOpen(false)}
