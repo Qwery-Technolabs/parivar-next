@@ -322,6 +322,39 @@ async function writeHistory(q, { campaignId, entity, entityId, action, actorId, 
 
 // ── contributions ─────────────────────────────────────────────────────────────
 
+/**
+ * A pending (unpaid) pledge came in: set how and when it was paid. Only rows still 'unpaid'
+ * change; the edit goes into the entry's history like any other.
+ */
+export async function markContributionPaid(prev, fd) {
+    const campaignId = id(fd, 'campaign_id');
+    const { user, campaign } = await authorize(campaignId, 'contribution');
+    if (!campaign) return FORBIDDEN;
+    const contributionId = id(fd, 'contribution_id');
+    const mode = oneOf(fd, 'mode', PAY_MODES.filter((m) => m !== 'unpaid'));
+    const paidOn = date(fd, 'paid_on');
+    const fieldErrors = {};
+    if (!mode) fieldErrors.mode = 'common.required';
+    if (!paidOn) fieldErrors.paid_on = 'fundraise.errors.date';
+    if (Object.keys(fieldErrors).length) return { fieldErrors };
+    const done = await withTransaction(async (q) => {
+        const before = await contributionSnapshot(q, contributionId);
+        const r = await q(
+            `UPDATE fundraise_contributions SET mode = :mode, paid_on = :paidOn
+              WHERE id = :contributionId AND campaign_id = :campaignId AND mode = 'unpaid' AND deleted_at IS NULL`,
+            { mode, paidOn, contributionId, campaignId },
+        );
+        if (!r.affectedRows) return false;
+        const after = await contributionSnapshot(q, contributionId);
+        await writeHistory(q, { campaignId, entity: 'contribution', entityId: contributionId, action: 'edit', actorId: user.id, snapshot: { ...after, before } });
+        return true;
+    });
+    if (!done) return { error: 'fundraise.errors.notPending' };
+    await audit(user.id, 'fundraise.contribution.paid', 'fundraise', campaignId, { contribution: contributionId, mode });
+    refreshCampaign(campaignId);
+    return { ok: true, message: 'fundraise.markedPaid' };
+}
+
 /** Add (no contribution_id) or edit a contribution. Needs perms.manage. */
 export async function saveContribution(prev, fd) {
     const campaignId = id(fd, 'campaign_id');

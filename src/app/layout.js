@@ -2,6 +2,7 @@ import { Geist, Geist_Mono, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from 'nex
 import { Toaster } from '@/components/ui/sonner';
 import { I18nProvider } from '@/lib/i18n/client';
 import { getDictionary, getLocalLanguage, getLocale } from '@/lib/i18n/server';
+import { getSettings } from '@/lib/settings';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -22,7 +23,29 @@ const devanagari = Noto_Sans_Devanagari({
 
 export async function generateMetadata() {
     const dict = getDictionary(await getLocale());
-    return { title: { default: dict.app.name, template: `%s · ${dict.app.name}` }, description: dict.app.tagline };
+    // The Samaj logo, once saved in Settings → General, is the favicon and app icon.
+    let version = '';
+    try {
+        version = (await getSettings('admin')).logo_version;
+    } catch {
+        // No database (build time): keep the built-in favicon.
+    }
+    const icon = (size) => `/api/app-icon?size=${size}&v=${version}`;
+    return {
+        title: { default: dict.app.name, template: `%s · ${dict.app.name}` },
+        description: dict.app.tagline,
+        ...(version
+            ? {
+                  icons: {
+                      icon: [
+                          { url: icon(32), sizes: '32x32', type: 'image/png' },
+                          { url: icon(192), sizes: '192x192', type: 'image/png' },
+                      ],
+                      apple: [{ url: icon(192), sizes: '192x192', type: 'image/png' }],
+                  },
+              }
+            : {}),
+    };
 }
 
 export const viewport = { themeColor: '#172f56', width: 'device-width', initialScale: 1 };

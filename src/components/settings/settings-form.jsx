@@ -8,6 +8,7 @@ import SubmitButton from '@/components/ui/submit-button';
 import BilingualName from '@/components/ui/bilingual-name';
 import Switch from '@/components/ui/switch';
 import AvatarPicker from '@/components/groups/avatar-picker';
+import { renderLogoPngs } from '@/lib/app-icon-canvas';
 import { useT } from '@/lib/i18n/client';
 
 function BoolSetting({ name, label, hint, initial }) {
@@ -36,9 +37,24 @@ export default function SettingsForm({ module, title, fields }) {
 
     return (
         <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
                 e.preventDefault();
-                const fd = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                const fd = new FormData(form);
+                // General: draw the logo on a canvas and send it as the favicon / app icon PNGs.
+                if (logo) {
+                    try {
+                        const pngs = await renderLogoPngs({
+                            kind: String(fd.get('avatar_kind') ?? ''),
+                            value: String(fd.get('avatar_value') ?? ''),
+                            color: String(fd.get('avatar_color') ?? ''),
+                            iconSvg: form.querySelector('[data-avatar-preview] svg'),
+                        });
+                        for (const [size, url] of Object.entries(pngs)) fd.set(`logo_png_${size}`, url);
+                    } catch {
+                        // Drawing failed (old browser): settings still save; the icon stays as it was.
+                    }
+                }
                 startTransition(() => action(fd));
             }}
             className="rounded-lg border border-surface-border bg-white shadow-sm"

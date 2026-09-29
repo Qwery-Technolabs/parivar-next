@@ -1,5 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { writeAppIcons } from '@/lib/app-icons';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { withTransaction } from '@/lib/db';
@@ -25,6 +26,10 @@ export async function saveModuleSettings(prev, fd) {
     if (mod === 'admin' && fd.has('avatar_kind')) {
         const a = sanitizeAvatar(String(fd.get('avatar_kind') ?? ''), String(fd.get('avatar_value') ?? ''), String(fd.get('avatar_color') ?? ''));
         Object.assign(values, { logo_kind: a.avatar_kind, logo_value: a.avatar_value, logo_color: a.avatar_color });
+        // The same logo, drawn in the browser, as favicon / app icon (public/app-icons/).
+        if (fd.has('logo_png_512') && (await writeAppIcons({ 512: fd.get('logo_png_512'), 192: fd.get('logo_png_192'), 32: fd.get('logo_png_32') }))) {
+            values.logo_version = String(Date.now());
+        }
     }
     await withTransaction((q) => saveSettings(mod, values, q));
     await audit(user.id, 'settings.update', 'settings', null, { module: mod, keys: Object.keys(values) });

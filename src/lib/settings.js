@@ -21,6 +21,7 @@ export const SETTINGS = {
             logo_kind: { type: 'text', default: '', hidden: true },
             logo_value: { type: 'text', default: '', hidden: true },
             logo_color: { type: 'text', default: '', hidden: true },
+            logo_version: { type: 'text', default: '', hidden: true }, // bumps when the favicon / app icon is redrawn
             contact_phone: { type: 'text', default: '' },
             allow_registration: { type: 'bool', default: false }, // "Create an account" link on the login page
             registration_approval: { type: 'bool', default: true }, // new sign-ups wait (inactive) until an admin activates them

@@ -174,3 +174,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fundraise: Print / PDF button in the header (removed from the About tab bottom)
 - [x] Fundraise About tab: wider side column on desktop
 - [x] Public link card: the public switch sits in the card header
+- [x] Pending (not paid) contributions: "Mark as paid" in the row kebab (mode + date, default today; logged in history)
+- [x] Samaj logo → favicon & app icon: drawn on a canvas on save (512/192/32 PNG), stored in public/app-icons/, served via /api/app-icon; web manifest with the Samaj name

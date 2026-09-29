@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Samaj logo favicon / app icons, generated at runtime from Settings → General
+/public/app-icons/

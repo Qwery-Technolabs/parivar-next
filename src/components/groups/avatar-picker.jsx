@@ -28,6 +28,7 @@ export default function AvatarPicker({ name = '', initial = {} }) {
             <input type="hidden" name="avatar_color" value={avatar.avatar_color} />
             <button
                 type="button"
+                data-avatar-preview
                 onClick={() => setOpen(true)}
                 aria-label={t('groups.avatar.change')}
                 title={t('groups.avatar.change')}

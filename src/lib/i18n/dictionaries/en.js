@@ -358,6 +358,8 @@ const en = {
         errors: { units: 'Enter 1 to 20 units.', date: 'Enter a valid date.' },
     },
     fundraise: {
+        markPaid: 'Mark as paid',
+        markedPaid: 'Marked as paid.',
         publicSwitch: 'Public',
         pendingBadge: 'Pending',
         pendingTotal: 'Pending (not paid yet)',
@@ -480,6 +482,7 @@ const en = {
         entries: 'Entries',
         lastPaid: 'Last paid',
         errors: {
+            notPending: 'This contribution is no longer pending.',
             archiveFirst: 'Archive the fundraise first; only an archived fundraise can be deleted.',
             extraGroup: 'You can only add groups where you may start a fundraise.',
             selfDemote: 'You cannot remove your own admin role. Ask another admin.',

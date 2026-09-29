@@ -1,8 +1,10 @@
 'use client';
-import { History, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, History, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { deleteContribution, deleteExpense, entryHistory } from '@/app/actions/fundraise';
+import { deleteContribution, deleteExpense, entryHistory, markContributionPaid } from '@/app/actions/fundraise';
+import { Field, selectInput, textInput } from '@/components/ui/field';
+import FormDialog from '@/components/ui/form-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
@@ -33,6 +35,9 @@ export default function RowActions({ kind, campaignId, row, canManage, today, al
     const { t } = useT();
     const [pending, startTransition] = useTransition();
     const [editKey, setEditKey] = useState(0);
+    const [paidKey, setPaidKey] = useState(0);
+    // A pending pledge (mode 'unpaid') can be marked paid straight from its row.
+    const isPending = kind === 'contribution' && row.mode === 'unpaid';
     const [historyOpen, setHistoryOpen] = useState(false);
     const [history, setHistory] = useState(null); // null = loading
 
@@ -75,6 +80,17 @@ export default function RowActions({ kind, campaignId, row, canManage, today, al
                                 {t('common.edit')}
                             </MenuItem>
                         )}
+                        {canManage && isPending && (
+                            <MenuItem
+                                icon={CheckCircle2}
+                                onClick={() => {
+                                    close();
+                                    setPaidKey((k) => k + 1);
+                                }}
+                            >
+                                {t('fundraise.markPaid')}
+                            </MenuItem>
+                        )}
                         <MenuItem icon={History} onClick={() => showHistory(close)}>
                             {t('fundraise.history.title')}
                         </MenuItem>
@@ -100,6 +116,37 @@ export default function RowActions({ kind, campaignId, row, canManage, today, al
                     categories={categories}
                     trigger={({ open }) => <OpenOnMount open={open} />}
                 />
+            )}
+
+            {canManage && isPending && paidKey > 0 && (
+                <FormDialog
+                    key={paidKey}
+                    title={t('fundraise.markPaid')}
+                    description={row.donor_name}
+                    action={markContributionPaid}
+                    hidden={{ campaign_id: campaignId, contribution_id: row.id }}
+                    submitIcon={CheckCircle2}
+                    submitLabel={t('fundraise.markPaid')}
+                    width="sm:max-w-sm"
+                    trigger={({ open }) => <OpenOnMount open={open} />}
+                >
+                    {({ fieldError }) => (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <Field label={t('fundraise.mode')} error={fieldError('mode')} required>
+                                <select name="mode" defaultValue="cash" className={`${selectInput()} w-full`}>
+                                    {['cash', 'upi', 'bank', 'cheque', 'other'].map((m) => (
+                                        <option key={m} value={m}>
+                                            {t(`fundraise.modes.${m}`)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
+                                <input type="date" name="paid_on" defaultValue={today} required className={`${textInput(!!fieldError('paid_on'))} w-full`} />
+                            </Field>
+                        </div>
+                    )}
+                </FormDialog>
             )}
 
             <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
