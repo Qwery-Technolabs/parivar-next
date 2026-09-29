@@ -5,7 +5,6 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { addGroupMember, inviteGroupMember, removeGroupMember, setGroupMemberRole } from '@/app/actions/groups';
 import Badge from '@/components/ui/badge';
-import BilingualName from '@/components/ui/bilingual-name';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
@@ -109,7 +108,7 @@ export default function GroupMembers({ groupId, members, standing, currentUserId
                                     )}
                                     {/* Added by phone and has never signed in. */}
                                     {!m.last_login_at && (
-                                        <Badge tone="gray" className="ml-1.5">
+                                        <Badge tone="amber" className="ml-1.5">
                                             {t('groups.invite.notJoined')}
                                         </Badge>
                                     )}
@@ -208,13 +207,9 @@ function AddMemberFields({ fieldError, exclude }) {
                     <Field label={t('members.phone')} hint={t('groups.invite.phoneHint')} error={fieldError('phone')} required>
                         <input name="phone" type="tel" inputMode="numeric" required className={`${textInput(!!fieldError('phone'))} w-full tabular-nums`} />
                     </Field>
-                    <BilingualName
-                        enLabel={t('members.fullName')}
-                        guLabel={t('members.fullNameLocal')}
-                        enName="full_name"
-                        guName="full_name_local"
-                        error={fieldError('full_name')}
-                    />
+                    <Field label={t('groups.invite.nameOptional')}>
+                        <input name="full_name" maxLength={150} autoComplete="off" className={`${textInput()} w-full`} />
+                    </Field>
                     <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">{t('groups.invite.passwordNote')}</p>
                 </>
             )}

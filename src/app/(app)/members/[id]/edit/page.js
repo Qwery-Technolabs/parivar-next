@@ -37,7 +37,8 @@ export default async function EditMemberPage({ params, searchParams }) {
                 <p className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{t('members.welcomeFill')}</p>
             )}
             <MemberEditTabs
-                member={member}
+                // Invited without a name, the phone number stood in: show an empty (required) name to fill.
+                member={member.full_name === member.phone ? { ...member, full_name: '' } : member}
                 initialTab={typeof tab === 'string' ? tab : undefined}
                 roles={assignableRoles(user.role)}
                 // Password-only access (an admin resetting a peer) shows just that tab.

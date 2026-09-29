@@ -50,6 +50,9 @@ export const canManageEvents = (role) => atLeast(role, 'up_sarpanch');
 
 export const canViewAudit = (role) => atLeast(role, 'sub_admin');
 
+/** Invite people by phone number from the Members page (first password = their number). */
+export const canInviteMembers = (role) => atLeast(role, 'sub_admin');
+
 /** Edit app-wide and module settings. */
 export const canManageSettings = (role) => atLeast(role, 'administrator');
 

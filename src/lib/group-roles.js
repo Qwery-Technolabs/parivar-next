@@ -10,6 +10,9 @@
 
 export const GROUP_ROLES = ['admin', 'sub_admin', 'speaker', 'member'];
 
+/** Group visibility (admin_groupsmeta.visibility): public = listed for everyone; private = only its members (and app-level managers). */
+export const GROUP_VISIBILITY = ['public', 'private'];
+
 /** Discussion setting (admin_groupsmeta.chat_mode): everyone posts, or only admins, sub-admins and speakers. */
 export const CHAT_MODES = ['all', 'restricted'];
 

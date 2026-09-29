@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Network, Phone, UserPlus } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
+import InviteMembersDialog from '@/components/members/invite-members-dialog';
 import MemberRowActions from '@/components/members/member-row-actions';
 import MembersToolbar from '@/components/members/members-toolbar';
 import PageHeader, { LinkButton } from '@/components/shell/page-header';
@@ -16,7 +17,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
 export async function generateMetadata() {
@@ -42,6 +43,8 @@ export default async function MembersPage({ searchParams }) {
         listCities(),
     ]);
     const manage = canManageMembers(user.role);
+    // Who has never signed in is admin information (invites still pending).
+    const seesRegistration = canInviteMembers(user.role);
     // A group admin may appoint only inside the groups they run; assignToGroup re-checks per group.
     const groupOptions = groups
         .filter((g) => groupManager || ownGroups.includes(g.id))
@@ -55,6 +58,7 @@ export default async function MembersPage({ searchParams }) {
                 actions={
                     (manage || canManageSettings(user.role)) && (
                         <>
+                            {canInviteMembers(user.role) && <InviteMembersDialog groups={groupOptions} />}
                             {canManageSettings(user.role) && (
                                 <LinkButton href="/members/castes" icon={Network} variant="secondary" className="flex-1 sm:flex-none">
                                     {t('members.manageCastes')}
@@ -125,6 +129,11 @@ export default async function MembersPage({ searchParams }) {
                                     {m.status !== 'active' && (
                                         <Badge status={m.status} className="mt-1">
                                             {t(`status.${m.status}`)}
+                                        </Badge>
+                                    )}
+                                    {seesRegistration && !m.last_login_at && (
+                                        <Badge tone="amber" className="mt-1 ml-1">
+                                            {t('groups.invite.notJoined')}
                                         </Badge>
                                     )}
                                 </Td>

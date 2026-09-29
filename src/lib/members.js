@@ -121,7 +121,7 @@ export async function listMembers(f, page, perPage) {
         queryOne(`SELECT COUNT(*) AS n FROM users_list u ${w.sql}`, w.params),
         query(
             `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.role, u.village, u.city, u.blood_group,
-                    u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login,
+                    u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login, u.last_login_at,
                     c.name AS caste_name, c.name_local AS caste_name_local, sc.name AS subcaste_name, sc.name_local AS subcaste_name_local
                FROM users_list u
                LEFT JOIN admin_castes c ON c.id = u.caste_id

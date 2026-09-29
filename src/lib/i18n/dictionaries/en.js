@@ -123,7 +123,7 @@ const en = {
         sub_admin: 'Sub admin',
         sarpanch: 'Sarpanch',
         up_sarpanch: 'Up-sarpanch',
-        sabhyo: 'Sabhyo',
+        sabhyo: 'Member',
     },
     gender: { male: 'Male', female: 'Female', other: 'Other' },
     status: { active: 'Active', inactive: 'Inactive', deceased: 'Deceased' },
@@ -138,6 +138,22 @@ const en = {
         viewAll: 'View all',
     },
     members: {
+        filterSections: { person: 'Person', place: 'Place', community: 'Community', blood: 'Blood' },
+        invite: {
+            button: 'Invite by phone',
+            title: 'Invite members by phone',
+            description: 'They log in with their phone number as the password, then set their own and fill in their details.',
+            phone: 'Mobile number',
+            name: 'Full name (optional)',
+            addRow: 'Add another person',
+            removeRow: 'Remove this row',
+            groups: 'Also add them to groups (optional)',
+            submit: 'Send invites',
+            none: 'Enter at least one mobile number.',
+            badRows: 'Check the mobile number in row {rows} (invalid or repeated).',
+            done: '{created} invited, {existing} were already registered.',
+            doneFailed: '{created} invited, {existing} were already registered. Rows {rows} could not be added.',
+        },
         welcomeFill: 'Welcome! Your password is set. Please fill in your details below — each tab saves on its own.',
         tabs: { basic: 'Basic info', community: 'Community', details: 'Details', access: 'Role & status', password: 'Password' },
         bulk: {
@@ -224,6 +240,12 @@ const en = {
         empty: 'No family linked yet.',
     },
     groups: {
+        visibility: {
+            label: 'Visibility',
+            hint: 'Private groups are seen only by the people in them.',
+            public: 'Public',
+            private: 'Private',
+        },
         roles: { admin: 'Admin', sub_admin: 'Sub-admin', speaker: 'Speaker', member: 'Member' },
         makeRole: { admin: 'Make admin', sub_admin: 'Make sub-admin', speaker: 'Make speaker (can post)', member: 'Make member' },
         chatMode: {
@@ -233,6 +255,7 @@ const en = {
             restricted: 'Only admins, sub-admins and speakers',
         },
         invite: {
+            nameOptional: 'Full name (optional)',
             existing: 'Existing member',
             byPhone: 'By phone number',
             phoneHint: 'Registered or not — new numbers get an account.',
@@ -240,7 +263,7 @@ const en = {
             created: 'Added. They can log in with {phone} as the password.',
             alreadyIn: 'This person is already in the group with that role.',
             unavailable: 'This number belongs to a member who cannot be added.',
-            notJoined: 'Not joined yet',
+            notJoined: 'Not registered yet',
             notJoinedHint: 'Has not signed in yet',
         },
         avatar: {

@@ -3,6 +3,7 @@ import { ShieldCheck, UserPlus, X } from 'lucide-react';
 import { createContext, useContext, useState } from 'react';
 import { bulkAssignToGroup } from '@/app/actions/members';
 import FormDialog from '@/components/ui/form-dialog';
+import GroupChecklist from '@/components/ui/group-checklist';
 import { useT } from '@/lib/i18n/client';
 
 /*
@@ -96,17 +97,7 @@ export function BulkBar({ groups }) {
                         <p className="text-sm text-ink-gray">{t('members.noGroups')}</p>
                     ) : (
                         <div>
-                            <p className="mb-1 text-xs font-medium text-ink-gray">{t('members.bulk.chooseGroups')}</p>
-                            <ul className="max-h-60 divide-y divide-surface-border overflow-y-auto rounded-md border border-surface-border">
-                                {groups.map((g) => (
-                                    <li key={g.value}>
-                                        <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-accent">
-                                            <input type="checkbox" name="group_ids" value={g.value} className={box} />
-                                            {g.label}
-                                        </label>
-                                    </li>
-                                ))}
-                            </ul>
+                            <GroupChecklist groups={groups} label={t('members.bulk.chooseGroups')} />
                             {fieldError('group_ids') && <p className="mt-1 text-xs font-medium text-destructive">{fieldError('group_ids')}</p>}
                             {role === 'member' && <p className="mt-1 text-xs text-ink-gray">{t('members.bulk.keepAdmins')}</p>}
                         </div>

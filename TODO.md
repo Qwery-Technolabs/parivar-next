@@ -89,7 +89,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Edit member page as iconed tabs, each saved separately (Basic, Community, Details, Role & status, Password)
 - [x] Admins & sub-admins reset any member's password (not accounts ranked above them)
 - [x] First sign-in on the temporary password → forced Set password → own edit page to fill in details
-- [ ] Invite by phone on /members for admins — several people at once (rows of phone + name, optional groups to join); default password = phone number
+- [x] Invite by phone on /members for admins — several people at once (rows of phone + name, optional groups to join); default password = phone number
 
 ### Tables & filters
 - [x] One toolbar everywhere: search + Filters popup on the right (members, blood requests & donors, audit, fundraise)
@@ -103,3 +103,12 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 ### Fundraise
 - [ ] A fundraise can belong to one or more groups (not just one)
 - [ ] /fundraise/new?group=1: move Status outside the card
+
+### Later the same day
+- [x] Invite by phone: name optional (phone number stands in until they fill in details), no local-language field
+- [x] Group picker in invite / bulk dialogs: shows 5 at a time, searchable past 5 groups
+- [x] Every Filters popup is two columns; Members filters grouped (Person, Place, Community, Blood)
+- [x] Group visibility: Public (listed for everyone) / Private (only members and app-level managers); tag in list and header
+- [x] Sidebar: Home on its own; Members and Groups in the Community section
+- [x] Role label "Sabhyo" shown as "Member" (stored value unchanged)
+- [x] "Not registered yet" tag for people who never signed in: group Members tab, /members list and profile (admins only)

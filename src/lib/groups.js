@@ -70,6 +70,6 @@ export async function listGroupsForChat(userId) {
           ORDER BY (gm.user_id IS NULL), COALESCE(lm.created_at, g.created_at) DESC`,
         { userId },
     );
-    const meta = await getMetaMany('admin_groups', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);
-    return rows.map((r) => ({ ...r, avatar: meta[r.id] ?? {} }));
+    const meta = await getMetaMany('admin_groups', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color', 'visibility']);
+    return rows.map((r) => ({ ...r, avatar: meta[r.id] ?? {}, private: meta[r.id]?.visibility === 'private' }));
 }

@@ -26,7 +26,8 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
     const { t } = useT();
     return (
         <Popover
-            width="w-[min(20rem,calc(100vw-2rem))]"
+            // Two columns: wide enough for two selects side by side, never wider than the phone.
+            width="w-[min(34rem,calc(100vw-2rem))]"
             role="dialog"
             trigger={({ open, toggle, id }) => (
                 <button
@@ -49,10 +50,10 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
             )}
         >
             {(close) => (
-                <div className="space-y-3 px-3 py-2">
-                    {children}
+                <div className="px-3 py-2">
+                    <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">{children}</div>
                     {/* Pinned: Apply stays reachable however long the (scrolling) panel gets. */}
-                    <div className="sticky bottom-0 -mx-3 flex justify-end gap-2 border-t border-surface-border bg-white px-3 py-2">
+                    <div className="sticky bottom-0 -mx-3 mt-3 flex justify-end gap-2 border-t border-surface-border bg-white px-3 py-2">
                         <button
                             type="button"
                             onClick={onClear}
@@ -74,6 +75,15 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
                 </div>
             )}
         </Popover>
+    );
+}
+
+/** A titled row across both columns of a filter panel, to group related filters. */
+export function FilterSection({ title }) {
+    return (
+        <p className="col-span-full -mb-1 border-b border-surface-border pb-1 text-[11px] font-semibold tracking-wide text-ink-gray uppercase first:mt-0 not-first:mt-1">
+            {title}
+        </p>
     );
 }
 
@@ -221,7 +231,7 @@ export default function FilterBar({ search, filters = [], fixed = {}, left, clas
                             .filter((f) => visible(f, draft))
                             .map((f) =>
                                 f.type === 'switch' ? (
-                                    <div key={f.param}>
+                                    <div key={f.param} className="flex flex-col justify-end pb-1">
                                         <Switch checked={Boolean(draft[f.param])} onChange={(v) => set(f.param, v)} label={f.label} />
                                         {f.hint && <p className="mt-1 text-xs text-ink-gray">{f.hint}</p>}
                                     </div>

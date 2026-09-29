@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarClock, CalendarDays, HandCoins, Info, MessageCircle, Plus, Users } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CalendarDays, Globe, HandCoins, Info, Lock, MessageCircle, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
@@ -44,7 +44,7 @@ export default async function GroupPage({ params, searchParams }) {
     const { t, locale } = await getT();
     const tab = TABS.includes(sp1(sp.tab)) ? sp1(sp.tab) : 'discussion';
 
-    const [members, fundraises, { standing }, canFundraise, messages, upcoming] = await Promise.all([
+    const [members, fundraises, { standing, myRole }, canFundraise, messages, upcoming] = await Promise.all([
         groupMembers(group.id),
         groupFundraises(group.id),
         groupStanding(user, group.id),
@@ -52,6 +52,9 @@ export default async function GroupPage({ params, searchParams }) {
         messageCount('group', group.id),
         upcomingMeetingCount(group.id, todayLocal()),
     ]);
+    // A private group does not exist for outsiders.
+    const isPrivate = group.meta.visibility === 'private';
+    if (isPrivate && !standing && !myRole) notFound();
     // Admins edit the group; admins and sub-admins manage its members (lib/group-roles.js).
     const canManage = canManageMembership(standing);
     const canAdmin = canAdminister(standing);
@@ -74,7 +77,13 @@ export default async function GroupPage({ params, searchParams }) {
                         className="ring-2 ring-white/25"
                     />
                     <div className="min-w-0 flex-1">
-                        <h1 className="truncate text-base font-semibold">{name}</h1>
+                        <h1 className="flex items-center gap-1.5 text-base font-semibold">
+                            <span className="truncate">{name}</span>
+                            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-white/15 px-1.5 py-px text-[10px] font-medium text-white">
+                                {isPrivate ? <Lock className="size-2.5" /> : <Globe className="size-2.5" />}
+                                {t(isPrivate ? 'groups.visibility.private' : 'groups.visibility.public')}
+                            </span>
+                        </h1>
                         {/* white/70 on navy: 7.34:1 */}
                         <p className="truncate text-xs text-white/70">
                             {t('groups.memberCount', { count: members.length })}

@@ -1,5 +1,5 @@
 'use client';
-import { Search, ShieldCheck } from 'lucide-react';
+import { Globe, Lock, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import GroupAvatar from '@/components/groups/group-avatar';
@@ -42,6 +42,14 @@ export default function GroupChatList({ groups }) {
                                 <span className="flex items-center gap-1.5">
                                     <span className={`truncate text-sm text-primary ${g.unread ? 'font-bold' : 'font-semibold'}`}>{g.name}</span>
                                     {g.admin && <ShieldCheck aria-label={t('groups.admin')} className="size-3.5 shrink-0 text-brand-orange-strong" />}
+                                    <span
+                                        className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium ${
+                                            g.private ? 'bg-surface-bggray text-ink-gray' : 'bg-emerald-50 text-emerald-700'
+                                        }`}
+                                    >
+                                        {g.private ? <Lock className="size-2.5" /> : <Globe className="size-2.5" />}
+                                        {t(g.private ? 'groups.visibility.private' : 'groups.visibility.public')}
+                                    </span>
                                 </span>
                                 <span className={`block truncate text-xs ${g.unread ? 'font-medium text-ink' : g.muted ? 'italic text-ink-gray' : 'text-ink-gray'}`}>
                                     {g.preview}

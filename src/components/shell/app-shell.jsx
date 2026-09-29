@@ -69,8 +69,9 @@ function SidebarNav({ sections, footer, pathname, collapsed = false, onNavigate 
         <div className="flex min-h-0 flex-1 flex-col">
             <nav className="min-h-0 flex-1 space-y-3 overflow-y-auto px-2 py-2">
                 {sections.map((s) => (
-                    <div key={s.title}>
-                        {collapsed ? (
+                    <div key={s.key ?? s.title}>
+                        {/* An untitled section (Home) needs no caption or divider. */}
+                        {!s.title ? null : collapsed ? (
                             <div aria-hidden className="mx-3 mb-2 border-t border-white/10" />
                         ) : (
                             // white/60 on navy is 6.2:1 — a caption, readable without shouting.

@@ -94,7 +94,7 @@ function DialogForm({ action, hidden, submitLabel, submitIcon, onDone, onCancel,
             {typeof children === 'function' ? children({ fieldError, state }) : children}
             {state?.error && (
                 <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
-                    {t(state.error)}
+                    {t(state.error, state.vars)}
                 </p>
             )}
             {/* Pinned to the bottom of the scrolling dialog, so Save never scrolls out of reach. */}

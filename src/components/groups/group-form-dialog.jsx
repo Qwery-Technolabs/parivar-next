@@ -54,6 +54,12 @@ export default function GroupFormDialog({ group, onNavy = false }) {
                             />
                         </div>
                     </div>
+                    <Field label={t('groups.visibility.label')} hint={t('groups.visibility.hint')}>
+                        <select name="visibility" defaultValue={group?.meta?.visibility || 'public'} className={`${selectInput()} w-full`}>
+                            <option value="public">{t('groups.visibility.public')}</option>
+                            <option value="private">{t('groups.visibility.private')}</option>
+                        </select>
+                    </Field>
                     <Field label={t('groups.chatMode.label')} hint={t('groups.chatMode.hint')}>
                         <select name="chat_mode" defaultValue={group?.meta?.chat_mode || 'all'} className={`${selectInput()} w-full`}>
                             <option value="all">{t('groups.chatMode.all')}</option>

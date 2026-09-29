@@ -1,7 +1,7 @@
 'use client';
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { FilterPopover, SearchBox, ToolbarRow, useUrlFilters } from '@/components/ui/filter-bar';
+import { FilterPopover, FilterSection, SearchBox, ToolbarRow, useUrlFilters } from '@/components/ui/filter-bar';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import Switch from '@/components/ui/switch';
 import CasteSelect from './caste-select';
@@ -102,6 +102,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                 })
             }
         >
+            <FilterSection title={t('members.filterSections.person')} />
             <Field label={t('members.role')}>
                 <select value={draft.role} onChange={(e) => set('role', e.target.value)} className={`${selectInput()} w-full`}>
                     <option value="">{t('common.any')}</option>
@@ -112,56 +113,36 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     ))}
                 </select>
             </Field>
-            <Field label={t('members.bloodGroup')}>
-                <select
-                    value={draft.blood}
-                    onChange={(e) => set('blood', e.target.value)}
-                    className={`${selectInput()} w-full`}
-                >
-                    <option value="">{t('common.any')}</option>
-                    {BLOOD_GROUPS.map((g) => (
-                        <option key={g} value={g}>
-                            {g}
-                        </option>
-                    ))}
+            <Field label={t('members.status')}>
+                <select value={draft.status} onChange={(e) => set('status', e.target.value)} className={`${selectInput()} w-full`}>
+                    <option value="active">{t('status.active')}</option>
+                    <option value="inactive">{t('status.inactive')}</option>
+                    <option value="deceased">{t('status.deceased')}</option>
+                    <option value="all">{t('common.all')}</option>
                 </select>
             </Field>
-            {draft.blood && (
-                <div>
-                    <Switch checked={draft.compat} onChange={(v) => set('compat', v)} label={t('members.compatible')} />
-                    <p className="mt-1 text-xs text-ink-gray">{t('members.compatibleHint')}</p>
+            <Field label={t('members.gender')}>
+                <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
+                    {[
+                        ['', t('common.any')],
+                        ['male', t('gender.male')],
+                        ['female', t('gender.female')],
+                    ].map(([v, label]) => (
+                        <button
+                            key={v || 'any'}
+                            type="button"
+                            onClick={() => set('gender', v)}
+                            className={`h-8 shrink-0 rounded px-2.5 text-xs font-medium ${
+                                draft.gender === v
+                                    ? 'seg-active shadow-sm'
+                                    : 'text-ink-gray hover:text-brand-navy'
+                            }`}
+                        >
+                            {label}
+                        </button>
+                    ))}
                 </div>
-            )}
-            <Switch checked={draft.donor} onChange={(v) => set('donor', v)} label={t('members.donorsOnly')} />
-            <Field label={t('members.city')}>
-                <select value={draft.city} onChange={(e) => set('city', e.target.value)} className={`${selectInput()} w-full`}>
-                    <option value="">{t('common.any')}</option>
-                    {cities.map((c) => (
-                        <option key={c.value} value={c.value}>
-                            {c.label} ({c.count})
-                        </option>
-                    ))}
-                </select>
             </Field>
-            <Field label={t('members.village')}>
-                <select value={draft.village} onChange={(e) => set('village', e.target.value)} className={`${selectInput()} w-full`}>
-                    <option value="">{t('common.any')}</option>
-                    {villages.map((v) => (
-                        <option key={v.value} value={v.value}>
-                            {v.label} ({v.count})
-                        </option>
-                    ))}
-                </select>
-            </Field>
-            {castes.castes.length > 0 && (
-                <CasteSelect
-                    options={castes}
-                    caste={draft.caste}
-                    subcaste={draft.subcaste}
-                    anyLabel={t('common.any')}
-                    onChange={(v) => setDraft((d) => ({ ...d, ...v }))}
-                />
-            )}
             {/* A min/max pair answers one question, so it is one Field with one label. */}
             <Field label={t('members.ageRange')}>
                 <div className="flex items-center gap-2">
@@ -190,36 +171,61 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     />
                 </div>
             </Field>
-            <Field label={t('members.gender')}>
-                <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
-                    {[
-                        ['', t('common.any')],
-                        ['male', t('gender.male')],
-                        ['female', t('gender.female')],
-                    ].map(([v, label]) => (
-                        <button
-                            key={v || 'any'}
-                            type="button"
-                            onClick={() => set('gender', v)}
-                            className={`h-8 shrink-0 rounded px-2.5 text-xs font-medium ${
-                                draft.gender === v
-                                    ? 'seg-active shadow-sm'
-                                    : 'text-ink-gray hover:text-brand-navy'
-                            }`}
-                        >
-                            {label}
-                        </button>
+            <FilterSection title={t('members.filterSections.place')} />
+            <Field label={t('members.city')}>
+                <select value={draft.city} onChange={(e) => set('city', e.target.value)} className={`${selectInput()} w-full`}>
+                    <option value="">{t('common.any')}</option>
+                    {cities.map((c) => (
+                        <option key={c.value} value={c.value}>
+                            {c.label} ({c.count})
+                        </option>
                     ))}
-                </div>
-            </Field>
-            <Field label={t('members.status')}>
-                <select value={draft.status} onChange={(e) => set('status', e.target.value)} className={`${selectInput()} w-full`}>
-                    <option value="active">{t('status.active')}</option>
-                    <option value="inactive">{t('status.inactive')}</option>
-                    <option value="deceased">{t('status.deceased')}</option>
-                    <option value="all">{t('common.all')}</option>
                 </select>
             </Field>
+            <Field label={t('members.village')}>
+                <select value={draft.village} onChange={(e) => set('village', e.target.value)} className={`${selectInput()} w-full`}>
+                    <option value="">{t('common.any')}</option>
+                    {villages.map((v) => (
+                        <option key={v.value} value={v.value}>
+                            {v.label} ({v.count})
+                        </option>
+                    ))}
+                </select>
+            </Field>
+            {castes.castes.length > 0 && <FilterSection title={t('members.filterSections.community')} />}
+            {castes.castes.length > 0 && (
+                <CasteSelect
+                    options={castes}
+                    caste={draft.caste}
+                    subcaste={draft.subcaste}
+                    anyLabel={t('common.any')}
+                    onChange={(v) => setDraft((d) => ({ ...d, ...v }))}
+                />
+            )}
+            <FilterSection title={t('members.filterSections.blood')} />
+            <Field label={t('members.bloodGroup')}>
+                <select
+                    value={draft.blood}
+                    onChange={(e) => set('blood', e.target.value)}
+                    className={`${selectInput()} w-full`}
+                >
+                    <option value="">{t('common.any')}</option>
+                    {BLOOD_GROUPS.map((g) => (
+                        <option key={g} value={g}>
+                            {g}
+                        </option>
+                    ))}
+                </select>
+            </Field>
+            <div className="flex flex-col justify-end pb-1">
+                <Switch checked={draft.donor} onChange={(v) => set('donor', v)} label={t('members.donorsOnly')} />
+            </div>
+            {draft.blood && (
+                <div className="flex flex-col justify-end pb-1">
+                    <Switch checked={draft.compat} onChange={(v) => set('compat', v)} label={t('members.compatible')} />
+                    <p className="mt-1 text-xs text-ink-gray">{t('members.compatibleHint')}</p>
+                </div>
+            )}
         </FilterPopover>
     );
 }

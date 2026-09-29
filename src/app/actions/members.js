@@ -10,8 +10,9 @@ import { postMemberNote } from '@/lib/chat';
 import { isDescendant, MEMBER_META_KEYS } from '@/lib/members';
 import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
+import { ensureInvitedUser } from '@/lib/invite';
 import { normalizePhone } from '@/lib/phone';
-import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canManageMembers, canResetPassword } from '@/lib/roles';
+import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword } from '@/lib/roles';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -352,5 +353,53 @@ export async function bulkAssignToGroup(prev, fd) {
         ok: true,
         message: r.skipped.length ? 'members.bulk.doneSkipped' : 'members.bulk.done',
         vars: { added: r.added, promoted: r.promoted, unchanged: r.unchanged, skipped: r.skipped.length },
+    };
+}
+
+/**
+ * Invite several people by phone number from the Members page (sub-admin and up).
+ * Fields: phone[] + optional full_name[] (same order, at most 50 rows; blank rows ignored), group_ids[].
+ * New numbers get a member account whose first password is the number itself; on first
+ * sign-in they must set their own and then fill in their details (lib/invite.js). Numbers
+ * already registered are left as they are. Everyone invited is then added to the chosen
+ * groups the inviter may manage.
+ */
+export async function inviteMembers(prev, fd) {
+    const actor = await getCurrentUser();
+    if (!actor || !canInviteMembers(actor.role)) return FORBIDDEN;
+    const phones = fd.getAll('phone').map((v) => String(v).trim());
+    const names = fd.getAll('full_name').map((v) => String(v).trim().slice(0, 150));
+    const rows = phones.map((raw, i) => ({ raw, name: names[i] ?? '', row: i + 1 })).filter((r) => r.raw || r.name).slice(0, 50);
+    if (!rows.length) return { error: 'members.invite.none' };
+
+    // Validate every row first, so one bad line does not leave half the list invited.
+    const bad = [];
+    const seen = new Set();
+    for (const r of rows) {
+        r.phone = normalizePhone(r.raw);
+        if (!r.phone || seen.has(r.phone)) bad.push(r.row);
+        else seen.add(r.phone);
+    }
+    if (bad.length) return { error: 'members.invite.badRows', vars: { rows: bad.join(', ') } };
+
+    const out = { created: 0, existing: 0, failed: [] };
+    const ids = [];
+    for (const r of rows) {
+        const res = await ensureInvitedUser(actor, r.phone, r.name);
+        if (res.error) {
+            out.failed.push(r.row);
+            continue;
+        }
+        ids.push(res.id);
+        if (res.status === 'existing') out.existing++;
+        else out.created++;
+    }
+    const groupIds = [...new Set(fd.getAll('group_ids').map(Number))].filter((n) => n > 0).slice(0, 50);
+    if (ids.length && groupIds.length) await applyGroupMembership(actor, ids, groupIds, 'member');
+    revalidatePath('/members');
+    return {
+        ok: true,
+        message: out.failed.length ? 'members.invite.doneFailed' : 'members.invite.done',
+        vars: { created: out.created, existing: out.existing, rows: out.failed.join(', ') },
     };
 }

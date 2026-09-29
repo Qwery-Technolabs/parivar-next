@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { canAdministerGroup, groupStanding } from '@/lib/access';
-import { canActOnRole, CHAT_MODES, GROUP_ROLES } from '@/lib/group-roles';
+import { canActOnRole, CHAT_MODES, GROUP_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
@@ -40,6 +40,7 @@ export async function saveGroup(prev, fd) {
     // Icon / emoji / ≤2-letter text on a colour; unknown values are dropped (see lib/group-avatar).
     // Who may post in the discussion: everyone, or only admins, sub-admins and speakers.
     const chatMode = oneOf(fd, 'chat_mode', CHAT_MODES, 'all');
+    const visibility = oneOf(fd, 'visibility', GROUP_VISIBILITY, 'public');
     const avatar = sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10));
 
     const savedId = await withTransaction(async (q) => {
@@ -60,7 +61,7 @@ export async function saveGroup(prev, fd) {
             );
         }
         // 'all' is the default, stored as absence.
-        await setMeta('admin_groups', gid, { description, ...avatar, chat_mode: chatMode === 'all' ? '' : chatMode }, q);
+        await setMeta('admin_groups', gid, { description, ...avatar, chat_mode: chatMode === 'all' ? '' : chatMode, visibility: visibility === 'public' ? '' : visibility }, q);
         return gid;
     });
     await audit(actor.id, groupId ? 'group.update' : 'group.create', 'group', savedId, { name });
@@ -116,8 +117,8 @@ export async function inviteGroupMember(prev, fd) {
     const fullName = str(fd, 'full_name', 150);
     if (!phone) return { fieldErrors: { phone: 'auth.errors.phoneInvalid' } };
 
-    const user = await ensureInvitedUser(actor, phone, fullName, strOrNull(fd, 'full_name_local', 150));
-    if (user.error) return { fieldErrors: user.error === 'common.required' ? { full_name: user.error } : { phone: user.error } };
+    const user = await ensureInvitedUser(actor, phone, fullName);
+    if (user.error) return { fieldErrors: { phone: user.error } };
     const created = user.status === 'created';
 
     const already = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :groupId AND user_id = :uid', { groupId, uid: user.id });

@@ -10,7 +10,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getFamily, getMember, memberDonations, memberGroups } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canManageAllFundraises, canResetPassword } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword } from '@/lib/roles';
 
 export async function generateMetadata({ params }) {
     const { id } = await params;
@@ -50,7 +50,11 @@ export default async function MemberPage({ params }) {
         <div>
             <PageHeader
                 title={name}
-                subtitle={otherName && otherName !== name ? otherName : undefined}
+                subtitle={
+                    [otherName && otherName !== name ? otherName : null, canInviteMembers(user.role) && !member.last_login_at ? t('groups.invite.notJoined') : null]
+                        .filter(Boolean)
+                        .join(' · ') || undefined
+                }
                 back={{ href: '/members', label: t('members.title') }}
                 actions={
                     <>

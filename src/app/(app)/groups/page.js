@@ -30,7 +30,8 @@ export default async function GroupsPage() {
     const manager = canManageGroups(user.role);
     const rows = await listGroupsForChat(user.id);
 
-    const groups = rows.map((g) => {
+    // A private group is listed only for its members (and app-level group managers).
+    const groups = rows.filter((g) => !g.private || manager || g.my_role).map((g) => {
         // Only people who can read a discussion see its preview and unread count.
         const canRead = manager || Boolean(g.my_role);
         const name = (locale !== 'en' && g.name_local) || g.name;
@@ -52,6 +53,7 @@ export default async function GroupsPage() {
             id: g.id,
             name,
             avatar: g.avatar,
+            private: g.private,
             members: Number(g.members),
             admin: g.my_role === 'admin',
             member: Boolean(g.my_role),

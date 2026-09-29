@@ -22,10 +22,11 @@ export default async function AppLayout({ children }) {
     const samaj = (locale === 'gu' && general.samaj_name_local) || general.samaj_name;
 
     const sections = [
+        // Home stands alone at the top; the community pages get their own titled section.
+        { key: 'home', items: [{ href: '/', icon: 'home', label: t('nav.dashboard') }] },
         {
             title: t('nav.sections.community'),
             items: [
-                { href: '/', icon: 'home', label: t('nav.dashboard') },
                 { href: '/members', icon: 'users', label: t('nav.members') },
                 // A fundraise always belongs to a group, so it sits under Groups.
                 { href: '/groups', icon: 'group', label: t('nav.groups'), children: [{ href: '/fundraise', icon: 'fund', label: t('nav.fundraise') }] },
