@@ -1,0 +1,128 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* DESIGN.md §1 — three layers:
+   @theme inline  LITERALS, fixed brand values
+   :root          SEMANTIC roles, overridable
+   .theme-*       a scope that retargets the semantic layer for one subtree */
+
+@theme inline {
+  /* ── literal brand palette (§2) ── */
+  --color-brand-navy: #172f56;
+  --color-brand-navy-soft: #30466a;
+  --color-brand-orange: #f79812;
+  --color-brand-orange-dark: #e6890f;
+  --color-brand-blue: #66aae1;
+  --color-brand-blue-deep: #003294;
+  --color-ink: #041527;
+  --color-ink-gray: #475467;
+  --color-surface-border: #d3d5d8;
+  --color-surface-bggray: #e9eaf3;
+  /* surface-bggray/50 composited over white — OPAQUE, for sticky table heads */
+  --color-surface-login: #f4f5f9;
+
+  /* ── semantic, pointing at :root so a .theme-* scope can move them ── */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+
+  /* Geist has no Gujarati glyphs; Noto Sans Gujarati takes over per character. */
+  --font-sans: var(--font-geist-sans), var(--font-gujarati), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-sans);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  --background: #ffffff;
+  --foreground: #041527;
+  --primary: #172f56;
+  --primary-foreground: #ffffff;
+  --secondary: #e9eaf3;
+  --secondary-foreground: #172f56;
+  --accent: #f3f9ff;
+  --accent-foreground: #172f56;
+  --muted: #f4f5f9;
+  --muted-foreground: #475467;
+  --popover: #ffffff;
+  --popover-foreground: #041527;
+  --card: #ffffff;
+  --card-foreground: #041527;
+  --border: #d3d5d8;
+  --input: #d3d5d8;
+  --ring: #66aae1;
+  --destructive: #c0262d; /* 5.90:1 on white */
+}
+
+/* Fundraise area: white on #003294 is 11.15:1 (AAA). */
+.theme-fundraise {
+  --primary: #003294;
+  --accent: #eef3ff;
+  --secondary-foreground: #003294;
+  --accent-foreground: #003294;
+}
+
+/* Blood area: white on #9f1239 is 8.02:1 (AAA); #9f1239 on #fff1f2 is 7.30:1. */
+.theme-blood {
+  --primary: #9f1239;
+  --accent: #fff1f2;
+  --secondary-foreground: #9f1239;
+  --accent-foreground: #9f1239;
+}
+
+/* §5 — a backstop, not a licence: wide content scrolls inside its own container. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Gujarati script sits lower and has taller conjuncts; a touch more line-height
+   keeps matras from colliding in 12–14px table rows. */
+:lang(gu) {
+  line-height: 1.6;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    overflow: visible !important;
+  }
+}

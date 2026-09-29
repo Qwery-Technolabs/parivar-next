@@ -1,0 +1,304 @@
+import 'server-only';
+import { getMeta, inList, query, queryOne } from './db';
+import { BLOOD_DONORS_FOR, BLOOD_GROUPS, ROLES } from './roles';
+import { sp1 } from './url';
+
+export const MEMBER_META_KEYS = ['address', 'occupation', 'education', 'native_place', 'email', 'alt_phone', 'bio'];
+const STATUSES = ['active', 'inactive', 'deceased'];
+const GENDERS = ['male', 'female', 'other'];
+
+/**
+ * Parse the directory's URL params once, so the page and the filter control cannot
+ * disagree about what a param means. Unknown values fall back to the default (absence).
+ */
+export function resolveMemberFilters(sp = {}) {
+    const pick = (v, allowed) => (allowed.includes(sp1(v)) ? sp1(v) : '');
+    const posInt = (v) => (/^[1-9]d{0,9}$/.test(sp1(v)) ? Number(sp1(v)) : null);
+    return {
+        q: sp1(sp.q).trim().slice(0, 60),
+        role: pick(sp.role, ROLES),
+        blood: pick(sp.blood, BLOOD_GROUPS),
+        compat: sp1(sp.compat) === '1',
+        donor: sp1(sp.donor) === '1',
+        village: sp1(sp.village).trim().slice(0, 100),
+        gender: pick(sp.gender, GENDERS),
+        caste: posInt(sp.caste),
+        // A sub-caste only means something inside its caste.
+        subcaste: posInt(sp.caste) ? posInt(sp.subcaste) : null,
+        // Default view is active members; `status=all` shows everyone.
+        status: sp1(sp.status) === 'all' ? 'all' : pick(sp.status, STATUSES) || 'active',
+    };
+}
+
+export function activeFilterCount(f) {
+    return [f.role, f.blood, f.donor, f.village, f.gender, f.caste, f.status !== 'active'].filter(Boolean).length;
+}
+
+function whereFor(f) {
+    const where = [];
+    const params = {};
+    if (f.status !== 'all') {
+        where.push('u.status = :status');
+        params.status = f.status;
+    }
+    if (f.q) {
+        const digits = f.q.replace(/\D/g, '');
+        params.like = `%${f.q}%`;
+        const parts = ['u.full_name LIKE :like', 'u.full_name_gu LIKE :like', 'u.village LIKE :like'];
+        if (digits.length >= 3) {
+            params.phone = `%${digits}%`;
+            parts.push('u.phone LIKE :phone');
+        }
+        where.push(`(${parts.join(' OR ')})`);
+    }
+    if (f.role) {
+        where.push('u.role = :role');
+        params.role = f.role;
+    }
+    if (f.blood) {
+        // "Compatible" widens the filter to every group that can GIVE to the chosen one.
+        const groups = f.compat ? BLOOD_DONORS_FOR[f.blood] : [f.blood];
+        const l = inList(groups, 'bg');
+        where.push(`u.blood_group IN (${l.sql})`);
+        Object.assign(params, l.params);
+    }
+    if (f.donor) where.push('u.is_blood_donor = 1');
+    if (f.village) {
+        where.push('u.village = :village');
+        params.village = f.village;
+    }
+    if (f.gender) {
+        where.push('u.gender = :gender');
+        params.gender = f.gender;
+    }
+    if (f.caste) {
+        where.push('u.caste_id = :caste');
+        params.caste = f.caste;
+        if (f.subcaste) {
+            where.push('u.subcaste_id = :subcaste');
+            params.subcaste = f.subcaste;
+        }
+    }
+    return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
+}
+
+/**
+ * @param {ReturnType<typeof resolveMemberFilters>} f
+ * @param {number} page    clamped by the caller (normalizePage)
+ * @param {number} perPage clamped by the caller (normalizePerPage) — inlined as a literal
+ */
+export async function listMembers(f, page, perPage) {
+    const w = whereFor(f);
+    const offset = (page - 1) * perPage;
+    const [countRow, rows] = await Promise.all([
+        queryOne(`SELECT COUNT(*) AS n FROM users_list u ${w.sql}`, w.params),
+        query(
+            `SELECT u.id, u.full_name, u.full_name_gu, u.phone, u.role, u.village, u.blood_group,
+                    u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login,
+                    c.name AS caste_name, c.name_gu AS caste_name_gu, sc.name AS subcaste_name, sc.name_gu AS subcaste_name_gu
+               FROM users_list u
+               LEFT JOIN admin_castes c ON c.id = u.caste_id
+               LEFT JOIN admin_castes sc ON sc.id = u.subcaste_id
+               ${w.sql}
+              ORDER BY u.full_name, u.id
+              LIMIT ${perPage} OFFSET ${offset}`,
+            w.params,
+        ),
+    ]);
+    return { total: countRow.n, rows };
+}
+
+export async function listVillages() {
+    const rows = await query(
+        `SELECT village, COUNT(*) AS n FROM users_list WHERE village IS NOT NULL AND village <> ''
+          GROUP BY village ORDER BY village`,
+    );
+    return rows.map((r) => ({ value: r.village, label: r.village, count: r.n }));
+}
+
+export async function getMember(id) {
+    const row = await queryOne(
+        `SELECT u.id, u.phone, u.full_name, u.full_name_gu, u.gender, u.dob, u.blood_group, u.village, u.role, u.language,
+                u.is_blood_donor, u.status, u.last_login_at, u.created_at, (u.password_hash IS NOT NULL) AS can_login,
+                u.caste_id, u.subcaste_id, c.name AS caste_name, c.name_gu AS caste_name_gu,
+                sc.name AS subcaste_name, sc.name_gu AS subcaste_name_gu
+           FROM users_list u
+           LEFT JOIN admin_castes c ON c.id = u.caste_id
+           LEFT JOIN admin_castes sc ON sc.id = u.subcaste_id
+          WHERE u.id = :id`,
+        { id },
+    );
+    if (!row) return null;
+    return { ...row, meta: await getMeta('users_list', id) };
+}
+
+export async function memberGroups(userId) {
+    return query(
+        `SELECT g.id, g.name, g.name_gu, gm.member_role
+           FROM admin_group_members gm JOIN admin_groups g ON g.id = gm.group_id
+          WHERE gm.user_id = :userId AND g.status = 'active'
+          ORDER BY gm.member_role = 'admin' DESC, g.name`,
+        { userId },
+    );
+}
+
+export async function listGroupsBrief() {
+    return query(`SELECT id, name, name_gu FROM admin_groups WHERE status = 'active' ORDER BY name`);
+}
+
+// ── family ─────────────────────────────────────────────────────────────────────
+
+const PERSON_COLS = 'u.id, u.full_name, u.full_name_gu, u.gender, u.dob, u.status, u.blood_group';
+
+/** Direct family of one person. Children/siblings are derived from parent edges. */
+export async function getFamily(id) {
+    const [parents, spouses, children, siblings] = await Promise.all([
+        query(
+            `SELECT r.relation, ${PERSON_COLS} FROM users_relations r JOIN users_list u ON u.id = r.relative_id
+              WHERE r.user_id = :id AND r.relation IN ('father','mother') ORDER BY r.relation = 'mother'`,
+            { id },
+        ),
+        query(
+            `SELECT ${PERSON_COLS} FROM users_relations r JOIN users_list u ON u.id = r.relative_id
+              WHERE r.user_id = :id AND r.relation = 'spouse' ORDER BY u.full_name`,
+            { id },
+        ),
+        query(
+            `SELECT DISTINCT ${PERSON_COLS} FROM users_relations r JOIN users_list u ON u.id = r.user_id
+              WHERE r.relative_id = :id AND r.relation IN ('father','mother') ORDER BY u.dob IS NULL, u.dob, u.full_name`,
+            { id },
+        ),
+        query(
+            `SELECT DISTINCT ${PERSON_COLS} FROM users_relations mine
+               JOIN users_relations theirs ON theirs.relative_id = mine.relative_id
+                                          AND theirs.relation IN ('father','mother') AND theirs.user_id <> :id
+               JOIN users_list u ON u.id = theirs.user_id
+              WHERE mine.user_id = :id AND mine.relation IN ('father','mother')
+              ORDER BY u.dob IS NULL, u.dob, u.full_name`,
+            { id },
+        ),
+    ]);
+    return {
+        father: parents.find((p) => p.relation === 'father') ?? null,
+        mother: parents.find((p) => p.relation === 'mother') ?? null,
+        spouses,
+        children,
+        siblings,
+    };
+}
+
+/**
+ * Tree around one person: up to 2 generations of ancestors and 2 of descendants, with
+ * spouses alongside. One query per generation (the ids of each level drive the next),
+ * never a recursive query per person.
+ */
+export async function getFamilyTree(rootId, depth = 2) {
+    const people = new Map();
+    const edges = []; // { child, parent, relation }
+    const spouseEdges = [];
+
+    const load = async (ids) => {
+        const missing = ids.filter((i) => !people.has(i));
+        if (!missing.length) return;
+        const l = inList(missing, 'p');
+        const rows = await query(`SELECT ${PERSON_COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params);
+        rows.forEach((r) => people.set(r.id, r));
+    };
+
+    await load([rootId]);
+    if (!people.has(rootId)) return null;
+
+    // Ancestors
+    let level = [rootId];
+    const up = [];
+    for (let g = 0; g < depth && level.length; g++) {
+        const l = inList(level, 'c');
+        const rows = await query(
+            `SELECT user_id AS child, relative_id AS parent, relation FROM users_relations
+              WHERE user_id IN (${l.sql}) AND relation IN ('father','mother')`,
+            l.params,
+        );
+        edges.push(...rows);
+        level = [...new Set(rows.map((r) => r.parent))];
+        up.push(level);
+        await load(level);
+    }
+
+    // Descendants
+    level = [rootId];
+    const down = [];
+    for (let g = 0; g < depth && level.length; g++) {
+        const l = inList(level, 'pa');
+        const rows = await query(
+            `SELECT user_id AS child, relative_id AS parent, relation FROM users_relations
+              WHERE relative_id IN (${l.sql}) AND relation IN ('father','mother')`,
+            l.params,
+        );
+        edges.push(...rows);
+        level = [...new Set(rows.map((r) => r.child))];
+        down.push(level);
+        await load(level);
+    }
+
+    // Spouses of everyone on the root's line
+    const all = [...people.keys()];
+    const sl = inList(all, 's');
+    const sp = await query(
+        `SELECT user_id AS a, relative_id AS b FROM users_relations WHERE relation = 'spouse' AND user_id IN (${sl.sql})`,
+        sl.params,
+    );
+    spouseEdges.push(...sp);
+    await load(sp.map((r) => r.b));
+
+    const pack = (id) => {
+        const p = people.get(id);
+        const spouses = spouseEdges.filter((e) => e.a === id).map((e) => people.get(e.b)).filter(Boolean);
+        return { ...p, spouses };
+    };
+    // Generation rows, oldest first. A spouse already on the row as someone's partner is not repeated.
+    const row = (ids) => {
+        const seen = new Set();
+        const out = [];
+        for (const id of ids) {
+            if (seen.has(id)) continue;
+            const node = pack(id);
+            seen.add(id);
+            node.spouses.forEach((s) => seen.add(s.id));
+            out.push(node);
+        }
+        return out;
+    };
+    return {
+        rootId,
+        generations: [
+            ...up.map((ids) => row(ids)).reverse(),
+            row([rootId]),
+            ...down.map((ids) => row(ids)),
+        ].filter((r) => r.length),
+        rootIndex: up.filter((ids) => ids.length).length,
+        edges,
+    };
+}
+
+/** Would making `ancestorId` a parent of `childId` create a cycle? (Is ancestorId a descendant of childId?) */
+export async function isDescendant(candidateId, ofId) {
+    let level = [ofId];
+    const seen = new Set(level);
+    for (let depth = 0; depth < 12 && level.length; depth++) {
+        const l = inList(level, 'd');
+        const rows = await query(
+            `SELECT user_id FROM users_relations WHERE relative_id IN (${l.sql}) AND relation IN ('father','mother')`,
+            l.params,
+        );
+        const next = [];
+        for (const r of rows) {
+            if (r.user_id === candidateId) return true;
+            if (!seen.has(r.user_id)) {
+                seen.add(r.user_id);
+                next.push(r.user_id);
+            }
+        }
+        level = next;
+    }
+    return false;
+}
