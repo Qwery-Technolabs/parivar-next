@@ -14,7 +14,9 @@ export function normalizeLocale(value) {
  * key itself, so a gap shows up on screen instead of rendering as nothing.
  */
 export function translate(dict, key, vars) {
-    const raw = key.split('.').reduce((node, part) => (node == null ? node : node[part]), dict);
+    let raw = key.split('.').reduce((node, part) => (node == null ? node : node[part]), dict);
+    // Plural entries are { one, other }: "1 member" / "3 members", picked by vars.count.
+    if (raw && typeof raw === 'object' && typeof raw.other === 'string') raw = Number(vars?.count) === 1 ? (raw.one ?? raw.other) : raw.other;
     if (typeof raw !== 'string') return key;
     if (!vars) return raw;
     return raw.replace(/\{(\w+)\}/g, (m, name) => (vars[name] ?? m));

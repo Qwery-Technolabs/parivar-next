@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
-import PageHeader, { Card } from '@/components/shell/page-header';
+import PageHeader from '@/components/shell/page-header';
 import { adminGroupIds, canCreateFundraiseIn } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
@@ -45,17 +45,17 @@ export default async function NewFundraisePage({ searchParams }) {
                 subtitle={localized(group, 'name', locale)}
                 back={{ href: `/groups/${groupId}`, label: localized(group, 'name', locale) }}
             />
-            <Card>
-                <CampaignForm
+            <CampaignForm
                     groups={allowed}
                     defaultGroupId={groupId}
+                    // Other groups it may also be shown in: the ones this user may create in.
+                    otherGroups={allowed.filter((g) => g.id !== groupId)}
                     cancelHref={`/groups/${groupId}`}
                     locations={locations}
                     defaultPublic={settings.default_public}
                     castes={castes}
                     suggestions={suggestions}
                 />
-            </Card>
         </div>
     );
 }

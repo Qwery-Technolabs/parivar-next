@@ -75,6 +75,7 @@ export async function fundraiseTeamRole(userId, campaignId) {
  *   teamRole     — 'admin' grants manage; organizer / treasurer / collector / volunteer are
  *                  informational (shown and notified, no write access to the ledger).
  * Viewing needs no permission: every signed-in member sees every non-draft fundraise.
+ *   groupAdmin   — an admin of ANY group the fundraise is shown in (fundraise_groups) manages it.
  * @param {{id: number, role: string}} user
  * @param {{id: number, group_id: number|null}} campaign
  */
@@ -84,7 +85,7 @@ export async function fundraisePermissions(user, campaign) {
     const appLevel = canManageAllFundraises(user.role);
     const [teamRole, groupAdmin] = await Promise.all([
         fundraiseTeamRole(user.id, campaign.id),
-        !appLevel && campaign.group_id ? isGroupAdmin(user.id, campaign.group_id) : false,
+        !appLevel ? isAdminOfFundraiseGroup(user.id, campaign.id) : false,
     ]);
     // A fundraise admin (its creator, or anyone an admin promoted) manages it even without
     // being a group admin; once demoted, they lose it like anyone else.
@@ -99,6 +100,30 @@ export async function fundraisePermissions(user, campaign) {
  */
 export async function canManageFundraise(user, campaign) {
     return (await fundraisePermissions(user, campaign)).manage;
+}
+
+/** Admin of any group this fundraise is shown in (fundraise_groups)? */
+export async function isAdminOfFundraiseGroup(userId, campaignId) {
+    if (!userId || !campaignId) return false;
+    const row = await queryOne(
+        `SELECT 1 AS ok FROM fundraise_groups fg
+           JOIN admin_group_members gm ON gm.group_id = fg.group_id AND gm.user_id = :userId AND gm.member_role = 'admin'
+          WHERE fg.campaign_id = :campaignId LIMIT 1`,
+        { userId, campaignId },
+    );
+    return Boolean(row);
+}
+
+/** Member (any role) of any group this fundraise is shown in? */
+export async function isInFundraiseGroup(userId, campaignId) {
+    if (!userId || !campaignId) return false;
+    const row = await queryOne(
+        `SELECT 1 AS ok FROM fundraise_groups fg
+           JOIN admin_group_members gm ON gm.group_id = fg.group_id AND gm.user_id = :userId
+          WHERE fg.campaign_id = :campaignId LIMIT 1`,
+        { userId, campaignId },
+    );
+    return Boolean(row);
 }
 
 /** May the user START a fundraise under this group (null group = only app-level managers)? */

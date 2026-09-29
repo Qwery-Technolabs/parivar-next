@@ -151,6 +151,22 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     >
                         <ArrowLeft className="size-3.5" /> {groupName}
                     </Link>
+                    {/* Also shown in other groups: one chip each (the back link is the home group). */}
+                    {(campaign.groups ?? []).length > 1 && (
+                        <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                            {campaign.groups
+                                .filter((g) => g.id !== campaign.group_id)
+                                .map((g) => (
+                                    <Link
+                                        key={g.id}
+                                        href={`/groups/${g.id}`}
+                                        className="rounded-full bg-white/15 px-2 py-px text-[11px] font-medium text-white hover:bg-white/25"
+                                    >
+                                        {localized(g, 'name', locale)}
+                                    </Link>
+                                ))}
+                        </span>
+                    )}
                     <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
                         <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>
                         <div className="flex flex-wrap items-center gap-2">

@@ -90,12 +90,46 @@ async function writeAudience(q, campaignId, rows) {
         });
 }
 
+/**
+ * The groups a fundraise is shown in (fundraise_groups): the home group plus extras.
+ * Adding or removing a group needs the right to start a fundraise there; links the editor
+ * cannot manage are kept as they are. Returns an error key when an extra is not allowed.
+ */
+async function planCampaignGroups(user, campaignId, homeId, extraIds) {
+    const wanted = new Set([homeId, ...extraIds]);
+    const existing = campaignId
+        ? new Set((await query('SELECT group_id FROM fundraise_groups WHERE campaign_id = :campaignId', { campaignId })).map((r) => r.group_id))
+        : new Set();
+    const add = [...wanted].filter((g) => !existing.has(g));
+    const drop = [...existing].filter((g) => !wanted.has(g));
+    for (const g of add) {
+        // The home group was already checked by the caller.
+        if (g !== homeId && !(await canCreateFundraiseIn(user, g))) return { error: 'fundraise.errors.extraGroup' };
+    }
+    const dropAllowed = [];
+    for (const g of drop) if (await canCreateFundraiseIn(user, g)) dropAllowed.push(g);
+    const exists = add.length ? await query(`SELECT id FROM admin_groups WHERE id IN (${add.map((_, i) => `:g${i}`).join(',')})`, Object.fromEntries(add.map((g, i) => [`g${i}`, g]))) : [];
+    if (exists.length !== add.length) return { error: 'fundraise.errors.extraGroup' };
+    return { add, drop: dropAllowed };
+}
+
+async function writeCampaignGroups(q, campaignId, plan, userId) {
+    for (const g of plan.add) {
+        await q('INSERT IGNORE INTO fundraise_groups (campaign_id, group_id, added_by) VALUES (:campaignId, :g, :userId)', { campaignId, g, userId });
+    }
+    for (const g of plan.drop) {
+        await q('DELETE FROM fundraise_groups WHERE campaign_id = :campaignId AND group_id = :g', { campaignId, g });
+    }
+}
+
 export async function saveCampaign(prev, fd) {
     const user = await getCurrentUser();
     if (!user) return FORBIDDEN;
 
     const campaignId = id(fd, 'id');
     const groupId = id(fd, 'group_id');
+    // Also shown in these groups (besides the home group).
+    const extraGroupIds = [...new Set(fd.getAll('extra_group_ids').map(Number))].filter((n) => n > 0 && n !== groupId).slice(0, 50);
     const title = str(fd, 'title', 200);
     const rawTarget = str(fd, 'target_amount', 20);
     const target = rawTarget ? money(fd, 'target_amount') : null;
@@ -140,6 +174,8 @@ export async function saveCampaign(prev, fd) {
         // Moving a fundraise into another group needs the right to create there too.
         if (groupId !== campaign.group_id && !(await canCreateFundraiseIn(user, groupId)))
             return { fieldErrors: { group_id: 'fundraise.errors.group' } };
+        const plan = await planCampaignGroups(user, campaignId, groupId, extraGroupIds);
+        if (plan.error) return { fieldErrors: { extra_group_ids: plan.error } };
         await withTransaction(async (q) => {
             await q(
                 `UPDATE fundraise_campaigns
@@ -150,6 +186,7 @@ export async function saveCampaign(prev, fd) {
             );
             await setMeta('fundraise_campaigns', campaignId, meta, q);
             await writeAudience(q, campaignId, audience);
+            await writeCampaignGroups(q, campaignId, plan, user.id);
         });
         await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title, audience: audience.length });
         refreshCampaign(campaignId);
@@ -157,6 +194,8 @@ export async function saveCampaign(prev, fd) {
     }
 
     if (!(await canCreateFundraiseIn(user, groupId))) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
+    const plan = await planCampaignGroups(user, null, groupId, extraGroupIds);
+    if (plan.error) return { fieldErrors: { extra_group_ids: plan.error } };
     // The public switch on the create form defaults to the fundraise_settings.default_public value.
     const isPublic = bool(fd, 'is_public');
     const newId = await withTransaction(async (q) => {
@@ -167,6 +206,7 @@ export async function saveCampaign(prev, fd) {
         );
         await setMeta('fundraise_campaigns', r.insertId, meta, q);
         await writeAudience(q, r.insertId, audience);
+        await writeCampaignGroups(q, r.insertId, plan, user.id);
         // The creator is admin of this fundraise by default (fundraise-level, independent of
         // their group role); other admins can demote them later.
         await q(

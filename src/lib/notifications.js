@@ -60,14 +60,14 @@ export async function donorIdsFor(groups) {
     return rows.map((r) => r.id);
 }
 
-/** Everyone connected to a fundraise: its team plus the members of its group. */
+/** Everyone connected to a fundraise: its team plus the members of every group it is shown in. */
 export async function fundraiseAudienceIds(campaignId) {
     const rows = await query(
         `SELECT user_id FROM fundraise_members WHERE campaign_id = :campaignId
          UNION
          SELECT gm.user_id FROM admin_group_members gm
-           JOIN fundraise_campaigns c ON c.group_id = gm.group_id
-          WHERE c.id = :campaignId`,
+           JOIN fundraise_groups fg ON fg.group_id = gm.group_id
+          WHERE fg.campaign_id = :campaignId`,
         { campaignId },
     );
     return rows.map((r) => r.user_id);

@@ -5,7 +5,7 @@ import { canActOnRole, CHAT_MODES, GROUP_ROLES, GROUP_VISIBILITY } from '@/lib/g
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
-import { ensureInvitedUser } from '@/lib/invite';
+import { deleteUnusedInvitee, ensureInvitedUser } from '@/lib/invite';
 import { postMemberNote } from '@/lib/chat';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { id, oneOf, str, strOrNull } from '@/lib/forms';
@@ -161,7 +161,11 @@ export async function setGroupMemberRole(groupId, userId, memberRole) {
     return { ok: true, message: 'common.saved' };
 }
 
-export async function removeGroupMember(groupId, userId) {
+/**
+ * Remove someone from a group. With deleteAccount, an invited person who never signed in and
+ * is in no other group also loses the account (lib/invite.js deleteUnusedInvitee decides).
+ */
+export async function removeGroupMember(groupId, userId, deleteAccount = false) {
     const actor = await getCurrentUser();
     const gid = Number(groupId);
     const uid = Number(userId);
@@ -175,6 +179,8 @@ export async function removeGroupMember(groupId, userId) {
     const r = await query('DELETE FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     await audit(actor.id, 'group.member.remove', 'group', gid, { userId: uid });
     if (r.affectedRows) await postMemberNote(gid, actor.id, 'removed', [uid]);
+    const deleted = deleteAccount === true && (await deleteUnusedInvitee(actor, uid));
     revalidatePath(`/groups/${gid}`);
-    return { ok: true, message: 'common.deleted' };
+    if (deleted) revalidatePath('/members');
+    return { ok: true, message: deleted ? 'groups.invite.removedDeleted' : 'common.deleted' };
 }

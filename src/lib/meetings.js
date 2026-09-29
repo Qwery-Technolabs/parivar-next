@@ -36,8 +36,9 @@ export async function meetingScope(user, scope, scopeId) {
         if (!c) return null;
         const people = await query(
             `SELECT user_id FROM fundraise_members WHERE campaign_id = :scopeId
-             UNION SELECT user_id FROM admin_group_members WHERE group_id = :groupId`,
-            { scopeId, groupId: c.group_id },
+             UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id
+              WHERE fg.campaign_id = :scopeId`,
+            { scopeId },
         );
         return {
             scope,

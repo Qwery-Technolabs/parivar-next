@@ -269,6 +269,21 @@ CREATE TABLE IF NOT EXISTS fundraise_campaignsmeta (
     CONSTRAINT fk_fundraise_camp_meta FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A fundraise can appear in several groups. fundraise_campaigns.group_id stays its home
+-- group (breadcrumb, meetings); this table lists every group it is shown in, home included.
+CREATE TABLE IF NOT EXISTS fundraise_groups (
+    campaign_id INT UNSIGNED NOT NULL,
+    group_id    INT UNSIGNED NOT NULL,
+    added_by    INT UNSIGNED NULL,
+    added_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (campaign_id, group_id),
+    KEY idx_fundraise_groups_group (group_id),
+    CONSTRAINT fk_fundraise_groups_campaign FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE,
+    CONSTRAINT fk_fundraise_groups_group    FOREIGN KEY (group_id)    REFERENCES admin_groups (id) ON DELETE CASCADE,
+    CONSTRAINT fk_fundraise_groups_by       FOREIGN KEY (added_by)    REFERENCES users_list (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 -- donor_name is always stored, even when user_id is set: the public list must not
 -- change if the member later edits their profile name.
 CREATE TABLE IF NOT EXISTS fundraise_contributions (

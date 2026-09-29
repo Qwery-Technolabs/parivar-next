@@ -67,8 +67,8 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] Production build passes + prod smoke test (all routes × 2 roles × 2 languages, 0 errors)
 - [ ] Mobile pass at 360px
 - [ ] Browser click-through of dialogs (skipped on request; actions tested over HTTP)
-- [ ] Plural forms ("1 members")
-- [ ] First commit + push to `origin` (on request)
+- [x] Plural forms ("1 member" / "3 members"): { one, other } entries picked by count
+- [x] First commit + push to `origin`
 
 ## Phase 11 — Requests log (Sept 2026)
 Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
@@ -82,7 +82,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Add member by phone number (registered or not); new numbers get an account with the phone number as first password
 - [x] "Not joined yet" tag until first sign-in; admins can remove them like anyone
 - [x] Discussion history notes: meeting scheduled, member added / removed (centred, WhatsApp-style)
-- [ ] Removing a never-signed-in invitee from their last group: offer to delete the account too
+- [x] Removing a never-signed-in invitee: offer to delete the unused account (only if invited, in no other group, no contributions)
 
 ### Members
 - [x] Bulk select → Add to group / Make group admin (bar above the table)
@@ -98,11 +98,11 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 ### Auth & settings
 - [x] Admin setting: project timezone (default IST) — drives "today", reminders and the DB clock
 - [x] Admin settings: allow self-registration (login page link) + require approval (new accounts wait inactive; admins notified)
-- [ ] Login message for an account still waiting for approval (currently "incorrect number or password")
+- [x] Login says "not active yet" for accounts waiting for approval (only once the password is right)
 
 ### Fundraise
-- [ ] A fundraise can belong to one or more groups (not just one)
-- [ ] /fundraise/new?group=1: move Status outside the card
+- [x] A fundraise can belong to one or more groups (home group + "Also show in these groups"; fundraise_groups table)
+- [x] /fundraise/new and /edit: Status sits above the card
 
 ### Later the same day
 - [x] Invite by phone: name optional (phone number stands in until they fill in details), no local-language field

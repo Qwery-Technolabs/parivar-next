@@ -153,7 +153,11 @@ export default function GroupMembers({ groupId, members, standing, currentUserId
                                                             danger
                                                             onClick={() => {
                                                                 close();
-                                                                if (window.confirm(`${t('groups.removeMember')}?`)) run(() => removeGroupMember(groupId, m.id));
+                                                                if (!window.confirm(`${t('groups.removeMember')}?`)) return;
+                                                                // Never signed in: offer to drop the unused account too (the server
+                                                                // only does it if they were invited and are in no other group).
+                                                                const alsoDelete = !m.last_login_at && window.confirm(t('groups.invite.deleteToo'));
+                                                                run(() => removeGroupMember(groupId, m.id, alsoDelete));
                                                             }}
                                                         >
                                                             {t('groups.removeMember')}

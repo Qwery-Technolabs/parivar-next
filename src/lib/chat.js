@@ -1,5 +1,5 @@
 import 'server-only';
-import { fundraisePermissions, groupStanding } from './access';
+import { fundraisePermissions, groupStanding, isInFundraiseGroup } from './access';
 import { canPostIn } from './group-roles';
 import { query, queryOne, setMeta } from './db';
 import { canManageAllFundraises, canManageGroups } from './roles';
@@ -8,19 +8,11 @@ export const CHAT_SCOPES = ['group', 'fundraise'];
 export const CHAT_PAGE = 60;
 export const CHAT_MAX_LENGTH = 2000;
 
-async function isGroupMember(userId, groupId) {
-    const row = await queryOne('SELECT 1 AS ok FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId', {
-        groupId,
-        userId,
-    });
-    return Boolean(row);
-}
-
 /**
  * Who may read and write a discussion. Reading and posting are the same right: a
  * discussion is for the people in it.
  *   group     — that group's members, and app-level group managers
- *   fundraise — its team, its group's members, and fundraise managers
+ *   fundraise — its team, members of any group it is shown in, and fundraise managers
  * A group admin may limit posting (admin_groupsmeta.chat_mode = 'restricted'): then only
  * admins, sub-admins and speakers post; everyone else in the group still reads.
  * @returns {Promise<{ allowed: boolean, canPost: boolean, moderate: boolean }>} moderate = may delete others' messages
@@ -43,7 +35,7 @@ export async function chatAccess(user, scope, scopeId) {
     const campaign = await queryOne('SELECT id, group_id FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;
     if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, moderate: true };
-    const [perms, member] = await Promise.all([fundraisePermissions(user, campaign), isGroupMember(user.id, campaign.group_id)]);
+    const [perms, member] = await Promise.all([fundraisePermissions(user, campaign), isInFundraiseGroup(user.id, campaign.id)]);
     const allowed = perms.post || member;
     return { allowed, canPost: allowed, moderate: perms.manage };
 }

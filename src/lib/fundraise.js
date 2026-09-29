@@ -40,14 +40,17 @@ const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amo
 
 /**
  * Drafts are visible only to people who can manage them: app-level fundraise managers,
- * or admins of the draft's group.
+ * or admins of any group the draft is shown in.
  */
 async function visibilityClause(user) {
     if (canManageAllFundraises(user.role)) return { sql: '1 = 1', params: {} };
     const ids = await adminGroupIds(user.id);
     if (!ids.length) return { sql: "c.status <> 'draft'", params: {} };
     const list = inList(ids, 'vg');
-    return { sql: `(c.status <> 'draft' OR c.group_id IN (${list.sql}))`, params: list.params };
+    return {
+        sql: `(c.status <> 'draft' OR EXISTS (SELECT 1 FROM fundraise_groups vfg WHERE vfg.campaign_id = c.id AND vfg.group_id IN (${list.sql})))`,
+        params: list.params,
+    };
 }
 
 /**
@@ -64,7 +67,7 @@ export async function listCampaigns(user, { status, groupId, q = '', page, perPa
         params.status = status;
     }
     if (groupId) {
-        where.push('c.group_id = :groupId');
+        where.push('EXISTS (SELECT 1 FROM fundraise_groups fg WHERE fg.campaign_id = c.id AND fg.group_id = :groupId)');
         params.groupId = groupId;
     }
     if (q) {
@@ -88,6 +91,18 @@ export async function listCampaigns(user, { status, groupId, q = '', page, perPa
     return { rows, total: count.n };
 }
 
+/** Every group a fundraise is shown in, home group first. */
+export async function campaignGroups(campaignId) {
+    return query(
+        `SELECT g.id, g.name, g.name_local
+           FROM fundraise_groups fg JOIN admin_groups g ON g.id = fg.group_id
+           JOIN fundraise_campaigns c ON c.id = fg.campaign_id
+          WHERE fg.campaign_id = :campaignId
+          ORDER BY g.id = c.group_id DESC, g.name`,
+        { campaignId },
+    );
+}
+
 export async function getCampaign(id) {
     if (!Number.isInteger(id) || id <= 0) return null;
     const row = await queryOne(
@@ -97,7 +112,9 @@ export async function getCampaign(id) {
         { id },
     );
     if (!row) return null;
-    row.meta = await getMeta('fundraise_campaigns', id);
+    const [meta, groups] = await Promise.all([getMeta('fundraise_campaigns', id), campaignGroups(id)]);
+    row.meta = meta;
+    row.groups = groups;
     return row;
 }
 

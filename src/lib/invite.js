@@ -2,6 +2,7 @@ import 'server-only';
 import { audit } from './audit';
 import { hashPassword } from './auth';
 import { query, queryOne, setMeta } from './db';
+import { canInviteMembers } from './roles';
 
 /**
  * Find or create the member behind a mobile number, for invites (Members page, group Add).
@@ -36,4 +37,26 @@ export async function ensureInvitedUser(actor, phone, fullName = '', fullNameLoc
     await setMeta('users_list', r.insertId, { must_change_password: '1', invited_by: String(actor.id) });
     await audit(actor.id, 'user.create', 'user', r.insertId, { via: 'invite' });
     return { id: r.insertId, status: 'created' };
+}
+
+/**
+ * Delete an invited account that was never used — only when ALL hold: never signed in, came
+ * from an invite, in no group any more, no contribution recorded under them, and the actor
+ * invited them or may invite members (sub-admin and up). Anything else keeps the account.
+ * @returns {Promise<boolean>} whether it was deleted
+ */
+export async function deleteUnusedInvitee(actor, userId) {
+    const u = await queryOne(
+        `SELECT u.id, u.last_login_at,
+                (SELECT meta_value FROM users_listmeta WHERE user_id = u.id AND meta_key = 'invited_by') AS invited_by,
+                (SELECT COUNT(*) FROM admin_group_members WHERE user_id = u.id) AS group_count,
+                (SELECT COUNT(*) FROM fundraise_contributions WHERE user_id = u.id) AS contribution_count
+           FROM users_list u WHERE u.id = :userId`,
+        { userId },
+    );
+    if (!u || u.last_login_at || !u.invited_by || u.group_count > 0 || u.contribution_count > 0) return false;
+    if (Number(u.invited_by) !== actor.id && !canInviteMembers(actor.role)) return false;
+    await query('DELETE FROM users_list WHERE id = :userId', { userId });
+    await audit(actor.id, 'user.delete', 'user', userId, { reason: 'unused_invite' });
+    return true;
 }

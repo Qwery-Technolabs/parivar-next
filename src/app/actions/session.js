@@ -40,9 +40,9 @@ export async function login(prev, formData) {
     if (rec && now - rec.first < WINDOW_MS && rec.count >= MAX_ATTEMPTS) return { error: 'auth.errors.invalid', values };
 
     const user = await queryOne(
-        `SELECT u.id, u.password_hash, u.language,
+        `SELECT u.id, u.password_hash, u.language, u.status,
                 (SELECT m.meta_value FROM users_listmeta m WHERE m.user_id = u.id AND m.meta_key = 'must_change_password') AS must_change
-           FROM users_list u WHERE u.phone = :phone AND u.status = 'active'`,
+           FROM users_list u WHERE u.phone = :phone AND u.status <> 'deceased'`,
         { phone },
     );
     const ok = await verifyPassword(password, user?.password_hash);
@@ -51,6 +51,9 @@ export async function login(prev, formData) {
         return { error: 'auth.errors.invalid', values };
     }
     attempts.delete(phone);
+    // Right password, account not active: waiting for approval (self-registered) or switched
+    // off by an admin. Said only after the password checks out, so it reveals nothing to a guesser.
+    if (user.status !== 'active') return { error: 'auth.errors.inactive', values };
 
     await createSession(user.id);
     // The profile's language wins over the device's on login — the person chose it once.

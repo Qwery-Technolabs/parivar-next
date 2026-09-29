@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { startTransition, useActionState, useState } from 'react';
 import { saveCampaign } from '@/app/actions/fundraise';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
+import GroupChecklist from '@/components/ui/group-checklist';
 import SubmitButton from '@/components/ui/submit-button';
 import Switch from '@/components/ui/switch';
 import BilingualName from '@/components/ui/bilingual-name';
@@ -13,11 +14,15 @@ import { useT } from '@/lib/i18n/client';
 /**
  * Create / edit a fundraise. Every fundraise belongs to a group: `groups` is already narrowed
  * to the groups this user may create in, and `defaultGroupId` preselects the one it started from.
+ * It can also be shown in more groups (`otherGroups`: { id, name, name_local, locked } — locked =
+ * already linked, but the user may not remove it).
+ * Status sits above the card, top-right: the first thing checked when reopening a fundraise.
  */
 export default function CampaignForm({
     campaign = null,
     groups,
     defaultGroupId = null,
+    otherGroups = [],
     cancelHref,
     locations = [],
     defaultPublic = false,
@@ -44,7 +49,6 @@ export default function CampaignForm({
     return (
         <form onSubmit={onSubmit} className="space-y-4">
             {c.id && <input type="hidden" name="id" value={c.id} />}
-            {/* Status sits top-right: it is the first thing checked when reopening a fundraise. */}
             <div className="flex justify-end">
                 <Field label={t('fundraise.status')} className="w-full sm:w-52">
                     <select name="status" defaultValue={c.status ?? 'active'} className={`${selectInput()} w-full`}>
@@ -56,6 +60,7 @@ export default function CampaignForm({
                     </select>
                 </Field>
             </div>
+            <section className="min-w-0 space-y-4 rounded-lg border border-surface-border bg-white p-3.5 shadow-sm">
             {/* Full-width page: 4 columns on wide screens → the basics sit in two rows. */}
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <BilingualName
@@ -106,6 +111,19 @@ export default function CampaignForm({
                     </datalist>
                 </Field>
             </div>
+            {otherGroups.length > 0 && (
+                <div className="sm:max-w-md">
+                    <GroupChecklist
+                        name="extra_group_ids"
+                        label={t('fundraise.alsoInGroups')}
+                        hint={t('fundraise.alsoInGroupsHint')}
+                        error={fe('extra_group_ids')}
+                        groups={otherGroups.map((g) => ({ value: String(g.id), label: (locale === 'gu' && g.name_local) || g.name }))}
+                        defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
+                        lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
+                    />
+                </div>
+            )}
             <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} />
             {!c.id && <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />}
             <div className="grid gap-3 lg:grid-cols-2">
@@ -136,6 +154,7 @@ export default function CampaignForm({
                     {c.id ? t('common.save') : t('common.create')}
                 </SubmitButton>
             </div>
+            </section>
         </form>
     );
 }
