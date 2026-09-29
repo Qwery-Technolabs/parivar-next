@@ -61,9 +61,13 @@ Three storage shapes, used deliberately:
   (`admin_settings` for app-wide). Every setting is declared once in `src/lib/settings.js`
   (type + default), and the `/settings` page is generated from that registry.
 
-Migrations: add `public/schema/migrations/{Ymdhis}-{reason}.sql`, run it with
-`npm run db:migrate -- <file>` (or `mysql < file`; `DELIMITER` blocks work in both), and keep
-the live dump in sync. The existing migrations are safe to re-run.
+`parivar.sql` is the complete current schema; every migration so far has been applied to the
+live database and folded into it, so the migration files were removed. For the next change, add
+`public/schema/migrations/{Ymdhis}-{reason}.sql`, run it with `npm run db:migrate -- <file>`
+(or `mysql < file`; `DELIMITER` blocks work in both), and update `parivar.sql` to match.
+
+The live database is MariaDB 11.8; the schema and app also run on MySQL 8. MariaDB returns
+`JSON` columns as strings, so code reading `data` / `detail` accepts a string or an object.
 
 ## Castes
 

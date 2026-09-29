@@ -18,7 +18,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` pending
 ## Phase 1 — Database (`public/schema/`)
 - [x] Module prefixes: `users_`, `admin_`, `blood_`, `fundraise_`, `events_`; long/non-filterable data in `<table>meta`
 - [x] Live dump `public/schema/live/parivar.sql` (26 tables) — executed on MySQL 8.4, fresh install == migrated DB
-- [x] Migrations: `…180000-notifications-fundraise-team-meetings`, `…190000-module-settings`, `…200000-castes` (all re-runnable)
+- [x] Live DB (MariaDB 11.8): full schema + all migrations applied, structure verified identical to local, super_admin seeded; migration files removed
 - [x] `npm run db:schema | db:migrate | db:seed [--demo] | db:dev`
 - [x] Module settings (key/value rows): `admin_settings`, `fundraise_settings`, `blood_settings`, `events_settings` via `lib/settings.js` registry
 
