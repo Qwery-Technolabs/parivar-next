@@ -10,7 +10,7 @@ import { useT } from '@/lib/i18n/client';
 /*
  * The one table toolbar: whatever the page puts on the left (a count, a heading, action
  * buttons), and on the RIGHT the search box + the Filters button that opens a draft panel
- * (DESIGN.md §6: draft → Apply, so several filters change in one navigation).
+ * (design-system.md §6: draft → Apply, so several filters change in one navigation).
  *
  *   <FilterPopover>  the button + panel with pinned Clear / Apply — for custom panels
  *                    (the Members toolbar, whose caste pair needs its own control)

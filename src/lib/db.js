@@ -2,9 +2,11 @@ import 'server-only';
 import mysql from 'mysql2/promise';
 import { offsetOf } from './timezone';
 
-// DESIGN.md §9 — one cached pool, named placeholders, bounded prepared-statement cache.
+// design-system.md §9 — one cached pool, named placeholders, bounded prepared-statement cache.
 
-const POOL_SIZE = Number(process.env.DB_POOL_SIZE || 10);
+// Serverless functions each hold their own pool; keep it small there so many instances do not
+// exhaust the database's max_connections.
+const POOL_SIZE = Number(process.env.DB_POOL_SIZE || (process.env.VERCEL ? 3 : 10));
 // MySQL's server-wide max_prepared_stmt_count defaults to 16382 and is shared with every
 // other app on the server. Budget half of it, split across our connections, floor 32 —
 // the driver default (16000 per connection) never evicts and exhausts the server.

@@ -13,7 +13,19 @@ const DICTS = { en, gu };
 /** The chosen locale, or null when the visitor has never picked one. */
 export const getChosenLocale = cache(async () => normalizeLocale((await cookies()).get(LANG_COOKIE)?.value));
 
-export const getLocale = cache(async () => (await getChosenLocale()) ?? DEFAULT_LOCALE);
+/**
+ * The UI language: the visitor's own choice (cookie), else the admin's "Default language for new
+ * members" (Settings → General), else the built-in default. No first-visit language page.
+ */
+export const getLocale = cache(async () => {
+    const chosen = await getChosenLocale();
+    if (chosen) return chosen;
+    try {
+        return normalizeLocale(await getSetting('admin', 'default_language')) ?? DEFAULT_LOCALE;
+    } catch {
+        return DEFAULT_LOCALE; // no database (build time)
+    }
+});
 
 export function getDictionary(locale) {
     return DICTS[locale] ?? DICTS[DEFAULT_LOCALE];

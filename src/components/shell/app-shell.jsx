@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { logout } from '@/app/actions/session';
 import { Popover } from '@/components/ui/popover';
 import { BACK_SLOT_ID } from './header-back';
@@ -59,9 +59,53 @@ function NavItem({ item, pathname, collapsed, onNavigate, child = false }) {
         >
             {/* Orange is a state colour on navy (5.99:1) — a bar, never text on white. */}
             {active && <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand-orange" />}
-            <Icon className="size-4 shrink-0" />
+            {/* Active: the icon joins the orange bar (orange-400 on navy passes 3:1 for icons). */}
+            <Icon className={`size-4 shrink-0 ${active ? 'text-orange-400' : ''}`} />
             {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
         </Link>
+    );
+}
+
+// Mobile bottom bar: the main sections, in this order (only those this person can see).
+const BOTTOM_TABS = ['/', '/groups', '/fundraise', '/blood', '/members'];
+
+/**
+ * Mobile only, and only on the section home pages themselves. Inside a group, a fundraise, a
+ * discussion, etc. it steps aside (like a chat app) and the header's back link takes over.
+ */
+function BottomNav({ sections, pathname }) {
+    const items = sections.flatMap((s) => s.items);
+    const tabs = BOTTOM_TABS.map((href) => items.find((i) => i.href === href)).filter(Boolean);
+    if (tabs.length < 2 || !BOTTOM_TABS.includes(pathname)) return null;
+    return (
+        <nav className="flex shrink-0 border-t border-surface-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+            {tabs.map((item) => {
+                const Icon = ICONS[item.icon];
+                const active = isActive(pathname, item.href);
+                return (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={active ? 'page' : undefined}
+                        className={`relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] transition-colors ${
+                            active ? 'font-semibold text-primary' : 'font-medium text-ink-gray hover:text-primary'
+                        }`}
+                    >
+                        {/* Active: a warm orange pill behind the icon (orange-600 on orange-100 ≥3:1 for
+                            icons), bold navy label, and the sidebar's orange bar on top. */}
+                        {active && <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-brand-orange" />}
+                        <span
+                            className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                                active ? 'bg-orange-100 text-orange-600' : ''
+                            }`}
+                        >
+                            <Icon className="size-5 shrink-0" />
+                        </span>
+                        <span className="max-w-full truncate px-1">{item.label}</span>
+                    </Link>
+                );
+            })}
+        </nav>
     );
 }
 
@@ -77,7 +121,7 @@ function SidebarNav({ sections, footer, pathname, collapsed = false, onNavigate 
                             <div aria-hidden className="mx-3 mb-2 border-t border-white/10" />
                         ) : (
                             // white/60 on navy is 6.2:1 — a caption, readable without shouting.
-                            <p className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wide text-white/60">{s.title}</p>
+                            <p className="mb-1 px-3 pt-[5px] text-[11px] font-medium uppercase tracking-wide text-white/60">{s.title}</p>
                         )}
                         <div className="flex flex-col gap-0.5">
                             {s.items.map((item) => (
@@ -107,17 +151,15 @@ function SidebarNav({ sections, footer, pathname, collapsed = false, onNavigate 
  */
 export default function AppShell({ sections, footer, user, labels, logo = {}, unread = 0, initialCollapsed = false, children }) {
     const pathname = usePathname();
-    const [drawer, setDrawer] = useState(false);
+    // The mobile drawer is driven by a hidden checkbox + CSS (peer-checked), so the menu button
+    // works even before the page's JS has loaded (slow phone, first visit). React only closes it.
+    const drawerToggle = useRef(null);
+    const closeDrawer = () => {
+        if (drawerToggle.current) drawerToggle.current.checked = false;
+    };
     // Initial state comes from a cookie read on the server, so the first paint already has
     // the right width — localStorage would render expanded and then jump.
     const [collapsed, setCollapsed] = useState(initialCollapsed);
-
-    // Close the drawer on navigation (render-time, not an effect — DESIGN.md §7).
-    const [seenPath, setSeenPath] = useState(pathname);
-    if (seenPath !== pathname) {
-        setSeenPath(pathname);
-        if (drawer) setDrawer(false);
-    }
 
     function toggleCollapsed() {
         const next = !collapsed;
@@ -125,8 +167,13 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
         document.cookie = `${SIDEBAR_COOKIE}=${next ? 'collapsed' : 'open'}; path=/; max-age=31536000; samesite=lax`;
     }
 
-    const brand = (small) => (
-        <Link href="/" title={labels.app} className={`flex h-12 shrink-0 items-center gap-2.5 text-white ${small ? 'justify-center' : 'px-4'}`}>
+    // The logo row carries the same faint line as the header's bottom edge, so both line up.
+    const brand = (small, bordered = true, fill = false) => (
+        <Link
+            href="/"
+            title={labels.app}
+            className={`flex h-12 items-center gap-2.5 text-white ${fill ? 'min-w-0 flex-1' : 'shrink-0'} ${bordered ? 'border-b border-white/10' : ''} ${small ? 'justify-center' : 'px-4'}`}
+        >
             <SamajLogo settings={logo} name={labels.app} />
             {!small && <span className="min-w-0 truncate text-base font-semibold">{labels.app}</span>}
         </Link>
@@ -157,37 +204,49 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                 <SidebarNav sections={sections} footer={footer} pathname={pathname} collapsed={collapsed} />
             </aside>
 
-            {/* Mobile drawer — always expanded; collapsing is a desktop affordance */}
-            {drawer && (
-                <div className="fixed inset-0 z-40 lg:hidden">
-                    <button type="button" aria-label={labels.menu} onClick={() => setDrawer(false)} className="absolute inset-0 bg-black/30" />
-                    <aside className="absolute inset-y-0 left-0 flex w-64 max-w-[80vw] flex-col bg-brand-navy shadow-xl">
-                        <div className="flex items-center justify-between pr-2">
-                            {brand(false)}
-                            <button
-                                type="button"
-                                onClick={() => setDrawer(false)}
-                                aria-label={labels.menu}
-                                className="flex size-9 items-center justify-center rounded-md text-white/80 hover:bg-brand-navy-soft"
-                            >
-                                <X className="size-5" />
-                            </button>
-                        </div>
-                        <SidebarNav sections={sections} footer={footer} pathname={pathname} onNavigate={() => setDrawer(false)} />
-                    </aside>
-                </div>
-            )}
+            {/* Mobile drawer — always expanded; collapsing is a desktop affordance. The checkbox is the
+                open/closed state (see drawerToggle); the menu button and the backdrop are its labels.
+                Closed = invisible (no focus, no clicks, hidden from readers) once the slide-out ends. */}
+            <input ref={drawerToggle} id="nav-drawer" type="checkbox" aria-label={labels.menu} className="peer sr-only lg:hidden" />
+            <div className="invisible fixed inset-0 z-40 transition-[visibility] duration-200 peer-checked:visible lg:hidden">
+                <label
+                    htmlFor="nav-drawer"
+                    aria-hidden
+                    className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-200 [.peer:checked~div_&]:opacity-100"
+                />
+                {/* Any link inside (the logo too) closes it on the way out. */}
+                <aside
+                    onClick={(e) => e.target.closest?.('a') && closeDrawer()}
+                    className="absolute inset-y-0 left-0 flex w-64 max-w-[80vw] -translate-x-full flex-col bg-brand-navy shadow-xl transition-transform duration-200 ease-out motion-reduce:transition-none [.peer:checked~div_&]:translate-x-0"
+                >
+                    {/* The name truncates so a long Samaj name never runs under the close button. */}
+                    <div className="flex items-center gap-1 border-b border-white/10 pr-2">
+                        {brand(false, false, true)}
+                        <label
+                            htmlFor="nav-drawer"
+                            aria-label={labels.close}
+                            title={labels.close}
+                            className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/80 hover:bg-brand-navy-soft hover:text-white"
+                        >
+                            <X className="size-5" />
+                        </label>
+                    </div>
+                    <SidebarNav sections={sections} footer={footer} pathname={pathname} />
+                </aside>
+            </div>
 
             <div className="flex min-w-0 flex-1 flex-col">
-                <header className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 bg-brand-navy px-3 text-white sm:px-5">
-                    <button
-                        type="button"
-                        onClick={() => setDrawer(true)}
+                {/* A page with a back link (group, fundraise) shows only that on phones — no hamburger, like a chat app. */}
+                <header className="flex h-12 shrink-0 items-center gap-2 border-b border-white/10 bg-brand-navy px-3 text-white sm:px-5 [&:has(#page-back-slot>*)_.nav-burger]:hidden">
+                    {/* A label for the drawer checkbox: opens it with or without JS. */}
+                    <label
+                        htmlFor="nav-drawer"
                         aria-label={labels.menu}
-                        className="flex size-9 items-center justify-center rounded-md text-white hover:bg-brand-navy-soft lg:hidden"
+                        title={labels.menu}
+                        className="nav-burger flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-white hover:bg-brand-navy-soft lg:hidden"
                     >
                         <Menu className="size-5" />
-                    </button>
+                    </label>
                     {/* Page "back" links portal in here (HeaderBack): right of the collapse arrow on desktop. */}
                     <div id={BACK_SLOT_ID} className="flex min-w-0 items-center empty:hidden lg:-ml-1" />
                     <span className="min-w-0 truncate text-base font-semibold lg:hidden">{labels.app}</span>
@@ -268,6 +327,7 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                         Forms keep their own max-w-* so lines stay readable. */}
                     <div className="w-full px-2 py-3 sm:px-3 lg:px-4">{children}</div>
                 </main>
+                <BottomNav sections={sections} pathname={pathname} />
             </div>
         </div>
     );

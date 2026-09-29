@@ -44,7 +44,7 @@ export default async function BloodPage({ searchParams }) {
                 actions={<PostRequestButton />}
             />
 
-            {/* Tabs scroll rather than wrap (DESIGN.md §5). Links: the server renders the view asked for. */}
+            {/* Tabs scroll rather than wrap (design-system.md §5). Links: the server renders the view asked for. */}
             <div className="mb-4 overflow-x-auto scrollbar-none">
                 <div className="inline-flex rounded-lg border border-surface-border bg-white p-0.5">
                     {tabs.map((tab) => (

@@ -5,7 +5,7 @@ roles and groups; blood-donor search; manual fundraise ledgers with teams, meeti
 updates, public links and printable statements; an events calendar; in-app notifications;
 and admin settings. Gujarati and English throughout.
 
-Built to `DESIGN.md`: Next.js 16 (App Router, JavaScript), Tailwind v4, shadcn over Base UI,
+Built to `.claude/skills/parivar-design/references/design-system.md`: Next.js 16 (App Router, JavaScript), Tailwind v4, shadcn over Base UI,
 lucide, sonner, MySQL 8 via `mysql2/promise`. Roadmap and status: `TODO.md`.
 
 ## Setup
@@ -100,3 +100,20 @@ Names and titles have optional `_gu` columns shown when the UI is Gujarati.
 Fundraise statements are print-optimised pages; "Print / PDF" uses the browser's Save as
 PDF. That is deliberate: browsers shape Gujarati conjuncts correctly, server-side PDF
 libraries mostly do not.
+
+## Deploy on Vercel
+
+1. Import the repo in Vercel (framework: Next.js; build command `npm run build`).
+2. Environment variables (Project → Settings → Environment Variables): `DB_HOST`, `DB_PORT`, `DB_USER`,
+   `DB_PASSWORD`, `DB_NAME`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`.
+   `DB_POOL_SIZE` is optional (defaults to 3 on Vercel, 10 elsewhere).
+3. The MariaDB server must accept connections from outside (Vercel has no fixed IPs on normal plans):
+   allow remote access for the DB user, and use a strong password.
+4. Meeting reminders: `vercel.json` schedules `/api/cron/reminders` every 5 minutes; Vercel sends
+   `Authorization: Bearer $CRON_SECRET`. The Hobby plan only runs crons once a day — on Hobby, point an
+   external scheduler (e.g. cron-job.org) at `https://<site>/api/cron/reminders?key=<CRON_SECRET>` instead.
+5. Nothing is written to disk at runtime: the Samaj favicon / app icons live in `admin_settings`
+   (`app_icon_512/192/32`), so they survive deploys.
+
+Elsewhere (a normal Node server, `npm run build && npm start`) the reminder loop runs inside the process;
+the cron URL is only a backup.

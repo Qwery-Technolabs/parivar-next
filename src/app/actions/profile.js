@@ -59,7 +59,7 @@ export async function changePassword(prev, fd) {
     return { ok: true, message: 'profile.passwordChanged' };
 }
 
-/** The script this person writes names in (Gujarati / Hindi / Marathi). Stored as meta: never filtered on. */
+/** The script this person writes names in (Gujarati / Hindi). Stored as meta: never filtered on. */
 export async function setLocalLanguage(formData) {
     const user = await getCurrentUser();
     if (!user) return;

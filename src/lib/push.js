@@ -47,8 +47,13 @@ export async function pushToUsers(userIds, n) {
             subs.map(async (s) => {
                 const dict = DICTS[s.language] ?? gu;
                 const t = (key, vars) => translate(dict, key, vars);
+                // Title = where it came from (the fundraise / group / meeting, in the reader's
+                // language), else the app. The icon is the Samaj logo (see public/sw.js).
+                const d = n.data ?? {};
+                const local = s.language !== 'en';
+                const source = (local && d.title_local) || d.title || (local && d.group_local) || d.group || '';
                 const payload = JSON.stringify({
-                    title: t('app.name'),
+                    title: source || t('app.name'),
                     body: notificationText(n, t, s.language),
                     link: n.link || '/notifications',
                     tag: `${n.type}:${n.link ?? ''}`, // same thing twice replaces, not stacks

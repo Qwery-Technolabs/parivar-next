@@ -52,6 +52,7 @@ export default async function AppLayout({ children }) {
             labels={{
                 app: samaj || t('app.name'),
                 menu: t('nav.menu'),
+                close: t('common.close'),
                 profile: t('nav.settings'),
                 logout: t('nav.logout'),
                 notifications: t('nav.notifications'),

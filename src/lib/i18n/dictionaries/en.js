@@ -59,7 +59,6 @@ const en = {
         gu: 'ગુજરાતી',
         en: 'English',
         hi: 'हिन्दी',
-        mr: 'मराठी',
         continue: 'Continue',
         switch: 'Language',
     },
@@ -672,6 +671,21 @@ const en = {
         },
     },
     settings: {
+        notify: {
+            pushTitle: 'Browser notifications (this device)',
+            mineTitle: 'What to notify me about',
+            mineHint: 'Switch off what you do not want. It stops both the notice in the app and the browser notification.',
+            adminTitle: 'Sent to everyone (administrators)',
+            categories: {
+                blood: { title: 'Blood requests', hint: 'New requirements you can donate for' },
+                calendar: { title: 'Calendar events', hint: 'New events in the calendar' },
+                meetings: { title: 'Meetings & reminders', hint: 'Invites, changes, cancellations and reminders' },
+                fundraise: { title: 'Fundraises', hint: 'Team roles and fundraises you were added to' },
+                groups: { title: 'Groups', hint: 'Being added to a group or made admin' },
+                discussion: { title: 'Discussion alerts', hint: 'Messages sent with "alert everyone"' },
+                members: { title: 'Member sign-ups', hint: 'New registrations waiting for approval' },
+            },
+        },
         editProfile: 'Edit my details',
         logo: { title: 'Samaj logo', hint: 'Shown in the sidebar, on the sign-in screen and on public fundraise pages. Click the picture to change it.' },
         language: {

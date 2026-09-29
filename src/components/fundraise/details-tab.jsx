@@ -3,7 +3,7 @@ import Badge from '@/components/ui/badge';
 import { localized } from '@/lib/i18n/config';
 import { describeHistory, historyWhen } from './history-format';
 import PublicLinkCard from './public-link-card';
-import TeamPanel from './team-panel';
+import TeamPanel, { AddTeamMemberButton } from './team-panel';
 import UpdatesPanel from './updates-panel';
 
 /** Chip label for one audience rule: "Surname: Patel", "Caste: પટેલ". */
@@ -84,7 +84,10 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
 
             <div className="min-w-0 space-y-4">
                 <section id="team" className="scroll-mt-4">
-                    <Card title={t('fundraise.tabs.team')}>
+                    <Card
+                        title={t('fundraise.tabs.team')}
+                        actions={perms.manage && <AddTeamMemberButton campaignId={campaign.id} exclude={team.map((m) => m.user_id)} />}
+                    >
                         <TeamPanel campaignId={campaign.id} team={team} canManage={perms.manage} creatorId={campaign.created_by} />
                     </Card>
                 </section>

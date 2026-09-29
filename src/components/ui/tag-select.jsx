@@ -3,7 +3,7 @@ import { Plus, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 
 /**
- * DESIGN.md §6 TagSelect — multiselect from a list: chips inside the field plus a
+ * design-system.md §6 TagSelect — multiselect from a list: chips inside the field plus a
  * searchable popup.
  *
  * - Deals in option VALUES (strings), not option objects.

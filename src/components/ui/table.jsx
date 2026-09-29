@@ -1,4 +1,4 @@
-// DESIGN.md §6 Table. Numbers are right-aligned tabular; cells wrap (never `truncate`
+// design-system.md §6 Table. Numbers are right-aligned tabular; cells wrap (never `truncate`
 // in a table — it widens the column to the whole string and overflows the page).
 
 export function TableShell({ children, className = '' }) {

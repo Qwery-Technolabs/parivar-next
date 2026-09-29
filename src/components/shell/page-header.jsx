@@ -26,7 +26,7 @@ export default function PageHeader({ title, subtitle, back, actions, menu }) {
     );
 }
 
-/** DESIGN.md §3 caption idiom + §4 stat-card number. */
+/** design-system.md §3 caption idiom + §4 stat-card number. */
 export function StatCard({ label, value, href, icon: Icon, tone = 'text-primary' }) {
     const body = (
         <div className="flex items-start justify-between gap-3 rounded-lg border border-surface-border bg-white p-3.5 shadow-sm">

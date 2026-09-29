@@ -11,7 +11,7 @@ import { BLOOD_GROUPS } from '@/lib/roles';
 const FILTER_KEYS = ['role', 'blood', 'compat', 'donor', 'village', 'city', 'gender', 'caste', 'subcaste', 'age_min', 'age_max', 'status'];
 
 /**
- * DESIGN.md §5 "combining several controls" + §6 draft panel: one <form> so the search
+ * design-system.md §5 "combining several controls" + §6 draft panel: one <form> so the search
  * and the filter button wrap as a unit; type → narrow → go.
  */
 export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes }) {

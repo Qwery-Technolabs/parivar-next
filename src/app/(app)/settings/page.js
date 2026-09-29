@@ -8,18 +8,20 @@ import PushToggle from '@/components/settings/push-toggle';
 import SettingsForm from '@/components/settings/settings-form';
 import { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
-import { queryOne } from '@/lib/db';
+import { queryOne, getMeta } from '@/lib/db';
 import { date } from '@/lib/format';
 import { getLocalLanguage, getT } from '@/lib/i18n/server';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
 import { formatPhone } from '@/lib/phone';
-import { canManageSettings, canViewAudit } from '@/lib/roles';
+import { canManageSettings, canViewAudit, canInviteMembers } from '@/lib/roles';
 import { vapidPublicKey } from '@/lib/push';
 import { getSettings, SETTINGS } from '@/lib/settings';
 import AuditLog from '@/components/audit/audit-log';
 import MemberEditTabs from '@/components/members/member-edit-tabs';
 import { casteOptions } from '@/lib/castes';
 import { getMember, listCities, listVillages } from '@/lib/members';
+import { AdminNotifySettings, NotificationPrefs } from '@/components/settings/notification-prefs';
+import { NOTIFY_CATEGORIES, parseOff } from '@/lib/notification-prefs';
 import { sp1 } from '@/lib/url';
 
 export async function generateMetadata() {
@@ -40,8 +42,7 @@ const SECTIONS = [
     { key: 'notifications', group: 'personal', icon: BellRing },
     { key: 'general', group: 'admin', icon: SlidersHorizontal, module: 'admin', admin: true },
     { key: 'fundraise', group: 'admin', icon: HandCoins, module: 'fundraise', admin: true },
-    { key: 'blood', group: 'admin', icon: Droplet, module: 'blood', admin: true },
-    { key: 'calendar', group: 'admin', icon: CalendarDays, module: 'events', admin: true },
+    // Blood and Calendar had only their notify switches; those now live under Notifications.
     // Kept out of the sidebar: an internal record, shown here (sub-admins and up).
     { key: 'audit', group: 'admin', icon: History, audit: true },
 ];
@@ -104,11 +105,16 @@ export default async function SettingsPage({ searchParams }) {
                     {current.key === 'audit' && <AuditLog sp={sp} t={t} locale={locale} canClear={isAdmin} />}
                     {current.key === 'security' && <SecuritySection userId={user.id} t={t} />}
                     {current.key === 'notifications' && (
-                        <Card title={t('settings.sections.notifications.title')}>
-                            <p className="mb-3 text-xs text-ink-gray">{t('push.hint')}</p>
-                            {/* The VAPID public key is not secret; it identifies this server to the browser push service. */}
-                            <PushToggle publicKey={vapidPublicKey()} />
-                        </Card>
+                        // Everything about notifications in one place: this device, my kinds, and (admins) app-wide sending.
+                        <div className="space-y-4">
+                            <Card title={t('settings.notify.pushTitle')}>
+                                <p className="mb-3 text-xs text-ink-gray">{t('push.hint')}</p>
+                                {/* The VAPID public key is not secret; it identifies this server to the browser push service. */}
+                                <PushToggle publicKey={vapidPublicKey()} />
+                            </Card>
+                            <NotificationPrefsSection user={user} />
+                            {isAdmin && <AdminNotifySection />}
+                        </div>
                     )}
                     {current.key === 'language' && <LanguageSection t={t} locale={locale} />}
                     {current.module && <ModuleSection module={current.module} title={t(`settings.sections.${current.key}.title`)} t={t} />}
@@ -311,4 +317,16 @@ async function ProfileEditSection({ userId, t, locale, initialTab }) {
             />
         </div>
     );
+}
+
+async function NotificationPrefsSection({ user }) {
+    const meta = await getMeta('users_list', user.id);
+    // Member sign-ups only reach sub-admins and up, so only they see that switch.
+    const categories = NOTIFY_CATEGORIES.filter((c) => c !== 'members' || canInviteMembers(user.role));
+    return <NotificationPrefs categories={categories} off={parseOff(meta.notify_off)} />;
+}
+
+async function AdminNotifySection() {
+    const [blood, events] = await Promise.all([getSettings('blood'), getSettings('events')]);
+    return <AdminNotifySettings values={{ notify_donors: blood.notify_donors, notify_new_event: events.notify_new_event }} />;
 }

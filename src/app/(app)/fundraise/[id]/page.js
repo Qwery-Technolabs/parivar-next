@@ -213,10 +213,12 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                             {perms.manage && (
                                 <Link
                                     href={`${base}/edit`}
-                                    // Same as the group page's Edit on navy.
-                                    className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20"
+                                    // Same as the group page's Edit on navy: icon only on phones.
+                                    aria-label={t('common.edit')}
+                                    title={t('common.edit')}
+                                    className="inline-flex size-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 text-sm font-medium text-white hover:bg-white/20 sm:w-auto sm:px-3"
                                 >
-                                    <Pencil className="size-4" /> {t('common.edit')}
+                                    <Pencil className="size-4" /> <span className="hidden sm:inline">{t('common.edit')}</span>
                                 </Link>
                             )}
                         </div>

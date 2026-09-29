@@ -14,8 +14,9 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(data.title || 'Parivar', {
             body: data.body || '',
-            icon: '/favicon.ico',
-            badge: '/favicon.ico',
+            // The Samaj logo (Settings → General), like the favicon; falls back to favicon.ico.
+            icon: data.icon || '/api/app-icon?size=192',
+            badge: data.badge || '/api/app-icon?size=32',
             tag: data.tag, // same tag replaces the previous notification instead of stacking
             data: { link: data.link || '/notifications' },
         }),

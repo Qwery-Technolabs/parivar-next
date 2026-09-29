@@ -1,4 +1,4 @@
-// DESIGN.md §6 — a Field wrapper plus class functions. The wrapper never renders the
+// design-system.md §6 — a Field wrapper plus class functions. The wrapper never renders the
 // control, because it cannot know whether that is an input, a select or three boxes.
 
 /**

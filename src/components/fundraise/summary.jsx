@@ -3,7 +3,7 @@ import { progressPct } from '@/lib/fundraise';
 
 /**
  * Collected / spent / balance + progress. Server component; `t` is the server translator.
- * Money colours from DESIGN.md §2: received emerald-700, spend rose-700, negative net rose-700.
+ * Money colours from design-system.md §2: received emerald-700, spend rose-700, negative net rose-700.
  */
 export default function FundraiseSummary({ campaign, t, compact = false }) {
     const collected = Number(campaign.collected);

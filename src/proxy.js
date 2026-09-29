@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 // in the (app) layout and in every server action — a forged cookie gets past here and
 // nowhere else.
 
-const LANG_COOKIE = 'lang';
 const SESSION_COOKIE = 'pv_session';
 
 export function proxy(request) {
@@ -13,14 +12,9 @@ export function proxy(request) {
     // Public fundraise pages are for people with no account and no language cookie.
     if (pathname.startsWith('/p/')) return NextResponse.next();
 
-    const hasLang = request.cookies.has(LANG_COOKIE);
     const hasSession = request.cookies.has(SESSION_COOKIE);
-
-    if (!hasLang && pathname !== '/language') {
-        const url = new URL('/language', request.url);
-        url.searchParams.set('next', pathname + search);
-        return NextResponse.redirect(url);
-    }
+    // No language redirect: without a cookie the app uses the admin's default language
+    // (Settings → General); /language stays available to switch.
 
     if (pathname === '/language' || pathname === '/login' || pathname === '/register') return NextResponse.next();
 

@@ -1,4 +1,4 @@
-// DESIGN.md §2 — ONE status map, imported everywhere, so two screens never disagree
+// design-system.md §2 — ONE status map, imported everywhere, so two screens never disagree
 // about what amber means. Every text colour here is ≥4.5:1 on its tint.
 
 export const STATUS_TONE = {

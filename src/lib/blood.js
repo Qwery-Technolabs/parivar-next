@@ -27,7 +27,7 @@ export async function listRequests({ status, q = '', page, perPage }) {
     const where = conds.length ? conds.join(' AND ') : '1=1';
     const [{ total }] = await query(`SELECT COUNT(*) AS total FROM blood_requests r WHERE ${where}`, params);
     const offset = (page - 1) * perPage;
-    // perPage/offset are server-clamped integers — inlined deliberately (DESIGN.md §9).
+    // perPage/offset are server-clamped integers — inlined deliberately (design-system.md §9).
     const rows = await query(
         `SELECT r.id, r.blood_group, r.units, r.patient_name, r.hospital, r.city, r.contact_phone,
                 r.needed_by, r.status, r.created_by, r.created_at, u.full_name AS creator_name, u.full_name_local AS creator_name_local

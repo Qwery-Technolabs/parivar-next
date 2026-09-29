@@ -26,7 +26,7 @@ export const SETTINGS = {
             allow_registration: { type: 'bool', default: false }, // "Create an account" link on the login page
             registration_approval: { type: 'bool', default: true }, // new sign-ups wait (inactive) until an admin activates them
             default_language: { type: 'text', default: 'gu', options: ['gu', 'en'] },
-            local_language: { type: 'text', default: 'gu', options: ['gu', 'hi', 'mr'] }, // script for names, per person overridable
+            local_language: { type: 'text', default: 'gu', options: ['gu', 'hi'] }, // script for names, per person overridable
             // One timezone for the whole project: "today", meeting reminders, DB clock (lib/timezone.js).
             timezone: { type: 'text', default: DEFAULT_TIMEZONE, options: Object.keys(TIMEZONES), labels: TIMEZONES },
         },
@@ -42,13 +42,13 @@ export const SETTINGS = {
     blood: {
         table: 'blood_settings',
         keys: {
-            notify_donors: { type: 'bool', default: true }, // notify compatible donors on a new requirement
+            notify_donors: { type: 'bool', default: true, hidden: true }, // shown in Settings → Notifications
         },
     },
     events: {
         table: 'events_settings',
         keys: {
-            notify_new_event: { type: 'bool', default: true },
+            notify_new_event: { type: 'bool', default: true, hidden: true }, // shown in Settings → Notifications
         },
     },
 };
@@ -70,7 +70,8 @@ function decode(def, raw) {
 export const getSettings = cache(async (mod) => {
     const spec = SETTINGS[mod];
     if (!spec) throw new Error(`Unknown settings module ${mod}`);
-    const rows = await query(`SELECT setting_key, setting_value FROM ${spec.table}`);
+    // app_icon_* rows (the favicon PNGs, lib/app-icons.js) are large and read only by /api/app-icon.
+    const rows = await query(`SELECT setting_key, setting_value FROM ${spec.table} WHERE setting_key NOT LIKE 'app_icon_%'`);
     const stored = Object.fromEntries(rows.map((r) => [r.setting_key, r.setting_value]));
     const values = Object.fromEntries(Object.entries(spec.keys).map(([k, def]) => [k, decode(def, stored[k])]));
     // Keep the process-wide timezone in step with what the admin chose.

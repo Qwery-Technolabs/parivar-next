@@ -1,5 +1,6 @@
 import 'server-only';
 import { inList, query, queryOne } from './db';
+import { categoryOf } from './notification-prefs';
 import { pushToUsers } from './push';
 
 /**
@@ -23,9 +24,21 @@ export const NOTIFICATION_TYPES = [
  * @param {{ type: string, data?: object, link?: string, actorId?: number|null }} n
  */
 export async function notifyMany(userIds, { type, data = {}, link = null, actorId = null }) {
-    const ids = [...new Set(userIds.map(Number))].filter((id) => id > 0 && id !== actorId);
+    let ids = [...new Set(userIds.map(Number))].filter((id) => id > 0 && id !== actorId);
     if (!ids.length) return 0;
     try {
+        // People who switched this kind off (Settings → Notifications) get neither the notice nor the push.
+        const category = categoryOf(type);
+        if (category) {
+            const l = inList(ids, 'o');
+            const off = await query(
+                `SELECT user_id FROM users_listmeta WHERE meta_key = 'notify_off' AND FIND_IN_SET(:category, meta_value) AND user_id IN (${l.sql})`,
+                { category, ...l.params },
+            );
+            const skip = new Set(off.map((r) => r.user_id));
+            ids = ids.filter((id) => !skip.has(id));
+            if (!ids.length) return 0;
+        }
         // One multi-row INSERT per 200 recipients: a village-wide blood request can reach
         // hundreds of donors, and a statement per person would hold the request open.
         for (let i = 0; i < ids.length; i += 200) {

@@ -1,0 +1,114 @@
+---
+name: parivar-dev
+description: Development conventions for the Parivar app — Next.js 16 App Router (JavaScript), server actions, roles and access helpers, i18n (en/gu), invites, notifications, verification and git/deploy routine. Use before writing or changing any code in this repo, when adding a feature to members/groups/fundraise/blood/calendar/settings, and when the user says to apply some logic "in multiple places" (then update this skill too).
+---
+
+# Parivar — development conventions
+
+**Keep this file current.** When the user asks for a behaviour to be applied across several places,
+implement it and record the rule here (or in parivar-design / parivar-db).
+
+## Stack facts that bite
+
+- Next 16: `params`, `searchParams`, `cookies()` are async. `proxy.js` (not middleware). Read
+  `node_modules/next/dist/docs/` before unfamiliar APIs (AGENTS.md).
+- JavaScript only, Tailwind v4 (`bg-linear-to-b`, `size-*`, `!` suffix for important).
+- Lint: `npx eslint src --quiet` must be clean (react-hooks rules: no setState in effects, no mutating
+  context values, no Math.random in render — use lazy `useState`).
+- **Never run `next build` while the dev server runs**, and after a build **delete `.next` before
+  restarting dev** — otherwise dev serves 404s for every uncached route or Turbopack panics.
+- Windows + Git Bash: shell quoting breaks on `'`, `$`, backticks in heredocs/`node -e`. Write edit
+  scripts with the Write tool into the scratchpad (`rep(file, old, new)` that **throws when the anchor is
+  missing**) and run them with node. Never let an insert fall back to index −1.
+- The repo has **no Prettier config**; if you run Prettier use
+  `--single-quote --tab-width 4 --print-width 160` on the touched file only, or it rewrites the whole file.
+- **Testing on a real phone** (dev at `http://192.168.x.x:3000`): Next 16 blocks dev JS for hosts other than
+  localhost unless listed in `allowedDevOrigins` (next.config.mjs has the private LAN ranges). Symptom:
+  the page renders but no menu, popup or drawer opens. Keep that list when touching the config.
+- **Vercel / serverless**: no runtime writes to disk (store generated files in the DB — see app icons);
+  no long-lived timers (instrumentation skips the reminder loop when `VERCEL` is set; Vercel Cron calls
+  `/api/cron/reminders` with `Authorization: Bearer $CRON_SECRET`); DB pool 3 on Vercel.
+- **Before-JS (lazy load)**: what a phone user taps first should work before hydration where cheap —
+  the mobile drawer is a CSS checkbox (`#nav-drawer`; labels open/close it). Links are plain `<Link>`s.
+  Popovers and dialogs need JS; do not add pre-hydration hacks for them.
+
+## Server actions
+
+- Contract: `(prev, fd) => { ok: true, message, vars?, id? } | { error } | { fieldErrors: { field: key } }`,
+  all messages are i18n keys. Client forms submit with `onSubmit` + `startTransition(() => action(fd))`
+  (a `<form action>` resets uncontrolled fields).
+- Re-check permission inside every action; never trust hidden inputs. `FORBIDDEN = { error: 'common.forbidden' }`.
+- After writes: `revalidatePath(...)` / `refreshCampaign(id)`; audit with `audit(actorId, action, entity, id, detail)`.
+- Server actions can be passed to client components (e.g. `PageMenu` items, `.bind(null, id)`).
+
+## Roles and access
+
+- App roles (lib/roles.js): `super_admin > administrator > sub_admin > sabhyo` (shown as "Member").
+  Capabilities are functions (`canManageMembers`, `canManageGroups`, `canManageSettings`,
+  `canInviteMembers`, `canResetPassword`, `canManageAllFundraises`, `canViewAudit`) — add new ones there.
+- Group roles (lib/group-roles.js, pure): `admin, sub_admin, speaker, member`; "standing" = app | admin |
+  sub_admin | null. Use `canActOnRole`, `canEditDetails`, `canManageMembership`, `canPostIn`.
+  Sub-admins never act on admins/sub-admins.
+- Fundraise: `fundraisePermissions(user, campaign)` → manage / contribution / expense / post / teamRole.
+  Admins & sub-admins of any linked group (`fundraise_groups`) start fundraises; standalone (no group)
+  only for fundraise managers. Delete only when archived.
+- Private groups are invisible (notFound) to non-members.
+
+## Cross-cutting features to reuse
+
+- **Invites** (lib/invite.js `ensureInvitedUser`): phone → existing / enabled / created; first password =
+  phone, `must_change_password` meta forces `/set-password`, then own details. Use for group add, member
+  invite, relation add, contribution "Invite <number>".
+- **Notifications**: `notify` / `notifyMany({type,data,link,actorId})` — also sends web push. New type →
+  key `notifications.types.<type with . → _>` in both dictionaries; data fields `title/title_local`,
+  `group/group_local`, `name` are localised by `notificationText`.
+  - Each type maps to a **category** by prefix (lib/notification-prefs.js `categoryOf`); people switch
+    categories off in Settings → Notifications (`users_listmeta.notify_off`), and `notifyMany` skips them
+    (no notice, no push). New type prefix → add it to the map and a label under `settings.notify.categories`.
+  - Push (lib/push.js): title = the source (`data.title` / `data.group`, local spelling for non-English
+    readers), else the app name; icon/badge = the Samaj logo via `/api/app-icon` (public/sw.js).
+- **System chat notes**: `postSystemMessage` / `postMemberNote` (meeting scheduled, member added/removed).
+- **Names**: `composeName` / `splitName` (lib/names.js); full_name / full_name_local are the joins.
+- **Timezone**: `todayLocal()` (admin setting, default IST); DB pool follows the offset.
+- **Pictures**: `sanitizeAvatar` server-side; `GroupAvatar` / `SamajLogo` to render.
+- **Settings**: add keys to `SETTINGS` in lib/settings.js (`hidden: true` for keys with custom UI). App-wide
+  notify switches live in Settings → Notifications (`saveAdminNotify`), not in their module's section.
+- **App icons** (lib/app-icons.js): Samaj logo PNGs drawn in the browser, stored base64 in
+  `admin_settings.app_icon_<size>`; `getSettings` skips `app_icon_%` rows; `logo_version` busts caches.
+
+## i18n
+
+Full rules and the Gujarati glossary: the **parivar-i18n** skill.
+
+- Dictionaries `src/lib/i18n/dictionaries/{en,gu}.js`; **parity must stay exact** — verify with a
+  node script comparing key paths after every change.
+- `useT()` client / `getT()` server → `{ t, locale, localLang }`. `localized(row, field, locale)`.
+- Plurals: `{ one, other }` + `vars.count`. Dotted notification types use `_` in keys.
+
+## Verification before saying "done"
+
+1. `npx eslint src --quiet` clean; en/gu parity clean.
+2. Render-check changed routes on the dev server as super admin with a **temporary session**
+   (`users_sessions` row, `user_agent='node'`, expiry `INTERVAL 1 DAY` because the probe connection is
+   UTC while the app is IST) and **delete it in a finally block with a fresh connection**.
+3. Never click through in Chrome (user preference); say plainly what was not exercised.
+4. Production build only when pushing (dev stopped first).
+
+## Git / push routine (only when the user says "git push")
+
+Stop dev → free port 3000 (kill leftover `next start-server` for this repo) → lint → `npm run build` →
+`git add -A` → check no `.env`, no `public/app-icons/`, no `scripts/_*` staged, grep staged diff for
+`DB_PASSWORD|SEED_ADMIN_PASSWORD|DB_HOST|VAPID_PRIVATE_KEY|CRON_SECRET` → commit (attribution line from
+the session reminder) → push `origin main` → delete `.next` → restart `npm run dev` → check /login 200.
+
+## Keep TODO.md
+
+Append `- [x] …` for every delivered request; pending items stay `- [ ]`.
+
+## Maintaining the skills
+
+The project skills live in `.claude/skills/` (parivar-design, parivar-dev, parivar-db, parivar-i18n).
+They are **meant to change**: whenever the logic, a rule, a component or a convention changes —
+especially when the user says "apply this like this" for several places — edit the matching SKILL.md
+in the same piece of work (add the rule, fix what is now wrong, drop what no longer applies), and say so
+in the reply. Code and skills must never disagree.

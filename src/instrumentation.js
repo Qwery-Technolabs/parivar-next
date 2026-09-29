@@ -9,6 +9,9 @@ export async function register() {
     } catch (err) {
         console.error('timezone setting not loaded; using IST', err.message);
     }
+    // Serverless (Vercel): no long-lived process to run a timer in; Vercel Cron calls
+    // /api/cron/reminders instead (vercel.json).
+    if (process.env.VERCEL) return;
     const { startReminderLoop } = await import('./lib/reminders');
     startReminderLoop();
 }

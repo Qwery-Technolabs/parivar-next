@@ -3,7 +3,7 @@
 import { Toaster as Sonner } from 'sonner';
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from 'lucide-react';
 
-// Light-only app (DESIGN.md §11), so no theme hook.
+// Light-only app (design-system.md §11), so no theme hook.
 const Toaster = (props) => (
     <Sonner
         theme="light"

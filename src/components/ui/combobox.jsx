@@ -4,7 +4,7 @@ import { useId, useRef, useState } from 'react';
 import { textInput } from './field';
 
 /**
- * DESIGN.md §6 Combobox — async searchable single select.
+ * design-system.md §6 Combobox — async searchable single select.
  * Shows the selected label when closed and the typed query when open; fetches the
  * empty-query list once on first open; ↑/↓/Enter/Escape. `name` posts the value in a form.
  *

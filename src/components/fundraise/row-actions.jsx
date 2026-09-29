@@ -29,7 +29,7 @@ function OpenOnMount({ open }) {
 
 /**
  * Kebab on a contribution / expense row: Edit and Delete for managers, History for everyone.
- * Destructive item last, after a separator (DESIGN.md §6).
+ * Destructive item last, after a separator (design-system.md §6).
  */
 export default function RowActions({ kind, campaignId, row, canManage, today, allowAnonymous, categories }) {
     const { t } = useT();

@@ -1,6 +1,6 @@
 # Parivar App — TODO
 
-Stack (from `DESIGN.md` §0): Next.js 16 App Router · JavaScript (no TS) · Tailwind v4 ·
+Stack (from `design-system.md` §0): Next.js 16 App Router · JavaScript (no TS) · Tailwind v4 ·
 shadcn (`tsx:false`, `cssVariables:true`) · lucide-react · sonner · MySQL 8 + `mysql2/promise`.
 
 Legend: `[x]` done · `[~]` in progress · `[ ]` pending
@@ -175,5 +175,19 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fundraise About tab: wider side column on desktop
 - [x] Public link card: the public switch sits in the card header
 - [x] Pending (not paid) contributions: "Mark as paid" in the row kebab (mode + date, default today; logged in history)
-- [x] Samaj logo → favicon & app icon: drawn on a canvas on save (512/192/32 PNG), stored in public/app-icons/, served via /api/app-icon; web manifest with the Samaj name
+- [x] Samaj logo → favicon & app icon: drawn on a canvas on save (512/192/32 PNG), stored in the DB (admin_settings app_icon_*), served via /api/app-icon; web manifest with the Samaj name
 - [x] Activity log: "Clear these entries" moved below the table (out of the filter row)
+- [x] Project skills in .claude/skills: parivar-design (+ references/design-system.md, moved from DESIGN.md), parivar-dev, parivar-db, parivar-i18n; CLAUDE.md points to them
+- [x] Marathi removed everywhere (local-language options, dictionaries, settings, skill)
+- [x] Sidebar logo row: same faint bottom line as the header (desktop + phone drawer)
+- [x] Sidebar section titles: 5px top spacing
+- [x] No first-visit language redirect: default UI language = Settings → General "Default language for new members" (else Gujarati); /language only for switching
+- [x] Settings → Notifications: one place for this device's push, "what to notify me about" per kind (blood, calendar, meetings, fundraise, groups, discussion, member sign-ups) and the admin-wide switches (blood donors, new events)
+- [x] Push notifications: Samaj logo as icon/badge; title names where it came from (fundraise / group / meeting, reader's language)
+- [x] Sidebar: active item's icon in orange
+- [x] Fundraise About tab: "Add to team" in the Team card header
+- [x] Phone drawer slides in/out; long Samaj name truncates instead of running under the close button; opens before the JS loads (CSS checkbox)
+- [x] Dev on a real phone: allowedDevOrigins for LAN addresses (menus/popups were dead because dev JS was blocked)
+- [x] Phone bottom bar (Home · Groups · Fundraise · Blood · Members) on those section pages only; hidden inside a group / fundraise / chat
+- [x] Group / fundraise pages on phones: back button instead of the hamburger; Edit is icon-only; smaller tab labels
+- [x] Vercel-ready: icons in the DB, Vercel Cron → /api/cron/reminders (Bearer CRON_SECRET), no in-process loop on Vercel, smaller DB pool; README section

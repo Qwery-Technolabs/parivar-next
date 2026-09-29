@@ -78,7 +78,7 @@ export async function listCampaigns(user, { status, groupId, q = '', archived = 
         params.q = `%${q}%`;
     }
     const whereSql = where.join(' AND ');
-    // perPage/offset are clamped integers — inlined deliberately (DESIGN.md §9).
+    // perPage/offset are clamped integers — inlined deliberately (design-system.md §9).
     const offset = (page - 1) * perPage;
     const [rows, count] = await Promise.all([
         query(

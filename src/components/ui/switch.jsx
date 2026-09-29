@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * DESIGN.md §6 — a button role="switch", used instead of a checkbox everywhere.
+ * design-system.md §6 — a button role="switch", used instead of a checkbox everywhere.
  * `name` renders a hidden input so it works inside a plain <form action>.
  * @param {{ checked: boolean, onChange: (v: boolean) => void, label?: React.ReactNode, title?: string, name?: string, disabled?: boolean, color?: string }} props
  */

@@ -18,7 +18,7 @@ export async function generateMetadata() {
 }
 
 // Tint + text pairs, every text ≥4.5:1 on its tint. Fundraise is orange-state with navy text
-// (white or orange text on orange fails, DESIGN.md §2).
+// (white or orange text on orange fails, design-system.md §2).
 const TYPE_CHIP = {
     event: 'bg-brand-navy/10 text-brand-navy',
     meeting: 'bg-blue-50 text-blue-800',
@@ -29,6 +29,15 @@ const TYPE_CHIP = {
 };
 // An icon per kind, shown before the title in the grid and the agenda.
 const TYPE_ICON = { event: CalendarDays, meeting: CalendarClock, festival: PartyPopper, other: Circle, fundraise: HandCoins, birthday: Cake };
+// Solid dots for the phone grid (one per kind on that day).
+const TYPE_DOT = {
+    event: 'bg-brand-navy',
+    meeting: 'bg-blue-600',
+    festival: 'bg-purple-600',
+    other: 'bg-ink-gray',
+    fundraise: 'bg-brand-orange',
+    birthday: 'bg-rose-500',
+};
 const TYPE_TONE = { event: 'navy', meeting: 'blue', festival: 'purple', other: 'gray', fundraise: 'orange', birthday: 'red' };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -161,7 +170,51 @@ export default async function CalendarPage({ searchParams }) {
                 ]}
             />
 
-            {/* Month grid — hidden below sm, where seven columns are ~48px each and unreadable. */}
+            {/* Phone month grid: seven ~48px columns have no room for titles, so each day shows its
+                number and a coloured dot per kind; tapping a day jumps to it in the list below. */}
+            <div className="overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm sm:hidden">
+                <div className="grid grid-cols-7 border-b border-surface-border bg-surface-login">
+                    {weekdays.map((w, i) => (
+                        <div key={w} className={`truncate px-0.5 py-1.5 text-center text-[10px] font-semibold uppercase ${i === 0 ? 'text-destructive' : 'text-ink-gray'}`}>
+                            {w}
+                        </div>
+                    ))}
+                </div>
+                <div className="grid grid-cols-7">
+                    {cells.map((c, i) => {
+                        if (!c) return <div key={`p${i}`} className="h-12 border-b border-r border-surface-border bg-surface-login/60 [&:nth-child(7n)]:border-r-0" />;
+                        const kinds = [...new Set(c.items.map((it) => it.type))].slice(0, 4);
+                        const body = (
+                            <>
+                                <span
+                                    className={`inline-flex size-6 items-center justify-center rounded-full text-xs font-medium tabular-nums ${
+                                        c.iso === cal.today ? 'seg-active' : c.weekday === 0 ? 'text-destructive' : 'text-ink'
+                                    }`}
+                                >
+                                    {c.d}
+                                </span>
+                                <span className="flex h-1.5 items-center gap-0.5">
+                                    {kinds.map((k) => (
+                                        <span key={k} className={`size-1.5 rounded-full ${TYPE_DOT[k] ?? TYPE_DOT.other}`} />
+                                    ))}
+                                </span>
+                            </>
+                        );
+                        const cell = 'flex h-12 flex-col items-center justify-center gap-0.5 border-b border-r border-surface-border [&:nth-child(7n)]:border-r-0';
+                        return c.items.length ? (
+                            <a key={c.iso} href={`#ag-${c.items[0].key}`} aria-label={`${c.d}: ${c.items.map((it) => it.title).join(', ')}`} className={`${cell} hover:bg-accent`}>
+                                {body}
+                            </a>
+                        ) : (
+                            <div key={c.iso} className={cell}>
+                                {body}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Month grid (sm and up), with titles in the cells. */}
             <div className="hidden overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm sm:block">
                 <div className="grid grid-cols-7 border-b border-surface-border bg-surface-login">
                     {weekdays.map((w, i) => (
@@ -226,14 +279,14 @@ export default async function CalendarPage({ searchParams }) {
                 </div>
             </div>
 
-            {/* Agenda — the primary view on phones, the detail view below the grid elsewhere. */}
+            {/* Agenda — the details for the month, below the grid (phones jump here from a day). */}
             <section className="mt-4 overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
                 {items.length === 0 ? (
                     <p className="px-4 py-10 text-center text-sm text-ink-gray">{t('calendar.noEvents')}</p>
                 ) : (
                     <ul className="divide-y divide-surface-border">
                         {items.map((it) => (
-                            <li key={it.key} className="flex items-start gap-3 px-4 py-3">
+                            <li key={it.key} id={`ag-${it.key}`} className="flex scroll-mt-4 items-start gap-3 px-4 py-3 target:bg-accent">
                                 <div className="w-14 shrink-0 rounded-md bg-accent py-1 text-center">
                                     <p className="text-[11px] uppercase tracking-wide text-ink-gray">{fmtDate(it.start, locale).split(' ')[1]}</p>
                                     <p className="text-base font-semibold text-primary tabular-nums">{Number(it.start.slice(8, 10))}</p>

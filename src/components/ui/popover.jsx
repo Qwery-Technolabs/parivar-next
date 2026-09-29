@@ -28,7 +28,7 @@ function place(rect, align) {
 }
 
 /**
- * DESIGN.md §6 "Popup mechanics" — the ONE anchored popover idiom, used for the kebab,
+ * design-system.md §6 "Popup mechanics" — the ONE anchored popover idiom, used for the kebab,
  * filter panels and small dropdowns. Escape closes and returns focus; it closes on URL
  * change, on page scroll and on resize.
  *

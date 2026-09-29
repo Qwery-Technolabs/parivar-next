@@ -1,4 +1,4 @@
-// Pure module — client and server. DESIGN.md §6: page NUMBER in the URL, page SIZE in a cookie.
+// Pure module — client and server. design-system.md §6: page NUMBER in the URL, page SIZE in a cookie.
 
 export const PER_PAGE_COOKIE = 'table_per_page';
 export const PER_PAGE_OPTIONS = [10, 20, 50, 100];

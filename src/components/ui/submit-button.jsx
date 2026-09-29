@@ -12,7 +12,7 @@ const VARIANTS = {
 };
 
 /**
- * DESIGN.md §6 loaders — the spinner REPLACES the icon so the width does not jump.
+ * design-system.md §6 loaders — the spinner REPLACES the icon so the width does not jump.
  * `icon` is a component from client callers, or an already-rendered element (<Save className="size-4" />)
  * from server components, where a component reference cannot cross into this client component.
  * @param {{ icon?: React.ComponentType<{className?: string}> | React.ReactElement, children: React.ReactNode, pendingText?: string, variant?: keyof typeof VARIANTS, size?: string, className?: string, pending?: boolean }} props

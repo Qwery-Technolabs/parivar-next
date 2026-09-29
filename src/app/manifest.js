@@ -1,7 +1,10 @@
+import { connection } from 'next/server';
 import { getSettings } from '@/lib/settings';
 
 // Web app manifest: the Samaj name and its logo as the home-screen app icon.
 export default async function manifest() {
+    // Per request, not frozen at build: the Samaj name and logo change from Settings → General.
+    await connection();
     let general = {};
     try {
         general = await getSettings('admin');

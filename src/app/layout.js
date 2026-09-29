@@ -14,7 +14,7 @@ const gujarati = Noto_Sans_Gujarati({
     subsets: ['gujarati'],
     weight: ['400', '500', '600'],
 });
-// Hindi / Marathi names (local language) are Devanagari — also absent from Geist.
+// Hindi names (local language) are Devanagari — also absent from Geist.
 const devanagari = Noto_Sans_Devanagari({
     variable: '--font-devanagari',
     subsets: ['devanagari'],

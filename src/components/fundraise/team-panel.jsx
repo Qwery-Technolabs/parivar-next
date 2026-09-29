@@ -18,11 +18,6 @@ export default function TeamPanel({ campaignId, team, canManage, creatorId = nul
     const { t, locale } = useT();
     return (
         <div className="space-y-3">
-            {canManage && (
-                <div className="flex justify-end">
-                    <AddMemberDialog campaignId={campaignId} exclude={team.map((m) => m.user_id)} />
-                </div>
-            )}
             <div className="overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
                 {team.length === 0 ? (
                     <p className="px-4 py-10 text-center text-sm text-ink-gray">{t('fundraise.noTeam')}</p>
@@ -58,7 +53,7 @@ function TeamRow({ campaignId, m, canManage, locale, creatorId }) {
         });
     }
 
-    // Live control: one change is one intent (DESIGN.md §6), so the role select saves on change.
+    // Live control: one change is one intent (design-system.md §6), so the role select saves on change.
     function changeRole(e) {
         const fd = new FormData();
         fd.set('campaign_id', String(campaignId));
@@ -119,7 +114,8 @@ function TeamRow({ campaignId, m, canManage, locale, creatorId }) {
     );
 }
 
-function AddMemberDialog({ campaignId, exclude }) {
+/** "Add to team" — sits in the Team card's header (details-tab.jsx). */
+export function AddTeamMemberButton({ campaignId, exclude }) {
     const { t } = useT();
     return (
         <FormDialog
@@ -132,9 +128,9 @@ function AddMemberDialog({ campaignId, exclude }) {
                 <button
                     type="button"
                     onClick={open}
-                    className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
                 >
-                    <UserPlus className="size-4" /> {t('fundraise.addTeamMember')}
+                    <UserPlus className="size-3.5" /> {t('fundraise.addTeamMember')}
                 </button>
             )}
         >

@@ -31,14 +31,15 @@ export default function WaTabs({ tabs, active }) {
                         }`}
                     >
                         <span className="relative">
-                            {Icon && <Icon className="size-[18px]" />}
+                            {Icon && <Icon className="size-4 sm:size-[18px]" />}
                             {tab.count > 0 && (
                                 <span className="absolute -right-3 -top-1.5 rounded-full bg-white/20 px-1 text-[9px] font-semibold leading-3.5 tabular-nums">
                                     {tab.count > 99 ? '99+' : tab.count}
                                 </span>
                             )}
                         </span>
-                        <span className="max-w-full truncate text-[11px] font-semibold uppercase tracking-wide">{tab.label}</span>
+                        {/* Phones: smaller, untracked labels so five tabs fit without cutting words off. */}
+                        <span className="max-w-full truncate text-[10px] font-semibold uppercase sm:text-[11px] sm:tracking-wide">{tab.label}</span>
                         {on && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[3px] bg-brand-orange" />}
                     </Link>
                 );

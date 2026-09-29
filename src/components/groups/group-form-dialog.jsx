@@ -29,16 +29,19 @@ export default function GroupFormDialog({ group, onNavy = false, menuKey }) {
                 <button
                     type="button"
                     onClick={open}
-                    className={`inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium ${
+                    // On the navy header: icon only on phones (the title needs the room), icon + text from sm up.
+                    aria-label={onNavy ? t('common.edit') : undefined}
+                    title={onNavy ? t('common.edit') : undefined}
+                    className={`inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium ${
                         onNavy
-                            ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
+                            ? 'w-9 border border-white/20 bg-white/10 text-white hover:bg-white/20 sm:w-auto sm:px-3'
                             : isEdit
-                              ? 'btn-secondary w-full sm:w-auto'
-                              : 'w-full bg-primary text-white hover:bg-primary/90 sm:w-auto'
+                              ? 'btn-secondary w-full px-3 sm:w-auto'
+                              : 'w-full bg-primary px-3 text-white hover:bg-primary/90 sm:w-auto'
                     }`}
                 >
                     {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
-                    {isEdit ? t('common.edit') : t('groups.add')}
+                    <span className={onNavy ? 'hidden sm:inline' : undefined}>{isEdit ? t('common.edit') : t('groups.add')}</span>
                 </button>
                 )
             }

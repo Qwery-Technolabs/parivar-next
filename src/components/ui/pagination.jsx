@@ -18,7 +18,7 @@ function NavButton({ href, disabled, label, icon: Icon }) {
     );
 }
 
-/** DESIGN.md §6 — first/prev/next/last, every link rebuilt from the full param set. */
+/** design-system.md §6 — first/prev/next/last, every link rebuilt from the full param set. */
 export default function Pagination({ pathname, searchParams, page, perPage, total, t, pageParam = 'page' }) {
     const pages = Math.max(1, Math.ceil(total / perPage));
     const from = total === 0 ? 0 : (page - 1) * perPage + 1;
