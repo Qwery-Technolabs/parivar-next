@@ -28,7 +28,7 @@ export async function chatAccess(user, scope, scopeId) {
     if (!user || !CHAT_SCOPES.includes(scope) || !scopeId) return none;
     if (scope === 'group') {
         const group = await queryOne(
-            `SELECT g.id, m.meta_value AS chat_mode, r.meta_value AS chat_roles FROM admin_groups g
+            `SELECT g.id, g.status, m.meta_value AS chat_mode, r.meta_value AS chat_roles FROM admin_groups g
                LEFT JOIN admin_groupsmeta m ON m.group_id = g.id AND m.meta_key = 'chat_mode'
                LEFT JOIN admin_groupsmeta r ON r.group_id = g.id AND r.meta_key = 'chat_roles'
               WHERE g.id = :scopeId`,
@@ -37,7 +37,10 @@ export async function chatAccess(user, scope, scopeId) {
         if (!group) return none;
         const { standing, myRole } = await groupStanding(user, scopeId);
         if (!standing && !myRole) return none;
+        if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') return none;
         const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
+        // An inactive or archived group's discussion is read-only for everyone.
+        if (group.status !== 'active') return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), postRoles, paused: true };
         const canPost = canPostIn(postRoles, standing, myRole);
         return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), postRoles };
     }

@@ -16,8 +16,8 @@ function Placeholder() {
 const ContributionDialog = dynamic(() => import('./contribution-dialog'), { ssr: false, loading: Placeholder });
 const ExpenseDialog = dynamic(() => import('./expense-dialog'), { ssr: false, loading: Placeholder });
 
-/** Phones: a single round "+" (the add action for the list on screen). */
-function PlusTrigger({ label }) {
+/** Phones: a round "+" in the entry's colour (blue contribution, orange expense). */
+function PlusTrigger({ label, tone }) {
     return function Trigger({ open }) {
         return (
             <button
@@ -25,7 +25,9 @@ function PlusTrigger({ label }) {
                 onClick={open}
                 aria-label={label}
                 title={label}
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm ${
+                    tone === 'expense' ? 'bg-expense hover:bg-expense-hover' : 'bg-income hover:bg-income-hover'
+                }`}
             >
                 <Plus className="size-5" />
             </button>
@@ -35,12 +37,11 @@ function PlusTrigger({ label }) {
 
 /**
  * Each button only for the matching permission: a collector records contributions, not expenses.
- * From sm up: both labelled buttons. Phones: ONE "+" that adds what the list shows — an expense on
- * the Expenses view, a contribution otherwise (falling back to whichever the person may add).
+ * From sm up: both labelled buttons. Phones: two round "+" buttons — blue adds a contribution,
+ * orange an expense (the same colours as the amounts and the tabs).
  */
-export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories, view }) {
+export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories }) {
     const { t } = useT();
-    const phoneKind = view === 'expenses' ? (perms.expense ? 'expense' : 'contribution') : perms.contribution ? 'contribution' : 'expense';
     return (
         <>
             <span className="hidden sm:contents">
@@ -48,16 +49,21 @@ export default function EntryButtons({ campaignId, today, perms, allowAnonymous,
                 {perms.expense && <ExpenseDialog campaignId={campaignId} today={today} categories={categories} />}
             </span>
             <span className="contents sm:hidden">
-                {phoneKind === 'contribution' && perms.contribution && (
+                {perms.contribution && (
                     <ContributionDialog
                         campaignId={campaignId}
                         today={today}
                         allowAnonymous={allowAnonymous}
-                        trigger={PlusTrigger({ label: t('fundraise.addContribution') })}
+                        trigger={PlusTrigger({ label: t('fundraise.addContribution'), tone: 'income' })}
                     />
                 )}
-                {phoneKind === 'expense' && perms.expense && (
-                    <ExpenseDialog campaignId={campaignId} today={today} categories={categories} trigger={PlusTrigger({ label: t('fundraise.addExpense') })} />
+                {perms.expense && (
+                    <ExpenseDialog
+                        campaignId={campaignId}
+                        today={today}
+                        categories={categories}
+                        trigger={PlusTrigger({ label: t('fundraise.addExpense'), tone: 'expense' })}
+                    />
                 )}
             </span>
         </>

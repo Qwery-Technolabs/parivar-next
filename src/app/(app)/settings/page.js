@@ -1,4 +1,4 @@
-import { BellRing, CalendarDays, Check, Droplet, HandCoins, Languages, ShieldCheck, SlidersHorizontal, UserCircle, History } from 'lucide-react';
+import { BellRing, CalendarDays, Check, Droplet, HandCoins, Languages, Megaphone, ShieldCheck, SlidersHorizontal, UserCircle, History } from 'lucide-react';
 import Link from 'next/link';
 import { setLocalLanguage } from '@/app/actions/profile';
 import { setLanguage } from '@/app/actions/session';
@@ -22,6 +22,7 @@ import { casteOptions } from '@/lib/castes';
 import { getMember, listCities, listVillages } from '@/lib/members';
 import { AdminNotifySettings, NotificationPrefs } from '@/components/settings/notification-prefs';
 import { NOTIFY_CATEGORIES, parseOff } from '@/lib/notification-prefs';
+import LanguageSelect from '@/components/settings/language-select';
 import { sp1 } from '@/lib/url';
 
 export async function generateMetadata() {
@@ -42,6 +43,8 @@ const SECTIONS = [
     { key: 'notifications', group: 'personal', icon: BellRing },
     { key: 'general', group: 'admin', icon: SlidersHorizontal, module: 'admin', admin: true },
     { key: 'fundraise', group: 'admin', icon: HandCoins, module: 'fundraise', admin: true },
+    // App-wide sending switches (blood donors, new events) — under Samaj, not the personal Notifications.
+    { key: 'alerts', group: 'admin', icon: Megaphone, admin: true },
     // Blood and Calendar had only their notify switches; those now live under Notifications.
     // Kept out of the sidebar: an internal record, shown here (sub-admins and up).
     { key: 'audit', group: 'admin', icon: History, audit: true },
@@ -105,7 +108,7 @@ export default async function SettingsPage({ searchParams }) {
                     {current.key === 'audit' && <AuditLog sp={sp} t={t} locale={locale} canClear={isAdmin} />}
                     {current.key === 'security' && <SecuritySection userId={user.id} t={t} />}
                     {current.key === 'notifications' && (
-                        // Everything about notifications in one place: this device, my kinds, and (admins) app-wide sending.
+                        // My notifications: this device and the kinds I want. App-wide sending is under Samaj → Alerts.
                         <div className="space-y-4">
                             <Card title={t('settings.notify.pushTitle')}>
                                 <p className="mb-3 text-xs text-ink-gray">{t('push.hint')}</p>
@@ -113,9 +116,9 @@ export default async function SettingsPage({ searchParams }) {
                                 <PushToggle publicKey={vapidPublicKey()} />
                             </Card>
                             <NotificationPrefsSection user={user} />
-                            {isAdmin && <AdminNotifySection />}
                         </div>
                     )}
+                    {current.key === 'alerts' && <AdminNotifySection />}
                     {current.key === 'language' && <LanguageSection t={t} locale={locale} />}
                     {current.module && <ModuleSection module={current.module} title={t(`settings.sections.${current.key}.title`)} t={t} />}
                 </div>
@@ -181,28 +184,6 @@ async function SecuritySection({ userId, t }) {
     );
 }
 
-function Choice({ action, name, value, selected, label, sub, lang }) {
-    return (
-        <form action={action}>
-            <input type="hidden" name={name} value={value} />
-            <button
-                type="submit"
-                lang={lang}
-                aria-pressed={selected}
-                className={`flex h-14 w-full items-center justify-between rounded-lg border px-3 text-left hover:bg-accent ${
-                    selected ? 'border-primary ring-2 ring-ring/30' : 'border-surface-border'
-                }`}
-            >
-                <span className="min-w-0">
-                    <span className="block font-semibold text-primary">{label}</span>
-                    <span className="block text-xs text-ink-gray">{sub}</span>
-                </span>
-                {selected && <Check className="size-4 shrink-0 text-primary" />}
-            </button>
-        </form>
-    );
-}
-
 async function LanguageSection({ t, locale }) {
     const localLang = await getLocalLanguage();
     // Both labels in their own script, so someone who reads only one can still find it.
@@ -210,32 +191,28 @@ async function LanguageSection({ t, locale }) {
         { value: 'gu', label: 'ગુજરાતી', sub: 'Gujarati' },
         { value: 'en', label: 'English', sub: 'અંગ્રેજી' },
     ];
+    // Two cards side by side (stacked on phones), each a dropdown that saves on change.
     return (
-        <div className="space-y-4">
+        <div className="grid items-start gap-4 md:grid-cols-2">
             <Card title={t('settings.language.app')}>
                 <p className="mb-3 text-xs text-ink-gray">{t('settings.language.appHint')}</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                    {appLanguages.map((o) => (
-                        <Choice key={o.value} action={setLanguage} name="locale" value={o.value} selected={locale === o.value} label={o.label} sub={o.sub} lang={o.value} />
-                    ))}
-                </div>
+                <LanguageSelect
+                    action={setLanguage}
+                    name="locale"
+                    value={locale}
+                    label={t('settings.language.app')}
+                    options={appLanguages.map((o) => ({ value: o.value, label: `${o.label} (${o.sub})` }))}
+                />
             </Card>
             <Card title={t('settings.language.local')}>
                 <p className="mb-3 text-xs text-ink-gray">{t('settings.language.localHint')}</p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                    {Object.entries(LOCAL_LANGUAGES).map(([code, l]) => (
-                        <Choice
-                            key={code}
-                            action={setLocalLanguage}
-                            name="local_language"
-                            value={code}
-                            selected={localLang === code}
-                            label={l.label}
-                            sub={l.english}
-                            lang={code}
-                        />
-                    ))}
-                </div>
+                <LanguageSelect
+                    action={setLocalLanguage}
+                    name="local_language"
+                    value={localLang}
+                    label={t('settings.language.local')}
+                    options={Object.entries(LOCAL_LANGUAGES).map(([code, l]) => ({ value: code, label: `${l.label} (${l.english})` }))}
+                />
             </Card>
         </div>
     );

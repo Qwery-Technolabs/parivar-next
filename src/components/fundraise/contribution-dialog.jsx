@@ -24,6 +24,7 @@ export default function ContributionDialog({ campaignId, today, allowAnonymous =
             action={saveContribution}
             hidden={{ campaign_id: campaignId, contribution_id: entry?.id ?? '' }}
             submitIcon={editing ? Pencil : Plus}
+            submitVariant="income"
             submitLabel={editing ? t('common.save') : t('common.add')}
             trigger={
                 trigger ??
@@ -31,7 +32,7 @@ export default function ContributionDialog({ campaignId, today, allowAnonymous =
                     <button
                         type="button"
                         onClick={open}
-                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-income px-4 text-sm font-medium text-white hover:bg-income-hover"
                     >
                         <Plus className="size-4" /> {t('fundraise.addContribution')}
                     </button>

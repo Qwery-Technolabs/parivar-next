@@ -23,7 +23,7 @@ export default function Statement({ campaign, contributors, contributions, expen
                     empty={t('fundraise.noContributions')}
                     rows={contributors.map((c) => [name(c), c.entries, money(c.total)])}
                     foot={[t('common.total'), contributions.length, money(collected)]}
-                    footTone="text-emerald-700"
+                    footTone="text-income"
                 />
             </Section>
 
@@ -39,7 +39,7 @@ export default function Statement({ campaign, contributors, contributions, expen
                         money(c.amount),
                     ])}
                     foot={[t('common.total'), '', '', money(collected)]}
-                    footTone="text-emerald-700"
+                    footTone="text-income"
                 />
             </Section>
 
@@ -50,16 +50,16 @@ export default function Statement({ campaign, contributors, contributions, expen
                     empty={t('fundraise.noExpenses')}
                     rows={expenses.map((e) => [date(e.spent_on, locale), e.title, e.place || '—', money(e.amount)])}
                     foot={[t('common.total'), '', '', money(spent)]}
-                    footTone="text-rose-700"
+                    footTone="text-expense"
                 />
             </Section>
 
             <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t border-surface-border pt-3 text-sm">
                 <span className="text-ink-gray">
-                    {t('fundraise.collected')}: <b className="tabular-nums text-emerald-700">{money(collected)}</b>
+                    {t('fundraise.collected')}: <b className="tabular-nums text-income">{money(collected)}</b>
                 </span>
                 <span className="text-ink-gray">
-                    {t('fundraise.spent')}: <b className="tabular-nums text-rose-700">{money(spent)}</b>
+                    {t('fundraise.spent')}: <b className="tabular-nums text-expense">{money(spent)}</b>
                 </span>
                 <span className="text-ink-gray">
                     {t('fundraise.balance')}:{' '}

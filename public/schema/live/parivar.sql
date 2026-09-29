@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS admin_groups (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name        VARCHAR(150) NOT NULL,
     name_local     VARCHAR(150) NULL,
-    status      ENUM('active','archived') NOT NULL DEFAULT 'active',
+    status      ENUM('active','inactive','archived') NOT NULL DEFAULT 'active', -- inactive = read-only discussion; archived = hidden (managers only), deletable
     created_by  INT UNSIGNED NULL,
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

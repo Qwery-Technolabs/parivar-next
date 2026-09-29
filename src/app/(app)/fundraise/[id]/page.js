@@ -12,7 +12,8 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import Badge from '@/components/ui/badge';
-import { fundraisePermissions } from '@/lib/access';
+import AddToGroups from '@/components/fundraise/add-to-groups';
+import { fundraiseGroupIds, fundraisePermissions } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money, time } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
@@ -24,6 +25,9 @@ import {
     listExpenses,
     listHistory,
     listTeam,
+    canSeeCampaign,
+    listGroupsForSelect,
+    maskAnonymous,
     listUpdates,
     nextMeeting,
 } from '@/lib/fundraise';
@@ -58,6 +62,9 @@ export async function generateMetadata({ params }) {
     return { title: c ? localized(c, 'title', locale) : undefined };
 }
 
+// Status dot on the fundraise picture (header): active green, draft grey, closed red.
+const STATUS_DOT = { active: 'bg-emerald-500', draft: 'bg-gray-400', closed: 'bg-red-600' };
+
 export default async function FundraiseDetailPage({ params, searchParams }) {
     const [{ id }, sp] = await Promise.all([params, searchParams]);
     const user = await requireUser();
@@ -65,6 +72,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     if (!campaign) notFound();
 
     const perms = await fundraisePermissions(user, campaign);
+    // Outside the fundraise's audience (and not its team / group leaders / managers): it does not exist.
+    if (!(await canSeeCampaign(user, campaign.id))) notFound();
     // Drafts stay invisible to everyone who could not manage them (same rule as the list).
     // Archived ones too: out of sight for everyone but managers.
     if ((campaign.status === 'draft' || campaign.archived_at) && !perms.manage) notFound();
@@ -96,15 +105,17 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 ? listContributions(campaign.id, { limit: perPage, offset })
                 : view === 'expenses'
                   ? listExpenses(campaign.id, { limit: perPage, offset })
-                  : contributorTotals(campaign.id),
+                  : contributorTotals(campaign.id, { publicView: !perms.manage }),
             getSettings('fundraise'),
         ]);
+        // Anonymous gifts: only managers see who gave (they get the name + an "Anonymous" badge).
+        const shown = perms.manage || view === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));
         const total = view === 'contributions' ? campaign.contribution_count : view === 'expenses' ? campaign.expense_count : rows.length;
         body = (
             <MoneyTab
                 campaign={campaign}
                 view={view}
-                rows={rows}
+                rows={shown}
                 total={total}
                 page={page}
                 perPage={perPage}
@@ -158,6 +169,18 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
         body = <ChatPanel scope="fundraise" scopeId={campaign.id} />;
     }
 
+    // "Add to group": groups this person may start a fundraise in (all, for fundraise managers)
+    // that it is not shown in yet.
+    let addableGroups = [];
+    if (perms.manage) {
+        const all = canManageAllFundraises(user.role);
+        const [groups, mine] = await Promise.all([listGroupsForSelect(), all ? [] : fundraiseGroupIds(user.id)]);
+        const linked = new Set([campaign.group_id, ...(campaign.groups ?? []).map((g) => g.id)]);
+        addableGroups = groups
+            .filter((g) => !linked.has(g.id) && (all || mine.includes(g.id)))
+            .map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }));
+    }
+
     return (
         // Inside the normal content gutters, like the group page: a rounded header card, then the tab.
         <div className="theme-fundraise">
@@ -184,17 +207,27 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     {/* Row 1: picture + title on the left, PDF and Edit pinned top-right (never wrap below). */}
                     <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 flex-1 items-center gap-3">
-                            <GroupAvatar
-                                name={campaign.title}
-                                kind={campaign.meta.avatar_kind}
-                                value={campaign.meta.avatar_value}
-                                color={campaign.meta.avatar_color}
-                                tint="bg-white/15 text-white"
-                                className="ring-2 ring-white/25"
-                            />
+                            {/* Status = a dot on the picture's bottom-right: green active, grey draft, red closed. */}
+                            <span className="relative shrink-0" title={t(`fundraise.${campaign.status}`)}>
+                                <GroupAvatar
+                                    name={campaign.title}
+                                    kind={campaign.meta.avatar_kind}
+                                    value={campaign.meta.avatar_value}
+                                    color={campaign.meta.avatar_color}
+                                    tint="bg-white/15 text-white"
+                                    className="ring-2 ring-white/25"
+                                />
+                                <span
+                                    role="img"
+                                    aria-label={t(`fundraise.${campaign.status}`)}
+                                    className={`absolute -right-0.5 -bottom-0.5 size-3.5 rounded-full ring-2 ring-brand-navy ${STATUS_DOT[campaign.status] ?? STATUS_DOT.draft}`}
+                                />
+                            </span>
                             <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
+                            {/* Show it in more groups: only when there is a group this person may still add. */}
+                            {addableGroups.length > 0 && <AddToGroups campaignId={campaign.id} groups={addableGroups} />}
                             {/* Print / PDF: the statement, for anyone who can see the fundraise. */}
                             <Link
                                 href={`${base}/print`}
@@ -217,19 +250,20 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                             )}
                         </div>
                     </div>
-                    {/* Row 2: status on the left, my team role on the right (phones: the role alone). */}
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
-                            {campaign.archived_at && <Badge tone="gray">{t('fundraise.archivedBadge')}</Badge>}
+                    {/* Row 2 (only when needed): Archived on the left; my team role on the right from sm up
+                        (phones find the role in the About tab). Status is the dot on the picture. */}
+                    {(campaign.archived_at || perms.teamRole) && (
+                        <div className={`mt-2 items-center justify-between gap-2 ${campaign.archived_at ? 'flex' : 'hidden sm:flex'}`}>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                {campaign.archived_at && <Badge tone="gray">{t('fundraise.archivedBadge')}</Badge>}
+                            </div>
+                            {perms.teamRole && (
+                                <Badge tone="orange" className="hidden sm:inline-flex">
+                                    {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
+                                </Badge>
+                            )}
                         </div>
-                        {perms.teamRole && (
-                            <Badge tone="orange" title={`${t('fundraise.yourRole')}: ${t(`fundraise.teamRoles.${perms.teamRole}`)}`}>
-                                <span className="hidden sm:inline">{t('fundraise.yourRole')}: </span>
-                                {t(`fundraise.teamRoles.${perms.teamRole}`)}
-                            </Badge>
-                        )}
-                    </div>
+                    )}
                     <p className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-white/85 tabular-nums">
                         <span>
                             {t('fundraise.collected')}: <b className="text-white">{money(collected)}</b>

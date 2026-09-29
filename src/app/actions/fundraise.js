@@ -170,6 +170,8 @@ export async function saveCampaign(prev, fd) {
     };
     const meta = {
         description: str(fd, 'description', 20000),
+        // Audience rows = only those people see it; '1' = also everyone else, lower in their list.
+        audience_others: bool(fd, 'audience_others') ? '1' : '',
         // Picture: icon / emoji / ≤2 letters on a colour, like a group's (lib/group-avatar).
         ...sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10)),
         // No local-language description on the form any more; an older one is left as it is.
@@ -730,4 +732,30 @@ export async function deleteUpdate(campaignId, updateId) {
     await audit(user.id, `fundraise.${row.update_type}.delete`, 'fundraise', campaignId, { update: updateId });
     refreshCampaign(campaignId);
     return { ok: true, message: 'common.deleted' };
+}
+
+/**
+ * "Add to group" on the fundraise page: show it in more groups (fundraise_groups). Needs manage
+ * on the fundraise AND the right to start a fundraise in each group (same rule as the edit form).
+ * Fields: campaign_id, group_ids[].
+ */
+export async function addCampaignToGroups(prev, fd) {
+    const campaignId = id(fd, 'campaign_id');
+    const { user, campaign } = await authorize(campaignId);
+    if (!campaign) return FORBIDDEN;
+    const groupIds = [...new Set(fd.getAll('group_ids').map(Number))].filter((n) => n > 0 && n !== campaign.group_id).slice(0, 50);
+    if (!groupIds.length) return { fieldErrors: { group_ids: 'fundraise.addToGroupChoose' } };
+    const linked = new Set((await query('SELECT group_id FROM fundraise_groups WHERE campaign_id = :campaignId', { campaignId })).map((r) => r.group_id));
+    const add = groupIds.filter((g) => !linked.has(g));
+    for (const g of add) {
+        if (!(await canCreateFundraiseIn(user, g))) return { fieldErrors: { group_ids: 'fundraise.errors.extraGroup' } };
+    }
+    const l = inList(add, 'g');
+    const exists = add.length ? await query(`SELECT id FROM admin_groups WHERE id IN (${l.sql})`, l.params) : [];
+    if (exists.length !== add.length) return { fieldErrors: { group_ids: 'fundraise.errors.extraGroup' } };
+    await withTransaction((q) => writeCampaignGroups(q, campaignId, { add, drop: [] }, user.id));
+    await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title: campaign.title, addedGroups: add });
+    refreshCampaign(campaignId);
+    for (const g of add) revalidatePath(`/groups/${g}`);
+    return { ok: true, message: 'fundraise.addToGroupDone' };
 }

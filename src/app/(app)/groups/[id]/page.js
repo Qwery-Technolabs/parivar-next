@@ -7,12 +7,13 @@ import MeetingsSection from '@/components/meetings/meetings-section';
 import NextMeetingBanner from '@/components/meetings/next-meeting-banner';
 import GroupAvatar from '@/components/groups/group-avatar';
 import GroupFormDialog from '@/components/groups/group-form-dialog';
+import GroupDangerCard from '@/components/groups/group-danger-card';
 import GroupMembers from '@/components/groups/group-members';
 import { Card, LinkButton } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import WaTabs from '@/components/ui/wa-tabs';
 import { canCreateFundraiseIn, groupStanding } from '@/lib/access';
-import { canEditDetails, canManageMembership } from '@/lib/group-roles';
+import { canAdminister, canEditDetails, canManageMembership, GROUP_STATUS_DOT } from '@/lib/group-roles';
 import { requireUser } from '@/lib/auth';
 import { messageCount } from '@/lib/chat';
 import { todayLocal } from '@/lib/forms';
@@ -47,7 +48,7 @@ export default async function GroupPage({ params, searchParams }) {
 
     const [members, fundraises, { standing, myRole }, canFundraise, messages, upcoming] = await Promise.all([
         groupMembers(group.id),
-        groupFundraises(group.id),
+        groupFundraises(group.id, user),
         groupStanding(user, group.id),
         canCreateFundraiseIn(user, group.id),
         messageCount('group', group.id),
@@ -56,6 +57,8 @@ export default async function GroupPage({ params, searchParams }) {
     // A private group does not exist for outsiders.
     const isPrivate = group.meta.visibility === 'private';
     if (isPrivate && !standing && !myRole) notFound();
+    // Archived: hidden from members — only app-level group managers and the group's admins open it.
+    if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') notFound();
     // Admins and sub-admins edit the group and manage its members (lib/group-roles.js).
     const canManage = canManageMembership(standing);
     const canEditGroup = canEditDetails(standing);
@@ -67,14 +70,22 @@ export default async function GroupPage({ params, searchParams }) {
             <HeaderBack href="/groups" label={t('groups.title')} />
             <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
                 <div className="flex items-center gap-3 px-3 pt-3 sm:px-4">
-                    <GroupAvatar
-                        name={name}
-                        kind={group.meta.avatar_kind}
-                        value={group.meta.avatar_value}
-                        color={group.meta.avatar_color}
-                        tint="bg-white/15 text-white"
-                        className="ring-2 ring-white/25"
-                    />
+                    {/* Status = a dot on the picture's bottom-right: green active, red inactive, grey archived. */}
+                    <span className="relative shrink-0" title={t(`groups.status.${group.status}`)}>
+                        <GroupAvatar
+                            name={name}
+                            kind={group.meta.avatar_kind}
+                            value={group.meta.avatar_value}
+                            color={group.meta.avatar_color}
+                            tint="bg-white/15 text-white"
+                            className="ring-2 ring-white/25"
+                        />
+                        <span
+                            role="img"
+                            aria-label={t(`groups.status.${group.status}`)}
+                            className={`absolute -right-0.5 -bottom-0.5 size-3.5 rounded-full ring-2 ring-brand-navy ${GROUP_STATUS_DOT[group.status] ?? GROUP_STATUS_DOT.active}`}
+                        />
+                    </span>
                     <div className="min-w-0 flex-1">
                         <h1 className="flex items-center gap-1.5 text-base font-semibold">
                             <span className="truncate">{name}</span>
@@ -144,7 +155,7 @@ export default async function GroupPage({ params, searchParams }) {
                                             </span>
                                         </span>
                                         <span className="shrink-0 text-right">
-                                            <span className="block text-sm font-semibold tabular-nums text-emerald-700">{money(f.collected)}</span>
+                                            <span className="block text-sm font-semibold tabular-nums text-income">{money(f.collected)}</span>
                                             <Badge status={f.status} className="mt-0.5">
                                                 {t(`fundraise.${f.status}`)}
                                             </Badge>
@@ -162,10 +173,14 @@ export default async function GroupPage({ params, searchParams }) {
             )}
 
             {tab === 'about' && (
-                <Card title={t('groups.about')}>
-                    <p className="whitespace-pre-line text-sm text-ink">{group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}</p>
-                    <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
-                </Card>
+                <div className="space-y-4">
+                    <Card title={t('groups.about')}>
+                        <p className="whitespace-pre-line text-sm text-ink">{group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}</p>
+                        <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
+                    </Card>
+                    {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
+                    {canAdminister(standing) && <GroupDangerCard group={group} canDelete={standing === 'app'} t={t} />}
+                </div>
             )}
         </div>
     );

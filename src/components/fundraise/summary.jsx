@@ -3,7 +3,7 @@ import { progressPct } from '@/lib/fundraise';
 
 /**
  * Collected / spent / balance + progress. Server component; `t` is the server translator.
- * Money colours from design-system.md §2: received emerald-700, spend rose-700, negative net rose-700.
+ * Money colours: collected = income (blue), spent = expense (orange), negative net rose-700.
  */
 export default function FundraiseSummary({ campaign, t, compact = false }) {
     const collected = Number(campaign.collected);
@@ -12,8 +12,8 @@ export default function FundraiseSummary({ campaign, t, compact = false }) {
     const pct = progressPct(campaign);
     const pending = Number(campaign.pending ?? 0);
     const cells = [
-        { label: t('fundraise.collected'), value: money(collected), tone: 'text-emerald-700' },
-        { label: t('fundraise.spent'), value: money(spent), tone: 'text-rose-700' },
+        { label: t('fundraise.collected'), value: money(collected), tone: 'text-income' },
+        { label: t('fundraise.spent'), value: money(spent), tone: 'text-expense' },
         { label: t('fundraise.balance'), value: money(balance), tone: balance < 0 ? 'text-rose-700' : 'text-primary' },
         {
             label: t('fundraise.target'),

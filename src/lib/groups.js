@@ -1,5 +1,6 @@
 import 'server-only';
 import { getMeta, getMetaMany, query, queryOne } from './db';
+import { audienceFilter } from './fundraise';
 
 export async function listGroups() {
     // Counts come from one grouped read of the membership table, not a subquery per group.
@@ -9,7 +10,7 @@ export async function listGroups() {
            FROM admin_groups g
            LEFT JOIN (SELECT group_id, COUNT(*) AS members, SUM(member_role = 'admin') AS admins
                         FROM admin_group_members GROUP BY group_id) c ON c.group_id = g.id
-          WHERE g.status = 'active'
+          WHERE g.status <> 'archived'
           ORDER BY g.name`,
     );
 }
@@ -30,14 +31,17 @@ export async function groupMembers(groupId) {
     );
 }
 
-export async function groupFundraises(groupId) {
+export async function groupFundraises(groupId, user) {
+    // Audience: someone outside a fundraise's audience does not see it here either.
+    const aud = user ? audienceFilter(user) : { sql: '1 = 1', params: {} };
     const rows = await query(
         `SELECT c.id, c.title, c.title_local, c.status, c.start_date, c.end_date, c.target_amount,
                 (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions WHERE campaign_id = c.id AND deleted_at IS NULL AND mode <> 'unpaid') AS collected,
                 (SELECT COALESCE(SUM(amount), 0) FROM fundraise_expenses WHERE campaign_id = c.id AND deleted_at IS NULL) AS spent
            FROM fundraise_campaigns c
-          WHERE c.id IN (SELECT campaign_id FROM fundraise_groups WHERE group_id = :groupId) AND c.archived_at IS NULL ORDER BY c.status = 'active' DESC, c.start_date DESC LIMIT 50`,
-        { groupId },
+          WHERE c.id IN (SELECT campaign_id FROM fundraise_groups WHERE group_id = :groupId) AND c.archived_at IS NULL AND ${aud.sql}
+          ORDER BY c.status = 'active' DESC, c.start_date DESC LIMIT 50`,
+        { groupId, ...aud.params },
     );
     const pics = await getMetaMany('fundraise_campaigns', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);
     return rows.map((r) => ({ ...r, avatar: pics[r.id] ?? {} }));
@@ -50,9 +54,10 @@ export async function groupFundraises(groupId) {
  * Preview and unread are only meaningful for groups the viewer can read; the page hides them
  * otherwise (non-members see "members only").
  */
-export async function listGroupsForChat(userId) {
+export async function listGroupsForChat(userId, { manager = false } = {}) {
+    // Archived groups: only for app-level group managers and that group's admins.
     const rows = await query(
-        `SELECT g.id, g.name, g.name_local,
+        `SELECT g.id, g.name, g.name_local, g.status,
                 (SELECT COUNT(*) FROM admin_group_members m WHERE m.group_id = g.id) AS members,
                 gm.member_role AS my_role,
                 lm.id AS last_id, lm.created_at AS last_at, lm.deleted_at AS last_deleted,
@@ -68,9 +73,9 @@ export async function listGroupsForChat(userId) {
            LEFT JOIN chat_messagesmeta lk ON lk.message_id = lm.id AND lk.meta_key = 'kind'
            LEFT JOIN users_list lu ON lu.id = lm.user_id
            LEFT JOIN chat_reads r ON r.user_id = :userId AND r.scope = 'group' AND r.scope_id = g.id
-          WHERE g.status = 'active'
+          WHERE g.status <> 'archived' OR :manager = 1 OR gm.member_role = 'admin'
           ORDER BY (gm.user_id IS NULL), COALESCE(lm.created_at, g.created_at) DESC`,
-        { userId },
+        { userId, manager: manager ? 1 : 0 },
     );
     const meta = await getMetaMany('admin_groups', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color', 'visibility']);
     return rows.map((r) => ({ ...r, avatar: meta[r.id] ?? {}, private: meta[r.id]?.visibility === 'private' }));

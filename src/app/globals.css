@@ -16,6 +16,13 @@
      The bright brand orange (2.22:1 with white) stays for bars, dots and switch tracks. */
   --color-brand-orange-strong: #b85d09;
   --color-brand-orange-strong-hover: #a8520b;
+  /* Money in the fundraise ledger: contributions BLUE, expenses ORANGE — amounts, add / edit
+     buttons, the Contributions / Expenses tabs. Both carry white text when filled:
+     white on #1d4ed8 is 6.70:1, on #b85d09 4.56:1 (AA); as text on white the same ratios. */
+  --color-income: #1d4ed8;
+  --color-income-hover: #1e40af;
+  --color-expense: #b85d09;
+  --color-expense-hover: #a8520b;
   --color-brand-blue: #66aae1;
   --color-brand-blue-deep: #003294;
   --color-ink: #041527;

@@ -9,6 +9,8 @@ const VARIANTS = {
     secondary: 'btn-secondary',
     outline: 'border border-surface-border bg-white text-primary hover:bg-accent',
     danger: 'bg-destructive text-white hover:bg-destructive/90',
+    income: 'bg-income text-white hover:bg-income-hover',
+    expense: 'bg-expense text-white hover:bg-expense-hover',
 };
 
 /**

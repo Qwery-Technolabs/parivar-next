@@ -28,6 +28,33 @@ const FOR_YOU = `EXISTS (
         OR (a.kind = 'village' AND a.value = me.village)
      ))`;
 
+/**
+ * Audience = WHO SEES IT. No rows → everyone. With rows → only matching members, unless the
+ * "also show everyone else, lower down" switch is on (meta audience_others = '1'). Its team and
+ * the admins / sub-admins of its groups always see it; app-level managers skip this check.
+ */
+const AUDIENCE_OK = `(
+    NOT EXISTS (SELECT 1 FROM fundraise_audience ax WHERE ax.campaign_id = c.id)
+    OR EXISTS (SELECT 1 FROM fundraise_campaignsmeta mx WHERE mx.campaign_id = c.id AND mx.meta_key = 'audience_others' AND mx.meta_value = '1')
+    OR ${FOR_YOU}
+    OR EXISTS (SELECT 1 FROM fundraise_members tx WHERE tx.campaign_id = c.id AND tx.user_id = :viewerId)
+    OR EXISTS (SELECT 1 FROM fundraise_groups gx JOIN admin_group_members gmx ON gmx.group_id = gx.group_id AND gmx.user_id = :viewerId
+                AND gmx.member_role IN ('admin', 'sub_admin') WHERE gx.campaign_id = c.id)
+)`;
+
+/** The audience filter for one viewer, as { sql, params } over alias `c` (app-level managers: none). */
+export function audienceFilter(user) {
+    if (canManageAllFundraises(user.role)) return { sql: '1 = 1', params: {} };
+    return { sql: AUDIENCE_OK, params: { viewerId: user.id } };
+}
+
+/** May this viewer open this fundraise at all (audience only — drafts are checked separately)? */
+export async function canSeeCampaign(user, campaignId) {
+    const f = audienceFilter(user);
+    const row = await queryOne(`SELECT 1 AS ok FROM fundraise_campaigns c WHERE c.id = :campaignId AND ${f.sql}`, { campaignId, ...f.params });
+    return Boolean(row);
+}
+
 // Totals as correlated subqueries: each hits idx_fundraise_*_camp, so a page of 20
 // campaigns costs 40 index range reads instead of a join that multiplies rows.
 const TOTALS = `
@@ -46,12 +73,13 @@ const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amo
  */
 async function visibilityClause(user) {
     if (canManageAllFundraises(user.role)) return { sql: '1 = 1', params: {} };
+    const aud = audienceFilter(user);
     const ids = await fundraiseGroupIds(user.id);
-    if (!ids.length) return { sql: "c.status <> 'draft'", params: {} };
+    if (!ids.length) return { sql: `c.status <> 'draft' AND ${aud.sql}`, params: aud.params };
     const list = inList(ids, 'vg');
     return {
-        sql: `(c.status <> 'draft' OR EXISTS (SELECT 1 FROM fundraise_groups vfg WHERE vfg.campaign_id = c.id AND vfg.group_id IN (${list.sql})))`,
-        params: list.params,
+        sql: `(c.status <> 'draft' OR EXISTS (SELECT 1 FROM fundraise_groups vfg WHERE vfg.campaign_id = c.id AND vfg.group_id IN (${list.sql}))) AND ${aud.sql}`,
+        params: { ...list.params, ...aud.params },
     };
 }
 
@@ -183,6 +211,16 @@ export async function contributorTotals(campaignId, { publicView = false } = {})
     );
 }
 
+/**
+ * "Hide name publicly" gifts for people who do not manage the fundraise: the name becomes the
+ * anonymous label ("Anonymous" / "રામભરોસે") and the member link goes. Managers see real names.
+ * @param {Array<{ is_anonymous?: number, donor_name?: string, user_id?: number|null }>} rows
+ * @param {string} label t('fundraise.anonymousLabel')
+ */
+export function maskAnonymous(rows, label) {
+    return rows.map((r) => (r.is_anonymous ? { ...r, donor_name: label, user_id: null } : r));
+}
+
 export async function listGroupsForSelect() {
     return query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`);
 }
@@ -303,7 +341,7 @@ export async function listUpdates(campaignId, { eventId = null } = {}) {
     return rows.map((r) => ({ ...r, body: meta[r.id]?.body ?? '' }));
 }
 
-// ── audience ("who should see this first") ────────────────────────────────────
+// ── audience ("who should see this") ────────────────────────────────────
 
 /** Rules of one campaign, with caste / sub-caste names resolved for display. */
 export async function getAudience(campaignId) {

@@ -41,6 +41,7 @@ export default async function ChatPanel({ scope, scopeId }) {
             canPost={access.canPost}
             canAlert={access.canAlert}
             postRoles={access.postRoles ?? []}
+            paused={Boolean(access.paused)}
             messages={messages.map((m) => ({
                 id: m.id,
                 userId: m.user_id,

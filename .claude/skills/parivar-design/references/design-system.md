@@ -259,8 +259,8 @@ done → green   pending → amber   crawling → blue
 error/unreachable → red   blocked → purple   paused → gray
 ```
 
-Money, in a financial table: received `text-emerald-700`, outstanding
-`text-amber-700`, spend `text-rose-700`, negative net `text-rose-700`.
+Money, in a financial table: received / contributions `text-income` (blue #1d4ed8), outstanding
+`text-amber-700`, spend / expenses `text-expense` (orange #b85d09), negative net `text-rose-700`.
 
 ---
 

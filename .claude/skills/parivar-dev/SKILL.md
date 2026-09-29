@@ -76,7 +76,21 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Timezone**: `todayLocal()` (admin setting, default IST); DB pool follows the offset.
 - **Pictures**: `sanitizeAvatar` server-side; `GroupAvatar` / `SamajLogo` to render.
 - **Settings**: add keys to `SETTINGS` in lib/settings.js (`hidden: true` for keys with custom UI). App-wide
-  notify switches live in Settings → Notifications (`saveAdminNotify`), not in their module's section.
+  notify switches live in Settings → Samaj → **Alerts** (`?section=alerts`, `saveAdminNotify`), not in their
+  module's section nor in the personal Notifications section.
+- **Fundraise audience = who sees it** (lib/fundraise.js `AUDIENCE_OK` / `audienceFilter(user)` / `canSeeCampaign`):
+  no rows → everyone; rows → only matching members, unless meta `audience_others = '1'` ("also everyone else,
+  lower in their list"). Team, admins / sub-admins of its groups and app-level managers always see it. Applied
+  to the feed, a group's Fundraises tab, the detail page and print. Matching rows still sort first (for_you).
+- **Anonymous gifts** ("Hide name publicly"): only fundraise managers see the donor (name + badge). Everyone
+  else sees `fundraise.anonymousLabel` — "Anonymous" / "રામભરોસે" — via `maskAnonymous(rows, label)`, and
+  by-contributor totals use `contributorTotals(id, { publicView: !manage })`. Copied text, the PDF list and
+  public pages always show the label.
+- **Group status** (`admin_groups.status`, `GROUP_STATUSES`): active · inactive (listed, discussion read-only:
+  `chatAccess` returns `canPost:false, paused:true`) · archived (hidden: lists use `status <> 'archived'` except
+  for app-level managers / that group's admins; the page 404s for others). `setGroupStatus` = canAdminister;
+  `deleteGroup` = archived + app-level, refused while it is a fundraise's home group; deletes its meetings and chat.
+  New group pickers (fundraise / events / members) list `status = 'active'` only.
 - **App icons** (lib/app-icons.js): Samaj logo PNGs drawn in the browser, stored base64 in
   `admin_settings.app_icon_<size>`; `getSettings` skips `app_icon_%` rows; `logo_version` busts caches.
 

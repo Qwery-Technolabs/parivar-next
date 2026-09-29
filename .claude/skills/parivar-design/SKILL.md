@@ -19,7 +19,11 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
   **white** text (4.56:1). Never white on the lighter `brand-orange`.
 - Card headers are tinted: `bg-card-head` strip with `border-b`, title `text-sm font-semibold text-primary`.
 - Scoped themes: `.theme-fundraise` (blue primary), `.theme-blood` (rose). Wrap module pages in them.
-- Status colours: emerald = money in / success, rose = money out / danger, amber = pending/warning
+- **Fundraise ledger colours: contributions BLUE (`income` #1d4ed8), expenses ORANGE (`expense` #b85d09)** —
+  every amount (`text-income` / `text-expense`), add + edit buttons (`bg-income` / `bg-expense`, FormDialog
+  `submitVariant="income|expense"`), the Contributions / By contributor tab (blue) and Expenses tab (orange),
+  and the phone "+" buttons (one blue, one orange). Pending (unpaid) stays amber; a negative balance rose.
+- Status colours: emerald = success, rose = danger, amber = pending/warning
   (e.g. "Not registered yet", "Pending" contributions), gray = neutral.
 - Every new colour pair must pass 4.5:1; `avatarInk(hex)` (lib/group-avatar.js) picks white vs dark
   text for any background.
@@ -108,14 +112,26 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   `replace`, so the browser Back leaves the page rather than stepping through tabs. Group tabs:
   Discussion · Meetings · Fundraise · Members · About. Fundraise tabs: Discussion · Income/Expense ·
   Meetings · About. Phones: labels `text-[10px]` without tracking, icons `size-4` (from `sm`: 11px tracked, 18px).
-- Fundraise navy header: row 1 = picture + title (left) · PDF + Edit pinned top-right; row 2 = status /
-  archived badges (left) · my team role (right; phones show only the role value, "Your role:" from `sm`).
+- Fundraise navy header: row 1 = picture + title (left) · Add to group, PDF, Edit pinned top-right. **Status is
+  a dot on the picture's bottom-right** (green active, grey draft, red closed; title + aria-label) — no status
+  badge. Row 2 only when needed: Archived badge (left) · "Your role" (right, sm and up only). Phones see
+  "Your role" at the top of the About tab's Team card.
 - Fundraise Income / Expense tab on phones: no summary boxes / progress bar (the navy header shows the
   totals + target % to 2 decimals); ONE toolbar row = view switch · Share menu (copy list / copy all / PDF) ·
-  one round primary "+" that adds what the current view lists (expense on Expenses, else contribution).
-  Prefer this pattern (one contextual "+", secondary actions in one menu) over rows of buttons on phones.
+  two round "+" buttons — blue adds a contribution, orange an expense (only those the person may add).
+  Prefer round "+" buttons and one menu for secondary actions over rows of labelled buttons on phones.
 - Detail lists (label + value, e.g. /members/[id]): phones = label left (40%), value right-aligned on one
   line, rows divided; from sm = label above value in two columns.
+- Settings → Language: App language and Local language cards side by side (`md:grid-cols-2`), each a
+  dropdown (`LanguageSelect`) that saves on change — no big choice tiles.
+- Fundraise header "Add to group" (`AddToGroups`, FolderPlus): only when the person manages the fundraise and
+  there is a group they may start a fundraise in that it is not in yet; icon-only on phones.
+- **Dialogs (FormDialog)**: Cancel + Save **side by side** on phones too (each `flex-1`, own width from sm);
+  **no field autofocus** — the dialog itself takes focus (`DialogContent focusPopup`) so no keyboard pops up.
+- **Status dot on pictures** (fundraise header; group header and group list): bottom-right dot with a ring —
+  green active · grey draft/archived · red closed/inactive (`GROUP_STATUS_DOT`, fundraise `STATUS_DOT`).
+- Group About tab → **Danger zone** card (`GroupDangerCard`): status now, Mark inactive/active, Archive/Restore,
+  and "Delete permanently" once archived (app-level only), each with a one-line explanation.
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
   `<span className="hidden sm:inline">`), icon + text from `sm`: Edit group / Edit fundraise on the navy
   header, meetings' Schedule / Edit / Cancel. Apply the same to new row/card action buttons.

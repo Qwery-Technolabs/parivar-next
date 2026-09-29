@@ -17,6 +17,7 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
             action={saveExpense}
             hidden={{ campaign_id: campaignId, expense_id: entry?.id ?? '' }}
             submitIcon={editing ? Pencil : Plus}
+            submitVariant="expense"
             submitLabel={editing ? t('common.save') : t('common.add')}
             trigger={
                 trigger ??
@@ -24,7 +25,7 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                     <button
                         type="button"
                         onClick={open}
-                        className="btn-secondary inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium"
+                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-expense px-4 text-sm font-medium text-white hover:bg-expense-hover"
                     >
                         <Plus className="size-4" /> {t('fundraise.addExpense')}
                     </button>

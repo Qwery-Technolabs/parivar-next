@@ -21,6 +21,7 @@ export default function FormDialog({
     action,
     submitLabel,
     submitIcon,
+    submitVariant,
     children,
     width = 'sm:max-w-lg',
     hidden = {},
@@ -41,7 +42,8 @@ export default function FormDialog({
             })}
             <Dialog open={open} onOpenChange={setOpen}>
                 {/* sm:max-w-*, never max-w-*: the base class ends in sm:max-w-sm and would win above sm. */}
-                <DialogContent className={`${width} max-h-[92vh] overflow-y-auto bg-white`}>
+                {/* No autofocus on a field (focusPopup): nothing pre-selected, no phone keyboard on open. */}
+                <DialogContent focusPopup className={`${width} max-h-[92vh] overflow-y-auto bg-white`}>
                     <DialogHeader>
                         <DialogTitle className="text-base font-semibold text-primary">{title}</DialogTitle>
                         {description && <DialogDescription className="text-xs text-ink-gray">{description}</DialogDescription>}
@@ -52,6 +54,7 @@ export default function FormDialog({
                         hidden={hidden}
                         submitLabel={submitLabel ?? t('common.save')}
                         submitIcon={submitIcon}
+                        submitVariant={submitVariant}
                         onDone={(state) => {
                             setOpen(false);
                             if (state.message) toast.success(t(state.message, state.vars));
@@ -67,7 +70,7 @@ export default function FormDialog({
     );
 }
 
-function DialogForm({ action, hidden, submitLabel, submitIcon, onDone, onCancel, children }) {
+function DialogForm({ action, hidden, submitLabel, submitIcon, submitVariant, onDone, onCancel, children }) {
     const { t } = useT();
     const [state, formAction, pending] = useActionState(async (prev, fd) => {
         const res = (await action(prev, fd)) ?? {};
@@ -98,15 +101,16 @@ function DialogForm({ action, hidden, submitLabel, submitIcon, onDone, onCancel,
                 </p>
             )}
             {/* Pinned to the bottom of the scrolling dialog, so Save never scrolls out of reach. */}
-            <div className="sticky bottom-0 -mx-4 flex flex-col-reverse gap-2 border-t border-surface-border bg-white px-4 py-3 sm:flex-row sm:justify-end">
+            {/* Cancel and Save side by side — halves on phones, their own width from sm up. */}
+            <div className="sticky bottom-0 -mx-4 flex flex-row gap-2 border-t border-surface-border bg-white px-4 py-3 sm:justify-end">
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-surface-border bg-white px-4 text-sm font-medium text-primary hover:bg-accent"
+                    className="inline-flex h-9 flex-1 items-center justify-center rounded-md border border-surface-border bg-white px-4 text-sm font-medium text-primary hover:bg-accent sm:flex-none"
                 >
                     {t('common.cancel')}
                 </button>
-                <SubmitButton icon={submitIcon} pendingText={t('common.saving')} pending={pending}>
+                <SubmitButton icon={submitIcon} variant={submitVariant} pendingText={t('common.saving')} pending={pending} className="flex-1 sm:flex-none">
                     {submitLabel}
                 </SubmitButton>
             </div>

@@ -201,10 +201,10 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                 <Td className="hidden text-xs text-ink-gray lg:table-cell">
                                     {c.start_date || c.end_date ? `${date(c.start_date, locale)} – ${date(c.end_date, locale)}` : null}
                                 </Td>
-                                <Td numeric className="font-medium text-emerald-700">
+                                <Td numeric className="font-medium text-income">
                                     {money(c.collected)}
                                 </Td>
-                                <Td numeric className="hidden text-rose-700 sm:table-cell">
+                                <Td numeric className="hidden text-expense sm:table-cell">
                                     {money(c.spent)}
                                 </Td>
                                 <Td>
@@ -235,7 +235,7 @@ async function MyDonations({ user, sp, page, perPage, t, locale }) {
     return (
         <>
             <div className="mb-4 sm:max-w-xs">
-                <StatCard label={t('fundraise.myTotal')} value={money(amount)} tone="text-emerald-700" />
+                <StatCard label={t('fundraise.myTotal')} value={money(amount)} tone="text-income" />
                 <p className="mt-1 text-xs text-ink-gray">{t('fundraise.myTotalNote', { count: campaigns })}</p>
             </div>
             <TableShell>
@@ -259,7 +259,7 @@ async function MyDonations({ user, sp, page, perPage, t, locale }) {
                                     {r.location && <span className="block text-xs text-ink-gray">{r.location}</span>}
                                 </Td>
                                 <Td className="hidden sm:table-cell">{t(`fundraise.modes.${r.mode}`)}</Td>
-                                <Td numeric className="font-medium text-emerald-700">
+                                <Td numeric className="font-medium text-income">
                                     {money(r.amount)}
                                 </Td>
                             </Tr>
@@ -273,7 +273,7 @@ async function MyDonations({ user, sp, page, perPage, t, locale }) {
                                 {t('common.total')}
                             </td>
                             <td className="hidden sm:table-cell" />
-                            <td className="px-4 py-3 text-right tabular-nums text-emerald-700">{money(amount)}</td>
+                            <td className="px-4 py-3 text-right tabular-nums text-income">{money(amount)}</td>
                         </tr>
                     </tfoot>
                 )}

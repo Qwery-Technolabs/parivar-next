@@ -199,3 +199,12 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Income / Expense tab on phones: summary boxes gone (header shows totals + target % to 2 decimals); one row = view switch, Share menu, single contextual "+"
 - [x] Member detail page on phones: label and value side by side (divided rows)
 - [x] Members list on phones: occupation hidden under the name; wider name column so full names show
+- [x] Ledger colours: contributions blue, expenses orange — amounts everywhere, add / edit buttons, tabs; phones get two "+" buttons (blue contribution, orange expense)
+- [x] Fundraise header: "Add to group" — show the fundraise in more groups (groups where you may start a fundraise; hidden when none left)
+- [x] Settings → Language: both cards side by side, each a dropdown that saves on change
+- [x] Settings: "Sent to everyone" switches moved to Samaj → Alerts (admins); Notifications keeps this device + my kinds
+- [x] Anonymous contributions: shown as "Anonymous" / "રામભરોસે" to everyone except fundraise managers (list, by contributor, print)
+- [x] Dialogs: Cancel and Save side by side on phones; no field autofocus on open (all FormDialogs, incl. contribution / expense)
+- [x] Fundraise header: status as a coloured dot on the picture (green active, grey draft, red closed); status badge removed; role hidden on phones and shown in the About tab Team card
+- [x] Group status: active / inactive (read-only discussion) / archived (hidden from members); status dot on group pictures; About → Danger zone with Mark inactive, Archive / Restore, Delete permanently (archived only)
+- [x] Fundraise audience: "Who should see this" (only matching members; team, group admins and managers always) + switch "Also show to everyone else, lower in their list"; existing fundraises with an audience keep the old behaviour (switch on)

@@ -12,6 +12,15 @@
 
 export const GROUP_ROLES = ['admin', 'sub_admin', 'speaker', 'member'];
 
+/**
+ * Group status (admin_groups.status): active; inactive = still listed and readable, nobody can post;
+ * archived = hidden from members (app-level group managers and the group's admins still open it),
+ * and only then deletable.
+ */
+export const GROUP_STATUSES = ['active', 'inactive', 'archived'];
+/** Status dot on a group's picture: green active, red inactive, grey archived. */
+export const GROUP_STATUS_DOT = { active: 'bg-emerald-500', inactive: 'bg-red-600', archived: 'bg-gray-400' };
+
 /** Group visibility (admin_groupsmeta.visibility): public = listed for everyone; private = only its members (and app-level managers). */
 export const GROUP_VISIBILITY = ['public', 'private'];
 

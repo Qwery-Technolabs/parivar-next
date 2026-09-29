@@ -88,6 +88,14 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
                         title={t('fundraise.tabs.team')}
                         actions={perms.manage && <AddTeamMemberButton campaignId={campaign.id} exclude={team.map((m) => m.user_id)} />}
                     >
+                        {/* My role on this fundraise (the header shows it only from sm up). */}
+                        {perms.teamRole && (
+                            <p className="mb-3">
+                                <Badge tone="orange">
+                                    {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
+                                </Badge>
+                            </p>
+                        )}
                         <TeamPanel campaignId={campaign.id} team={team} canManage={perms.manage} creatorId={campaign.created_by} />
                     </Card>
                 </section>

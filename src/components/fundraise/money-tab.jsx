@@ -47,7 +47,10 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                             scroll={false}
                             aria-current={view === k ? 'true' : undefined}
                             className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded px-2.5 text-xs font-medium ${
-                                view === k ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-primary'
+                                // Contributions / By contributor = blue, Expenses = orange (the ledger colours).
+                                view === k
+                                    ? `${k === 'expenses' ? 'bg-expense' : 'bg-income'} text-white shadow-sm`
+                                    : `text-ink-gray ${k === 'expenses' ? 'hover:text-expense' : 'hover:text-income'}`
                             }`}
                         >
                             {labels[k]}
@@ -66,7 +69,6 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                             perms={{ contribution: perms.contribution, expense: perms.expense }}
                             allowAnonymous={settings.allow_anonymous}
                             categories={settings.expense_categories}
-                            view={view}
                         />
                     )}
                 </div>
@@ -97,7 +99,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                     <Td className="whitespace-nowrap text-ink-gray">{date(c.paid_on, locale)}</Td>
                                     <Td>
                                         <DonorName row={c} />
-                                        {c.is_anonymous ? (
+                                        {c.is_anonymous && perms.manage ? (
                                             <Badge tone="gray" className="ml-2">
                                                 {t('fundraise.anonymousLabel')}
                                             </Badge>
@@ -107,7 +109,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                     <Td className="hidden sm:table-cell">
                                         {c.mode === 'unpaid' ? <Badge tone="amber">{t('fundraise.pendingBadge')}</Badge> : t(`fundraise.modes.${c.mode}`)}
                                     </Td>
-                                    <Td numeric className={`font-medium ${c.mode === 'unpaid' ? 'text-amber-800' : 'text-emerald-700'}`}>
+                                    <Td numeric className={`font-medium ${c.mode === 'unpaid' ? 'text-amber-800' : 'text-income'}`}>
                                         {money(c.amount)}
                                     </Td>
                                     <Td className="w-12 py-1">
@@ -151,7 +153,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                         )}
                                     </Td>
                                     <Td className="hidden md:table-cell">{e.place || null}</Td>
-                                    <Td numeric className="font-medium text-rose-700">
+                                    <Td numeric className="font-medium text-expense">
                                         {money(e.amount)}
                                     </Td>
                                     <Td className="w-12 py-1">
@@ -183,7 +185,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                     </Td>
                                     <Td numeric>{c.entries}</Td>
                                     <Td className="hidden whitespace-nowrap text-ink-gray sm:table-cell">{date(c.last_paid, locale)}</Td>
-                                    <Td numeric className="font-semibold text-emerald-700">
+                                    <Td numeric className="font-semibold text-income">
                                         {money(c.total)}
                                     </Td>
                                 </Tr>

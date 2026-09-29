@@ -22,7 +22,7 @@ export default function ActionButton({ action, confirm, icon, children, danger =
                 startTransition(async () => {
                     const res = await action();
                     if (res?.ok) toast.success(t(res.message));
-                    else toast.error(t(res?.error ?? 'common.error'));
+                    else if (res) toast.error(t(res.error ?? 'common.error')); // nothing back = it redirected
                 });
             }}
             className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium disabled:opacity-60 ${

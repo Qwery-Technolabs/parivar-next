@@ -3,6 +3,7 @@ import { Globe, Lock, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import GroupAvatar from '@/components/groups/group-avatar';
+import { GROUP_STATUS_DOT } from '@/lib/group-roles';
 import { useT } from '@/lib/i18n/client';
 
 /**
@@ -37,7 +38,15 @@ export default function GroupChatList({ groups }) {
                 {shown.map((g) => (
                     <li key={g.id}>
                         <Link href={`/groups/${g.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/60">
-                            <GroupAvatar id={g.id} name={g.name} kind={g.avatar?.avatar_kind} value={g.avatar?.avatar_value} color={g.avatar?.avatar_color} size="lg" />
+                            {/* Status dot (green active, red inactive, grey archived — archived only reaches admins). */}
+                            <span className="relative shrink-0" title={t(`groups.status.${g.status ?? 'active'}`)}>
+                                <GroupAvatar id={g.id} name={g.name} kind={g.avatar?.avatar_kind} value={g.avatar?.avatar_value} color={g.avatar?.avatar_color} size="lg" />
+                                <span
+                                    role="img"
+                                    aria-label={t(`groups.status.${g.status ?? 'active'}`)}
+                                    className={`absolute right-0 bottom-0 size-3 rounded-full ring-2 ring-white ${GROUP_STATUS_DOT[g.status] ?? GROUP_STATUS_DOT.active}`}
+                                />
+                            </span>
                             <span className="min-w-0 flex-1">
                                 <span className="flex items-center gap-1.5">
                                     <span className={`truncate text-sm text-primary ${g.unread ? 'font-bold' : 'font-semibold'}`}>{g.name}</span>

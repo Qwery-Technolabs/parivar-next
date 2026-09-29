@@ -157,7 +157,7 @@ export default async function MemberPage({ params }) {
                             <div className="flex items-end justify-between gap-3 border-b border-surface-border px-4 py-3">
                                 <div>
                                     <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('members.totalDonated')}</p>
-                                    <p className="text-2xl font-semibold tabular-nums text-emerald-700">{money(donations.total)}</p>
+                                    <p className="text-2xl font-semibold tabular-nums text-income">{money(donations.total)}</p>
                                 </div>
                                 <p className="text-xs text-ink-gray">{t('members.donationCount', { count: donations.gifts })}</p>
                             </div>
@@ -172,7 +172,7 @@ export default async function MemberPage({ params }) {
                                             ) : (
                                                 <span className="text-sm font-semibold text-ink-gray">{t('fundraise.noGroup')}</span>
                                             )}
-                                            <span className="shrink-0 text-sm font-semibold tabular-nums text-emerald-700">{money(g.total)}</span>
+                                            <span className="shrink-0 text-sm font-semibold tabular-nums text-income">{money(g.total)}</span>
                                         </div>
                                         <ul className="mt-1.5 space-y-1">
                                             {g.campaigns.map((c) => (

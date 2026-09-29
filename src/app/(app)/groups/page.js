@@ -28,7 +28,7 @@ export default async function GroupsPage() {
     const user = await requireUser();
     const { t, locale } = await getT();
     const manager = canManageGroups(user.role);
-    const rows = await listGroupsForChat(user.id);
+    const rows = await listGroupsForChat(user.id, { manager });
 
     // A private group is listed only for its members (and app-level group managers).
     const groups = rows.filter((g) => !g.private || manager || g.my_role).map((g) => {
@@ -53,6 +53,7 @@ export default async function GroupsPage() {
             id: g.id,
             name,
             avatar: g.avatar,
+            status: g.status,
             private: g.private,
             members: Number(g.members),
             admin: g.my_role === 'admin',

@@ -1,7 +1,8 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { canEditGroupDetails, groupStanding } from '@/lib/access';
-import { canActOnRole, GROUP_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
+import { canActOnRole, canAdminister, GROUP_ROLES, GROUP_STATUSES, GROUP_VISIBILITY } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
@@ -195,4 +196,41 @@ export async function removeGroupMember(groupId, userId, deleteAccount = false) 
     revalidatePath(`/groups/${gid}`);
     if (deleted) revalidatePath('/members');
     return { ok: true, message: deleted ? 'groups.invite.removedDeleted' : 'common.deleted' };
+}
+
+/** Danger zone: set a group's status (active / inactive / archived). The group's admins and app-level group managers. */
+export async function setGroupStatus(groupId, status) {
+    const actor = await getCurrentUser();
+    if (!actor || !GROUP_STATUSES.includes(status)) return FORBIDDEN;
+    const { standing } = await groupStanding(actor, groupId);
+    if (!canAdminister(standing)) return FORBIDDEN;
+    const g = await queryOne('SELECT id, name, status FROM admin_groups WHERE id = :groupId', { groupId });
+    if (!g) return FORBIDDEN;
+    await query('UPDATE admin_groups SET status = :status WHERE id = :groupId', { status, groupId });
+    await audit(actor.id, 'group.update', 'group', groupId, { name: g.name, status: { from: g.status, to: status } });
+    revalidatePath('/groups');
+    revalidatePath(`/groups/${groupId}`);
+    return { ok: true, message: `groups.danger.done.${status}` };
+}
+
+/**
+ * Delete an ARCHIVED group for good: its meetings, discussion, member list and links go with it.
+ * App-level group managers only. Refused while it is the home group of a fundraise.
+ */
+export async function deleteGroup(groupId) {
+    const actor = await getCurrentUser();
+    if (!actor || !canManageGroups(actor.role)) return FORBIDDEN;
+    const g = await queryOne('SELECT id, name, status FROM admin_groups WHERE id = :groupId', { groupId });
+    if (!g || g.status !== 'archived') return FORBIDDEN;
+    const home = await queryOne('SELECT COUNT(*) AS n FROM fundraise_campaigns WHERE group_id = :groupId', { groupId });
+    if (Number(home.n) > 0) return { error: 'groups.danger.hasFundraises' };
+    await withTransaction(async (q) => {
+        await q(`DELETE FROM events_list WHERE group_id = :groupId AND event_type = 'meeting'`, { groupId });
+        await q(`DELETE FROM chat_messages WHERE scope = 'group' AND scope_id = :groupId`, { groupId });
+        await q(`DELETE FROM chat_reads WHERE scope = 'group' AND scope_id = :groupId`, { groupId });
+        await q('DELETE FROM admin_groups WHERE id = :groupId', { groupId }); // members, meta, fundraise links cascade
+    });
+    await audit(actor.id, 'group.delete', 'group', groupId, { name: g.name });
+    revalidatePath('/groups');
+    redirect('/groups');
 }

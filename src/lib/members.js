@@ -175,7 +175,7 @@ export async function memberGroups(userId) {
     return query(
         `SELECT g.id, g.name, g.name_local, gm.member_role
            FROM admin_group_members gm JOIN admin_groups g ON g.id = gm.group_id
-          WHERE gm.user_id = :userId AND g.status = 'active'
+          WHERE gm.user_id = :userId AND g.status <> 'archived'
           ORDER BY gm.member_role = 'admin' DESC, g.name`,
         { userId },
     );

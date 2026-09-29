@@ -41,6 +41,7 @@ export default function CampaignForm({
     const meta = c.meta ?? {};
     // Only on create — an existing fundraise's link is switched from its detail page.
     const [isPublic, setIsPublic] = useState(defaultPublic);
+    const [othersToo, setOthersToo] = useState(meta.audience_others === '1');
 
     // onSubmit + startTransition rather than <form action>: React resets uncontrolled
     // fields after a form action completes, which would wipe the input on a validation error.
@@ -142,6 +143,11 @@ export default function CampaignForm({
                     )}
                     <Panel title={t('fundraise.audience.title')}>
                         <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} bare />
+                        {/* Off: only the people above see it. On: everyone else too, below their own fundraises. */}
+                        <div className="mt-3 border-t border-surface-border pt-3">
+                            <Switch checked={othersToo} onChange={setOthersToo} name="audience_others" label={t('fundraise.audience.othersToo')} />
+                            <p className="mt-1 text-xs text-ink-gray">{t('fundraise.audience.othersTooHint')}</p>
+                        </div>
                     </Panel>
                 </div>
             </div>
