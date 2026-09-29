@@ -28,7 +28,7 @@ export async function meetingScope(user, scope, scopeId) {
             titleLocal: g.name_local,
             manage: await canManageGroup(user, g.id),
             candidateIds: members.map((m) => m.user_id),
-            link: `/groups/${g.id}?tab=about`,
+            link: `/groups/${g.id}?tab=meetings`,
         };
     }
     if (scope === 'fundraise') {
@@ -129,4 +129,14 @@ export async function writeReminders(q, eventId, day, time, offsets) {
             { eventId, off, start },
         );
     }
+}
+
+/** Upcoming group meetings, for the Meetings tab badge. */
+export async function upcomingMeetingCount(groupId, today) {
+    const row = await queryOne(
+        `SELECT COUNT(*) AS n FROM events_list
+          WHERE event_type = 'meeting' AND group_id = :groupId AND campaign_id IS NULL AND start_date >= :today`,
+        { groupId, today },
+    );
+    return row.n;
 }

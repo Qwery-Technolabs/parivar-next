@@ -13,12 +13,18 @@ export function resolveBloodFilters(sp = {}) {
     const group = BLOOD_GROUPS.includes(one(sp.group)) ? one(sp.group) : '';
     const compatible = one(sp.compatible) === '1';
     const village = String(one(sp.village)).trim().slice(0, 100);
-    return { tab, status, group, compatible, village };
+    const q = String(one(sp.q)).trim().slice(0, 100);
+    return { tab, status, group, compatible, village, q };
 }
 
-export async function listRequests({ status, page, perPage }) {
-    const where = status === 'all' ? '1=1' : 'r.status = :status';
+export async function listRequests({ status, q = '', page, perPage }) {
+    const conds = status === 'all' ? [] : ['r.status = :status'];
     const params = { status };
+    if (q) {
+        conds.push('(r.patient_name LIKE :q OR r.hospital LIKE :q OR r.city LIKE :q OR r.contact_phone LIKE :q)');
+        params.q = `%${q}%`;
+    }
+    const where = conds.length ? conds.join(' AND ') : '1=1';
     const [{ total }] = await query(`SELECT COUNT(*) AS total FROM blood_requests r WHERE ${where}`, params);
     const offset = (page - 1) * perPage;
     // perPage/offset are server-clamped integers — inlined deliberately (DESIGN.md §9).
@@ -39,13 +45,22 @@ export async function getRequest(id) {
     return queryOne('SELECT id, status, created_by FROM blood_requests WHERE id = :id', { id });
 }
 
-/** Active donors who can give to `group` (or exactly `group` when compatible is off). */
-export async function listDonors({ group, compatible, village }) {
-    if (!group) return [];
-    const groups = compatible ? BLOOD_DONORS_FOR[group] : [group];
-    const list = inList(groups, 'bg');
-    const params = { ...list.params };
-    let where = `status = 'active' AND is_blood_donor = 1 AND blood_group IN (${list.sql})`;
+/**
+ * Active donors. With `group`: those who can give to it (or exactly it when compatible is
+ * off); without: every donor. `q` matches name, local name, village, city or phone.
+ */
+export async function listDonors({ group, compatible, village, q = '' }) {
+    const params = {};
+    let where = `status = 'active' AND is_blood_donor = 1`;
+    if (group) {
+        const list = inList(compatible ? BLOOD_DONORS_FOR[group] : [group], 'bg');
+        where += ` AND blood_group IN (${list.sql})`;
+        Object.assign(params, list.params);
+    }
+    if (q) {
+        where += ' AND (full_name LIKE :q OR full_name_local LIKE :q OR village LIKE :q OR city LIKE :q OR phone LIKE :q)';
+        params.q = `%${q}%`;
+    }
     if (village) {
         where += ' AND village LIKE :village';
         params.village = `%${village}%`;
@@ -54,6 +69,6 @@ export async function listDonors({ group, compatible, village }) {
         `SELECT id, full_name, full_name_local, phone, village, blood_group
            FROM users_list WHERE ${where}
           ORDER BY blood_group = :exact DESC, full_name LIMIT 200`,
-        { ...params, exact: group },
+        { ...params, exact: group || '' },
     );
 }

@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Network, Phone, UserPlus } from 'lucide-react';
+import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import MemberRowActions from '@/components/members/member-row-actions';
 import MembersToolbar from '@/components/members/members-toolbar';
 import PageHeader, { LinkButton } from '@/components/shell/page-header';
@@ -15,7 +16,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canManageGroups, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
+import { canEditUser, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
 export async function generateMetadata() {
@@ -78,8 +79,16 @@ export default async function MembersPage({ searchParams }) {
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
             />
 
+            {/* Bulk selection is offered only to people who can put others into at least one group. */}
+            <BulkSelectProvider pageIds={groupOptions.length > 0 ? rows.map((r) => r.id) : []}>
+            <BulkBar groups={groupOptions} />
             <TableShell className="mt-4">
                 <THead>
+                    {groupOptions.length > 0 && (
+                        <Th className="w-10">
+                            <SelectAll />
+                        </Th>
+                    )}
                     <Th>{t('members.fullName')}</Th>
                     <Th>{t('members.phone')}</Th>
                     <Th>{t('members.role')}</Th>
@@ -94,12 +103,17 @@ export default async function MembersPage({ searchParams }) {
                     </Th>
                 </THead>
                 <tbody>
-                    {rows.length === 0 && <EmptyRow colSpan={8}>{t('common.noResults')}</EmptyRow>}
+                    {rows.length === 0 && <EmptyRow colSpan={groupOptions.length > 0 ? 9 : 8}>{t('common.noResults')}</EmptyRow>}
                     {rows.map((m) => {
                         const primary = localized(m, 'full_name', locale);
                         const secondary = locale === 'gu' ? m.full_name : m.full_name_local;
                         return (
                             <Tr key={m.id}>
+                                {groupOptions.length > 0 && (
+                                    <Td className="w-10">
+                                        <RowCheck id={m.id} label={primary} />
+                                    </Td>
+                                )}
                                 <Td className="max-w-64">
                                     <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
                                         {primary}
@@ -160,7 +174,7 @@ export default async function MembersPage({ searchParams }) {
                                 <Td className="text-right">
                                     <MemberRowActions
                                         member={{ id: m.id, name: primary }}
-                                        canEdit={canEditUser(user, m)}
+                                        canEdit={canEditUser(user, m) || canResetPassword(user, m)}
                                         groups={groupOptions}
                                         canAssignGroups={groupOptions.length > 0}
                                     />
@@ -170,6 +184,7 @@ export default async function MembersPage({ searchParams }) {
                     })}
                 </tbody>
             </TableShell>
+            </BulkSelectProvider>
             <Pagination pathname="/members" searchParams={sp} page={page} perPage={perPage} total={total} t={t} />
         </div>
     );

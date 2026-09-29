@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import GroupFilter from '@/components/fundraise/group-filter';
+import FilterBar from '@/components/ui/filter-bar';
 import PageHeader, { StatCard } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
@@ -36,6 +36,7 @@ function resolveFilters(sp) {
         view: VIEWS.includes(sp1(sp.view)) ? sp1(sp.view) : '',
         status,
         groupId: Number.isInteger(g) && g > 0 ? g : null,
+        q: String(sp1(sp.q) ?? '').trim().slice(0, 100),
         page: normalizePage(sp1(sp.page)),
     };
 }
@@ -48,28 +49,46 @@ export default async function FundraiseListPage({ searchParams }) {
     const f = resolveFilters(sp);
 
     const views = [
-        { value: '', label: t('fundraise.views.all') },
         { value: 'mine', label: t('fundraise.views.mine') },
         { value: 'team', label: t('fundraise.views.team') },
     ];
+    const groups = f.view === '' ? await listGroupsForSelect() : [];
+    const feedOnly = { param: 'view', value: '' };
 
     return (
         <div className="theme-fundraise">
             {/* No "New fundraise" here: a fundraise is started from its group's page. */}
             <PageHeader title={t('fundraise.title')} subtitle={t('fundraise.subtitle')} />
 
-            {/* One filter row. The view select clears the other view's filters; status and group
-                only mean something on the all-fundraises view, so they appear there. */}
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-                <GroupFilter
-                    param="view"
-                    options={views.filter((v) => v.value).map((v) => ({ value: v.value, label: v.label }))}
-                    allLabel={views.find((v) => !v.value)?.label ?? ''}
-                    reset={['status', 'group']}
-                    className="sm:w-52"
-                />
-                {f.view === '' && <FeedFilters locale={locale} t={t} />}
-            </div>
+            {/* View, status and group sit in the Filters panel; status and group only mean
+                something on the all-fundraises view, so they show (and apply) only there. */}
+            <FilterBar
+                search={f.view === '' ? { placeholder: t('fundraise.searchPlaceholder') } : undefined}
+                filters={[
+                    { param: 'view', label: t('fundraise.views.label'), type: 'select', allLabel: t('fundraise.views.all'), options: views },
+                    {
+                        param: 'status',
+                        label: t('fundraise.status'),
+                        type: 'select',
+                        allLabel: t('fundraise.allStatuses'),
+                        options: CAMPAIGN_STATUSES.map((st) => ({ value: st, label: t(`fundraise.${st}`) })),
+                        showIf: feedOnly,
+                    },
+                    ...(groups.length > 0
+                        ? [
+                              {
+                                  param: 'group',
+                                  label: t('fundraise.group'),
+                                  type: 'select',
+                                  allLabel: t('fundraise.allGroups'),
+                                  options: groups.map((g) => ({ value: String(g.id), label: (locale !== 'en' && g.name_local) || g.name })),
+                                  showIf: feedOnly,
+                              },
+                          ]
+                        : []),
+                ]}
+                left={f.view ? <span className="text-sm font-semibold text-primary">{views.find((v) => v.value === f.view)?.label}</span> : null}
+            />
 
             {f.view === 'mine' && <MyDonations user={user} sp={sp} page={f.page} perPage={perPage} t={t} locale={locale} />}
             {f.view === 'team' && <MyTeams user={user} t={t} locale={locale} />}
@@ -79,28 +98,6 @@ export default async function FundraiseListPage({ searchParams }) {
 }
 
 // ── feed ──────────────────────────────────────────────────────────────────────
-
-/** Status + group selects for the all-fundraises view (URL-backed, live). */
-async function FeedFilters({ t, locale }) {
-    const groups = await listGroupsForSelect();
-    return (
-        <>
-            <GroupFilter
-                param="status"
-                options={CAMPAIGN_STATUSES.map((s) => ({ value: s, label: t(`fundraise.${s}`) }))}
-                allLabel={t('fundraise.allStatuses')}
-                className="sm:w-40"
-            />
-            {groups.length > 0 && (
-                <GroupFilter
-                    param="group"
-                    options={groups.map((g) => ({ value: String(g.id), label: (locale !== 'en' && g.name_local) || g.name }))}
-                    allLabel={t('fundraise.allGroups')}
-                />
-            )}
-        </>
-    );
-}
 
 async function Feed({ user, sp, f, perPage, t, locale }) {
     const { rows, total } = await listCampaigns(user, { ...f, perPage });
@@ -125,7 +122,7 @@ async function Feed({ user, sp, f, perPage, t, locale }) {
                     rows={rest}
                     t={t}
                     locale={locale}
-                    empty={f.status || f.groupId ? t('common.noResults') : t('fundraise.empty')}
+                    empty={f.status || f.groupId || f.q ? t('common.noResults') : t('fundraise.empty')}
                 />
             )}
             <Pagination pathname="/fundraise" searchParams={sp} page={f.page} perPage={perPage} total={total} t={t} />

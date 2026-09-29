@@ -1,5 +1,6 @@
 import 'server-only';
 import { query, queryOne } from './db';
+import { canAdminister, canManageMembership, standingFrom } from './group-roles';
 import { canManageAllFundraises, canManageGroups } from './roles';
 
 /** Is the user an admin of this specific group (admin_group_members.member_role)? */
@@ -21,14 +22,36 @@ export async function adminGroupIds(userId) {
     return rows.map((r) => r.group_id);
 }
 
-/** Manage a group's membership: app-level group managers, or that group's own admins. */
-export async function canManageGroup(user, groupId) {
-    if (!user) return false;
-    if (canManageGroups(user.role)) return true;
-    return isGroupAdmin(user.id, groupId);
+/** The user's role in one group (admin_group_members.member_role), or null. */
+export async function groupRoleOf(userId, groupId) {
+    if (!userId || !groupId) return null;
+    const row = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId', { groupId, userId });
+    return row?.member_role ?? null;
 }
 
-export const FUNDRAISE_TEAM_ROLES = ['organizer', 'treasurer', 'collector', 'volunteer'];
+/**
+ * How the user stands in a group: 'app' | 'admin' | 'sub_admin' | null (lib/group-roles.js),
+ * plus their own row's role.
+ * @returns {Promise<{ standing: string|null, myRole: string|null }>}
+ */
+export async function groupStanding(user, groupId) {
+    if (!user) return { standing: null, myRole: null };
+    const myRole = await groupRoleOf(user.id, groupId);
+    return { standing: standingFrom(canManageGroups(user.role), myRole), myRole };
+}
+
+/** Manage a group's membership and meetings: app-level group managers, its admins and sub-admins. */
+export async function canManageGroup(user, groupId) {
+    return canManageMembership((await groupStanding(user, groupId)).standing);
+}
+
+/** Edit a group's details and discussion setting: app-level group managers and its admins. */
+export async function canAdministerGroup(user, groupId) {
+    return canAdminister((await groupStanding(user, groupId)).standing);
+}
+
+// admin manages the fundraise (the creator starts as admin); the rest are informational.
+export const FUNDRAISE_TEAM_ROLES = ['admin', 'organizer', 'treasurer', 'collector', 'volunteer'];
 
 /** The user's role on one fundraise's team (fundraise_members), or null. */
 export async function fundraiseTeamRole(userId, campaignId) {
@@ -44,13 +67,13 @@ export async function fundraiseTeamRole(userId, campaignId) {
  * Everything one user may do on one fundraise, resolved in one place so pages and
  * actions cannot disagree.
  *   manage       — record / edit / delete contributions and expenses, edit the fundraise,
- *                  public link, team, meetings: super_admin, administrator, sub_admin, and
- *                  admins of the fundraise's group. Nobody else.
+ *                  public link, team, meetings: super_admin, administrator, sub_admin, admins
+ *                  of the fundraise's group, and the fundraise's own admins (team role 'admin').
  *   contribution — same as manage (kept separate so callers need not change)
  *   expense      — same as manage
  *   post         — updates / minutes: manage and any team member
- *   teamRole     — informational only (organizer / treasurer / collector / volunteer): shown
- *                  and notified, but it grants no write access to the ledger.
+ *   teamRole     — 'admin' grants manage; organizer / treasurer / collector / volunteer are
+ *                  informational (shown and notified, no write access to the ledger).
  * Viewing needs no permission: every signed-in member sees every non-draft fundraise.
  * @param {{id: number, role: string}} user
  * @param {{id: number, group_id: number|null}} campaign
@@ -63,7 +86,9 @@ export async function fundraisePermissions(user, campaign) {
         fundraiseTeamRole(user.id, campaign.id),
         !appLevel && campaign.group_id ? isGroupAdmin(user.id, campaign.group_id) : false,
     ]);
-    const manage = appLevel || groupAdmin;
+    // A fundraise admin (its creator, or anyone an admin promoted) manages it even without
+    // being a group admin; once demoted, they lose it like anyone else.
+    const manage = appLevel || groupAdmin || teamRole === 'admin';
     return { manage, contribution: manage, expense: manage, post: manage || Boolean(teamRole), teamRole };
 }
 

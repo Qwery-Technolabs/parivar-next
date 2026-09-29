@@ -20,8 +20,6 @@ export default async function NewMemberPage() {
             <PageHeader title={t('members.add')} back={{ href: '/members', label: t('members.title') }} />
             <MemberForm
                 roles={assignableRoles(user.role)}
-                canSetRole
-                canSetPassword
                 villages={villages.map((v) => v.value)}
                 cities={cities.map((c) => c.value)}
                 casteOptions={castes}

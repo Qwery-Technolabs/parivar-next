@@ -70,6 +70,19 @@ export function canEditUser(actor, target) {
     return actor.role === 'super_admin' || rank(target.role) > rank(actor.role);
 }
 
+/**
+ * Reset someone else's password. Admins and sub-admins may for any member — peers too — but
+ * never an account ranked above them (that would let them sign in as their superior).
+ * Everyone else who can edit a member (village leadership, lower ranks) keeps that right.
+ * Your own password is changed from the profile page, which asks for the current one.
+ */
+export function canResetPassword(actor, target) {
+    if (!actor || actor.id === target.id) return false;
+    if (actor.role === 'super_admin') return true;
+    if (atLeast(actor.role, 'sub_admin')) return rank(target.role) >= rank(actor.role);
+    return canEditUser(actor, target);
+}
+
 export function canChangeRole(actor, target, newRole) {
     if (!actor || actor.id === target.id) return false; // no self-promotion or self-lockout
     if (!canEditUser(actor, target)) return false;

@@ -1,5 +1,6 @@
 'use client';
-import { Loader2, SendHorizontal, Trash2 } from 'lucide-react';
+import { CalendarClock, Loader2, SendHorizontal, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { startTransition, useActionState, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -16,9 +17,11 @@ const colourFor = (id) => NAME_COLOURS[(id ?? 0) % NAME_COLOURS.length];
 
 /**
  * @param {{ scope: string, scopeId: number, me: number, moderate: boolean,
- *           messages: Array<{ id: number, userId: number|null, name: string|null, nameLocal: string|null, body: string|null, at: string }> }} props
+ *           messages: Array<{ id: number, userId: number|null, name: string|null, nameLocal: string|null, body: string|null, at: string,
+ *                             kind?: 'meeting'|null, data?: object|null }> }} props
+ * A message with a `kind` is a system note (e.g. a meeting was scheduled), shown centred.
  */
-export default function ChatThread({ scope, scopeId, me, moderate, messages }) {
+export default function ChatThread({ scope, scopeId, me, moderate, canPost = true, messages }) {
     const { t, locale } = useT();
     const router = useRouter();
     const scroller = useRef(null);
@@ -86,6 +89,11 @@ export default function ChatThread({ scope, scopeId, me, moderate, messages }) {
                                     </span>
                                 </div>
                             )}
+                            {m.kind === 'meeting' ? (
+                                <MeetingNote m={m} who={mine ? t('groups.you') : name} />
+                            ) : m.kind === 'member' ? (
+                                <MemberNote m={m} who={mine ? t('groups.you') : name} />
+                            ) : (
                             <div className={`group flex ${mine ? 'justify-end' : 'justify-start'}`}>
                                 <div
                                     className={`relative max-w-[85%] rounded-lg px-2.5 py-1.5 shadow-sm sm:max-w-[70%] ${
@@ -113,10 +121,14 @@ export default function ChatThread({ scope, scopeId, me, moderate, messages }) {
                                     )}
                                 </div>
                             </div>
+                            )}
                         </div>
                     );
                 })}
             </div>
+            {!canPost ? (
+                <p className="border-t border-surface-border bg-white px-3 py-3 text-center text-xs text-ink-gray">{t('chat.restricted')}</p>
+            ) : (
             <form onSubmit={submit} className="flex items-end gap-2 border-t border-surface-border bg-white p-2">
                 <textarea
                     ref={input}
@@ -140,6 +152,45 @@ export default function ChatThread({ scope, scopeId, me, moderate, messages }) {
                     {sending ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}
                 </button>
             </form>
+            )}
+        </div>
+    );
+}
+
+/** Centred system note — "Asha scheduled a meeting" with its title, when and where. */
+function MeetingNote({ m, who }) {
+    const { t, locale } = useT();
+    const d = m.data ?? {};
+    const title = (locale !== 'en' && d.title_local) || d.title || m.body;
+    const when = [d.date && fmtDate(d.date, locale), d.time && fmtTime(d.time)].filter(Boolean).join(' · ');
+    return (
+        <div className="my-2 flex justify-center">
+            <Link
+                href="?tab=meetings"
+                className="flex max-w-[90%] items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-xs text-amber-900 shadow-sm hover:bg-amber-100 sm:max-w-[70%]"
+            >
+                <CalendarClock className="mt-0.5 size-4 shrink-0" />
+                <span className="min-w-0">
+                    <span className="block">{t('chat.meetingNote', { name: who })}</span>
+                    <span className="block font-semibold">{title}</span>
+                    {(when || d.place) && <span className="block tabular-nums">{[when, d.place].filter(Boolean).join(' · ')}</span>}
+                </span>
+            </Link>
+        </div>
+    );
+}
+
+/** Centred grey note — "Asha added Ravi" / "Asha removed Ravi": the group's membership history. */
+function MemberNote({ m, who }) {
+    const { t, locale } = useT();
+    const d = m.data ?? {};
+    const list = (locale !== 'en' ? d.names_local : d.names) ?? d.names ?? [];
+    const names = list.join(', ') + (d.more ? ` ${t('chat.andMore', { count: d.more })}` : '');
+    return (
+        <div className="my-1.5 flex justify-center">
+            <span className="max-w-[90%] rounded-lg bg-white/80 px-3 py-1 text-center text-xs text-ink-gray shadow-sm sm:max-w-[70%]">
+                {t(d.action === 'removed' ? 'chat.memberRemoved' : 'chat.memberAdded', { who, names })}
+            </span>
         </div>
     );
 }

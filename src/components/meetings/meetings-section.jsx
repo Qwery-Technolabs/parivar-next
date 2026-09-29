@@ -1,5 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import { candidatePeople, listMeetings, meetingScope } from '@/lib/meetings';
 import MeetingList from './meeting-list';
 
@@ -21,7 +21,7 @@ export default async function MeetingsSection({ scope, scopeId, defaultTitle = '
             manage={ctx.manage}
             people={people}
             me={user.id}
-            today={todayIST()}
+            today={todayLocal()}
             defaultTitle={defaultTitle}
             defaultPlace={defaultPlace}
             minutes={minutes}

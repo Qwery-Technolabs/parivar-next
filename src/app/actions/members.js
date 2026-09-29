@@ -1,15 +1,17 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { canManageGroup } from '@/lib/access';
+import { groupStanding } from '@/lib/access';
+import { canActOnRole } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { getCurrentUser, hashPassword, passwordProblem, revokeUserSessions } from '@/lib/auth';
-import { queryOne, setMeta, withTransaction } from '@/lib/db';
+import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, oneOf, str, strOrNull } from '@/lib/forms';
+import { postMemberNote } from '@/lib/chat';
 import { isDescendant, MEMBER_META_KEYS } from '@/lib/members';
 import { getSetting } from '@/lib/settings';
-import { notify } from '@/lib/notifications';
+import { notify, notifyMany } from '@/lib/notifications';
 import { normalizePhone } from '@/lib/phone';
-import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canManageMembers } from '@/lib/roles';
+import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canManageMembers, canResetPassword } from '@/lib/roles';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -97,45 +99,72 @@ export async function createMember(prev, fd) {
     return { ok: true, message: 'members.created', id: newId };
 }
 
-export async function updateMember(prev, fd) {
+/**
+ * Edit-member tabs: each tab saves only its own columns (field "section").
+ *   basic     name, phone, gender, dob, village, city
+ *   community caste / sub-caste, blood group, donor
+ *   details   users_listmeta (position, occupation, …)
+ *   access    role + status   — never on yourself
+ *   password  reset           — never on yourself (own password: profile, with the current one)
+ */
+export async function updateMemberSection(prev, fd) {
     const actor = await getCurrentUser();
     const targetId = id(fd, 'id');
-    const target = targetId && (await queryOne('SELECT id, role, phone, caste_id, subcaste_id FROM users_list WHERE id = :targetId', { targetId }));
-    if (!actor || !target || !canEditUser(actor, target)) return FORBIDDEN;
-
+    const target =
+        targetId && (await queryOne('SELECT id, role, phone, status, caste_id, subcaste_id FROM users_list WHERE id = :targetId', { targetId }));
+    const section = oneOf(fd, 'section', ['basic', 'community', 'details', 'access', 'password']);
+    if (!actor || !target) return FORBIDDEN;
+    // The password tab has its own, wider right; every other tab needs full edit rights.
+    if (section === 'password' ? !canResetPassword(actor, target) : !canEditUser(actor, target)) return FORBIDDEN;
+    const self = actor.id === target.id;
     const m = readMember(fd);
-    const bad = validate(m);
-    if (bad) return bad;
-    if (m.phone !== target.phone && (await phoneTaken(m.phone, target.id))) {
-        return { fieldErrors: { phone: 'auth.errors.phoneTaken' } };
-    }
-    const casteErr = await casteProblem(m, target);
-    if (casteErr) return { fieldErrors: casteErr };
-    // Role only changes when the actor may make exactly that change; otherwise it is left alone.
-    const roleChanged = m.role && m.role !== target.role && canChangeRole(actor, target, m.role);
-    const role = roleChanged ? m.role : target.role;
-    const hash = m.password ? await hashPassword(m.password) : null;
+    let message = 'common.saved';
 
-    await withTransaction(async (q) => {
-        await q(
+    if (section === 'basic') {
+        const bad = validate({ ...m, password: '' });
+        if (bad) return bad;
+        if (m.phone !== target.phone && (await phoneTaken(m.phone, target.id))) return { fieldErrors: { phone: 'auth.errors.phoneTaken' } };
+        await query(
             `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local, gender = :gender,
-                    dob = :dob, blood_group = :blood_group, village = :village, city = :city, caste_id = :caste_id,
-                    subcaste_id = :subcaste_id, role = :role, status = :status,
-                    is_blood_donor = :is_blood_donor ${hash ? ', password_hash = :hash' : ''}
-              WHERE id = :id`,
-            { ...m, role, id: target.id, ...(hash ? { hash } : {}) },
+                    dob = :dob, village = :village, city = :city WHERE id = :id`,
+            { ...m, id: target.id },
         );
-        await setMeta('users_list', target.id, m.meta, q);
-    });
+    } else if (section === 'community') {
+        const casteErr = await casteProblem(m, target);
+        if (casteErr) return { fieldErrors: casteErr };
+        await query(
+            `UPDATE users_list SET caste_id = :caste_id, subcaste_id = :subcaste_id, blood_group = :blood_group,
+                    is_blood_donor = :is_blood_donor WHERE id = :id`,
+            { ...m, id: target.id },
+        );
+    } else if (section === 'details') {
+        await setMeta('users_list', target.id, m.meta);
+    } else if (section === 'access') {
+        // Nobody changes their own role or status — that is someone else's decision.
+        if (self) return FORBIDDEN;
+        // Role only changes when the actor may make exactly that change; otherwise it is left alone.
+        const roleChanged = m.role && m.role !== target.role && canChangeRole(actor, target, m.role);
+        const role = roleChanged ? m.role : target.role;
+        await query('UPDATE users_list SET role = :role, status = :status WHERE id = :id', { role, status: m.status, id: target.id });
+        // A deactivation must end sessions already open on other devices.
+        if (m.status !== 'active') await revokeUserSessions(target.id, false);
+        if (roleChanged) await audit(actor.id, 'user.role', 'user', target.id, { from: target.role, to: role });
+    } else if (section === 'password') {
+        if (!m.password) return { fieldErrors: { password: 'common.required' } };
+        const p = passwordProblem(m.password);
+        if (p) return { fieldErrors: { password: p } };
+        await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(m.password), id: target.id });
+        await revokeUserSessions(target.id, false);
+        await audit(actor.id, 'user.password_reset', 'user', target.id);
+        message = 'members.passwordReset';
+    } else {
+        return { error: 'common.error' };
+    }
 
-    // A password reset or a deactivation must end sessions already open on other devices.
-    if (hash || m.status !== 'active') await revokeUserSessions(target.id, actor.id === target.id);
-    if (roleChanged) await audit(actor.id, 'user.role', 'user', target.id, { from: target.role, to: role });
-    if (hash && actor.id !== target.id) await audit(actor.id, 'user.password_reset', 'user', target.id);
-    await audit(actor.id, 'user.update', 'user', target.id);
+    await audit(actor.id, 'user.update', 'user', target.id, { section });
     revalidatePath('/members');
     revalidatePath(`/members/${target.id}`);
-    return { ok: true, message: hash && actor.id !== target.id ? 'members.passwordReset' : 'common.saved', id: target.id };
+    return { ok: true, message, id: target.id };
 }
 
 // ── relations ─────────────────────────────────────────────────────────────────
@@ -222,39 +251,106 @@ export async function removeRelation(personId, relativeId) {
 
 // ── groups, from the directory ────────────────────────────────────────────────
 
-/** "Make group admin" / "Add to group" from the Members list. Upserts membership. */
+/**
+ * Put people into groups as members or admins — the one routine behind the row menu and the
+ * bulk bar on the Members page.
+ *   member → added if not in the group; an existing ADMIN is never downgraded
+ *   admin  → added as admin, or promoted if already a member
+ * Each group is checked separately (group managers, or admins of that group); groups the
+ * actor cannot manage are skipped and reported. Only real changes are notified and audited.
+ */
+async function applyGroupMembership(actor, userIds, groupIds, memberRole) {
+    const out = { added: 0, promoted: 0, unchanged: 0, skipped: [] };
+    const ul = inList(userIds, 'u');
+    const users = userIds.length ? (await query(`SELECT id FROM users_list WHERE id IN (${ul.sql})`, ul.params)).map((r) => r.id) : [];
+    for (const groupId of groupIds) {
+        const group = await queryOne('SELECT id, name, name_local FROM admin_groups WHERE id = :groupId', { groupId });
+        const { standing } = group ? await groupStanding(actor, groupId) : { standing: null };
+        // Adding members: admins and sub-admins; making admins: that group's admins only.
+        if (!group || !canActOnRole(standing, null, memberRole)) {
+            out.skipped.push(groupId);
+            continue;
+        }
+        const existing = new Map(
+            (await query('SELECT user_id, member_role FROM admin_group_members WHERE group_id = :groupId', { groupId })).map((r) => [
+                r.user_id,
+                r.member_role,
+            ]),
+        );
+        const added = [];
+        const promoted = [];
+        await withTransaction(async (q) => {
+            for (const uid of users) {
+                const had = existing.get(uid);
+                if (!had) {
+                    await q(
+                        `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:groupId, :uid, :memberRole, :by)`,
+                        { groupId, uid, memberRole, by: actor.id },
+                    );
+                    added.push(uid);
+                } else if (memberRole === 'admin' && had !== 'admin') {
+                    await q(`UPDATE admin_group_members SET member_role = 'admin' WHERE group_id = :groupId AND user_id = :uid`, { groupId, uid });
+                    promoted.push(uid);
+                } else {
+                    out.unchanged++;
+                }
+            }
+        });
+        out.added += added.length;
+        out.promoted += promoted.length;
+        const data = { group: group.name, group_local: group.name_local };
+        const link = `/groups/${groupId}`;
+        const becameAdmin = memberRole === 'admin' ? [...added, ...promoted] : [];
+        const becameMember = memberRole === 'admin' ? [] : added;
+        if (becameAdmin.length) await notifyMany(becameAdmin, { type: 'group.admin', data, link, actorId: actor.id });
+        if (becameMember.length) await notifyMany(becameMember, { type: 'group.member', data, link, actorId: actor.id });
+        await postMemberNote(groupId, actor.id, 'added', added);
+        if (added.length || promoted.length) {
+            await audit(actor.id, memberRole === 'admin' ? 'group.admin' : 'group.member.add', 'group', groupId, { added, promoted });
+        }
+        revalidatePath(link);
+    }
+    revalidatePath('/members');
+    return out;
+}
+
+/** Row menu on the Members list: one person, one group. */
 export async function assignToGroup(prev, fd) {
     const actor = await getCurrentUser();
     const userId = id(fd, 'user_id');
     const groupId = id(fd, 'group_id');
     const memberRole = oneOf(fd, 'member_role', ['member', 'admin'], 'member');
     if (!groupId) return { fieldErrors: { group_id: 'common.required' } };
-    if (!actor || !userId || !(await canManageGroup(actor, groupId))) return FORBIDDEN;
-
+    if (!actor || !userId || !canActOnRole((await groupStanding(actor, groupId)).standing, null, memberRole)) return FORBIDDEN;
     const [user, group] = await Promise.all([
         queryOne('SELECT full_name FROM users_list WHERE id = :userId', { userId }),
-        queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId }),
+        queryOne('SELECT name FROM admin_groups WHERE id = :groupId', { groupId }),
     ]);
     if (!user || !group) return { error: 'common.error' };
-
-    await withTransaction((q) =>
-        q(
-            `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by)
-             VALUES (:groupId, :userId, :memberRole, :by)
-             ON DUPLICATE KEY UPDATE member_role = VALUES(member_role)`,
-            { groupId, userId, memberRole, by: actor.id },
-        ),
-    );
-    await audit(actor.id, memberRole === 'admin' ? 'group.admin' : 'group.member.add', 'group', groupId, { userId });
-    await notify(userId, {
-        type: memberRole === 'admin' ? 'group.admin' : 'group.member',
-        data: { group: group.name, group_local: group.name_local },
-        link: `/groups/${groupId}`,
-        actorId: actor.id,
-    });
-    revalidatePath(`/groups/${groupId}`);
+    await applyGroupMembership(actor, [userId], [groupId], memberRole);
     revalidatePath(`/members/${userId}`);
     return memberRole === 'admin'
         ? { ok: true, message: 'members.madeAdmin', vars: { name: user.full_name, group: group.name } }
         : { ok: true, message: 'common.saved' };
+}
+
+/**
+ * Bulk bar on the Members list: many people × one or more groups.
+ * Fields: user_ids[] (at most 500), group_ids[], member_role.
+ */
+export async function bulkAssignToGroup(prev, fd) {
+    const actor = await getCurrentUser();
+    if (!actor) return FORBIDDEN;
+    const userIds = [...new Set(fd.getAll('user_ids').map(Number))].filter((n) => n > 0).slice(0, 500);
+    const groupIds = [...new Set(fd.getAll('group_ids').map(Number))].filter((n) => n > 0).slice(0, 50);
+    const memberRole = oneOf(fd, 'member_role', ['member', 'admin'], 'member');
+    if (!userIds.length) return { error: 'members.bulk.noneSelected' };
+    if (!groupIds.length) return { fieldErrors: { group_ids: 'members.bulk.chooseGroups' } };
+    const r = await applyGroupMembership(actor, userIds, groupIds, memberRole);
+    if (r.skipped.length === groupIds.length) return FORBIDDEN;
+    return {
+        ok: true,
+        message: r.skipped.length ? 'members.bulk.doneSkipped' : 'members.bulk.done',
+        vars: { added: r.added, promoted: r.promoted, unchanged: r.unchanged, skipped: r.skipped.length },
+    };
 }

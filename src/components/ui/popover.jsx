@@ -2,17 +2,47 @@
 import { MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+const GAP = 4;
+const EDGE = 8;
+const MAX_H = 512; // 32rem
+
+/**
+ * Where to put the panel: below the trigger, or above it when there is clearly more room
+ * above. Right-aligned panels hang from the trigger's right edge (a toolbar or row-end kebab),
+ * left-aligned from its left. The height is capped by the room available on that side.
+ */
+function place(rect, align) {
+    const below = window.innerHeight - rect.bottom - EDGE;
+    const above = rect.top - EDGE;
+    const up = below < 220 && above > below;
+    const room = up ? above : below;
+    return {
+        position: 'fixed',
+        ...(up ? { bottom: window.innerHeight - rect.top + GAP } : { top: rect.bottom + GAP }),
+        ...(align === 'right' ? { right: Math.max(EDGE, window.innerWidth - rect.right) } : { left: Math.max(EDGE, rect.left) }),
+        maxHeight: Math.max(120, Math.min(MAX_H, room - GAP)),
+    };
+}
 
 /**
  * DESIGN.md §6 "Popup mechanics" — the ONE anchored popover idiom, used for the kebab,
- * filter panels and small dropdowns. relative parent / absolute panel, click-away layer
- * at z-10 and panel at z-20, Escape closes and returns focus, closes on URL change.
+ * filter panels and small dropdowns. Escape closes and returns focus; it closes on URL
+ * change, on page scroll and on resize.
+ *
+ * The panel is PORTALLED to <body> with fixed coordinates taken from the trigger. §6 prefers
+ * a plain relative/absolute pair, but a kebab inside a table sits in an overflow-x-auto
+ * scroll box, and a scroll box clips absolutely positioned children — the menu came out as a
+ * tiny scrolling sliver. Fixed + portal escapes every such container.
  *
  * @param {{ trigger: (p: { open: boolean, toggle: () => void, id: string }) => React.ReactNode, children: React.ReactNode | ((close: () => void) => React.ReactNode), align?: 'left'|'right', width?: string, role?: string }} props
  */
 export function Popover({ trigger, children, align = 'right', width = 'w-52', role = 'menu' }) {
-    const [open, setOpen] = useState(false);
+    const [pos, setPos] = useState(null); // null = closed
+    const open = pos !== null;
+    const panelRef = useRef(null);
     // Focus returns to the trigger by id: reading a ref inside `close`, which is handed to
     // children during render, is exactly what react-hooks/refs forbids.
     const triggerId = useId();
@@ -24,34 +54,61 @@ export function Popover({ trigger, children, align = 'right', width = 'w-52', ro
     const [seenUrl, setSeenUrl] = useState(urlKey);
     if (seenUrl !== urlKey) {
         setSeenUrl(urlKey);
-        if (open) setOpen(false);
+        if (open) setPos(null);
     }
 
+    // A fixed panel would drift away from its trigger when the page scrolls, so it closes
+    // instead — except when the scroll is inside the panel itself (a long filter list).
+    useEffect(() => {
+        if (!open) return undefined;
+        const onScroll = (e) => {
+            if (!panelRef.current?.contains(e.target)) setPos(null);
+        };
+        const onResize = () => setPos(null);
+        window.addEventListener('scroll', onScroll, true);
+        window.addEventListener('resize', onResize);
+        return () => {
+            window.removeEventListener('scroll', onScroll, true);
+            window.removeEventListener('resize', onResize);
+        };
+    }, [open]);
+
+    const toggle = () => {
+        if (open) return setPos(null);
+        const el = document.getElementById(triggerId);
+        if (el) setPos(place(el.getBoundingClientRect(), align));
+    };
     const close = () => {
-        setOpen(false);
+        setPos(null);
         document.getElementById(triggerId)?.focus();
     };
 
     return (
+        // React events bubble through portals, so Escape inside the panel still reaches here.
         <div className="relative" onKeyDown={(e) => e.key === 'Escape' && open && close()}>
-            {trigger({ open, toggle: () => setOpen((v) => !v), id: triggerId })}
-            {open && (
-                <>
-                    <button
-                        type="button"
-                        aria-hidden
-                        tabIndex={-1}
-                        onClick={() => setOpen(false)}
-                        className="fixed inset-0 z-10 cursor-default"
-                    />
-                    <div
-                        role={role}
-                        className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} z-20 mt-1 ${width} overflow-hidden rounded-md border border-surface-border bg-white py-1 shadow-lg`}
-                    >
-                        {typeof children === 'function' ? children(close) : children}
-                    </div>
-                </>
-            )}
+            {trigger({ open, toggle, id: triggerId })}
+            {open &&
+                createPortal(
+                    <>
+                        <button
+                            type="button"
+                            aria-hidden
+                            tabIndex={-1}
+                            onClick={() => setPos(null)}
+                            className="fixed inset-0 z-40 cursor-default"
+                        />
+                        <div
+                            ref={panelRef}
+                            role={role}
+                            style={pos}
+                            // overscroll-contain: scrolling a long panel does not scroll the page behind.
+                            className={`z-41 ${width} max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-md border border-surface-border bg-white py-1 shadow-lg`}
+                        >
+                            {typeof children === 'function' ? children(close) : children}
+                        </div>
+                    </>,
+                    document.body,
+                )}
         </div>
     );
 }

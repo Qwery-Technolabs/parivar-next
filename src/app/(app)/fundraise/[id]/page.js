@@ -1,15 +1,16 @@
-import { ArrowLeft, CalendarClock, MapPin, Pencil } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
+import WaTabs from '@/components/ui/wa-tabs';
 import DetailsTab from '@/components/fundraise/details-tab';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import Badge from '@/components/ui/badge';
 import { fundraisePermissions } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money, time } from '@/lib/format';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import {
     contributorTotals,
     getAudience,
@@ -67,16 +68,16 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     const { tab, view: rawView } = resolveTab(sp);
     const view = MONEY_VIEWS.includes(rawView) ? rawView : 'contributions';
     const base = `/fundraise/${campaign.id}`;
-    const today = todayIST();
+    const today = todayLocal();
     const upNext = await nextMeeting(campaign.id, today);
 
     const groupName = localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale);
     const collected = Number(campaign.collected);
     const spent = Number(campaign.spent);
     const tabs = [
-        { key: 'discussion', label: t('fundraise.tabs.discussion'), href: base },
-        { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money` },
-        { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details` },
+        { key: 'discussion', label: t('fundraise.tabs.discussion'), href: base, icon: MessageCircle },
+        { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money`, icon: Wallet },
+        { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details`, icon: Info },
     ];
 
     let body;
@@ -200,22 +201,9 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                         </Link>
                     )}
                 </div>
-                <nav className="mt-2 grid grid-cols-3">
-                    {tabs.map((x) => (
-                        <Link
-                            key={x.key}
-                            href={x.key === 'discussion' ? buildHref(base, {}, {}) : x.href}
-                            scroll={false}
-                            aria-current={tab === x.key ? 'page' : undefined}
-                            className={`relative flex h-11 min-w-0 items-center justify-center px-2 text-center text-sm font-medium ${
-                                tab === x.key ? 'text-white' : 'text-white/70 hover:text-white'
-                            }`}
-                        >
-                            <span className="truncate">{x.label}</span>
-                            {tab === x.key && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-brand-orange" />}
-                        </Link>
-                    ))}
-                </nav>
+                <div className="mt-3">
+                    <WaTabs tabs={tabs} active={tab} />
+                </div>
             </div>
             <div className="p-3 sm:p-5">{body}</div>
         </div>

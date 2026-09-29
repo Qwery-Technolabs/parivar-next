@@ -167,6 +167,13 @@ export async function saveCampaign(prev, fd) {
         );
         await setMeta('fundraise_campaigns', r.insertId, meta, q);
         await writeAudience(q, r.insertId, audience);
+        // The creator is admin of this fundraise by default (fundraise-level, independent of
+        // their group role); other admins can demote them later.
+        await q(
+            `INSERT INTO fundraise_members (campaign_id, user_id, member_role, added_by) VALUES (:cid, :uid, 'admin', :uid)
+             ON DUPLICATE KEY UPDATE member_role = 'admin'`,
+            { cid: r.insertId, uid: user.id },
+        );
         return r.insertId;
     });
     await audit(user.id, 'fundraise.create', 'fundraise', newId, { title, audience: audience.length });
@@ -505,6 +512,11 @@ export async function saveTeamMember(prev, fd) {
         { campaignId, userId },
     );
     if (before?.member_role === role) return { ok: true, message: 'fundraise.teamSaved' };
+    // An admin cannot demote themselves (the fundraise could be left with nobody to run it);
+    // another admin, or an app-level manager, has to do it.
+    if (userId === user.id && before?.member_role === 'admin' && role !== 'admin' && !canManageAllFundraises(user.role)) {
+        return { error: 'fundraise.errors.selfDemote' };
+    }
 
     await query(
         `INSERT INTO fundraise_members (campaign_id, user_id, member_role, added_by)
@@ -535,6 +547,9 @@ export async function removeTeamMember(campaignId, userId) {
         { campaignId, userId },
     );
     if (!row) return FORBIDDEN;
+    if (Number(userId) === user.id && row.member_role === 'admin' && !canManageAllFundraises(user.role)) {
+        return { error: 'fundraise.errors.selfDemote' };
+    }
     await query('DELETE FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId });
     await audit(user.id, 'fundraise.team.remove', 'fundraise', campaignId, { user: userId, role: row.member_role });
     refreshCampaign(campaignId);

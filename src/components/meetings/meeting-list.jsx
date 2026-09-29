@@ -1,11 +1,13 @@
 'use client';
-import { Check, ChevronDown, Clock, HelpCircle, MapPin, Trash2, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, Clock, HelpCircle, List, MapPin, Trash2, Users, X } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cancelMeeting, setRsvp } from '@/app/actions/meetings';
 import { date as fmtDate, time as fmtTime } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 import PostDialog from '@/components/fundraise/post-dialog';
+import MeetingCalendar from './meeting-calendar';
 import MeetingDialog from './meeting-dialog';
 
 const RSVP = {
@@ -125,39 +127,94 @@ function MeetingCard({ m, scope, scopeId, manage, people, me, past, today, minut
 }
 
 /**
- * Upcoming meetings (soonest first) and, folded away, past ones.
- * @param {{ meetings: any[], scope: string, scopeId: number, manage: boolean, people: any[], me: number, today: string, defaultTitle?: string, defaultPlace?: string }} props
+ * Upcoming meetings (soonest first) and, folded away, past ones — or the same meetings on a
+ * month calendar. View is ?view=calendar (default list = absence), so it survives reload/back.
  */
 export default function MeetingList({ meetings, scope, scopeId, manage, people, me, today, defaultTitle, defaultPlace, minutes = [], canPostMinutes = false }) {
     const minutesOf = (id) => minutes.filter((u) => u.event_id === id);
-    const { t } = useT();
+    const { t, locale } = useT();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const view = searchParams.get('view') === 'calendar' ? 'calendar' : 'list';
     const [showPast, setShowPast] = useState(false);
     const upcoming = meetings.filter((m) => m.start_date >= today).reverse();
     const past = meetings.filter((m) => m.start_date < today);
+    const card = (m) => (
+        <MeetingCard
+            key={m.id}
+            m={m}
+            scope={scope}
+            scopeId={scopeId}
+            manage={manage}
+            people={people}
+            me={me}
+            today={today}
+            past={m.start_date < today}
+            minutes={minutesOf(m.id)}
+            canPostMinutes={canPostMinutes}
+        />
+    );
+
+    function setView(v) {
+        const params = new URLSearchParams(searchParams.toString());
+        if (v === 'calendar') params.set('view', 'calendar');
+        else params.delete('view');
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }
 
     return (
         <section className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-primary">{t('meetings.title_plural')}</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-primary">{t('meetings.title_plural')}</h2>
+                    <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5" role="group" aria-label={t('meetings.viewLabel')}>
+                        {[
+                            ['list', List, t('meetings.views.list')],
+                            ['calendar', CalendarDays, t('meetings.views.calendar')],
+                        ].map(([v, Icon, label]) => (
+                            <button
+                                key={v}
+                                type="button"
+                                onClick={() => setView(v)}
+                                aria-pressed={view === v}
+                                className={`inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium ${view === v ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-brand-navy'}`}
+                            >
+                                <Icon className="size-3.5" /> {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 {manage && <MeetingDialog scope={scope} scopeId={scopeId} people={people} today={today} defaultTitle={defaultTitle} defaultPlace={defaultPlace} compact />}
             </div>
-            {upcoming.length === 0 && <p className="rounded-lg border border-surface-border bg-white px-4 py-6 text-center text-sm text-ink-gray">{t('meetings.none')}</p>}
-            <ul className="space-y-2">
-                {upcoming.map((m) => (
-                    <MeetingCard key={m.id} m={m} scope={scope} scopeId={scopeId} manage={manage} people={people} me={me} today={today} minutes={minutesOf(m.id)} canPostMinutes={canPostMinutes} />
-                ))}
-            </ul>
-            {past.length > 0 && (
+
+            {view === 'calendar' ? (
+                <MeetingCalendar
+                    meetings={meetings}
+                    today={today}
+                    renderDay={(day, list) => (
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold text-ink-gray">{fmtDate(day, locale)}</p>
+                            {list.length === 0 ? (
+                                <p className="rounded-lg border border-surface-border bg-white px-4 py-5 text-center text-sm text-ink-gray">{t('meetings.noneOnDay')}</p>
+                            ) : (
+                                <ul className="space-y-2">{list.map(card)}</ul>
+                            )}
+                        </div>
+                    )}
+                />
+            ) : (
                 <>
-                    <button type="button" onClick={() => setShowPast((v) => !v)} className="inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary">
-                        <ChevronDown className={`size-3.5 transition-transform ${showPast ? 'rotate-180' : ''}`} /> {t('meetings.past', { count: past.length })}
-                    </button>
-                    {showPast && (
-                        <ul className="space-y-2">
-                            {past.map((m) => (
-                                <MeetingCard key={m.id} m={m} scope={scope} scopeId={scopeId} manage={manage} people={people} me={me} today={today} past minutes={minutesOf(m.id)} canPostMinutes={canPostMinutes} />
-                            ))}
-                        </ul>
+                    {upcoming.length === 0 && <p className="rounded-lg border border-surface-border bg-white px-4 py-6 text-center text-sm text-ink-gray">{t('meetings.none')}</p>}
+                    <ul className="space-y-2">{upcoming.map(card)}</ul>
+                    {past.length > 0 && (
+                        <>
+                            <button type="button" onClick={() => setShowPast((v) => !v)} className="inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary">
+                                <ChevronDown className={`size-3.5 transition-transform ${showPast ? 'rotate-180' : ''}`} /> {t('meetings.past', { count: past.length })}
+                            </button>
+                            {showPast && <ul className="space-y-2">{past.map(card)}</ul>}
+                        </>
                     )}
                 </>
             )}

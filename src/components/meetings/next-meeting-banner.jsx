@@ -2,14 +2,14 @@ import { CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { date, time } from '@/lib/format';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import { getT } from '@/lib/i18n/server';
 import { nextMeetingOf } from '@/lib/meetings';
 
 /** Pinned at the top of a discussion, like a pinned message: the next meeting and your answer. */
 export default async function NextMeetingBanner({ scope, scopeId, href }) {
     const user = await getCurrentUser();
-    const [{ t, locale }, m] = await Promise.all([getT(), nextMeetingOf(scope, scopeId, user.id, todayIST())]);
+    const [{ t, locale }, m] = await Promise.all([getT(), nextMeetingOf(scope, scopeId, user.id, todayLocal())]);
     if (!m) return null;
     const answer = m.my_rsvp ? t(`meetings.rsvp.${m.my_rsvp}`) : null;
     return (

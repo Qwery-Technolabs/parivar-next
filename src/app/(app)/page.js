@@ -5,14 +5,14 @@ import { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
 import { query, queryOne } from '@/lib/db';
 import { date, time } from '@/lib/format';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 
 export default async function DashboardPage() {
     const user = await requireUser();
     const { t, locale } = await getT();
-    const today = todayIST();
+    const today = todayLocal();
 
     // Four independent reads — run together, not one after another.
     const [counts, events, blood] = await Promise.all([

@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS admin_groupsmeta (
 CREATE TABLE IF NOT EXISTS admin_group_members (
     group_id     INT UNSIGNED NOT NULL,
     user_id      INT UNSIGNED NOT NULL,
-    member_role  ENUM('member','admin') NOT NULL DEFAULT 'member',
+    member_role  ENUM('member','speaker','sub_admin','admin') NOT NULL DEFAULT 'member', -- lib/group-roles.js
     added_by     INT UNSIGNED NULL,
     added_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (group_id, user_id),
@@ -355,7 +355,7 @@ CREATE TABLE IF NOT EXISTS fundraise_settings (
 CREATE TABLE IF NOT EXISTS fundraise_members (
     campaign_id  INT UNSIGNED NOT NULL,
     user_id      INT UNSIGNED NOT NULL,
-    member_role  ENUM('organizer','treasurer','collector','volunteer') NOT NULL DEFAULT 'volunteer',
+    member_role  ENUM('admin','organizer','treasurer','collector','volunteer') NOT NULL DEFAULT 'volunteer',  -- admin manages the fundraise; creator starts as admin
     added_by     INT UNSIGNED NULL,
     added_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (campaign_id, user_id),
@@ -450,7 +450,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     CONSTRAINT fk_chat_user FOREIGN KEY (user_id) REFERENCES users_list (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Known keys: body
+-- Known keys: body, kind (system notes: meeting), data (JSON for kind)
 CREATE TABLE IF NOT EXISTS chat_messagesmeta (
     meta_id     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     message_id  BIGINT UNSIGNED NOT NULL,

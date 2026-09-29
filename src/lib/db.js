@@ -1,5 +1,6 @@
 import 'server-only';
 import mysql from 'mysql2/promise';
+import { offsetOf } from './timezone';
 
 // DESIGN.md §9 — one cached pool, named placeholders, bounded prepared-statement cache.
 
@@ -10,8 +11,8 @@ const POOL_SIZE = Number(process.env.DB_POOL_SIZE || 10);
 const STMT_BUDGET = 8000;
 const MAX_PREPARED = Math.max(32, Math.floor(STMT_BUDGET / POOL_SIZE));
 
-function createPool() {
-    return mysql.createPool({
+function createPool(offset) {
+    const pool = mysql.createPool({
         host: process.env.DB_HOST || '127.0.0.1',
         port: Number(process.env.DB_PORT || 3306),
         user: process.env.DB_USER || 'root',
@@ -21,30 +22,40 @@ function createPool() {
         namedPlaceholders: true,
         maxPreparedStatements: MAX_PREPARED,
         charset: 'utf8mb4_unicode_ci',
-        timezone: '+05:30',
+        timezone: offset,
         dateStrings: true, // DATE stays 'YYYY-MM-DD'; no UTC shift turning the 5th into the 4th
         decimalNumbers: true,
     });
-}
-
-// A module-level pool without the globalThis cache leaks a pool per hot reload in dev.
-const pool = globalThis.__parivarPool ?? createPool();
-if (!pool.__tzHooked) {
     // The hosting server's clock is UTC (@@system_time_zone). Without this, NOW() and every
-    // DEFAULT CURRENT_TIMESTAMP record UTC, and chat/notification/audit times read 5h30m
-    // early to people in India. The `timezone` pool option only converts JS Dates; it does
-    // not change what the server's own clock functions return.
+    // DEFAULT CURRENT_TIMESTAMP record UTC, and chat/notification/audit times read hours
+    // off for members. The `timezone` pool option only converts JS Dates; it does not change
+    // what the server's own clock functions return. The offset is the project timezone
+    // (admin setting, default IST — lib/timezone.js).
     // Strict mode too: the host runs MariaDB without STRICT_TRANS_TABLES, where a bad enum
     // value is silently stored as '' and overlong text is cut off. Refusing is better than
     // quietly storing something else.
     pool.pool.on('connection', (conn) =>
-        conn.query(
-            "SET time_zone = '+05:30', sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
-        ),
+        conn.query(`SET time_zone = '${offset}', sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'`),
     );
-    pool.__tzHooked = true;
+    return pool;
 }
-if (process.env.NODE_ENV !== 'production') globalThis.__parivarPool = pool;
+
+/**
+ * The pool for the project timezone's current offset. When an admin changes the timezone
+ * (or DST moves the offset) a fresh pool is built, so every connection agrees; the old one
+ * drains and closes. Cached on globalThis — a module-level pool leaks one per dev reload.
+ */
+function currentPool() {
+    const offset = offsetOf();
+    const state = (globalThis.__parivarDb ??= { pool: null, offset: null });
+    if (state.offset !== offset) {
+        const old = state.pool;
+        state.pool = createPool(offset);
+        state.offset = offset;
+        if (old) setTimeout(() => old.end().catch(() => {}), 30000);
+    }
+    return state.pool;
+}
 
 const LOCK_ERRORS = new Set(['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT']);
 const DEAD_CONN = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST']);
@@ -64,7 +75,7 @@ function isReadOnly(sql) {
 export async function query(sql, params = {}) {
     for (let attempt = 0; ; attempt++) {
         try {
-            const [rows] = await pool.execute(sql, params);
+            const [rows] = await currentPool().execute(sql, params);
             return rows;
         } catch (err) {
             const retryable =
@@ -91,7 +102,7 @@ export async function queryOne(sql, params = {}) {
  * @returns {Promise<T>}
  */
 export async function withTransaction(run) {
-    const conn = await pool.getConnection();
+    const conn = await currentPool().getConnection();
     try {
         await conn.beginTransaction();
         const q = async (sql, params = {}) => (await conn.execute(sql, params))[0];

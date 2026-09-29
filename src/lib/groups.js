@@ -1,5 +1,5 @@
 import 'server-only';
-import { getMeta, query, queryOne } from './db';
+import { getMeta, getMetaMany, query, queryOne } from './db';
 
 export async function listGroups() {
     // Counts come from one grouped read of the membership table, not a subquery per group.
@@ -15,17 +15,17 @@ export async function listGroups() {
 }
 
 export async function getGroup(id) {
-    const g = await queryOne('SELECT id, name, name_local, status, created_at FROM admin_groups WHERE id = :id', { id });
+    const g = await queryOne('SELECT id, name, name_local, status, created_at, created_by FROM admin_groups WHERE id = :id', { id });
     if (!g) return null;
     return { ...g, meta: await getMeta('admin_groups', id) };
 }
 
 export async function groupMembers(groupId) {
     return query(
-        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, gm.member_role, gm.added_at
+        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at
            FROM admin_group_members gm JOIN users_list u ON u.id = gm.user_id
           WHERE gm.group_id = :groupId
-          ORDER BY gm.member_role = 'admin' DESC, u.full_name`,
+          ORDER BY FIELD(gm.member_role, 'admin', 'sub_admin', 'speaker', 'member'), u.full_name`,
         { groupId },
     );
 }
@@ -49,12 +49,12 @@ export async function groupFundraises(groupId) {
  * otherwise (non-members see "members only").
  */
 export async function listGroupsForChat(userId) {
-    return query(
+    const rows = await query(
         `SELECT g.id, g.name, g.name_local,
                 (SELECT COUNT(*) FROM admin_group_members m WHERE m.group_id = g.id) AS members,
                 gm.member_role AS my_role,
                 lm.id AS last_id, lm.created_at AS last_at, lm.deleted_at AS last_deleted,
-                lb.meta_value AS last_body, lu.full_name AS last_author, lu.full_name_local AS last_author_local,
+                lb.meta_value AS last_body, lk.meta_value AS last_kind, lu.full_name AS last_author, lu.full_name_local AS last_author_local,
                 lm.user_id AS last_user_id,
                 (SELECT COUNT(*) FROM chat_messages x
                   WHERE x.scope = 'group' AND x.scope_id = g.id AND x.deleted_at IS NULL
@@ -63,10 +63,13 @@ export async function listGroupsForChat(userId) {
            LEFT JOIN admin_group_members gm ON gm.group_id = g.id AND gm.user_id = :userId
            LEFT JOIN chat_messages lm ON lm.id = (SELECT MAX(id) FROM chat_messages WHERE scope = 'group' AND scope_id = g.id)
            LEFT JOIN chat_messagesmeta lb ON lb.message_id = lm.id AND lb.meta_key = 'body'
+           LEFT JOIN chat_messagesmeta lk ON lk.message_id = lm.id AND lk.meta_key = 'kind'
            LEFT JOIN users_list lu ON lu.id = lm.user_id
            LEFT JOIN chat_reads r ON r.user_id = :userId AND r.scope = 'group' AND r.scope_id = g.id
           WHERE g.status = 'active'
           ORDER BY (gm.user_id IS NULL), COALESCE(lm.created_at, g.created_at) DESC`,
         { userId },
     );
+    const meta = await getMetaMany('admin_groups', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);
+    return rows.map((r) => ({ ...r, avatar: meta[r.id] ?? {} }));
 }

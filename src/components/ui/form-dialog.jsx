@@ -97,7 +97,8 @@ function DialogForm({ action, hidden, submitLabel, submitIcon, onDone, onCancel,
                     {t(state.error)}
                 </p>
             )}
-            <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            {/* Pinned to the bottom of the scrolling dialog, so Save never scrolls out of reach. */}
+            <div className="sticky bottom-0 -mx-4 flex flex-col-reverse gap-2 border-t border-surface-border bg-white px-4 py-3 sm:flex-row sm:justify-end">
                 <button
                     type="button"
                     onClick={onCancel}

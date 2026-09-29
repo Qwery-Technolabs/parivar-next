@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { date } from '@/lib/format';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
 import PrintButton from './print-button';
 import Statement from './statement';
@@ -31,7 +31,7 @@ export default function PrintSheet({ campaign, contributors, contributions, expe
                     </p>
                     <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
                     <p className="mt-0.5 text-xs text-ink-gray">
-                        {[groupName, campaign.location, dates, t('fundraise.generatedOn', { date: date(todayIST(), locale) })].filter(Boolean).join(' · ')}
+                        {[groupName, campaign.location, dates, t('fundraise.generatedOn', { date: date(todayLocal(), locale) })].filter(Boolean).join(' · ')}
                     </p>
                 </header>
                 <Statement

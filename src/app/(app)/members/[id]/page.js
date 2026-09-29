@@ -10,7 +10,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getFamily, getMember, memberDonations, memberGroups } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canManageAllFundraises } from '@/lib/roles';
+import { canEditUser, canManageAllFundraises, canResetPassword } from '@/lib/roles';
 
 export async function generateMetadata({ params }) {
     const { id } = await params;
@@ -40,6 +40,8 @@ export default async function MemberPage({ params }) {
         memberDonations(member.id, user.id === member.id || canManageAllFundraises(user.role)),
     ]);
     const canEdit = canEditUser(user, member);
+    // The Edit page also opens for a password-only reset (it then shows just that tab).
+    const canOpenEdit = canEdit || canResetPassword(user, member);
     const name = localized(member, 'full_name', locale);
     const otherName = locale === 'gu' ? member.full_name : member.full_name_local;
     const m = member.meta;
@@ -55,7 +57,7 @@ export default async function MemberPage({ params }) {
                         <LinkButton href={`/members/${member.id}/tree`} icon={GitFork} variant="secondary">
                             {t('members.familyTree')}
                         </LinkButton>
-                        {canEdit && (
+                        {canOpenEdit && (
                             <LinkButton href={`/members/${member.id}/edit`} icon={Pencil}>
                                 {t('common.edit')}
                             </LinkButton>
@@ -138,7 +140,9 @@ export default async function MemberPage({ params }) {
                                                 <ShieldCheck className="size-3" /> {t('groups.admin')}
                                             </Badge>
                                         ) : (
-                                            <Badge tone="gray">{t('groups.member')}</Badge>
+                                            <Badge tone={g.member_role === 'sub_admin' ? 'blue' : g.member_role === 'speaker' ? 'green' : 'gray'}>
+                                                {t(`groups.roles.${g.member_role}`)}
+                                            </Badge>
                                         )}
                                     </li>
                                 ))}

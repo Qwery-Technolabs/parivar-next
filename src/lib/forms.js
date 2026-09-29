@@ -50,7 +50,5 @@ export function oneOf(fd, key, allowed, fallback = null) {
     return allowed.includes(v) ? v : fallback;
 }
 
-/** Today in India as YYYY-MM-DD (the server may run in UTC). */
-export function todayIST() {
-    return new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
-}
+// Today in the project timezone (admin setting, default IST).
+export { todayLocal } from './timezone';

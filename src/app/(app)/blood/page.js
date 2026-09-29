@@ -2,10 +2,10 @@ import { Phone, Users } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import PageHeader from '@/components/shell/page-header';
-import DonorFilter from '@/components/blood/donor-filter';
 import PostRequestButton from '@/components/blood/post-request-button';
 import RequestActions from '@/components/blood/request-actions';
 import Badge, { BloodBadge } from '@/components/ui/badge';
+import FilterBar from '@/components/ui/filter-bar';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { requireUser } from '@/lib/auth';
@@ -14,7 +14,7 @@ import { date } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { formatPhone } from '@/lib/phone';
-import { canManageMembers } from '@/lib/roles';
+import { BLOOD_GROUPS, canManageMembers } from '@/lib/roles';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref } from '@/lib/url';
 
@@ -22,10 +22,6 @@ export async function generateMetadata() {
     const { t } = await getT();
     return { title: t('blood.title') };
 }
-
-const segBase = 'inline-flex h-8 shrink-0 items-center rounded px-2.5 text-xs font-medium';
-const segOn = `${segBase} seg-active shadow-sm`;
-const segOff = `${segBase} text-ink-gray hover:text-primary`;
 
 export default async function BloodPage({ searchParams }) {
     const user = await requireUser();
@@ -74,32 +70,24 @@ export default async function BloodPage({ searchParams }) {
 async function Requests({ user, f, sp, t, locale, pathname }) {
     const page = normalizePage(sp.page);
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
-    const { total, rows } = await listRequests({ status: f.status, page, perPage });
+    const { total, rows } = await listRequests({ status: f.status, q: f.q, page, perPage });
     const manager = canManageMembers(user.role);
 
     const statuses = [
-        { key: 'open', label: t('blood.open') },
-        { key: 'fulfilled', label: t('blood.fulfilled') },
-        { key: 'cancelled', label: t('blood.cancelled') },
-        { key: 'all', label: t('common.all') },
+        { value: 'open', label: t('blood.open') },
+        { value: 'fulfilled', label: t('blood.fulfilled') },
+        { value: 'cancelled', label: t('blood.cancelled') },
+        { value: 'all', label: t('common.all') },
     ];
 
     return (
         <>
-            <div className="mb-3 inline-flex flex-wrap rounded-md bg-surface-bggray/70 p-0.5">
-                {statuses.map((s) => (
-                    <Link
-                        key={s.key}
-                        // open is the default → absence of the param; any filter resets the page.
-                        href={buildHref(pathname, sp, { status: s.key === 'open' ? null : s.key, page: null })}
-                        scroll={false}
-                        replace
-                        className={f.status === s.key ? segOn : segOff}
-                    >
-                        {s.label}
-                    </Link>
-                ))}
-            </div>
+            {/* Status lives in the Filters panel; open is the default (absence of the param). */}
+            <FilterBar
+                search={{ placeholder: t('blood.searchRequests') }}
+                filters={[{ param: 'status', label: t('blood.status'), type: 'select', options: statuses, defaultValue: 'open' }]}
+                left={<span className="text-xs text-ink-gray tabular-nums">{t('blood.requestCount', { count: total })}</span>}
+            />
 
             <TableShell>
                 <THead>
@@ -170,12 +158,22 @@ async function Donors({ f, t, locale }) {
     const donors = await listDonors(f);
     return (
         <div className="space-y-4">
-            <DonorFilter group={f.group} compatible={f.compatible} village={f.village} />
-            {f.group && (
-                <p className="text-xs text-ink-gray">
-                    {t('blood.donorsFor', { group: f.group })} · {t('members.count', { count: donors.length })}
-                </p>
-            )}
+            <FilterBar
+                className=""
+                fixed={{ tab: 'donors' }}
+                search={{ placeholder: t('blood.searchDonors') }}
+                filters={[
+                    { param: 'group', label: t('members.bloodGroup'), type: 'select', allLabel: t('common.any'), options: BLOOD_GROUPS.map((g) => ({ value: g, label: g })) },
+                    { param: 'compatible', label: t('members.compatible'), hint: t('members.compatibleHint'), type: 'switch', showIf: { param: 'group' } },
+                    { param: 'village', label: t('members.village'), type: 'text' },
+                ]}
+                left={
+                    <span className="text-xs text-ink-gray tabular-nums">
+                        {f.group ? `${t('blood.donorsFor', { group: f.group })} · ` : ''}
+                        {t('members.count', { count: donors.length })}
+                    </span>
+                }
+            />
             <TableShell>
                 <THead>
                     <Th>{t('members.fullName')}</Th>
@@ -184,8 +182,7 @@ async function Donors({ f, t, locale }) {
                     <Th>{t('members.phone')}</Th>
                 </THead>
                 <tbody>
-                    {!f.group && <EmptyRow colSpan={4}>{t('blood.pickGroup')}</EmptyRow>}
-                    {f.group && donors.length === 0 && <EmptyRow colSpan={4}>{t('blood.noDonors')}</EmptyRow>}
+                    {donors.length === 0 && <EmptyRow colSpan={4}>{t('blood.noDonors')}</EmptyRow>}
                     {donors.map((d) => (
                         <Tr key={d.id}>
                             <Td className="max-w-64">

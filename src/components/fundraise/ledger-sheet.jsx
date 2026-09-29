@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { date, money } from '@/lib/format';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
 import PrintButton from './print-button';
 
@@ -55,7 +55,7 @@ export default function LedgerSheet({ campaign, income, expense, kind, t, locale
             </div>
             <main className="mx-auto max-w-2xl px-6 py-6 print:px-0">
                 <h1 className="text-lg font-semibold text-ink">{localized(campaign, 'title', locale)}</h1>
-                <p className="mb-5 text-xs text-ink-gray">{t('fundraise.generatedOn', { date: date(todayIST(), locale) })}</p>
+                <p className="mb-5 text-xs text-ink-gray">{t('fundraise.generatedOn', { date: date(todayLocal(), locale) })}</p>
                 {(kind === 'income' || kind === 'both') && (
                     <Block heading={kind === 'both' ? t('fundraise.contributions') : null} rows={income} nameOf={donor} t={t} />
                 )}

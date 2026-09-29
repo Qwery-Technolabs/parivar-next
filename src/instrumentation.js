@@ -2,6 +2,13 @@
 // On a host where the process sleeps between requests, /api/cron/reminders does the same job.
 export async function register() {
     if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+    // Load the admin's project timezone before the first request uses "today" or the DB clock.
+    try {
+        const { getSettings } = await import('./lib/settings');
+        await getSettings('admin');
+    } catch (err) {
+        console.error('timezone setting not loaded; using IST', err.message);
+    }
     const { startReminderLoop } = await import('./lib/reminders');
     startReminderLoop();
 }

@@ -36,7 +36,7 @@ const TOTALS = `
     (SELECT COUNT(*) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS expense_count`;
 
 const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amount, c.start_date, c.end_date, c.status,
-    c.is_public, c.public_token, c.created_at, g.name AS group_name, g.name_local AS group_name_local`;
+    c.is_public, c.public_token, c.created_at, c.created_by, g.name AS group_name, g.name_local AS group_name_local`;
 
 /**
  * Drafts are visible only to people who can manage them: app-level fundraise managers,
@@ -55,7 +55,7 @@ async function visibilityClause(user) {
  * @param {{ status?: string, groupId?: number|null, page: number, perPage: number }} f
  * Campaigns with an audience rule matching the viewer sort first and carry for_you = 1.
  */
-export async function listCampaigns(user, { status, groupId, page, perPage }) {
+export async function listCampaigns(user, { status, groupId, q = '', page, perPage }) {
     const vis = await visibilityClause(user);
     const where = [vis.sql];
     const params = { ...vis.params };
@@ -66,6 +66,10 @@ export async function listCampaigns(user, { status, groupId, page, perPage }) {
     if (groupId) {
         where.push('c.group_id = :groupId');
         params.groupId = groupId;
+    }
+    if (q) {
+        where.push('(c.title LIKE :q OR c.title_local LIKE :q)');
+        params.q = `%${q}%`;
     }
     const whereSql = where.join(' AND ');
     // perPage/offset are clamped integers — inlined deliberately (DESIGN.md §9).

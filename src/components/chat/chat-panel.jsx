@@ -4,6 +4,15 @@ import { chatAccess, listMessages, markRead } from '@/lib/chat';
 import { getT } from '@/lib/i18n/server';
 import ChatThread from './chat-thread';
 
+// MariaDB hands JSON back as text; a damaged value must not break the thread.
+function parseData(raw) {
+    try {
+        return typeof raw === 'string' ? JSON.parse(raw) : (raw ?? {});
+    } catch {
+        return {};
+    }
+}
+
 /**
  * A WhatsApp-style discussion for one group or fundraise. Server component: checks access
  * and loads the latest messages itself, so a page only has to place it.
@@ -29,12 +38,15 @@ export default async function ChatPanel({ scope, scopeId }) {
             scopeId={scopeId}
             me={user.id}
             moderate={access.moderate}
+            canPost={access.canPost}
             messages={messages.map((m) => ({
                 id: m.id,
                 userId: m.user_id,
                 name: m.full_name,
                 nameLocal: m.full_name_local,
                 body: m.deleted_at ? null : m.body,
+                kind: m.deleted_at ? null : m.kind || null,
+                data: m.kind ? parseData(m.data) : null,
                 at: m.created_at,
             }))}
         />

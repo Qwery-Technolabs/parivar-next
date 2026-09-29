@@ -2,17 +2,8 @@
 import { Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import GroupAvatar from '@/components/groups/group-avatar';
 import { useT } from '@/lib/i18n/client';
-
-// Avatar tints: every text colour is ≥4.5:1 on its tint, like the badge palette.
-const AVATARS = [
-    'bg-blue-50 text-blue-800',
-    'bg-emerald-50 text-emerald-700',
-    'bg-rose-50 text-rose-700',
-    'bg-purple-50 text-purple-800',
-    'bg-amber-50 text-amber-800',
-    'bg-teal-50 text-teal-700',
-];
 
 /**
  * WhatsApp-style chat list: avatar, name, last message, time on the right, unread badge.
@@ -46,9 +37,7 @@ export default function GroupChatList({ groups }) {
                 {shown.map((g) => (
                     <li key={g.id}>
                         <Link href={`/groups/${g.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/60">
-                            <span aria-hidden className={`flex size-11 shrink-0 items-center justify-center rounded-full text-base font-semibold ${AVATARS[g.id % AVATARS.length]}`}>
-                                {g.name.trim().charAt(0).toUpperCase()}
-                            </span>
+                            <GroupAvatar id={g.id} name={g.name} kind={g.avatar?.avatar_kind} value={g.avatar?.avatar_value} color={g.avatar?.avatar_color} size="lg" />
                             <span className="min-w-0 flex-1">
                                 <span className="flex items-center gap-1.5">
                                     <span className={`truncate text-sm text-primary ${g.unread ? 'font-bold' : 'font-semibold'}`}>{g.name}</span>

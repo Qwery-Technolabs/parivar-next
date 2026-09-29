@@ -1,9 +1,9 @@
 import { cookies } from 'next/headers';
-import EntityFilter from '@/components/audit/entity-filter';
 import Link from 'next/link';
 import PageHeader from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
+import FilterBar from '@/components/ui/filter-bar';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { requireRole } from '@/lib/auth';
 import { query } from '@/lib/db';
@@ -45,11 +45,21 @@ export default async function AuditPage({ searchParams }) {
     const entity = ENTITIES.includes(sp1(sp.entity)) ? sp1(sp.entity) : '';
     const page = normalizePage(sp.page);
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
-    const where = entity ? 'a.entity = :entity' : '1=1';
-    const params = entity ? { entity } : {};
+    const q = String(sp1(sp.q) ?? '').trim().slice(0, 100);
+    const conds = [];
+    const params = {};
+    if (entity) {
+        conds.push('a.entity = :entity');
+        params.entity = entity;
+    }
+    if (q) {
+        conds.push('(a.action LIKE :q OR u.full_name LIKE :q OR u.full_name_local LIKE :q)');
+        params.q = `%${q}%`;
+    }
+    const where = conds.length ? conds.join(' AND ') : '1=1';
 
     const [[{ total }], rows] = await Promise.all([
-        query(`SELECT COUNT(*) AS total FROM admin_audit_log a WHERE ${where}`, params),
+        query(`SELECT COUNT(*) AS total FROM admin_audit_log a LEFT JOIN users_list u ON u.id = a.actor_id WHERE ${where}`, params),
         // perPage/offset are server-clamped integers, inlined on purpose (DESIGN.md §9).
         query(
             `SELECT a.id, a.action, a.entity, a.entity_id, a.detail, a.created_at,
@@ -73,11 +83,18 @@ export default async function AuditPage({ searchParams }) {
     return (
         <div>
             <PageHeader title={t('audit.title')} />
-            <EntityFilter
-                value={entity}
-                label={t('common.filters')}
-                allLabel={t('common.all')}
-                options={ENTITIES.map((e) => ({ value: e, label: t(`audit.entities.${e}`) }))}
+            <FilterBar
+                search={{ placeholder: t('audit.searchPlaceholder') }}
+                filters={[
+                    {
+                        param: 'entity',
+                        label: t('audit.entity'),
+                        type: 'select',
+                        allLabel: t('common.all'),
+                        options: ENTITIES.map((e) => ({ value: e, label: t(`audit.entities.${e}`) })),
+                    },
+                ]}
+                left={<span className="text-xs text-ink-gray tabular-nums">{t('audit.count', { count: total })}</span>}
             />
             <TableShell>
                 <THead>

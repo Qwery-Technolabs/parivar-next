@@ -69,3 +69,37 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` pending
 - [ ] Browser click-through of dialogs (skipped on request; actions tested over HTTP)
 - [ ] Plural forms ("1 members")
 - [ ] First commit + push to `origin` (on request)
+
+## Phase 11 — Requests log (Sept 2026)
+Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
+
+### Groups
+- [x] Group picture: icon (≈125 business/community icons), emoji, or ≤2 letters; preset or custom background colour (text colour auto-picked for contrast)
+- [x] Picture sits left of the name in the group form; clicking it opens its own picker popup; new groups start on a random icon + colour
+- [x] Picture shown in the /groups chat list and the group header
+- [x] Group roles: admin, sub-admin, speaker, member — sub-admin adds/removes members & speakers but never touches admins/sub-admins; admins manage everyone
+- [x] Discussion setting per group: everyone posts, or only admins / sub-admins / speakers (others read-only)
+- [x] Add member by phone number (registered or not); new numbers get an account with the phone number as first password
+- [x] "Not joined yet" tag until first sign-in; admins can remove them like anyone
+- [x] Discussion history notes: meeting scheduled, member added / removed (centred, WhatsApp-style)
+- [ ] Removing a never-signed-in invitee from their last group: offer to delete the account too
+
+### Members
+- [x] Bulk select → Add to group / Make group admin (bar above the table)
+- [x] Edit member page as iconed tabs, each saved separately (Basic, Community, Details, Role & status, Password)
+- [x] Admins & sub-admins reset any member's password (not accounts ranked above them)
+- [x] First sign-in on the temporary password → forced Set password → own edit page to fill in details
+- [ ] Invite by phone on /members for admins — several people at once (rows of phone + name, optional groups to join); default password = phone number
+
+### Tables & filters
+- [x] One toolbar everywhere: search + Filters popup on the right (members, blood requests & donors, audit, fundraise)
+- [x] /blood: status / blood group / compatible / village moved into the Filters popup; donor search; donors listed without a group chosen
+
+### Auth & settings
+- [x] Admin setting: project timezone (default IST) — drives "today", reminders and the DB clock
+- [x] Admin settings: allow self-registration (login page link) + require approval (new accounts wait inactive; admins notified)
+- [ ] Login message for an account still waiting for approval (currently "incorrect number or password")
+
+### Fundraise
+- [ ] A fundraise can belong to one or more groups (not just one)
+- [ ] /fundraise/new?group=1: move Status outside the card

@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { query } from './db';
+import { DEFAULT_TIMEZONE, setAppTimeZone, TIMEZONES } from './timezone';
 
 /**
  * Module settings — key/value rows in `<mod>_settings` (admin_settings for app-wide).
@@ -17,8 +18,12 @@ export const SETTINGS = {
             samaj_name: { type: 'text', default: '' }, // shown beside the app name when set
             samaj_name_local: { type: 'text', default: '' },
             contact_phone: { type: 'text', default: '' },
+            allow_registration: { type: 'bool', default: false }, // "Create an account" link on the login page
+            registration_approval: { type: 'bool', default: true }, // new sign-ups wait (inactive) until an admin activates them
             default_language: { type: 'text', default: 'gu', options: ['gu', 'en'] },
             local_language: { type: 'text', default: 'gu', options: ['gu', 'hi', 'mr'] }, // script for names, per person overridable
+            // One timezone for the whole project: "today", meeting reminders, DB clock (lib/timezone.js).
+            timezone: { type: 'text', default: DEFAULT_TIMEZONE, options: Object.keys(TIMEZONES), labels: TIMEZONES },
         },
     },
     fundraise: {
@@ -62,7 +67,10 @@ export const getSettings = cache(async (mod) => {
     if (!spec) throw new Error(`Unknown settings module ${mod}`);
     const rows = await query(`SELECT setting_key, setting_value FROM ${spec.table}`);
     const stored = Object.fromEntries(rows.map((r) => [r.setting_key, r.setting_value]));
-    return Object.fromEntries(Object.entries(spec.keys).map(([k, def]) => [k, decode(def, stored[k])]));
+    const values = Object.fromEntries(Object.entries(spec.keys).map(([k, def]) => [k, decode(def, stored[k])]));
+    // Keep the process-wide timezone in step with what the admin chose.
+    if (mod === 'admin') setAppTimeZone(values.timezone);
+    return values;
 });
 
 export async function getSetting(mod, key) {

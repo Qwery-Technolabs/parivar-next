@@ -11,10 +11,10 @@ import MemberPicker from '@/components/ui/member-picker';
 import { KebabMenu, MenuItem } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 
-const ROLES = ['organizer', 'treasurer', 'collector', 'volunteer'];
-const TONE = { organizer: 'orange', treasurer: 'green', collector: 'blue', volunteer: 'gray' };
+const ROLES = ['admin', 'organizer', 'treasurer', 'collector', 'volunteer'];
+const TONE = { admin: 'navy', organizer: 'orange', treasurer: 'green', collector: 'blue', volunteer: 'gray' };
 
-export default function TeamPanel({ campaignId, team, canManage }) {
+export default function TeamPanel({ campaignId, team, canManage, creatorId = null }) {
     const { t, locale } = useT();
     return (
         <div className="space-y-3">
@@ -29,7 +29,7 @@ export default function TeamPanel({ campaignId, team, canManage }) {
                 ) : (
                     <ul className="divide-y divide-surface-border">
                         {team.map((m) => (
-                            <TeamRow key={m.user_id} campaignId={campaignId} m={m} canManage={canManage} locale={locale} />
+                            <TeamRow key={m.user_id} campaignId={campaignId} m={m} canManage={canManage} locale={locale} creatorId={creatorId} />
                         ))}
                     </ul>
                 )}
@@ -45,7 +45,7 @@ export default function TeamPanel({ campaignId, team, canManage }) {
     );
 }
 
-function TeamRow({ campaignId, m, canManage, locale }) {
+function TeamRow({ campaignId, m, canManage, locale, creatorId }) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
     const name = (locale === 'gu' && m.full_name_local) || m.full_name;
@@ -73,6 +73,12 @@ function TeamRow({ campaignId, m, canManage, locale }) {
                 <Link href={`/members/${m.user_id}`} className="font-medium text-primary hover:underline break-words">
                     {name}
                 </Link>
+                {/* Only a tag: the creator's rights are whatever role they hold now. */}
+                {m.user_id === creatorId && (
+                    <Badge tone="gray" className="ml-1.5">
+                        {t('common.creator')}
+                    </Badge>
+                )}
                 {m.village && <p className="text-xs text-ink-gray">{m.village}</p>}
             </div>
             {canManage ? (

@@ -2,7 +2,8 @@
 import { Pencil, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { saveGroup } from '@/app/actions/groups';
-import { Field, textArea, textInput } from '@/components/ui/field';
+import AvatarPicker from '@/components/groups/avatar-picker';
+import { Field, selectInput, textArea } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import BilingualName from '@/components/ui/bilingual-name';
 import { useT } from '@/lib/i18n/client';
@@ -37,16 +38,28 @@ export default function GroupFormDialog({ group, onNavy = false }) {
         >
             {({ fieldError }) => (
                 <>
-                    <BilingualName
-                        enLabel={t('groups.name')}
-                        guLabel={t('groups.nameLocal')}
-                        enName="name"
-                        guName="name_local"
-                        defaultEn={group?.name}
-                        defaultGu={group?.name_local}
-                        error={fieldError('name')}
-                        required
-                    />
+                    {/* Picture first, left of the name — like a chat app's group info. */}
+                    <div className="flex items-start gap-3">
+                        <AvatarPicker name={group?.name} initial={group?.meta} />
+                        <div className="min-w-0 flex-1 space-y-3">
+                            <BilingualName
+                                enLabel={t('groups.name')}
+                                guLabel={t('groups.nameLocal')}
+                                enName="name"
+                                guName="name_local"
+                                defaultEn={group?.name}
+                                defaultGu={group?.name_local}
+                                error={fieldError('name')}
+                                required
+                            />
+                        </div>
+                    </div>
+                    <Field label={t('groups.chatMode.label')} hint={t('groups.chatMode.hint')}>
+                        <select name="chat_mode" defaultValue={group?.meta?.chat_mode || 'all'} className={`${selectInput()} w-full`}>
+                            <option value="all">{t('groups.chatMode.all')}</option>
+                            <option value="restricted">{t('groups.chatMode.restricted')}</option>
+                        </select>
+                    </Field>
                     <Field label={t('groups.description')}>
                         <textarea name="description" rows={3} defaultValue={group?.meta?.description ?? ''} className={`${textArea()} w-full`} />
                     </Field>

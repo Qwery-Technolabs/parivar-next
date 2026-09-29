@@ -22,7 +22,7 @@ export function proxy(request) {
         return NextResponse.redirect(url);
     }
 
-    if (pathname === '/language' || pathname === '/login') return NextResponse.next();
+    if (pathname === '/language' || pathname === '/login' || pathname === '/register') return NextResponse.next();
 
     if (!hasSession) {
         const url = new URL('/login', request.url);

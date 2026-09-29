@@ -3,8 +3,9 @@ import { refresh } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
-import { date, str, strOrNull, time, todayIST } from '@/lib/forms';
+import { date, str, strOrNull, time, todayLocal } from '@/lib/forms';
 import { meetingScope, REMINDER_OFFSETS, writeReminders } from '@/lib/meetings';
+import { postSystemMessage } from '@/lib/chat';
 import { notifyMany } from '@/lib/notifications';
 
 const FORBIDDEN = { error: 'common.forbidden' };
@@ -34,7 +35,7 @@ export async function saveMeeting(prev, fd) {
     const at = rawTime ? time(fd, 'start_time') : null;
     const fieldErrors = {};
     if (!day) fieldErrors.start_date = 'meetings.errors.date';
-    else if (!meetingId && day < todayIST()) fieldErrors.start_date = 'meetings.errors.past';
+    else if (!meetingId && day < todayLocal()) fieldErrors.start_date = 'meetings.errors.past';
     if (rawTime && !at) fieldErrors.start_time = 'meetings.errors.time';
 
     // Who needs to come: everyone in the group/fundraise, or a chosen subset of them.
@@ -100,6 +101,13 @@ export async function saveMeeting(prev, fd) {
         existing &&
         (existing.start_date !== day || (existing.start_time ?? null) !== at || (existing.location ?? null) !== place);
     await notifyMany(added, { type: 'meeting.invite', data, link: ctx.link, actorId: user.id });
+    // A new meeting also shows in the discussion as a centred note. Best effort: the
+    // meeting is saved either way.
+    if (!meetingId) {
+        await postSystemMessage(where.scope, where.scopeId, user.id, 'meeting', { event: eventId, ...data }, title).catch((err) =>
+            console.error('meeting note failed', err.message),
+        );
+    }
     if (moved) {
         // Only people already invited hear "changed"; the newly added got an invitation above.
         await notifyMany(stayed, { type: 'meeting.updated', data, link: ctx.link, actorId: user.id });

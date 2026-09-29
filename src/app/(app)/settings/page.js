@@ -237,7 +237,7 @@ async function ModuleSection({ module: mod, title, t }) {
                     value: values[key],
                     label: t(`settings.keys.${mod}_${key}`),
                     hint: hint === hintKey ? undefined : hint,
-                    options: def.options?.map((o) => ({ value: o, label: t(`lang.${o}`) })),
+                    options: def.options?.map((o) => ({ value: o, label: def.labels?.[o] ?? t(`lang.${o}`) })),
                 };
             })}
         />

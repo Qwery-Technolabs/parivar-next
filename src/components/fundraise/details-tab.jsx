@@ -96,7 +96,7 @@ export default function DetailsTab({ campaign, audience, team, meetings, updates
             <div className="min-w-0 space-y-4">
                 <section id="team" className="scroll-mt-4">
                     <Card title={t('fundraise.tabs.team')}>
-                        <TeamPanel campaignId={campaign.id} team={team} canManage={perms.manage} />
+                        <TeamPanel campaignId={campaign.id} team={team} canManage={perms.manage} creatorId={campaign.created_by} />
                     </Card>
                 </section>
                 <Card title={t('fundraise.publicLink')}>

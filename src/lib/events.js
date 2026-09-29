@@ -1,6 +1,6 @@
 import 'server-only';
 import { getMetaMany, query } from './db';
-import { todayIST } from './forms';
+import { todayLocal } from './forms';
 
 export const EVENT_TYPES = ['event', 'fundraise', 'meeting', 'festival', 'other'];
 
@@ -12,7 +12,7 @@ const pad = (n) => String(n).padStart(2, '0');
  */
 export function resolveMonth(sp = {}) {
     const raw = String((Array.isArray(sp.m) ? sp.m[0] : sp.m) ?? '');
-    const today = todayIST();
+    const today = todayLocal();
     const [ty, tm] = today.split('-').map(Number);
     let year = ty;
     let month = tm;

@@ -3,7 +3,7 @@ import GroupFormDialog from '@/components/groups/group-form-dialog';
 import PageHeader from '@/components/shell/page-header';
 import { requireUser } from '@/lib/auth';
 import { date as fmtDate, time as fmtTime } from '@/lib/format';
-import { todayIST } from '@/lib/forms';
+import { todayLocal } from '@/lib/forms';
 import { getT } from '@/lib/i18n/server';
 import { listGroupsForChat } from '@/lib/groups';
 import { canManageGroups } from '@/lib/roles';
@@ -17,7 +17,7 @@ export async function generateMetadata() {
 function whenLabel(at, t, locale) {
     if (!at) return '';
     const day = String(at).slice(0, 10);
-    const today = todayIST();
+    const today = todayLocal();
     const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
     if (day === today) return fmtTime(String(at).slice(11, 16));
     if (day === yesterday) return t('groups.yesterday');
@@ -40,11 +40,18 @@ export default async function GroupsPage() {
         else if (g.last_deleted) preview = t('chat.deleted');
         else {
             const who = g.last_user_id === user.id ? t('groups.you') : (locale !== 'en' && g.last_author_local) || g.last_author || t('chat.formerMember');
-            preview = `${who}: ${String(g.last_body ?? '').replace(/\s+/g, ' ').slice(0, 120)}`;
+            const body = String(g.last_body ?? '').replace(/\s+/g, ' ').slice(0, 120);
+            preview =
+                g.last_kind === 'meeting'
+                    ? `📅 ${t('chat.meetingPreview', { name: who, title: body })}`
+                    : g.last_kind === 'member'
+                      ? body
+                      : `${who}: ${body}`;
         }
         return {
             id: g.id,
             name,
+            avatar: g.avatar,
             members: Number(g.members),
             admin: g.my_role === 'admin',
             member: Boolean(g.my_role),

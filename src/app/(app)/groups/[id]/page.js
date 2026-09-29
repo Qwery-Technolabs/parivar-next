@@ -1,17 +1,21 @@
-import { ArrowLeft, CalendarDays, HandCoins, Plus } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CalendarDays, HandCoins, Info, MessageCircle, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import NextMeetingBanner from '@/components/meetings/next-meeting-banner';
+import GroupAvatar from '@/components/groups/group-avatar';
 import GroupFormDialog from '@/components/groups/group-form-dialog';
 import GroupMembers from '@/components/groups/group-members';
 import { Card, LinkButton } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import WaTabs from '@/components/ui/wa-tabs';
-import { canCreateFundraiseIn, canManageGroup } from '@/lib/access';
+import { canCreateFundraiseIn, groupStanding } from '@/lib/access';
+import { canAdminister, canManageMembership } from '@/lib/group-roles';
 import { requireUser } from '@/lib/auth';
 import { messageCount } from '@/lib/chat';
+import { todayLocal } from '@/lib/forms';
+import { upcomingMeetingCount } from '@/lib/meetings';
 import { date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
@@ -25,7 +29,7 @@ export async function generateMetadata({ params }) {
     return { title: g ? localized(g, 'name', locale) : undefined };
 }
 
-const TABS = ['discussion', 'fundraise', 'about'];
+const TABS = ['discussion', 'meetings', 'fundraise', 'members', 'about'];
 
 /**
  * A group, laid out like old WhatsApp: a navy header with the group's name and three tabs —
@@ -40,13 +44,17 @@ export default async function GroupPage({ params, searchParams }) {
     const { t, locale } = await getT();
     const tab = TABS.includes(sp1(sp.tab)) ? sp1(sp.tab) : 'discussion';
 
-    const [members, fundraises, canManage, canFundraise, messages] = await Promise.all([
+    const [members, fundraises, { standing }, canFundraise, messages, upcoming] = await Promise.all([
         groupMembers(group.id),
         groupFundraises(group.id),
-        canManageGroup(user, group.id),
+        groupStanding(user, group.id),
         canCreateFundraiseIn(user, group.id),
         messageCount('group', group.id),
+        upcomingMeetingCount(group.id, todayLocal()),
     ]);
+    // Admins edit the group; admins and sub-admins manage its members (lib/group-roles.js).
+    const canManage = canManageMembership(standing);
+    const canAdmin = canAdminister(standing);
     const name = localized(group, 'name', locale);
     const base = `/groups/${group.id}`;
 
@@ -57,9 +65,14 @@ export default async function GroupPage({ params, searchParams }) {
             </Link>
             <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
                 <div className="flex items-center gap-3 px-3 pt-3 sm:px-4">
-                    <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-base font-semibold">
-                        {name.trim().charAt(0).toUpperCase()}
-                    </span>
+                    <GroupAvatar
+                        name={name}
+                        kind={group.meta.avatar_kind}
+                        value={group.meta.avatar_value}
+                        color={group.meta.avatar_color}
+                        tint="bg-white/15 text-white"
+                        className="ring-2 ring-white/25"
+                    />
                     <div className="min-w-0 flex-1">
                         <h1 className="truncate text-base font-semibold">{name}</h1>
                         {/* white/70 on navy: 7.34:1 */}
@@ -68,15 +81,17 @@ export default async function GroupPage({ params, searchParams }) {
                             {fundraises.length > 0 && ` · ${t('groups.fundraiseCount', { count: fundraises.length })}`}
                         </p>
                     </div>
-                    {canManage && <GroupFormDialog group={group} onNavy />}
+                    {canAdmin && <GroupFormDialog group={group} onNavy />}
                 </div>
-                <div className="mt-2">
+                <div className="mt-3">
                     <WaTabs
                         active={tab}
                         tabs={[
-                            { key: 'discussion', label: t('groups.tabs.discussion'), href: base, count: messages },
-                            { key: 'fundraise', label: t('groups.tabs.fundraise'), href: `${base}?tab=fundraise`, count: fundraises.length },
-                            { key: 'about', label: t('groups.tabs.about'), href: `${base}?tab=about` },
+                            { key: 'discussion', label: t('groups.tabs.discussion'), href: base, count: messages, icon: MessageCircle },
+                            { key: 'meetings', label: t('groups.tabs.meetings'), href: `${base}?tab=meetings`, count: upcoming, icon: CalendarClock },
+                            { key: 'fundraise', label: t('groups.tabs.fundraise'), href: `${base}?tab=fundraise`, count: fundraises.length, icon: HandCoins },
+                            { key: 'members', label: t('groups.tabs.members'), href: `${base}?tab=members`, count: members.length, icon: Users },
+                            { key: 'about', label: t('groups.tabs.about'), href: `${base}?tab=about`, icon: Info },
                         ]}
                     />
                 </div>
@@ -84,10 +99,12 @@ export default async function GroupPage({ params, searchParams }) {
 
             {tab === 'discussion' && (
                 <>
-                    <NextMeetingBanner scope="group" scopeId={group.id} href={`${base}?tab=about#meetings`} />
+                    <NextMeetingBanner scope="group" scopeId={group.id} href={`${base}?tab=meetings`} />
                     <ChatPanel scope="group" scopeId={group.id} />
                 </>
             )}
+
+            {tab === 'meetings' && <MeetingsSection scope="group" scopeId={group.id} defaultTitle={`${name} — ${t('meetings.word')}`} />}
 
             {tab === 'fundraise' && (
                 <div className="theme-fundraise space-y-3">
@@ -134,17 +151,15 @@ export default async function GroupPage({ params, searchParams }) {
                 </div>
             )}
 
+            {tab === 'members' && (
+                <GroupMembers groupId={group.id} members={members} standing={standing} currentUserId={user.id} creatorId={group.created_by} />
+            )}
+
             {tab === 'about' && (
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-                    <div id="meetings" className="scroll-mt-4 xl:col-span-2">
-                        <MeetingsSection scope="group" scopeId={group.id} defaultTitle={`${name} — ${t('meetings.word')}`} />
-                    </div>
-                    <Card title={t('groups.about')} className="h-fit">
-                        <p className="whitespace-pre-line text-sm text-ink">{group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}</p>
-                        <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
-                    </Card>
-                    <GroupMembers groupId={group.id} members={members} canManage={canManage} currentUserId={user.id} />
-                </div>
+                <Card title={t('groups.about')}>
+                    <p className="whitespace-pre-line text-sm text-ink">{group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}</p>
+                    <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
+                </Card>
             )}
         </div>
     );

@@ -12,7 +12,7 @@ export async function postMessage(prev, fd) {
     const body = String(fd.get('body') ?? '').trim().slice(0, CHAT_MAX_LENGTH);
     if (!body) return { error: 'chat.errors.empty' };
     const access = await chatAccess(user, scope, scopeId);
-    if (!access.allowed) return { error: 'common.forbidden' };
+    if (!access.canPost) return { error: access.allowed ? 'chat.errors.restricted' : 'common.forbidden' };
 
     await withTransaction(async (q) => {
         const r = await q('INSERT INTO chat_messages (scope, scope_id, user_id) VALUES (:scope, :scopeId, :uid)', {
