@@ -128,8 +128,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   there is a group they may start a fundraise in that it is not in yet; icon-only on phones.
 - **Dialogs (FormDialog)**: Cancel + Save **side by side** on phones too (each `flex-1`, own width from sm);
   **no field autofocus** — the dialog itself takes focus (`DialogContent focusPopup`) so no keyboard pops up.
-- **Status dot on pictures** (fundraise header; group header and group list): bottom-right dot with a ring —
-  green active · grey draft/archived · red closed/inactive (`GROUP_STATUS_DOT`, fundraise `STATUS_DOT`).
+- **Status dot on pictures** (fundraise header + list, group header + list): small bottom-right dot with a
+  ring in the background colour — green active · grey draft/archived · red closed/inactive. Maps and sizes in
+  `lib/status-dot.js` (`FUNDRAISE_STATUS_DOT`, `DOT_SIZE` size-2.5, `DOT_SIZE_SM` size-2) + `GROUP_STATUS_DOT`.
 - Group About tab → **Danger zone** card (`GroupDangerCard`): status now, Mark inactive/active, Archive/Restore,
   and "Delete permanently" once archived (app-level only), each with a one-line explanation.
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in

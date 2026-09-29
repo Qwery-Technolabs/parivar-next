@@ -4,6 +4,7 @@ import Link from 'next/link';
 import FilterBar from '@/components/ui/filter-bar';
 import CampaignRowMenu from '@/components/fundraise/campaign-row-menu';
 import GroupAvatar from '@/components/groups/group-avatar';
+import { DOT_SIZE_SM, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
 import PageHeader, { LinkButton, StatCard } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
@@ -179,7 +180,15 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                             <Tr key={c.id}>
                                 <Td>
                                     <div className="flex items-start gap-2.5">
-                                    <GroupAvatar id={c.id} name={c.title} kind={c.avatar?.avatar_kind} value={c.avatar?.avatar_value} color={c.avatar?.avatar_color} size="sm" />
+                                    {/* Status dot, as on the fundraise page: green active, grey draft, red closed. */}
+                                    <span className="relative shrink-0" title={t(`fundraise.${c.status}`)}>
+                                        <GroupAvatar id={c.id} name={c.title} kind={c.avatar?.avatar_kind} value={c.avatar?.avatar_value} color={c.avatar?.avatar_color} size="sm" />
+                                        <span
+                                            role="img"
+                                            aria-label={t(`fundraise.${c.status}`)}
+                                            className={`absolute -right-px -bottom-px ${DOT_SIZE_SM} rounded-full ring-2 ring-white ${FUNDRAISE_STATUS_DOT[c.status] ?? FUNDRAISE_STATUS_DOT.draft}`}
+                                        />
+                                    </span>
                                     <div className="min-w-0">
                                     <Link href={`/fundraise/${c.id}`} className="font-medium text-primary hover:underline">
                                         {localized(c, 'title', locale)}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import GroupAvatar from '@/components/groups/group-avatar';
 import { GROUP_STATUS_DOT } from '@/lib/group-roles';
+import { DOT_SIZE } from '@/lib/status-dot';
 import { useT } from '@/lib/i18n/client';
 
 /**
@@ -44,7 +45,7 @@ export default function GroupChatList({ groups }) {
                                 <span
                                     role="img"
                                     aria-label={t(`groups.status.${g.status ?? 'active'}`)}
-                                    className={`absolute right-0 bottom-0 size-3 rounded-full ring-2 ring-white ${GROUP_STATUS_DOT[g.status] ?? GROUP_STATUS_DOT.active}`}
+                                    className={`absolute right-0.5 bottom-0.5 ${DOT_SIZE} rounded-full ring-2 ring-white ${GROUP_STATUS_DOT[g.status] ?? GROUP_STATUS_DOT.active}`}
                                 />
                             </span>
                             <span className="min-w-0 flex-1">

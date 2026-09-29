@@ -13,6 +13,7 @@ import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
+import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
 import { fundraiseGroupIds, fundraisePermissions } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money, time } from '@/lib/format';
@@ -61,9 +62,6 @@ export async function generateMetadata({ params }) {
     const c = await getCampaign(Number(id));
     return { title: c ? localized(c, 'title', locale) : undefined };
 }
-
-// Status dot on the fundraise picture (header): active green, draft grey, closed red.
-const STATUS_DOT = { active: 'bg-emerald-500', draft: 'bg-gray-400', closed: 'bg-red-600' };
 
 export default async function FundraiseDetailPage({ params, searchParams }) {
     const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -220,7 +218,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                                 <span
                                     role="img"
                                     aria-label={t(`fundraise.${campaign.status}`)}
-                                    className={`absolute -right-0.5 -bottom-0.5 size-3.5 rounded-full ring-2 ring-brand-navy ${STATUS_DOT[campaign.status] ?? STATUS_DOT.draft}`}
+                                    className={`absolute right-0 bottom-0 ${DOT_SIZE} rounded-full ring-2 ring-brand-navy ${FUNDRAISE_STATUS_DOT[campaign.status] ?? FUNDRAISE_STATUS_DOT.draft}`}
                                 />
                             </span>
                             <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>

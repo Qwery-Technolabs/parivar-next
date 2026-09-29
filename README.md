@@ -114,7 +114,9 @@ libraries mostly do not.
    reminders in the background (at most once a minute), so they go out while people use the app. For exact
    timing on quiet days, point a free external scheduler (e.g. cron-job.org, every 5 minutes) at
    `https://<site>/api/cron/reminders?key=<CRON_SECRET>`. On the Pro plan you can set the cron to `*/5 * * * *`.
-5. Nothing is written to disk at runtime: the Samaj favicon / app icons live in `admin_settings`
+5. Region: `vercel.json` pins the functions to `bom1` (Mumbai), next to the database. Vercel's default is
+   Washington (iad1) — ~200 ms per query to Mumbai, several seconds per page. If the database moves, move this too.
+6. Nothing is written to disk at runtime: the Samaj favicon / app icons live in `admin_settings`
    (`app_icon_512/192/32`), so they survive deploys.
 
 Elsewhere (a normal Node server, `npm run build && npm start`) the reminder loop runs inside the process;

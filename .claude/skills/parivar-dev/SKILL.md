@@ -25,6 +25,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Testing on a real phone** (dev at `http://192.168.x.x:3000`): Next 16 blocks dev JS for hosts other than
   localhost unless listed in `allowedDevOrigins` (next.config.mjs has the private LAN ranges). Symptom:
   the page renders but no menu, popup or drawer opens. Keep that list when touching the config.
+- **Vercel region = `bom1` (Mumbai)** in vercel.json — the live DB is Hostinger Mumbai; the default iad1 made
+  every query ~200 ms (pages 2–5 s). Keep functions next to the DB.
 - **Vercel / serverless**: no runtime writes to disk (store generated files in the DB — see app icons);
   no long-lived timers (instrumentation skips the reminder loop when `VERCEL` is set). **Hobby plan = daily
   crons only** (`vercel.json`: `0 3 * * *`; a more frequent schedule fails the deploy). Reminders also run via

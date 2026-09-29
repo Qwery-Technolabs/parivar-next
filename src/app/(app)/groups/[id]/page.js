@@ -8,6 +8,7 @@ import NextMeetingBanner from '@/components/meetings/next-meeting-banner';
 import GroupAvatar from '@/components/groups/group-avatar';
 import GroupFormDialog from '@/components/groups/group-form-dialog';
 import GroupDangerCard from '@/components/groups/group-danger-card';
+import { DOT_SIZE } from '@/lib/status-dot';
 import GroupMembers from '@/components/groups/group-members';
 import { Card, LinkButton } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
@@ -83,7 +84,7 @@ export default async function GroupPage({ params, searchParams }) {
                         <span
                             role="img"
                             aria-label={t(`groups.status.${group.status}`)}
-                            className={`absolute -right-0.5 -bottom-0.5 size-3.5 rounded-full ring-2 ring-brand-navy ${GROUP_STATUS_DOT[group.status] ?? GROUP_STATUS_DOT.active}`}
+                            className={`absolute right-0 bottom-0 ${DOT_SIZE} rounded-full ring-2 ring-brand-navy ${GROUP_STATUS_DOT[group.status] ?? GROUP_STATUS_DOT.active}`}
                         />
                     </span>
                     <div className="min-w-0 flex-1">
