@@ -26,8 +26,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   localhost unless listed in `allowedDevOrigins` (next.config.mjs has the private LAN ranges). Symptom:
   the page renders but no menu, popup or drawer opens. Keep that list when touching the config.
 - **Vercel / serverless**: no runtime writes to disk (store generated files in the DB — see app icons);
-  no long-lived timers (instrumentation skips the reminder loop when `VERCEL` is set; Vercel Cron calls
-  `/api/cron/reminders` with `Authorization: Bearer $CRON_SECRET`); DB pool 3 on Vercel.
+  no long-lived timers (instrumentation skips the reminder loop when `VERCEL` is set). **Hobby plan = daily
+  crons only** (`vercel.json`: `0 3 * * *`; a more frequent schedule fails the deploy). Reminders also run via
+  `kickReminders()` in the (app) layout — `after()` a signed-in page, once a minute per instance; an external
+  scheduler may hit `/api/cron/reminders?key=…`. DB pool 3 on Vercel.
 - **Before-JS (lazy load)**: what a phone user taps first should work before hydration where cheap —
   the mobile drawer is a CSS checkbox (`#nav-drawer`; labels open/close it). Links are plain `<Link>`s.
   Popovers and dialogs need JS; do not add pre-hydration hacks for them.
@@ -93,6 +95,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   New group pickers (fundraise / events / members) list `status = 'active'` only.
 - **App icons** (lib/app-icons.js): Samaj logo PNGs drawn in the browser, stored base64 in
   `admin_settings.app_icon_<size>`; `getSettings` skips `app_icon_%` rows; `logo_version` busts caches.
+  Manifest, favicon and apple-touch icon all use `/api/app-icon`. The built-in `favicon.ico` lives in
+  `public/` (the no-logo fallback) — never `src/app/favicon.ico`, which Next links on every page.
 
 ## i18n
 

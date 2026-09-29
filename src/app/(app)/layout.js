@@ -4,12 +4,14 @@ import { requireUser } from '@/lib/auth';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { unreadCount } from '@/lib/notifications';
+import { kickReminders } from '@/lib/reminders';
 import { getSettings } from '@/lib/settings';
 import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
 import AppShell from '@/components/shell/app-shell';
 
 export default async function AppLayout({ children }) {
     const user = await requireUser();
+    kickReminders(); // Vercel only: due meeting reminders, after this page is sent
     // Added by phone number and still on the temporary password (the number): choose one first.
     if (user.must_change_password) redirect('/set-password');
     const [{ t, locale }, unread, general, jar] = await Promise.all([

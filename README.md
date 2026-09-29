@@ -109,9 +109,11 @@ libraries mostly do not.
    `DB_POOL_SIZE` is optional (defaults to 3 on Vercel, 10 elsewhere).
 3. The MariaDB server must accept connections from outside (Vercel has no fixed IPs on normal plans):
    allow remote access for the DB user, and use a strong password.
-4. Meeting reminders: `vercel.json` schedules `/api/cron/reminders` every 5 minutes; Vercel sends
-   `Authorization: Bearer $CRON_SECRET`. The Hobby plan only runs crons once a day — on Hobby, point an
-   external scheduler (e.g. cron-job.org) at `https://<site>/api/cron/reminders?key=<CRON_SECRET>` instead.
+4. Meeting reminders: `vercel.json` runs `/api/cron/reminders` once a day (03:00 UTC — the Hobby plan's limit;
+   Vercel sends `Authorization: Bearer $CRON_SECRET`). On top of that, every signed-in page view checks for due
+   reminders in the background (at most once a minute), so they go out while people use the app. For exact
+   timing on quiet days, point a free external scheduler (e.g. cron-job.org, every 5 minutes) at
+   `https://<site>/api/cron/reminders?key=<CRON_SECRET>`. On the Pro plan you can set the cron to `*/5 * * * *`.
 5. Nothing is written to disk at runtime: the Samaj favicon / app icons live in `admin_settings`
    (`app_icon_512/192/32`), so they survive deploys.
 

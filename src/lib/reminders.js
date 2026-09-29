@@ -1,5 +1,6 @@
 import 'server-only';
 import { query, withTransaction } from './db';
+import { after } from 'next/server';
 import { notifyMany } from './notifications';
 
 /** A reminder this late (server was down, meeting created at the last minute) is dropped, not sent. */
@@ -59,6 +60,20 @@ export async function processDueReminders() {
         sent++;
     }
     return { sent, skipped };
+}
+
+/**
+ * Serverless (Vercel) has no timer and the Hobby plan's cron runs once a day, so reminders also
+ * ride along on normal traffic: after a signed-in page is sent, check for due ones — at most
+ * once a minute per instance (processDueReminders is safe to run twice). No-op off Vercel,
+ * where the loop below does the job.
+ */
+export function kickReminders() {
+    if (!process.env.VERCEL) return;
+    const now = Date.now();
+    if (globalThis.__pvReminderKick && now - globalThis.__pvReminderKick < 60 * 1000) return;
+    globalThis.__pvReminderKick = now;
+    after(() => processDueReminders().catch((err) => console.error('reminders failed', err.message)));
 }
 
 /** Run processDueReminders every minute inside this Node server process. Idempotent. */

@@ -208,3 +208,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fundraise header: status as a coloured dot on the picture (green active, grey draft, red closed); status badge removed; role hidden on phones and shown in the About tab Team card
 - [x] Group status: active / inactive (read-only discussion) / archived (hidden from members); status dot on group pictures; About → Danger zone with Mark inactive, Archive / Restore, Delete permanently (archived only)
 - [x] Fundraise audience: "Who should see this" (only matching members; team, group admins and managers always) + switch "Also show to everyone else, lower in their list"; existing fundraises with an audience keep the old behaviour (switch on)
+- [x] Built-in favicon moved to public/ (still the no-logo fallback) so pages link only the Samaj logo icons
+- [x] Vercel Hobby: cron daily (0 3 * * *); reminders also checked after signed-in page views (once a minute) on Vercel; README explains an optional external scheduler
