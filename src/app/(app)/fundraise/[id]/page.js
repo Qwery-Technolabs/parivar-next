@@ -240,6 +240,12 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                         <span>
                             {t('fundraise.balance')}: <b className="text-white">{money(collected - spent)}</b>
                         </span>
+                        {/* Phones: the target reached, to two decimals (the Income / Expense boxes are hidden there). */}
+                        {Number(campaign.target_amount) > 0 && (
+                            <span className="sm:hidden">
+                                {t('fundraise.target')}: <b className="text-white">{((collected / Number(campaign.target_amount)) * 100).toFixed(2)}%</b>
+                            </span>
+                        )}
                         {campaign.location && (
                             <span className="inline-flex items-center gap-0.5">
                                 <MapPin className="size-3" /> {campaign.location}

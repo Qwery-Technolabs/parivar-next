@@ -26,6 +26,7 @@ const en = {
         view: 'View',
         back: 'Back',
         close: 'Close',
+        share: 'Share',
         actions: 'Actions',
         more: 'More actions',
         none: '—',

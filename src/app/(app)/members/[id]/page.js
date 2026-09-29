@@ -20,11 +20,12 @@ export async function generateMetadata({ params }) {
     return { title: m ? localized(m, 'full_name', locale) : undefined };
 }
 
+/** Phones: label left, value right on one line (a divided list). From sm up: label above value, two columns. */
 function Detail({ label, children }) {
     return (
-        <div className="min-w-0">
-            <dt className="text-[11px] uppercase tracking-wide text-ink-gray">{label}</dt>
-            <dd className="mt-0.5 break-words text-sm text-ink">{children || <span className="text-ink-gray">—</span>}</dd>
+        <div className="flex min-w-0 items-baseline justify-between gap-3 py-2 sm:block sm:py-0">
+            <dt className="w-2/5 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray sm:w-auto">{label}</dt>
+            <dd className="min-w-0 break-words text-right text-sm text-ink sm:mt-0.5 sm:text-left">{children || <span className="text-ink-gray">—</span>}</dd>
         </div>
     );
 }
@@ -83,7 +84,7 @@ export default async function MemberPage({ params }) {
 
             <div className="grid gap-4 xl:grid-cols-2">
                 <Card title={t('members.details')}>
-                    <dl className="grid gap-4 sm:grid-cols-2">
+                    <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
                         <Detail label={t('members.gender')}>{member.gender && t(`gender.${member.gender}`)}</Detail>
                         <Detail label={t('members.dob')}>
                             {member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}

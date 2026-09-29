@@ -92,7 +92,8 @@ export default async function MembersPage({ searchParams }) {
                             <SelectAll />
                         </Th>
                     )}
-                    <Th>{t('members.fullName')}</Th>
+                    {/* Phones: a wider name column so full names show (the table scrolls sideways). */}
+                    <Th className="min-w-44">{t('members.fullName')}</Th>
                     <Th>{t('members.phone')}</Th>
                     <Th>{t('members.role')}</Th>
                     <Th className="hidden md:table-cell">{t('members.cityVillage')}</Th>
@@ -117,14 +118,15 @@ export default async function MembersPage({ searchParams }) {
                                         <RowCheck id={m.id} label={primary} />
                                     </Td>
                                 )}
-                                <Td className="max-w-64">
+                                <Td className="min-w-44 max-w-64">
                                     <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
                                         {primary}
                                     </Link>
                                     {secondary && secondary !== primary && (
                                         <span className="block text-xs text-ink-gray">{secondary}</span>
                                     )}
-                                    {m.position && <span className="block text-xs font-medium text-brand-navy">{m.position}</span>}
+                                    {/* Occupation: from sm up only — on phones the name alone. */}
+                                    {m.position && <span className="hidden text-xs font-medium text-brand-navy sm:block">{m.position}</span>}
                                     {m.status !== 'active' && (
                                         <Badge status={m.status} className="mt-1">
                                             {t(`status.${m.status}`)}

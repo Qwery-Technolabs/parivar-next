@@ -30,13 +30,16 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
         contributors: t('fundraise.byContributor'),
     };
     const counts = { contributions: campaign.contribution_count, expenses: campaign.expense_count };
+    const ledgerKind = view === 'contributions' ? 'income' : view === 'expenses' ? 'expense' : 'both';
 
     return (
         <div className="space-y-4">
             <FundraiseSummary campaign={campaign} t={t} compact />
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex flex-wrap rounded-md bg-surface-bggray/70 p-0.5">
+            {/* Phones: one row — the view switch (scrolls if the words are long), Share, and a single "+".
+                From sm up: the switch, then both labelled add buttons; the share buttons below. */}
+            <div className="flex items-center gap-2 sm:flex-wrap sm:justify-between sm:gap-3">
+                <div className="inline-flex min-w-0 flex-1 overflow-x-auto rounded-md bg-surface-bggray/70 p-0.5 sm:flex-none sm:flex-wrap">
                     {MONEY_VIEWS.map((k) => (
                         <Link
                             key={k}
@@ -52,21 +55,27 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                         </Link>
                     ))}
                 </div>
-                {(perms.contribution || perms.expense) && (
-                    <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                <div className="flex shrink-0 items-center gap-2">
+                    <span className="contents sm:hidden">
+                        <LedgerExport campaignId={campaign.id} kind={ledgerKind} menu />
+                    </span>
+                    {(perms.contribution || perms.expense) && (
                         <EntryButtons
                             campaignId={campaign.id}
                             today={today}
                             perms={{ contribution: perms.contribution, expense: perms.expense }}
                             allowAnonymous={settings.allow_anonymous}
                             categories={settings.expense_categories}
+                            view={view}
                         />
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
-            {/* Share the list: WhatsApp-ready text or a printable PDF — for every viewer. */}
-            <LedgerExport campaignId={campaign.id} kind={view === 'contributions' ? 'income' : view === 'expenses' ? 'expense' : 'both'} />
+            {/* Share the list: WhatsApp-ready text or a printable PDF — for every viewer (phones: the Share menu above). */}
+            <div className="hidden sm:block">
+                <LedgerExport campaignId={campaign.id} kind={ledgerKind} />
+            </div>
 
             {!perms.contribution && !perms.expense && <p className="text-xs text-ink-gray">{t('fundraise.viewOnly')}</p>}
 

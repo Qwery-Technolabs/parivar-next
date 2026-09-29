@@ -23,7 +23,8 @@ export default function FundraiseSummary({ campaign, t, compact = false }) {
     ];
     return (
         <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {/* Phones: hidden — the navy header already shows collected / spent / balance and target %. */}
+            <div className="hidden grid-cols-2 gap-3 sm:grid lg:grid-cols-4">
                 {cells.map((c) => (
                     <div
                         key={c.label}
@@ -43,7 +44,7 @@ export default function FundraiseSummary({ campaign, t, compact = false }) {
                 </p>
             )}
             {pct != null && (
-                <div>
+                <div className="hidden sm:block">
                     {/* Orange is a state colour: a filled track, with the label in ink-gray beside it. */}
                     <div
                         className="h-2 overflow-hidden rounded-full bg-surface-bggray"

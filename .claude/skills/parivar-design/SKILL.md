@@ -46,6 +46,8 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
   inside a group, fundraise, chat or any detail page.
 - Content gutters `px-2 sm:px-3 lg:px-4 py-3`, full width. Pages never add negative margins;
   navy header cards sit *inside* the gutters (`mb-3 overflow-hidden rounded-lg bg-brand-navy`).
+- Browser / app **theme colour** = the Samaj logo's background colour (`lib/theme-color.js`, used by the root
+  `generateViewport` and the manifest); default logo orange when none is set.
 - Samaj logo = `SamajLogo` (rounded square, settings-driven), used in sidebar, sign-in, public header.
   Brand name = Samaj name from settings (local spelling on Gujarati pages), else `app.name`.
 
@@ -68,6 +70,8 @@ Only `KebabMenu` from `components/ui/popover.jsx` — white background, `border-
 place* with a "‹ Back" row — never a side flyout (the portalled panel scrolls and would clip it).
 
 ## Tables and toolbars
+- Phone tables: the name column gets `min-w-44` so full names show (tables scroll sideways); secondary
+  lines under a name (occupation etc.) are `hidden sm:block` — on phones the name alone.
 
 - Every list uses the shared toolbar: `FilterBar` (data-configured) or `ToolbarRow` + `SearchBox` +
   `FilterPopover`. **Left**: count / heading / month nav; **right**: search + Filters button.
@@ -106,6 +110,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   Meetings · About. Phones: labels `text-[10px]` without tracking, icons `size-4` (from `sm`: 11px tracked, 18px).
 - Fundraise navy header: row 1 = picture + title (left) · PDF + Edit pinned top-right; row 2 = status /
   archived badges (left) · my team role (right; phones show only the role value, "Your role:" from `sm`).
+- Fundraise Income / Expense tab on phones: no summary boxes / progress bar (the navy header shows the
+  totals + target % to 2 decimals); ONE toolbar row = view switch · Share menu (copy list / copy all / PDF) ·
+  one round primary "+" that adds what the current view lists (expense on Expenses, else contribution).
+  Prefer this pattern (one contextual "+", secondary actions in one menu) over rows of buttons on phones.
+- Detail lists (label + value, e.g. /members/[id]): phones = label left (40%), value right-aligned on one
+  line, rows divided; from sm = label above value in two columns.
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
   `<span className="hidden sm:inline">`), icon + text from `sm`: Edit group / Edit fundraise on the navy
   header, meetings' Schedule / Edit / Cancel. Apply the same to new row/card action buttons.

@@ -1,5 +1,6 @@
 import { connection } from 'next/server';
 import { getSettings } from '@/lib/settings';
+import { themeColor } from '@/lib/theme-color';
 
 // Web app manifest: the Samaj name and its logo as the home-screen app icon.
 export default async function manifest() {
@@ -19,7 +20,7 @@ export default async function manifest() {
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#172f56',
+        theme_color: await themeColor(), // the Samaj logo's background, like the browser bar
         icons: [
             { src: `/api/app-icon?size=192${v}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: `/api/app-icon?size=512${v}`, sizes: '512x512', type: 'image/png', purpose: 'any' },

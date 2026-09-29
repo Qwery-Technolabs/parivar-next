@@ -195,3 +195,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Header back on group / fundraise pages leaves the page directly; tab switches replace history instead of stacking
 - [x] Meetings tab on phones: Schedule / Edit / Cancel buttons icon-only
 - [x] Fundraise header: PDF + Edit top-right of the card; status left and my role right on the next row (phones: role value only)
+- [x] Browser theme colour follows the Samaj logo's background colour (viewport + web manifest)
+- [x] Income / Expense tab on phones: summary boxes gone (header shows totals + target % to 2 decimals); one row = view switch, Share menu, single contextual "+"
+- [x] Member detail page on phones: label and value side by side (divided rows)
+- [x] Members list on phones: occupation hidden under the name; wider name column so full names show

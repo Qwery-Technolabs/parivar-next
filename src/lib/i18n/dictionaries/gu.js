@@ -27,6 +27,7 @@ const gu = {
         view: 'જુઓ',
         back: 'પાછા',
         close: 'બંધ કરો',
+        share: 'શેર કરો',
         actions: 'ક્રિયાઓ',
         more: 'વધુ વિકલ્પો',
         none: '—',

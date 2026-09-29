@@ -3,6 +3,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { I18nProvider } from '@/lib/i18n/client';
 import { getDictionary, getLocalLanguage, getLocale } from '@/lib/i18n/server';
 import { getSettings } from '@/lib/settings';
+import { themeColor } from '@/lib/theme-color';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -48,7 +49,10 @@ export async function generateMetadata() {
     };
 }
 
-export const viewport = { themeColor: '#172f56', width: 'device-width', initialScale: 1 };
+// Theme colour (browser bar on phones, installed app's title bar) = the Samaj logo's background.
+export async function generateViewport() {
+    return { themeColor: await themeColor(), width: 'device-width', initialScale: 1 };
+}
 
 export default async function RootLayout({ children }) {
     const [locale, localLang] = await Promise.all([getLocale(), getLocalLanguage()]);
