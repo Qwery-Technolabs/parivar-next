@@ -1,16 +1,11 @@
 import 'server-only';
-import { DEFAULT_LOGO } from '@/components/shell/samaj-logo';
-import { cleanAvatarColor } from './group-avatar';
-import { getSettings } from './settings';
 
 /**
- * The browser / installed-app theme colour: the Samaj logo's background (Settings → General),
- * else the default logo's orange. Used by the root viewport and the web manifest.
+ * The browser / installed-app theme colour: the brand navy, matching the app header.
+ * Used by the root viewport and the web manifest.
  */
+export const THEME_COLOR = '#172f56';
+
 export async function themeColor() {
-    try {
-        return cleanAvatarColor((await getSettings('admin')).logo_color) || DEFAULT_LOGO.color;
-    } catch {
-        return DEFAULT_LOGO.color; // no database (build time)
-    }
+    return THEME_COLOR;
 }

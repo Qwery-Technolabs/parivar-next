@@ -210,3 +210,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fundraise audience: "Who should see this" (only matching members; team, group admins and managers always) + switch "Also show to everyone else, lower in their list"; existing fundraises with an audience keep the old behaviour (switch on)
 - [x] Built-in favicon moved to public/ (still the no-logo fallback) so pages link only the Samaj logo icons
 - [x] Vercel Hobby: cron daily (0 3 * * *); reminders also checked after signed-in page views (once a minute) on Vercel; README explains an optional external scheduler
+- [x] Theme colour back to brand navy (#172f56) — not the logo colour

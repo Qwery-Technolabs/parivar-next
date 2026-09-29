@@ -20,7 +20,7 @@ export default async function manifest() {
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: await themeColor(), // the Samaj logo's background, like the browser bar
+        theme_color: await themeColor(), // brand navy, like the browser bar
         icons: [
             { src: `/api/app-icon?size=192${v}`, sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: `/api/app-icon?size=512${v}`, sizes: '512x512', type: 'image/png', purpose: 'any' },

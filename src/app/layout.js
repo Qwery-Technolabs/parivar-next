@@ -49,7 +49,7 @@ export async function generateMetadata() {
     };
 }
 
-// Theme colour (browser bar on phones, installed app's title bar) = the Samaj logo's background.
+// Theme colour (browser bar on phones, installed app's title bar) = brand navy, like the header.
 export async function generateViewport() {
     return { themeColor: await themeColor(), width: 'device-width', initialScale: 1 };
 }

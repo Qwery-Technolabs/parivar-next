@@ -50,8 +50,8 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
   inside a group, fundraise, chat or any detail page.
 - Content gutters `px-2 sm:px-3 lg:px-4 py-3`, full width. Pages never add negative margins;
   navy header cards sit *inside* the gutters (`mb-3 overflow-hidden rounded-lg bg-brand-navy`).
-- Browser / app **theme colour** = the Samaj logo's background colour (`lib/theme-color.js`, used by the root
-  `generateViewport` and the manifest); default logo orange when none is set.
+- Browser / app **theme colour** = brand navy `#172f56` (`lib/theme-color.js`, used by the root
+  `generateViewport` and the manifest) — matches the navy header. Not the logo colour (user's call).
 - Samaj logo = `SamajLogo` (rounded square, settings-driven), used in sidebar, sign-in, public header.
   Brand name = Samaj name from settings (local spelling on Gujarati pages), else `app.name`.
 
