@@ -21,6 +21,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { logout } from '@/app/actions/session';
 import { Popover } from '@/components/ui/popover';
+import { BACK_SLOT_ID } from './header-back';
 import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
 
 // Icons are mapped here rather than passed from the server layout: a component
@@ -188,6 +189,8 @@ export default function AppShell({ sections, footer, user, labels, unread = 0, i
                     >
                         <Menu className="size-5" />
                     </button>
+                    {/* Page "back" links portal in here (HeaderBack): right of the collapse arrow on desktop. */}
+                    <div id={BACK_SLOT_ID} className="flex min-w-0 items-center empty:hidden lg:-ml-1" />
                     <span className="min-w-0 truncate text-base font-semibold lg:hidden">{labels.app}</span>
                     <div className="ml-auto flex items-center gap-2">
                         <Link

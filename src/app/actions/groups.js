@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { canAdministerGroup, groupStanding } from '@/lib/access';
+import { canEditGroupDetails, groupStanding } from '@/lib/access';
 import { canActOnRole, GROUP_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
@@ -29,8 +29,8 @@ const FORBIDDEN = { error: 'common.forbidden' };
 export async function saveGroup(prev, fd) {
     const actor = await getCurrentUser();
     const groupId = id(fd, 'id');
-    // Creating needs the app-level role; editing is open to that group's own admins too (not sub-admins).
-    const allowed = groupId ? await canAdministerGroup(actor, groupId) : actor && canManageGroups(actor.role);
+    // Creating needs the app-level role; editing is open to that group's own admins and sub-admins too.
+    const allowed = groupId ? await canEditGroupDetails(actor, groupId) : actor && canManageGroups(actor.role);
     if (!allowed) return FORBIDDEN;
 
     const name = str(fd, 'name', 150);

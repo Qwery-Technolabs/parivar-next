@@ -16,6 +16,10 @@ import { useId, useRef, useState } from 'react';
  * Keyboard: ↑/↓ move, Enter picks, Backspace on an empty query removes the last chip,
  * Escape closes.
  *
+ * Safe inside a <label> (e.g. <Field>): every click here calls preventDefault, which cancels
+ * the label's habit of re-clicking its first button — after a pick that button is the new
+ * chip's ×, which would remove the value the same click just added.
+ *
  * @param {{
  *   options: Array<{ value: string, label: string, count?: number }>,
  *   value: string[],
@@ -100,7 +104,8 @@ export default function TagSelect({
         <div className="relative min-w-0">
             {name && value.map((v) => <input key={v} type="hidden" name={name} value={v} />)}
             <div
-                onClick={() => {
+                onClick={(e) => {
+                    e.preventDefault();
                     setOpen(true);
                     inputRef.current?.focus();
                 }}
@@ -117,6 +122,7 @@ export default function TagSelect({
                             <button
                                 type="button"
                                 onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
                                     remove(v);
                                 }}
@@ -152,7 +158,16 @@ export default function TagSelect({
             </div>
             {open && (
                 <>
-                    <button type="button" aria-hidden tabIndex={-1} onClick={() => setOpen(false)} className="fixed inset-0 z-10 cursor-default" />
+                    <button
+                        type="button"
+                        aria-hidden
+                        tabIndex={-1}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            setOpen(false);
+                        }}
+                        className="fixed inset-0 z-10 cursor-default"
+                    />
                     <ul
                         id={listId}
                         role="listbox"
@@ -167,7 +182,10 @@ export default function TagSelect({
                                 aria-selected={false}
                                 onMouseEnter={() => setActive(i)}
                                 onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => add(o.value)}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    add(o.value);
+                                }}
                                 className={`flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5 text-sm ${
                                     i === active ? 'bg-accent' : ''
                                 }`}

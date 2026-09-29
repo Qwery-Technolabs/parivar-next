@@ -1,7 +1,8 @@
-import { ArrowLeft, CalendarClock, CalendarDays, Globe, HandCoins, Info, Lock, MessageCircle, Plus, Users } from 'lucide-react';
+import { CalendarClock, CalendarDays, Globe, HandCoins, Info, Lock, MessageCircle, Plus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
+import HeaderBack from '@/components/shell/header-back';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import NextMeetingBanner from '@/components/meetings/next-meeting-banner';
 import GroupAvatar from '@/components/groups/group-avatar';
@@ -11,7 +12,7 @@ import { Card, LinkButton } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import WaTabs from '@/components/ui/wa-tabs';
 import { canCreateFundraiseIn, groupStanding } from '@/lib/access';
-import { canAdminister, canManageMembership } from '@/lib/group-roles';
+import { canEditDetails, canManageMembership } from '@/lib/group-roles';
 import { requireUser } from '@/lib/auth';
 import { messageCount } from '@/lib/chat';
 import { todayLocal } from '@/lib/forms';
@@ -55,17 +56,15 @@ export default async function GroupPage({ params, searchParams }) {
     // A private group does not exist for outsiders.
     const isPrivate = group.meta.visibility === 'private';
     if (isPrivate && !standing && !myRole) notFound();
-    // Admins edit the group; admins and sub-admins manage its members (lib/group-roles.js).
+    // Admins and sub-admins edit the group and manage its members (lib/group-roles.js).
     const canManage = canManageMembership(standing);
-    const canAdmin = canAdminister(standing);
+    const canEditGroup = canEditDetails(standing);
     const name = localized(group, 'name', locale);
     const base = `/groups/${group.id}`;
 
     return (
         <div>
-            <Link href="/groups" className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary">
-                <ArrowLeft className="size-3.5" /> {t('groups.title')}
-            </Link>
+            <HeaderBack href="/groups" label={t('groups.title')} />
             <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
                 <div className="flex items-center gap-3 px-3 pt-3 sm:px-4">
                     <GroupAvatar
@@ -90,7 +89,7 @@ export default async function GroupPage({ params, searchParams }) {
                             {fundraises.length > 0 && ` · ${t('groups.fundraiseCount', { count: fundraises.length })}`}
                         </p>
                     </div>
-                    {canAdmin && <GroupFormDialog group={group} onNavy />}
+                    {canEditGroup && <GroupFormDialog group={group} onNavy />}
                 </div>
                 <div className="mt-3">
                     <WaTabs

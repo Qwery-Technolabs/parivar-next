@@ -344,6 +344,8 @@ const en = {
         errors: { units: 'Enter 1 to 20 units.', date: 'Enter a valid date.' },
     },
     fundraise: {
+        standalone: 'Standalone fundraise (no group)',
+        noHomeGroup: 'No group — standalone',
         sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing' },
         homeGroup: 'Home group',
         alsoInGroups: 'Also show in these groups',
@@ -601,6 +603,13 @@ const en = {
         entities: { caste: 'Caste', settings: 'Settings', user: 'Member', group: 'Group', fundraise: 'Fundraise', blood: 'Blood', event: 'Event' },
     },
     notifications: {
+        delete: 'Delete notification',
+        deleteRead: 'Delete read notifications',
+        deleteAll: 'Delete all notifications',
+        deleteReadConfirm: 'Delete all notifications you have already read?',
+        deleteAllConfirm: 'Delete all your notifications? This cannot be undone.',
+        deletedRead: 'Read notifications deleted.',
+        deletedAll: 'All notifications deleted.',
         title: 'Notifications',
         empty: 'No notifications yet.',
         markAllRead: 'Mark all as read',

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import HeaderBack from './header-back';
 import { cn } from '@/lib/utils';
 
 /**
@@ -11,11 +11,8 @@ export default function PageHeader({ title, subtitle, back, actions, menu }) {
     return (
         <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-                {back && (
-                    <Link href={back.href} className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary">
-                        <ArrowLeft className="size-3.5" /> {back.label}
-                    </Link>
-                )}
+                {/* Drawn in the top header, not here — saves a line on every page. */}
+                {back && <HeaderBack href={back.href} label={back.label} />}
                 <h1 className="text-lg font-semibold text-primary break-words">{title}</h1>
                 {subtitle && <p className="mt-0.5 text-xs text-ink-gray">{subtitle}</p>}
             </div>

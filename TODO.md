@@ -119,5 +119,13 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Add relation (સંબંધ ઉમેરો): existing member or by phone number (invited; sub-admin+ or your own family)
 - [x] Group edit popup: Visibility 25% / Who can send messages 75%; new groups default to Admin + Sub-admin posting
 - [x] /fundraise/new & edit: compact two-column layout (Details | Groups, Sharing, Who sees it first), tinted card headers, pinned Save bar; single description (no local copy)
-- [x] No <datalist> anywhere: village, city, place and audience values use a pick-or-type tag field
+- [x] No <datalist> anywhere: village, city, place and audience values use a single-value pick-or-type dropdown (type to filter, click to fill; new values allowed)
 - [x] Page title actions in a kebab at the right of the title row (Members: Add, Invite, Castes; profile: Edit, Family tree; Mark all read). Single "create" actions (New event, New group, Post request) stay buttons
+- [x] Kebab (⋮) everywhere: white background, slightly dark border, same grey icon
+- [x] Fix: picking a village / city suggestion inside a form label was undone by the label re-clicking the new chip's ×
+- [x] Group sub-admins can edit group details (name, picture, visibility, who can post); still cannot act on admins
+- [x] Standalone fundraise (no group): "New fundraise" button on /fundraise for fundraise managers; group_id nullable on live
+- [x] Group sub-admins can start fundraises in their groups (and see its drafts)
+- [x] Meeting row: Edit and Cancel side by side, Cancel in red
+- [x] Back link moved into the top header (right of the collapse arrow); on phones it goes back in history
+- [x] Notifications: delete one (trash per row), delete read, delete all (with confirm)

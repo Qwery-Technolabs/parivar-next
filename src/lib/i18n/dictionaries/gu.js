@@ -345,6 +345,8 @@ const gu = {
         errors: { units: '1 થી 20 યુનિટ દાખલ કરો.', date: 'માન્ય તારીખ દાખલ કરો.' },
     },
     fundraise: {
+        standalone: 'સ્વતંત્ર ફંડ ફાળો (જૂથ વગર)',
+        noHomeGroup: 'કોઈ જૂથ નહીં — સ્વતંત્ર',
         sections: { details: 'વિગતો', groups: 'જૂથો', sharing: 'શેર' },
         homeGroup: 'મુખ્ય જૂથ',
         alsoInGroups: 'આ જૂથોમાં પણ બતાવો',
@@ -602,6 +604,13 @@ const gu = {
         entities: { caste: 'જ્ઞાતિ', settings: 'સેટિંગ્સ', user: 'સભ્ય', group: 'જૂથ', fundraise: 'ફંડ ફાળો', blood: 'રક્ત', event: 'કાર્યક્રમ' },
     },
     notifications: {
+        delete: 'સૂચના કાઢો',
+        deleteRead: 'વાંચેલી સૂચનાઓ કાઢો',
+        deleteAll: 'બધી સૂચનાઓ કાઢો',
+        deleteReadConfirm: 'વાંચી લીધેલી બધી સૂચનાઓ કાઢી નાખવી?',
+        deleteAllConfirm: 'તમારી બધી સૂચનાઓ કાઢી નાખવી? આ પાછું નહીં આવે.',
+        deletedRead: 'વાંચેલી સૂચનાઓ કાઢી.',
+        deletedAll: 'બધી સૂચનાઓ કાઢી.',
         title: 'સૂચનાઓ',
         empty: 'હજુ કોઈ સૂચના નથી.',
         markAllRead: 'બધી વાંચેલી ગણો',

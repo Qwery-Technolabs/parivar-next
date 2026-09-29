@@ -1,8 +1,9 @@
 // Pure module — client and server. Roles inside one group (admin_group_members.member_role),
 // strongest first:
 //   admin      runs the group: details, discussion setting, every member and role
-//   sub_admin  helps run it: adds / removes plain members and speakers, sets those two roles,
-//              schedules meetings — but never touches an admin or another sub-admin
+//   sub_admin  helps run it: edits the group details, adds / removes plain members and
+//              speakers, sets those two roles, schedules meetings — but never touches an
+//              admin or another sub-admin
 //   speaker    a member whose role exists to be allowed to post when members may not
 //   member     reads everything; posts if the group lets members post
 // Who may post is chosen per group (admin_groupsmeta.chat_roles); admins always may.
@@ -43,7 +44,12 @@ export function canManageMembership(standing) {
     return standing === 'app' || standing === 'admin' || standing === 'sub_admin';
 }
 
-/** Group details and the discussion setting: admins only. */
+/** Edit the group's details (name, picture, visibility, who can post, description): admins and sub-admins. */
+export function canEditDetails(standing) {
+    return standing === 'app' || standing === 'admin' || standing === 'sub_admin';
+}
+
+/** Full say over the group's people: admins (and app-level managers) only. */
 export function canAdminister(standing) {
     return standing === 'app' || standing === 'admin';
 }

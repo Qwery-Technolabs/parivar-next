@@ -73,12 +73,13 @@ function MeetingCard({ m, scope, scopeId, manage, people, me, past, today, minut
                     )}
                 </div>
                 {manage && !past && (
-                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <div className="flex shrink-0 items-center gap-1.5">
+                        {/* Edit and Cancel side by side; Cancel is the red one. */}
                         <MeetingDialog scope={scope} scopeId={scopeId} people={people} meeting={m} today={today} />
                         <button
                             type="button"
                             onClick={() => window.confirm(t('meetings.cancelConfirm')) && run(() => cancelMeeting(scope, scopeId, m.id), 'meetings.cancelled')}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-medium text-white hover:bg-destructive/90"
                         >
                             <Trash2 className="size-3.5" /> {t('meetings.cancel')}
                         </button>

@@ -1,6 +1,6 @@
-import { Bell, CalendarDays, CheckCheck, Droplet, HandCoins, ShieldCheck, Users } from 'lucide-react';
+import { Bell, CalendarDays, CheckCheck, Droplet, HandCoins, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { cookies } from 'next/headers';
-import { markAllRead, openNotification } from '@/app/actions/notifications';
+import { deleteAllNotifications, deleteNotification, deleteReadNotifications, markAllRead, openNotification } from '@/app/actions/notifications';
 import PageHeader from '@/components/shell/page-header';
 import PageMenu from '@/components/shell/page-menu';
 import Pagination from '@/components/ui/pagination';
@@ -37,8 +37,27 @@ export default async function NotificationsPage({ searchParams }) {
                 title={t('notifications.title')}
                 subtitle={unread ? t('notifications.unread', { count: unread }) : undefined}
                 menu={
-                    unread > 0 && (
-                        <PageMenu items={[{ key: 'read', label: t('notifications.markAllRead'), icon: <CheckCheck />, action: markAllRead }]} />
+                    total > 0 && (
+                        <PageMenu
+                            items={[
+                                unread > 0 && { key: 'read', label: t('notifications.markAllRead'), icon: <CheckCheck />, action: markAllRead },
+                                total > unread && {
+                                    key: 'delete-read',
+                                    label: t('notifications.deleteRead'),
+                                    icon: <Trash2 />,
+                                    action: deleteReadNotifications,
+                                    confirm: t('notifications.deleteReadConfirm'),
+                                },
+                                {
+                                    key: 'delete-all',
+                                    label: t('notifications.deleteAll'),
+                                    icon: <Trash2 />,
+                                    action: deleteAllNotifications,
+                                    confirm: t('notifications.deleteAllConfirm'),
+                                    danger: true,
+                                },
+                            ]}
+                        />
                     )
                 }
             />
@@ -53,8 +72,8 @@ export default async function NotificationsPage({ searchParams }) {
                         const [Icon, tone] = ICONS[n.type.split('.')[0]] ?? [Users, 'text-ink-gray bg-muted'];
                         const actor = (locale === 'gu' && n.actor_name_local) || n.actor_name;
                         return (
-                            <li key={n.id} className="border-b border-surface-border last:border-0">
-                                <form action={openNotification}>
+                            <li key={n.id} className="group flex items-stretch border-b border-surface-border last:border-0">
+                                <form action={openNotification} className="min-w-0 flex-1">
                                     <input type="hidden" name="id" value={n.id} />
                                     <button
                                         type="submit"
@@ -77,6 +96,18 @@ export default async function NotificationsPage({ searchParams }) {
                                         {!n.read_at && (
                                             <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-brand-orange" />
                                         )}
+                                    </button>
+                                </form>
+                                {/* Delete just this one. */}
+                                <form action={deleteNotification} className="flex items-center pr-2">
+                                    <input type="hidden" name="id" value={n.id} />
+                                    <button
+                                        type="submit"
+                                        aria-label={t('notifications.delete')}
+                                        title={t('notifications.delete')}
+                                        className="flex size-8 items-center justify-center rounded-md text-ink-gray hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <Trash2 className="size-4" />
                                     </button>
                                 </form>
                             </li>

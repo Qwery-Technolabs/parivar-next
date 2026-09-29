@@ -1,8 +1,8 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Plus } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import FilterBar from '@/components/ui/filter-bar';
-import PageHeader, { StatCard } from '@/components/shell/page-header';
+import PageHeader, { LinkButton, StatCard } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
@@ -17,6 +17,7 @@ import {
     progressPct,
 } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
+import { canManageAllFundraises } from '@/lib/roles';
 import { getT } from '@/lib/i18n/server';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref, sp1 } from '@/lib/url';
@@ -57,8 +58,18 @@ export default async function FundraiseListPage({ searchParams }) {
 
     return (
         <div className="theme-fundraise">
-            {/* No "New fundraise" here: a fundraise is started from its group's page. */}
-            <PageHeader title={t('fundraise.title')} subtitle={t('fundraise.subtitle')} />
+            {/* Fundraise managers start a standalone fundraise here; group fundraises start from their group. */}
+            <PageHeader
+                title={t('fundraise.title')}
+                subtitle={t('fundraise.subtitle')}
+                actions={
+                    canManageAllFundraises(user.role) && (
+                        <LinkButton href="/fundraise/new" icon={Plus}>
+                            {t('fundraise.add')}
+                        </LinkButton>
+                    )
+                }
+            />
 
             {/* View, status and group sit in the Filters panel; status and group only mean
                 something on the all-fundraises view, so they show (and apply) only there. */}

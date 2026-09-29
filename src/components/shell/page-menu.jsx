@@ -10,7 +10,8 @@ import { useT } from '@/lib/i18n/client';
  *   <PageHeader menu={<PageMenu items={[...]}>{dialogs}</PageMenu>} />
  * Items (plain data, so server pages can pass them):
  *   { key, label, icon: <Icon/>, href }        → a link
- *   { key, label, icon: <Icon/>, action }      → a server action run in place (e.g. mark all read)
+ *   { key, label, icon: <Icon/>, action }      → a server action run in place (e.g. mark all read);
+ *                                                add confirm: '…' to ask first, danger: true for red
  *   { key, label, icon: <Icon/> }              → opens the dialog registered under `key`
  * Dialogs stay mounted as `children`, outside the menu — a menu unmounts when it closes, which
  * would take an open dialog with it. A dialog registers its open() with <MenuOpener> (pass
@@ -46,12 +47,14 @@ export default function PageMenu({ items, children, label }) {
                                 key={item.key}
                                 icon={item.icon}
                                 href={item.href}
+                                danger={item.danger}
                                 disabled={pending}
                                 onClick={
                                     item.href
                                         ? undefined
                                         : () => {
                                               close();
+                                              if (item.confirm && !window.confirm(item.confirm)) return;
                                               if (item.action) {
                                                   startTransition(async () => {
                                                       const res = await item.action();

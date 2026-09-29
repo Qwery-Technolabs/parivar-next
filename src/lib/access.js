@@ -1,6 +1,6 @@
 import 'server-only';
 import { query, queryOne } from './db';
-import { canAdminister, canManageMembership, standingFrom } from './group-roles';
+import { canEditDetails, canManageMembership, standingFrom } from './group-roles';
 import { canManageAllFundraises, canManageGroups } from './roles';
 
 /** Is the user an admin of this specific group (admin_group_members.member_role)? */
@@ -11,6 +11,15 @@ export async function isGroupAdmin(userId, groupId) {
         { groupId, userId },
     );
     return Boolean(row);
+}
+
+/** Group ids where this user may start fundraises: its admins and sub-admins. */
+export async function fundraiseGroupIds(userId) {
+    const rows = await query(
+        `SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role IN ('admin', 'sub_admin')`,
+        { userId },
+    );
+    return rows.map((r) => r.group_id);
 }
 
 /** Group ids this user administers. */
@@ -45,9 +54,9 @@ export async function canManageGroup(user, groupId) {
     return canManageMembership((await groupStanding(user, groupId)).standing);
 }
 
-/** Edit a group's details and discussion setting: app-level group managers and its admins. */
-export async function canAdministerGroup(user, groupId) {
-    return canAdminister((await groupStanding(user, groupId)).standing);
+/** Edit a group's details and discussion setting: app-level group managers, its admins and sub-admins. */
+export async function canEditGroupDetails(user, groupId) {
+    return canEditDetails((await groupStanding(user, groupId)).standing);
 }
 
 // admin manages the fundraise (the creator starts as admin); the rest are informational.
@@ -126,8 +135,13 @@ export async function isInFundraiseGroup(userId, campaignId) {
     return Boolean(row);
 }
 
-/** May the user START a fundraise under this group (null group = only app-level managers)? */
+/**
+ * May the user START a fundraise under this group — its admins and sub-admins (null group =
+ * a standalone fundraise: only app-level fundraise managers)?
+ */
 export async function canCreateFundraiseIn(user, groupId) {
     if (canManageAllFundraises(user.role)) return true;
-    return groupId ? isGroupAdmin(user.id, groupId) : false;
+    if (!groupId) return false;
+    const role = await groupRoleOf(user.id, groupId);
+    return role === 'admin' || role === 'sub_admin';
 }

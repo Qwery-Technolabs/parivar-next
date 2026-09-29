@@ -1,5 +1,6 @@
-import { ArrowLeft, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet } from 'lucide-react';
+import { CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet } from 'lucide-react';
 import { cookies } from 'next/headers';
+import HeaderBack from '@/components/shell/header-back';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
@@ -145,15 +146,10 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             {/* Header strip: title, group, one-line totals; then three equal tabs. */}
             <div className="bg-brand-navy text-white">
                 <div className="px-3 pt-3 sm:px-5">
-                    <Link
-                        href={`/groups/${campaign.group_id}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-white/80 hover:text-white"
-                    >
-                        <ArrowLeft className="size-3.5" /> {groupName}
-                    </Link>
-                    {/* Also shown in other groups: one chip each (the back link is the home group). */}
-                    {(campaign.groups ?? []).length > 1 && (
-                        <span className="ml-2 inline-flex flex-wrap gap-1 align-middle">
+                    <HeaderBack href={campaign.group_id ? `/groups/${campaign.group_id}` : '/fundraise'} label={campaign.group_id ? groupName : t('fundraise.title')} />
+                    {/* Also shown in other groups: one chip each (the header's back link is the home group). */}
+                    {(campaign.groups ?? []).some((g) => g.id !== campaign.group_id) && (
+                        <span className="mb-1 flex flex-wrap gap-1">
                             {campaign.groups
                                 .filter((g) => g.id !== campaign.group_id)
                                 .map((g) => (
@@ -167,7 +163,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                                 ))}
                         </span>
                     )}
-                    <div className="mt-1 flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
                         <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>
                         <div className="flex flex-wrap items-center gap-2">
                             <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>

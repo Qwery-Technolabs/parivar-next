@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS blood_settings (
 
 CREATE TABLE IF NOT EXISTS fundraise_campaigns (
     id             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-    group_id       INT UNSIGNED  NOT NULL,          -- a fundraise always belongs to a group
+    group_id       INT UNSIGNED  NULL,              -- home group; NULL = a standalone fundraise (Fundraise page)
     title          VARCHAR(200)  NOT NULL,
     title_local       VARCHAR(200)  NULL,
     location       VARCHAR(100)  NULL,               -- village/town; drives the "near me" feed

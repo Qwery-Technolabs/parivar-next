@@ -96,7 +96,8 @@ async function writeAudience(q, campaignId, rows) {
  * cannot manage are kept as they are. Returns an error key when an extra is not allowed.
  */
 async function planCampaignGroups(user, campaignId, homeId, extraIds) {
-    const wanted = new Set([homeId, ...extraIds]);
+    // A standalone fundraise (no home group) may still be shown in groups.
+    const wanted = new Set([homeId, ...extraIds].filter(Boolean));
     const existing = campaignId
         ? new Set((await query('SELECT group_id FROM fundraise_groups WHERE campaign_id = :campaignId', { campaignId })).map((r) => r.group_id))
         : new Set();
@@ -144,14 +145,15 @@ export async function saveCampaign(prev, fd) {
     if (rawStart && !start) fieldErrors.start_date = 'fundraise.errors.date';
     if (rawEnd && !end) fieldErrors.end_date = 'fundraise.errors.date';
     if (start && end && end < start) fieldErrors.end_date = 'fundraise.errors.dates';
-    // Every fundraise belongs to a group (group_id is NOT NULL).
-    if (!groupId) fieldErrors.group_id = 'fundraise.errors.group';
+    // No group = a standalone fundraise; only fundraise managers may start or keep one (checked below).
     const audience = await parseAudience(fd);
     if (!audience) fieldErrors.audience = 'fundraise.errors.audience';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
-    const g = await queryOne('SELECT id FROM admin_groups WHERE id = :groupId', { groupId });
-    if (!g) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
+    if (groupId && !(await queryOne('SELECT id FROM admin_groups WHERE id = :groupId', { groupId }))) {
+        return { fieldErrors: { group_id: 'fundraise.errors.group' } };
+    }
+    if (!groupId && !canManageAllFundraises(user.role)) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
 
     const row = {
         groupId,

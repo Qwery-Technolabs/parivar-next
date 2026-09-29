@@ -1,6 +1,6 @@
 import 'server-only';
 import { getMeta, getMetaMany, inList, query, queryOne } from './db';
-import { adminGroupIds } from './access';
+import { fundraiseGroupIds } from './access';
 import { canManageAllFundraises } from './roles';
 
 export const CAMPAIGN_STATUSES = ['active', 'draft', 'closed'];
@@ -40,11 +40,11 @@ const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amo
 
 /**
  * Drafts are visible only to people who can manage them: app-level fundraise managers,
- * or admins of any group the draft is shown in.
+ * or admins and sub-admins of any group the draft is shown in.
  */
 async function visibilityClause(user) {
     if (canManageAllFundraises(user.role)) return { sql: '1 = 1', params: {} };
-    const ids = await adminGroupIds(user.id);
+    const ids = await fundraiseGroupIds(user.id);
     if (!ids.length) return { sql: "c.status <> 'draft'", params: {} };
     const list = inList(ids, 'vg');
     return {

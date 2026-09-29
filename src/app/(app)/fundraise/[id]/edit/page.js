@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
 import DeleteCampaignButton from '@/components/fundraise/delete-campaign-button';
 import PageHeader from '@/components/shell/page-header';
-import { adminGroupIds, canManageFundraise } from '@/lib/access';
+import { fundraiseGroupIds, canManageFundraise } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
 import { audienceSuggestions, getAudience, getCampaign, knownLocations, listGroupsForSelect } from '@/lib/fundraise';
@@ -26,7 +26,7 @@ export default async function EditFundraisePage({ params }) {
     const all = canManageAllFundraises(user.role);
     const [groups, mine, locations, audience, castes, suggestions] = await Promise.all([
         listGroupsForSelect(),
-        all ? [] : adminGroupIds(user.id),
+        all ? [] : fundraiseGroupIds(user.id),
         knownLocations(),
         getAudience(campaign.id),
         casteOptions(locale),
@@ -34,7 +34,7 @@ export default async function EditFundraisePage({ params }) {
     ]);
     const allowed = all ? groups : groups.filter((g) => mine.includes(g.id) || g.id === campaign.group_id);
     // Keep the current group selectable even if it was archived since (the list holds active groups only).
-    if (!allowed.some((g) => g.id === campaign.group_id))
+    if (campaign.group_id && !allowed.some((g) => g.id === campaign.group_id))
         allowed.unshift({ id: campaign.group_id, name: campaign.group_name, name_local: campaign.group_name_local });
     // Groups it is (or may also be) shown in, besides the home group. Linked groups this user
     // cannot manage stay ticked and locked; the server keeps them.
@@ -51,7 +51,7 @@ export default async function EditFundraisePage({ params }) {
             <PageHeader
                 title={t('fundraise.edit')}
                 subtitle={localized(campaign, 'title', locale)}
-                back={{ href: `/groups/${campaign.group_id}`, label: groupName }}
+                back={campaign.group_id ? { href: `/groups/${campaign.group_id}`, label: groupName } : { href: '/fundraise', label: t('fundraise.title') }}
             />
             <div className="space-y-4">
                 {/* The form draws its own card; Status sits above it. */}
@@ -59,6 +59,7 @@ export default async function EditFundraisePage({ params }) {
                     campaign={campaign}
                     groups={allowed}
                     otherGroups={otherGroups}
+                    allowNoGroup={all || !campaign.group_id}
                     cancelHref={`/fundraise/${campaign.id}`}
                     locations={locations}
                     audience={audience.map((a) => ({ kind: a.kind, value: a.value }))}

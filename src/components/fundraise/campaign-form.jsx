@@ -24,6 +24,7 @@ export default function CampaignForm({
     groups,
     defaultGroupId = null,
     otherGroups = [],
+    allowNoGroup = false,
     cancelHref,
     locations = [],
     defaultPublic = false,
@@ -112,9 +113,10 @@ export default function CampaignForm({
                         <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
                             <select
                                 name="group_id"
-                                defaultValue={c.group_id ?? defaultGroupId ?? groups[0]?.id ?? ''}
+                                defaultValue={c.id ? (c.group_id ?? '') : (defaultGroupId ?? (allowNoGroup ? '' : (groups[0]?.id ?? '')))}
                                 className={`${selectInput(!!fe('group_id'))} w-full`}
                             >
+                                {allowNoGroup && <option value="">{t('fundraise.noHomeGroup')}</option>}
                                 {groups.map((g) => (
                                     <option key={g.id} value={g.id}>
                                         {groupName(g)}

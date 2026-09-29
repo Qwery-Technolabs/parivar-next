@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
 import PageHeader from '@/components/shell/page-header';
-import { adminGroupIds, canCreateFundraiseIn } from '@/lib/access';
+import { fundraiseGroupIds, canCreateFundraiseIn } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
 import { audienceSuggestions, knownLocations, listGroupsForSelect } from '@/lib/fundraise';
@@ -16,18 +16,22 @@ export async function generateMetadata() {
     return { title: t('fundraise.add') };
 }
 
-/** A fundraise is always started from its group: /fundraise/new?group=<id>. */
+/**
+ * Start a fundraise: from its group (/fundraise/new?group=<id>), or without one from the
+ * Fundraise page (/fundraise/new — a standalone fundraise, fundraise managers only).
+ */
 export default async function NewFundraisePage({ searchParams }) {
     const sp = await searchParams;
     const user = await requireUser();
-    const groupId = Number.parseInt(sp1(sp.group), 10);
-    if (!Number.isInteger(groupId) || groupId <= 0 || !(await canCreateFundraiseIn(user, groupId))) redirect('/groups');
+    const parsed = Number.parseInt(sp1(sp.group), 10);
+    const groupId = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+    if (!(await canCreateFundraiseIn(user, groupId))) redirect(groupId ? '/groups' : '/fundraise');
 
     const { t, locale } = await getT();
     const all = canManageAllFundraises(user.role);
     const [groups, mine, locations, settings, castes, suggestions] = await Promise.all([
         listGroupsForSelect(),
-        all ? [] : adminGroupIds(user.id),
+        all ? [] : fundraiseGroupIds(user.id),
         knownLocations(),
         getSettings('fundraise'),
         casteOptions(locale),
@@ -35,22 +39,25 @@ export default async function NewFundraisePage({ searchParams }) {
     ]);
     // The group select still lets the creator switch to another group they may create in.
     const allowed = all ? groups : groups.filter((g) => mine.includes(g.id));
-    const group = groups.find((g) => g.id === groupId);
-    if (!group) redirect('/groups'); // archived group
+    const group = groupId ? groups.find((g) => g.id === groupId) : null;
+    if (groupId && !group) redirect('/groups'); // archived group
+    const back = group ? { href: `/groups/${groupId}`, label: localized(group, 'name', locale) } : { href: '/fundraise', label: t('fundraise.title') };
 
     return (
         <div className="theme-fundraise">
             <PageHeader
                 title={t('fundraise.add')}
-                subtitle={localized(group, 'name', locale)}
-                back={{ href: `/groups/${groupId}`, label: localized(group, 'name', locale) }}
+                subtitle={group ? localized(group, 'name', locale) : t('fundraise.standalone')}
+                back={back}
             />
             <CampaignForm
                     groups={allowed}
                     defaultGroupId={groupId}
                     // Other groups it may also be shown in: the ones this user may create in.
                     otherGroups={allowed.filter((g) => g.id !== groupId)}
-                    cancelHref={`/groups/${groupId}`}
+                    // Fundraise managers may leave it without a home group.
+                    allowNoGroup={all}
+                    cancelHref={back.href}
                     locations={locations}
                     defaultPublic={settings.default_public}
                     castes={castes}

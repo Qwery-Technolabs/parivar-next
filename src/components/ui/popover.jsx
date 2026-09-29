@@ -126,7 +126,8 @@ export function KebabMenu({ label, children, align = 'right' }) {
                     aria-haspopup="menu"
                     aria-expanded={open}
                     aria-label={label}
-                    className="flex size-9 items-center justify-center rounded-md text-ink-gray hover:bg-accent hover:text-primary"
+                    // White with a slightly dark border and one grey for the dots, on every page.
+                    className="flex size-8 items-center justify-center rounded-md border border-ink-gray/35 bg-white text-ink-gray shadow-xs hover:border-ink-gray/60 hover:bg-surface-bggray/60 aria-expanded:border-ink-gray/60 aria-expanded:bg-surface-bggray/60"
                 >
                     <MoreVertical className="size-4" />
                 </button>
