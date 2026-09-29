@@ -1,0 +1,198 @@
+import Link from 'next/link';
+import Badge from '@/components/ui/badge';
+import Pagination from '@/components/ui/pagination';
+import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
+import { date, money } from '@/lib/format';
+import { buildHref } from '@/lib/url';
+import EntryButtons from './entry-buttons';
+import RowActions from './row-actions';
+import FundraiseSummary from './summary';
+import LedgerExport from './ledger-export';
+
+export const MONEY_VIEWS = ['contributions', 'expenses', 'contributors'];
+
+/**
+ * Income / Expense tab (server component): totals + progress, a segmented switch between
+ * contributions / expenses / by-contributor (?view=, default = contributions = absence),
+ * the add buttons the viewer's permissions allow, and the table.
+ */
+export default function MoneyTab({ campaign, view, rows, total, page, perPage, perms, settings, today, base, sp, t, locale }) {
+    // Every viewer gets the row menu (History); Edit / Delete appear only for managers.
+    const rowProps = {
+        canManage: perms.manage,
+        today,
+        allowAnonymous: settings.allow_anonymous,
+        categories: settings.expense_categories,
+    };
+    const labels = {
+        contributions: t('fundraise.contributions'),
+        expenses: t('fundraise.expenses'),
+        contributors: t('fundraise.byContributor'),
+    };
+    const counts = { contributions: campaign.contribution_count, expenses: campaign.expense_count };
+
+    return (
+        <div className="space-y-4">
+            <FundraiseSummary campaign={campaign} t={t} compact />
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex flex-wrap rounded-md bg-surface-bggray/70 p-0.5">
+                    {MONEY_VIEWS.map((k) => (
+                        <Link
+                            key={k}
+                            href={buildHref(base, sp, { tab: 'money', view: k === 'contributions' ? null : k, page: null })}
+                            scroll={false}
+                            aria-current={view === k ? 'true' : undefined}
+                            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded px-2.5 text-xs font-medium ${
+                                view === k ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-primary'
+                            }`}
+                        >
+                            {labels[k]}
+                            {counts[k] != null && <span className="tabular-nums opacity-80">{counts[k]}</span>}
+                        </Link>
+                    ))}
+                </div>
+                {(perms.contribution || perms.expense) && (
+                    <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+                        <EntryButtons
+                            campaignId={campaign.id}
+                            today={today}
+                            perms={{ contribution: perms.contribution, expense: perms.expense }}
+                            allowAnonymous={settings.allow_anonymous}
+                            categories={settings.expense_categories}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Share the list: WhatsApp-ready text or a printable PDF — for every viewer. */}
+            <LedgerExport campaignId={campaign.id} kind={view === 'contributions' ? 'income' : view === 'expenses' ? 'expense' : 'both'} />
+
+            {!perms.contribution && !perms.expense && <p className="text-xs text-ink-gray">{t('fundraise.viewOnly')}</p>}
+
+            {view === 'contributions' && (
+                <TableShell>
+                    <THead>
+                        <Th>{t('fundraise.paidOn')}</Th>
+                        <Th>{t('fundraise.donor')}</Th>
+                        <Th className="hidden sm:table-cell">{t('fundraise.mode')}</Th>
+                        <Th numeric>{t('fundraise.amount')}</Th>
+                        <Th className="w-12" />
+                    </THead>
+                    <tbody>
+                        {rows.length === 0 ? (
+                            <EmptyRow colSpan={5}>{t('fundraise.noContributions')}</EmptyRow>
+                        ) : (
+                            rows.map((c) => (
+                                <Tr key={c.id}>
+                                    <Td className="whitespace-nowrap text-ink-gray">{date(c.paid_on, locale)}</Td>
+                                    <Td>
+                                        <DonorName row={c} />
+                                        {c.is_anonymous ? (
+                                            <Badge tone="gray" className="ml-2">
+                                                {t('fundraise.anonymousLabel')}
+                                            </Badge>
+                                        ) : null}
+                                        {c.reference && <span className="block text-xs text-ink-gray">{c.reference}</span>}
+                                    </Td>
+                                    <Td className="hidden sm:table-cell">{t(`fundraise.modes.${c.mode}`)}</Td>
+                                    <Td numeric className="font-medium text-emerald-700">
+                                        {money(c.amount)}
+                                    </Td>
+                                    <Td className="w-12 py-1">
+                                        <RowActions kind="contribution" campaignId={campaign.id} row={c} {...rowProps} />
+                                    </Td>
+                                </Tr>
+                            ))
+                        )}
+                    </tbody>
+                </TableShell>
+            )}
+
+            {view === 'expenses' && (
+                <TableShell>
+                    <THead>
+                        <Th>{t('fundraise.spentOn')}</Th>
+                        <Th>{t('fundraise.expenseWhat')}</Th>
+                        <Th className="hidden md:table-cell">{t('fundraise.expenseWhere')}</Th>
+                        <Th numeric>{t('fundraise.amount')}</Th>
+                        <Th className="w-12" />
+                    </THead>
+                    <tbody>
+                        {rows.length === 0 ? (
+                            <EmptyRow colSpan={5}>{t('fundraise.noExpenses')}</EmptyRow>
+                        ) : (
+                            rows.map((e) => (
+                                <Tr key={e.id}>
+                                    <Td className="whitespace-nowrap text-ink-gray">{date(e.spent_on, locale)}</Td>
+                                    <Td>
+                                        <span className="font-medium text-primary">{e.title}</span>
+                                        {e.category && (
+                                            <Badge tone="navy" className="ml-2">
+                                                {e.category}
+                                            </Badge>
+                                        )}
+                                        {e.place && <span className="block text-xs text-ink-gray md:hidden">{e.place}</span>}
+                                        {(e.bill_ref || e.notes) && (
+                                            <span className="block whitespace-pre-line text-xs text-ink-gray">
+                                                {[e.bill_ref && `${t('fundraise.billRef')}: ${e.bill_ref}`, e.notes].filter(Boolean).join(' · ')}
+                                            </span>
+                                        )}
+                                    </Td>
+                                    <Td className="hidden md:table-cell">{e.place || null}</Td>
+                                    <Td numeric className="font-medium text-rose-700">
+                                        {money(e.amount)}
+                                    </Td>
+                                    <Td className="w-12 py-1">
+                                        <RowActions kind="expense" campaignId={campaign.id} row={e} {...rowProps} />
+                                    </Td>
+                                </Tr>
+                            ))
+                        )}
+                    </tbody>
+                </TableShell>
+            )}
+
+            {view === 'contributors' && (
+                <TableShell>
+                    <THead>
+                        <Th>{t('fundraise.donor')}</Th>
+                        <Th numeric>{t('fundraise.entries')}</Th>
+                        <Th className="hidden sm:table-cell">{t('fundraise.lastPaid')}</Th>
+                        <Th numeric>{t('common.total')}</Th>
+                    </THead>
+                    <tbody>
+                        {rows.length === 0 ? (
+                            <EmptyRow colSpan={4}>{t('fundraise.noContributions')}</EmptyRow>
+                        ) : (
+                            rows.map((c) => (
+                                <Tr key={c.k}>
+                                    <Td>
+                                        <DonorName row={c} />
+                                    </Td>
+                                    <Td numeric>{c.entries}</Td>
+                                    <Td className="hidden whitespace-nowrap text-ink-gray sm:table-cell">{date(c.last_paid, locale)}</Td>
+                                    <Td numeric className="font-semibold text-emerald-700">
+                                        {money(c.total)}
+                                    </Td>
+                                </Tr>
+                            ))
+                        )}
+                    </tbody>
+                </TableShell>
+            )}
+
+            {view !== 'contributors' && <Pagination pathname={base} searchParams={sp} page={page} perPage={perPage} total={total} t={t} />}
+        </div>
+    );
+}
+
+function DonorName({ row }) {
+    return row.user_id ? (
+        <Link href={`/members/${row.user_id}`} className="font-medium text-primary hover:underline">
+            {row.donor_name}
+        </Link>
+    ) : (
+        <span className="font-medium text-primary">{row.donor_name}</span>
+    );
+}

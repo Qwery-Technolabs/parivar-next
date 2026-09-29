@@ -12,13 +12,15 @@ export async function generateMetadata() {
 export default async function CastesPage() {
     await requireRole('administrator');
     const { t } = await getT();
+    // Castes are managed from the Members page (its top-right button), so back goes there.
+    const back = { href: '/members', label: t('members.title') };
     const castes = await listCastes();
     return (
-        <div className="mx-auto max-w-3xl">
+        <div>
             <PageHeader
                 title={t('castes.title')}
                 subtitle={t('castes.subtitle')}
-                back={{ href: '/settings', label: t('settings.title') }}
+                back={back}
             />
             <CasteManager castes={castes} />
         </div>

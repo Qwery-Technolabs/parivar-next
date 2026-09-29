@@ -7,7 +7,7 @@ import PostDialog from './post-dialog';
 
 /** One post. Authors may delete their own; managers any (the action re-checks). */
 export function UpdateItem({ u, campaignId, perms, userId, t, locale, compact = false }) {
-    const author = (locale === 'gu' && u.author_gu) || u.author || '—';
+    const author = (locale === 'gu' && u.author_local) || u.author || '—';
     const [d, tm] = String(u.created_at).split(' ');
     const canDelete = perms.manage || (perms.post && u.created_by === userId);
     return (

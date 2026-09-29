@@ -7,14 +7,15 @@ import { createMember, updateMember } from '@/app/actions/members';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import Switch from '@/components/ui/switch';
+import BilingualName from '@/components/ui/bilingual-name';
 import CasteSelect from './caste-select';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 
 /**
- * @param {{ member?: any, roles: string[], canSetRole: boolean, canSetPassword: boolean, villages: string[], casteOptions: any }} props
+ * @param {{ member?: any, roles: string[], canSetRole: boolean, canSetPassword: boolean, villages: string[], cities?: string[], casteOptions: any }} props
  */
-export default function MemberForm({ member, roles, canSetRole, canSetPassword, villages, casteOptions }) {
+export default function MemberForm({ member, roles, canSetRole, canSetPassword, villages, cities = [], casteOptions }) {
     const { t } = useT();
     const router = useRouter();
     const isEdit = Boolean(member);
@@ -35,8 +36,9 @@ export default function MemberForm({ member, roles, canSetRole, canSetPassword, 
     }, null);
     const fe = (k) => (state?.fieldErrors?.[k] ? t(state.fieldErrors[k]) : null);
 
-    const section = 'rounded-lg border border-surface-border bg-white p-4 shadow-sm';
-    const grid = 'grid gap-4 sm:grid-cols-2';
+    const section = 'rounded-lg border border-surface-border bg-white p-3.5 shadow-sm';
+    // Full-width page: three columns on wide screens so the form is not one long scroll.
+    const grid = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3';
 
     // onSubmit + startTransition rather than <form action>: React resets uncontrolled
     // fields after a form action, which would wipe the input on a validation error.
@@ -47,17 +49,21 @@ export default function MemberForm({ member, roles, canSetRole, canSetPassword, 
     };
 
     return (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-3">
             {isEdit && <input type="hidden" name="id" value={member.id} />}
 
             <section className={section}>
                 <div className={grid}>
-                    <Field label={t('members.fullName')} error={fe('full_name')} required>
-                        <input name="full_name" defaultValue={member?.full_name ?? ''} required maxLength={150} className={`${textInput(!!fe('full_name'))} w-full`} />
-                    </Field>
-                    <Field label={t('members.fullNameGu')}>
-                        <input name="full_name_gu" lang="gu" defaultValue={member?.full_name_gu ?? ''} maxLength={150} className={`${textInput()} w-full`} />
-                    </Field>
+                    <BilingualName
+                        enLabel={t('members.fullName')}
+                        guLabel={t('members.fullNameLocal')}
+                        enName="full_name"
+                        guName="full_name_local"
+                        defaultEn={member?.full_name}
+                        defaultGu={member?.full_name_local}
+                        error={fe('full_name')}
+                        required
+                    />
                     <Field label={t('members.phone')} hint={t('auth.phoneHint')} error={fe('phone')} required>
                         <input
                             name="phone"
@@ -75,6 +81,14 @@ export default function MemberForm({ member, roles, canSetRole, canSetPassword, 
                         <datalist id="villages">
                             {villages.map((v) => (
                                 <option key={v} value={v} />
+                            ))}
+                        </datalist>
+                    </Field>
+                    <Field label={t('members.city')} hint={t('members.cityHint')}>
+                        <input name="city" list="cities" defaultValue={member?.city ?? ''} maxLength={100} className={`${textInput()} w-full`} />
+                        <datalist id="cities">
+                            {cities.map((c) => (
+                                <option key={c} value={c} />
                             ))}
                         </datalist>
                     </Field>
@@ -142,14 +156,14 @@ export default function MemberForm({ member, roles, canSetRole, canSetPassword, 
             <section className={section}>
                 <h2 className="mb-3 text-sm font-semibold text-primary">{t('members.details')}</h2>
                 <div className={grid}>
+                    <Field label={t('members.position')} hint={t('members.positionHint')}>
+                        <input name="position" defaultValue={meta.position ?? ''} maxLength={150} className={`${textInput()} w-full`} />
+                    </Field>
                     <Field label={t('members.occupation')}>
                         <input name="occupation" defaultValue={meta.occupation ?? ''} className={`${textInput()} w-full`} />
                     </Field>
                     <Field label={t('members.education')}>
                         <input name="education" defaultValue={meta.education ?? ''} className={`${textInput()} w-full`} />
-                    </Field>
-                    <Field label={t('members.nativePlace')}>
-                        <input name="native_place" defaultValue={meta.native_place ?? ''} className={`${textInput()} w-full`} />
                     </Field>
                     <Field label={t('members.altPhone')}>
                         <input name="alt_phone" type="tel" defaultValue={meta.alt_phone ?? ''} className={`${textInput()} w-full tabular-nums`} />
@@ -157,10 +171,10 @@ export default function MemberForm({ member, roles, canSetRole, canSetPassword, 
                     <Field label={t('members.email')}>
                         <input name="email" type="email" defaultValue={meta.email ?? ''} className={`${textInput()} w-full`} />
                     </Field>
-                    <Field label={t('members.address')} className="sm:col-span-2">
+                    <Field label={t('members.address')} className="sm:col-span-2 xl:col-span-3">
                         <textarea name="address" rows={2} defaultValue={meta.address ?? ''} className={`${textArea()} w-full`} />
                     </Field>
-                    <Field label={t('members.bio')} className="sm:col-span-2">
+                    <Field label={t('members.bio')} className="sm:col-span-2 xl:col-span-3">
                         <textarea name="bio" rows={3} defaultValue={meta.bio ?? ''} className={`${textArea()} w-full`} />
                     </Field>
                 </div>

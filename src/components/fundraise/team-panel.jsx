@@ -48,7 +48,7 @@ export default function TeamPanel({ campaignId, team, canManage }) {
 function TeamRow({ campaignId, m, canManage, locale }) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
-    const name = (locale === 'gu' && m.full_name_gu) || m.full_name;
+    const name = (locale === 'gu' && m.full_name_local) || m.full_name;
 
     function run(fn) {
         startTransition(async () => {

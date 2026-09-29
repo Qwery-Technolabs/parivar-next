@@ -24,7 +24,7 @@ export async function generateMetadata() {
 }
 
 const segBase = 'inline-flex h-8 shrink-0 items-center rounded px-2.5 text-xs font-medium';
-const segOn = `${segBase} bg-white text-primary shadow-sm ring-1 ring-surface-border`;
+const segOn = `${segBase} seg-active shadow-sm`;
 const segOff = `${segBase} text-ink-gray hover:text-primary`;
 
 export default async function BloodPage({ searchParams }) {
@@ -53,7 +53,7 @@ export default async function BloodPage({ searchParams }) {
                             scroll={false}
                             aria-current={f.tab === tab.key ? 'page' : undefined}
                             className={`inline-flex h-9 shrink-0 items-center rounded-md px-4 text-sm font-medium ${
-                                f.tab === tab.key ? 'bg-primary text-primary-foreground' : 'text-ink-gray hover:bg-accent hover:text-primary'
+                                f.tab === tab.key ? 'seg-active' : 'text-ink-gray hover:bg-accent hover:text-primary'
                             }`}
                         >
                             {tab.label}
@@ -148,7 +148,7 @@ async function Requests({ user, f, sp, t, locale, pathname }) {
                                         <Link
                                             href={buildHref(pathname, {}, { tab: 'donors', group: r.blood_group, compatible: 1 })}
                                             title={t('blood.showDonors')}
-                                            className="inline-flex h-8 items-center gap-1 rounded-md border border-surface-border bg-white px-2 text-xs font-medium text-primary hover:bg-accent"
+                                            className="inline-flex h-8 items-center gap-1 rounded-md btn-secondary px-2 text-xs font-medium"
                                         >
                                             <Users className="size-3.5" />
                                             <span className="hidden sm:inline">{t('blood.showDonors')}</span>

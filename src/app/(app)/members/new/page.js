@@ -3,7 +3,7 @@ import PageHeader from '@/components/shell/page-header';
 import { requireRole } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
 import { getT } from '@/lib/i18n/server';
-import { listVillages } from '@/lib/members';
+import { listCities, listVillages } from '@/lib/members';
 import { assignableRoles } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -14,15 +14,16 @@ export async function generateMetadata() {
 export default async function NewMemberPage() {
     const user = await requireRole('up_sarpanch');
     const { t, locale } = await getT();
-    const [villages, castes] = await Promise.all([listVillages(), casteOptions(locale)]);
+    const [villages, cities, castes] = await Promise.all([listVillages(), listCities(), casteOptions(locale)]);
     return (
-        <div className="mx-auto max-w-3xl">
+        <div>
             <PageHeader title={t('members.add')} back={{ href: '/members', label: t('members.title') }} />
             <MemberForm
                 roles={assignableRoles(user.role)}
                 canSetRole
                 canSetPassword
                 villages={villages.map((v) => v.value)}
+                cities={cities.map((c) => c.value)}
                 casteOptions={castes}
             />
         </div>

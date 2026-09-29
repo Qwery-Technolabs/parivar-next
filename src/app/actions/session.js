@@ -9,12 +9,12 @@ import { safeNext } from '@/lib/url';
 
 /** Set the UI language: cookie always, and the profile when signed in. */
 export async function setLanguage(formData) {
-    const locale = normalizeLocale(formData.get('locale'));
+    const locale = normalizeLocale(formData?.get?.('locale'));
     if (!locale) return;
     (await cookies()).set(LANG_COOKIE, locale, { path: '/', maxAge: LANG_MAX_AGE, sameSite: 'lax' });
     const user = await getCurrentUser();
     if (user) await query('UPDATE users_list SET language = :locale WHERE id = :id', { locale, id: user.id });
-    const next = formData.get('next');
+    const next = formData?.get?.('next');
     if (next) redirect(safeNext(next));
 }
 

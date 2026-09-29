@@ -25,7 +25,7 @@ export default async function DashboardPage() {
             { today },
         ),
         query(
-            `SELECT id, title, title_gu, event_type, start_date, start_time, location
+            `SELECT id, title, title_local, event_type, start_date, start_time, location
                FROM events_list WHERE COALESCE(end_date, start_date) >= :today
               ORDER BY start_date, start_time LIMIT 5`,
             { today },

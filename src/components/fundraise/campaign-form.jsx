@@ -6,13 +6,25 @@ import { saveCampaign } from '@/app/actions/fundraise';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import Switch from '@/components/ui/switch';
+import BilingualName from '@/components/ui/bilingual-name';
+import AudienceEditor from './audience-editor';
 import { useT } from '@/lib/i18n/client';
 
 /**
- * Create / edit a fundraise. `groups` is already narrowed to the groups this user may
- * create in; `allowNoGroup` is true only for app-level fundraise managers.
+ * Create / edit a fundraise. Every fundraise belongs to a group: `groups` is already narrowed
+ * to the groups this user may create in, and `defaultGroupId` preselects the one it started from.
  */
-export default function CampaignForm({ campaign = null, groups, allowNoGroup, cancelHref, locations = [], defaultPublic = false }) {
+export default function CampaignForm({
+    campaign = null,
+    groups,
+    defaultGroupId = null,
+    cancelHref,
+    locations = [],
+    defaultPublic = false,
+    audience = [],
+    castes,
+    suggestions,
+}) {
     const { t, locale } = useT();
     const [state, action, pending] = useActionState(saveCampaign, null);
     const fe = (name) => (state?.fieldErrors?.[name] ? t(state.fieldErrors[name]) : null);
@@ -30,25 +42,42 @@ export default function CampaignForm({ campaign = null, groups, allowNoGroup, ca
     };
 
     return (
-        <form onSubmit={onSubmit} className="space-y-5">
+        <form onSubmit={onSubmit} className="space-y-4">
             {c.id && <input type="hidden" name="id" value={c.id} />}
-            <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={t('fundraise.name')} error={fe('title')} required>
-                    <input name="title" defaultValue={c.title ?? ''} maxLength={200} className={`${textInput(!!fe('title'))} w-full`} />
+            {/* Status sits top-right: it is the first thing checked when reopening a fundraise. */}
+            <div className="flex justify-end">
+                <Field label={t('fundraise.status')} className="w-full sm:w-52">
+                    <select name="status" defaultValue={c.status ?? 'active'} className={`${selectInput()} w-full`}>
+                        {['active', 'draft', 'closed'].map((s) => (
+                            <option key={s} value={s}>
+                                {t(`fundraise.${s}`)}
+                            </option>
+                        ))}
+                    </select>
                 </Field>
-                <Field label={t('fundraise.nameGu')}>
-                    <input name="title_gu" lang="gu" defaultValue={c.title_gu ?? ''} maxLength={200} className={`${textInput()} w-full`} />
-                </Field>
+            </div>
+            {/* Full-width page: 4 columns on wide screens → the basics sit in two rows. */}
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <BilingualName
+                    enLabel={t('fundraise.name')}
+                    guLabel={t('fundraise.nameLocal')}
+                    enName="title"
+                    guName="title_local"
+                    defaultEn={c.title}
+                    defaultGu={c.title_local}
+                    error={fe('title')}
+                    maxLength={200}
+                    required
+                />
                 <Field label={t('fundraise.group')} error={fe('group_id')}>
                     <select
                         name="group_id"
-                        defaultValue={c.group_id ?? (allowNoGroup ? '' : groups[0]?.id ?? '')}
+                        defaultValue={c.group_id ?? defaultGroupId ?? groups[0]?.id ?? ''}
                         className={`${selectInput(!!fe('group_id'))} w-full`}
                     >
-                        {allowNoGroup && <option value="">{t('fundraise.noGroup')}</option>}
                         {groups.map((g) => (
                             <option key={g.id} value={g.id}>
-                                {(locale === 'gu' && g.name_gu) || g.name}
+                                {(locale === 'gu' && g.name_local) || g.name}
                             </option>
                         ))}
                     </select>
@@ -67,7 +96,7 @@ export default function CampaignForm({ campaign = null, groups, allowNoGroup, ca
                 <Field label={t('fundraise.endDate')} error={fe('end_date')}>
                     <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
                 </Field>
-                <Field label={t('fundraise.location')} hint={t('fundraise.locationHint')}>
+                <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
                     <input name="location" list="fundraise-locations" maxLength={100} defaultValue={c.location ?? ''} className={`${textInput()} w-full`} />
                     {/* A datalist is fine here: free text is the point, the list is only suggestions. */}
                     <datalist id="fundraise-locations">
@@ -76,23 +105,21 @@ export default function CampaignForm({ campaign = null, groups, allowNoGroup, ca
                         ))}
                     </datalist>
                 </Field>
-                <Field label={t('fundraise.status')}>
-                    <select name="status" defaultValue={c.status ?? 'active'} className={`${selectInput()} w-full`}>
-                        {['active', 'draft', 'closed'].map((s) => (
-                            <option key={s} value={s}>
-                                {t(`fundraise.${s}`)}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
             </div>
+            <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} />
             {!c.id && <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />}
-            <Field label={t('fundraise.description')}>
-                <textarea name="description" rows={4} defaultValue={meta.description ?? ''} className={`${textArea()} w-full`} />
-            </Field>
-            <Field label={t('fundraise.descriptionGu')}>
-                <textarea name="description_gu" lang="gu" rows={4} defaultValue={meta.description_gu ?? ''} className={`${textArea()} w-full`} />
-            </Field>
+            <div className="grid gap-3 lg:grid-cols-2">
+                <BilingualName
+                    enLabel={t('fundraise.description')}
+                    guLabel={t('fundraise.descriptionLocal')}
+                    enName="description"
+                    guName="description_local"
+                    defaultEn={meta.description}
+                    defaultGu={meta.description_local}
+                    maxLength={5000}
+                    multiline
+                />
+            </div>
             {state?.error && (
                 <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                     {t(state.error)}

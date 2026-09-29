@@ -69,13 +69,14 @@ export async function revokeUserSessions(userId, keepCurrent = false) {
 /**
  * The signed-in user, read fresh from users_list so a role change applies on the next request.
  * Cached per request.
- * @returns {Promise<null | { id: number, phone: string, full_name: string, full_name_gu: string|null, role: string, language: string }>}
+ * @returns {Promise<null | { id: number, phone: string, full_name: string, full_name_local: string|null, role: string, language: string, local_language: string|null }>}
  */
 export const getCurrentUser = cache(async () => {
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     if (!token) return null;
     return queryOne(
-        `SELECT u.id, u.phone, u.full_name, u.full_name_gu, u.role, u.language
+        `SELECT u.id, u.phone, u.full_name, u.full_name_local, u.role, u.language,
+                (SELECT m.meta_value FROM users_listmeta m WHERE m.user_id = u.id AND m.meta_key = 'local_language') AS local_language
            FROM users_sessions s JOIN users_list u ON u.id = s.user_id
           WHERE s.token_hash = :h AND s.expires_at > NOW() AND u.status = 'active'`,
         { h: sha256(token) },

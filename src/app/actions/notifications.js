@@ -9,7 +9,7 @@ import { safeNext } from '@/lib/url';
 export async function openNotification(formData) {
     const user = await getCurrentUser();
     if (!user) redirect('/login');
-    const id = Number(formData.get('id')) || 0;
+    const id = Number(formData?.get?.('id')) || 0;
     const n = await queryOne('SELECT link FROM users_notifications WHERE id = :id AND user_id = :uid', { id, uid: user.id });
     if (!n) redirect('/notifications');
     await query('UPDATE users_notifications SET read_at = NOW() WHERE id = :id AND user_id = :uid AND read_at IS NULL', {

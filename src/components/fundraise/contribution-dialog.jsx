@@ -1,7 +1,7 @@
 'use client';
-import { Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { addContribution } from '@/app/actions/fundraise';
+import { saveContribution } from '@/app/actions/fundraise';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
@@ -10,39 +10,53 @@ import { useT } from '@/lib/i18n/client';
 
 const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
 
-export default function ContributionDialog({ campaignId, today, allowAnonymous = true }) {
+/**
+ * Add a contribution, or edit one when `entry` (the row) is given. `trigger` overrides the
+ * default button — the row menu passes one that opens the dialog as soon as it mounts.
+ */
+export default function ContributionDialog({ campaignId, today, allowAnonymous = true, entry = null, trigger }) {
     const { t } = useT();
+    const editing = Boolean(entry);
     return (
         <FormDialog
-            title={t('fundraise.addContribution')}
-            action={addContribution}
-            hidden={{ campaign_id: campaignId }}
-            submitIcon={Plus}
-            submitLabel={t('common.add')}
-            trigger={({ open }) => (
-                <button
-                    type="button"
-                    onClick={open}
-                    className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                    <Plus className="size-4" /> {t('fundraise.addContribution')}
-                </button>
-            )}
+            title={editing ? t('fundraise.editContribution') : t('fundraise.addContribution')}
+            action={saveContribution}
+            hidden={{ campaign_id: campaignId, contribution_id: entry?.id ?? '' }}
+            submitIcon={editing ? Pencil : Plus}
+            submitLabel={editing ? t('common.save') : t('common.add')}
+            trigger={
+                trigger ??
+                (({ open }) => (
+                    <button
+                        type="button"
+                        onClick={open}
+                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                        <Plus className="size-4" /> {t('fundraise.addContribution')}
+                    </button>
+                ))
+            }
         >
-            {({ fieldError }) => <ContributionFields fieldError={fieldError} today={today} allowAnonymous={allowAnonymous} />}
+            {({ fieldError }) => (
+                <ContributionFields fieldError={fieldError} today={today} allowAnonymous={allowAnonymous} entry={entry} />
+            )}
         </FormDialog>
     );
 }
 
-function ContributionFields({ fieldError, today, allowAnonymous }) {
+function ContributionFields({ fieldError, today, allowAnonymous, entry }) {
     const { t } = useT();
-    const [name, setName] = useState('');
-    const [anon, setAnon] = useState(false);
+    const [name, setName] = useState(entry?.donor_name ?? '');
+    const [anon, setAnon] = useState(Boolean(Number(entry?.is_anonymous ?? 0)));
     return (
         <>
             <Field label={t('fundraise.donorMember')} hint={t('fundraise.donorHint')}>
                 {/* Picking a member pre-fills the name; the name stays editable. */}
-                <MemberPicker name="user_id" onPick={(opt) => opt && setName(opt.label)} />
+                <MemberPicker
+                    name="user_id"
+                    defaultValue={entry?.user_id ? { id: entry.user_id, label: entry.donor_name } : null}
+                    onPick={(opt) => opt && setName(opt.label)}
+                />
             </Field>
             <Field label={t('fundraise.donor')} error={fieldError('donor_name')} required>
                 <input
@@ -55,13 +69,23 @@ function ContributionFields({ fieldError, today, allowAnonymous }) {
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
-                    <input name="amount" inputMode="decimal" className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`} />
+                    <input
+                        name="amount"
+                        inputMode="decimal"
+                        defaultValue={entry?.amount ?? ''}
+                        className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
+                    />
                 </Field>
                 <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
-                    <input type="date" name="paid_on" defaultValue={today} className={`${textInput(!!fieldError('paid_on'))} w-full`} />
+                    <input
+                        type="date"
+                        name="paid_on"
+                        defaultValue={entry?.paid_on ?? today}
+                        className={`${textInput(!!fieldError('paid_on'))} w-full`}
+                    />
                 </Field>
                 <Field label={t('fundraise.mode')}>
-                    <select name="mode" defaultValue="cash" className={`${selectInput()} w-full`}>
+                    <select name="mode" defaultValue={entry?.mode ?? 'cash'} className={`${selectInput()} w-full`}>
                         {MODES.map((m) => (
                             <option key={m} value={m}>
                                 {t(`fundraise.modes.${m}`)}
@@ -70,7 +94,7 @@ function ContributionFields({ fieldError, today, allowAnonymous }) {
                     </select>
                 </Field>
                 <Field label={t('fundraise.reference')} hint={t('common.optional')}>
-                    <input name="reference" maxLength={100} className={`${textInput()} w-full`} />
+                    <input name="reference" maxLength={100} defaultValue={entry?.reference ?? ''} className={`${textInput()} w-full`} />
                 </Field>
             </div>
             {allowAnonymous && <Switch checked={anon} onChange={setAnon} name="is_anonymous" label={t('fundraise.anonymous')} />}

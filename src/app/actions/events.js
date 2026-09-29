@@ -36,7 +36,7 @@ export async function saveEvent(prev, fd) {
 
     const values = {
         title,
-        titleGu: str(fd, 'title_gu', 200) || null,
+        titleLocal: str(fd, 'title_local', 200) || null,
         type: oneOf(fd, 'event_type', EVENT_TYPES, 'event'),
         startDate,
         // An end equal to the start is a one-day event; store NULL so there is one representation.
@@ -50,7 +50,7 @@ export async function saveEvent(prev, fd) {
         let rowId = eventId;
         if (eventId) {
             const r = await q(
-                `UPDATE events_list SET title = :title, title_gu = :titleGu, event_type = :type, start_date = :startDate,
+                `UPDATE events_list SET title = :title, title_local = :titleLocal, event_type = :type, start_date = :startDate,
                         end_date = :endDate, start_time = :startTime, location = :location, group_id = :groupId
                   WHERE id = :id`,
                 { ...values, id: eventId },
@@ -58,8 +58,8 @@ export async function saveEvent(prev, fd) {
             if (r.affectedRows === 0) return null;
         } else {
             const r = await q(
-                `INSERT INTO events_list (title, title_gu, event_type, start_date, end_date, start_time, location, group_id, created_by)
-                 VALUES (:title, :titleGu, :type, :startDate, :endDate, :startTime, :location, :groupId, :by)`,
+                `INSERT INTO events_list (title, title_local, event_type, start_date, end_date, start_time, location, group_id, created_by)
+                 VALUES (:title, :titleLocal, :type, :startDate, :endDate, :startTime, :location, :groupId, :by)`,
                 { ...values, by: user.id },
             );
             rowId = r.insertId;
@@ -79,7 +79,7 @@ export async function saveEvent(prev, fd) {
             audience.map((r) => r.id),
             {
                 type: 'event.new',
-                data: { title, title_gu: values.titleGu, date: startDate },
+                data: { title, title_local: values.titleLocal, date: startDate },
                 link: `/calendar?m=${startDate.slice(0, 7)}`,
                 actorId: user.id,
             },

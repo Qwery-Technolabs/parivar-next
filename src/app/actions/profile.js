@@ -1,8 +1,9 @@
 'use server';
-import { refresh } from 'next/cache';
+import { refresh, revalidatePath } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser, hashPassword, passwordProblem, revokeUserSessions, verifyPassword } from '@/lib/auth';
-import { query, queryOne } from '@/lib/db';
+import { query, queryOne, setMeta } from '@/lib/db';
+import { normalizeLocalLanguage } from '@/lib/local-language';
 import { normalizePhone } from '@/lib/phone';
 
 async function currentWithHash() {
@@ -56,4 +57,15 @@ export async function changePassword(prev, fd) {
     await revokeUserSessions(user.id, true);
     await audit(user.id, 'user.password', 'user', user.id);
     return { ok: true, message: 'profile.passwordChanged' };
+}
+
+/** The script this person writes names in (Gujarati / Hindi / Marathi). Stored as meta: never filtered on. */
+export async function setLocalLanguage(formData) {
+    const user = await getCurrentUser();
+    if (!user) return;
+    // A forged call without form data is ignored, not a 500.
+    const lang = normalizeLocalLanguage(String(formData?.get?.('local_language') ?? ''));
+    if (!lang) return;
+    await setMeta('users_list', user.id, { local_language: lang });
+    revalidatePath('/', 'layout'); // forms everywhere pick the new script up
 }

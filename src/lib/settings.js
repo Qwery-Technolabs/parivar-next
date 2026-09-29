@@ -15,9 +15,10 @@ export const SETTINGS = {
         table: 'admin_settings',
         keys: {
             samaj_name: { type: 'text', default: '' }, // shown beside the app name when set
-            samaj_name_gu: { type: 'text', default: '' },
+            samaj_name_local: { type: 'text', default: '' },
             contact_phone: { type: 'text', default: '' },
             default_language: { type: 'text', default: 'gu', options: ['gu', 'en'] },
+            local_language: { type: 'text', default: 'gu', options: ['gu', 'hi', 'mr'] }, // script for names, per person overridable
         },
     },
     fundraise: {

@@ -25,7 +25,7 @@ export default function PostDialog({ campaignId, meetingId = null, subtitle }) {
                     onClick={open}
                     className={
                         minutes
-                            ? 'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-surface-border bg-white px-2.5 text-xs font-medium text-primary hover:bg-accent'
+                            ? 'btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium'
                             : 'inline-flex h-9 shrink-0 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90'
                     }
                 >

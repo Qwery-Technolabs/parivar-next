@@ -24,7 +24,7 @@ export async function listRequests({ status, page, perPage }) {
     // perPage/offset are server-clamped integers — inlined deliberately (DESIGN.md §9).
     const rows = await query(
         `SELECT r.id, r.blood_group, r.units, r.patient_name, r.hospital, r.city, r.contact_phone,
-                r.needed_by, r.status, r.created_by, r.created_at, u.full_name AS creator_name, u.full_name_gu AS creator_name_gu
+                r.needed_by, r.status, r.created_by, r.created_at, u.full_name AS creator_name, u.full_name_local AS creator_name_local
            FROM blood_requests r LEFT JOIN users_list u ON u.id = r.created_by
           WHERE ${where}
           ORDER BY (r.status = 'open') DESC, r.needed_by IS NULL, r.needed_by, r.id DESC
@@ -51,7 +51,7 @@ export async function listDonors({ group, compatible, village }) {
         params.village = `%${village}%`;
     }
     return query(
-        `SELECT id, full_name, full_name_gu, phone, village, blood_group
+        `SELECT id, full_name, full_name_local, phone, village, blood_group
            FROM users_list WHERE ${where}
           ORDER BY blood_group = :exact DESC, full_name LIMIT 200`,
         { ...params, exact: group },

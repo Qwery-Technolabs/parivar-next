@@ -55,7 +55,7 @@ export default async function CalendarPage({ searchParams }) {
             end: e.end_date || e.start_date,
             time: e.start_time,
             location: e.location,
-            group: e.group_name ? localized({ name: e.group_name, name_gu: e.group_name_gu }, 'name', locale) : '',
+            group: e.group_name ? localized({ name: e.group_name, name_local: e.group_name_local }, 'name', locale) : '',
             description: e.description,
             raw: e,
         })),
@@ -79,7 +79,7 @@ export default async function CalendarPage({ searchParams }) {
     }
     while (cells.length % 7) cells.push(null);
 
-    const navBtn = 'inline-flex size-9 items-center justify-center rounded-md border border-surface-border bg-white text-primary hover:bg-accent';
+    const navBtn = 'inline-flex size-9 items-center justify-center rounded-md btn-secondary';
     const defaultDate = cal.key === cal.currentKey ? cal.today : cal.first;
 
     return (
@@ -136,7 +136,7 @@ export default async function CalendarPage({ searchParams }) {
                                     <span
                                         className={`mb-1 inline-flex size-6 items-center justify-center rounded-full text-xs font-medium tabular-nums ${
                                             c.iso === cal.today
-                                                ? 'bg-primary text-primary-foreground'
+                                                ? 'seg-active'
                                                 : c.weekday === 0
                                                   ? 'text-destructive'
                                                   : 'text-ink-gray'

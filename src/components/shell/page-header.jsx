@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /** Title row: title + subtitle left, actions right; wraps on a phone. */
 export default function PageHeader({ title, subtitle, back, actions }) {
     return (
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
                 {back && (
                     <Link href={back.href} className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary">
@@ -22,7 +23,7 @@ export default function PageHeader({ title, subtitle, back, actions }) {
 /** DESIGN.md §3 caption idiom + §4 stat-card number. */
 export function StatCard({ label, value, href, icon: Icon, tone = 'text-primary' }) {
     const body = (
-        <div className="flex items-start justify-between gap-3 rounded-lg border border-surface-border bg-white p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3 rounded-lg border border-surface-border bg-white p-3.5 shadow-sm">
             <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wide text-ink-gray">{label}</p>
                 <p className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{value}</p>
@@ -39,11 +40,11 @@ export function StatCard({ label, value, href, icon: Icon, tone = 'text-primary'
     );
 }
 
-export function Card({ title, actions, children, className = '', bodyClass = 'p-4' }) {
+export function Card({ title, actions, children, className = '', bodyClass = 'p-3.5' }) {
     return (
         <section className={`min-w-0 rounded-lg border border-surface-border bg-white shadow-sm ${className}`}>
             {(title || actions) && (
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-lg border-b border-surface-border bg-card-head px-3.5 py-2.5">
                     <h2 className="text-sm font-semibold text-primary">{title}</h2>
                     {actions}
                 </div>
@@ -54,14 +55,16 @@ export function Card({ title, actions, children, className = '', bodyClass = 'p-
 }
 
 export function LinkButton({ href, icon: Icon, children, variant = 'primary', className = '' }) {
-    const v =
-        variant === 'primary'
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-            : 'border border-surface-border bg-white text-primary hover:bg-accent';
+    const v = {
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        secondary: 'btn-secondary',
+        outline: 'border border-surface-border bg-white text-primary hover:bg-accent',
+    }[variant];
     return (
         <Link
             href={href}
-            className={`inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium ${v} ${className}`}
+            // cn(): a caller's size override (h-8 px-3 text-xs) must replace the defaults, not race them.
+            className={cn('inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium', v, className)}
         >
             {Icon && <Icon className="size-4" />}
             {children}

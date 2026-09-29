@@ -22,7 +22,7 @@ export function THead({ children }) {
 }
 
 export function Th({ children, className = '', numeric = false }) {
-    return <th className={`px-4 py-3 font-semibold ${numeric ? 'text-right' : ''} ${className}`}>{children}</th>;
+    return <th className={`px-3 py-2.5 font-semibold ${numeric ? 'text-right' : ''} ${className}`}>{children}</th>;
 }
 
 export function Tr({ children, className = '' }) {
@@ -33,7 +33,7 @@ export function Tr({ children, className = '' }) {
 
 export function Td({ children, className = '', numeric = false }) {
     return (
-        <td className={`px-4 py-3 align-middle ${numeric ? 'text-right tabular-nums' : 'break-words'} ${className}`}>
+        <td className={`px-3 py-2 align-middle ${numeric ? 'text-right tabular-nums' : 'break-words'} ${className}`}>
             {children ?? <span className="text-ink-gray">—</span>}
         </td>
     );
@@ -42,7 +42,7 @@ export function Td({ children, className = '', numeric = false }) {
 export function EmptyRow({ colSpan, children }) {
     return (
         <tr>
-            <td colSpan={colSpan} className="px-4 py-10 text-center text-sm text-ink-gray">
+            <td colSpan={colSpan} className="px-3 py-8 text-center text-sm text-ink-gray">
                 {children}
             </td>
         </tr>

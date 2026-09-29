@@ -45,7 +45,7 @@ await conn.end();
 
 async function seedDemo() {
     const hash = await bcrypt.hash('parivar123', 10);
-    // key, phone, name, name_gu, gender, dob, blood, village, role
+    // key, phone, name, name_local, gender, dob, blood, village, role
     const people = [
         ['ramesh', '9825000001', 'Ramesh Patel', 'રમેશ પટેલ', 'male', '1958-03-12', 'B+', 'Vadnagar', 'sarpanch'],
         ['savita', '9825000002', 'Savita Patel', 'સવિતા પટેલ', 'female', '1962-07-01', 'O+', 'Vadnagar', 'sabhyo'],
@@ -57,10 +57,10 @@ async function seedDemo() {
         ['jignesh', '9825000008', 'Jignesh Shah', 'જીગ્નેશ શાહ', 'male', '1979-04-22', 'B-', 'Visnagar', 'administrator'],
     ];
     // Castes: two with sub-castes, one without.
-    const caste = async (name, nameGu, parentId = null, sort = 0) =>
+    const caste = async (name, nameLocal, parentId = null, sort = 0) =>
         (await run(
-            'INSERT INTO admin_castes (parent_id, name, name_gu, sort_order, created_by) VALUES (:parentId, :name, :nameGu, :sort, :by)',
-            { parentId, name, nameGu, sort, by: adminId },
+            'INSERT INTO admin_castes (parent_id, name, name_local, sort_order, created_by) VALUES (:parentId, :name, :nameLocal, :sort, :by)',
+            { parentId, name, nameLocal, sort, by: adminId },
         )).insertId;
     const patel = await caste('Patel', 'પટેલ', null, 1);
     const kadva = await caste('Kadva', 'કડવા', patel);
@@ -72,7 +72,7 @@ async function seedDemo() {
     const names = {};
     for (const [key, p, nm, gu, g, dob, bg, v, role] of people) {
         const r = await run(
-            `INSERT INTO users_list (phone, password_hash, full_name, full_name_gu, gender, dob, blood_group, village, role, is_blood_donor, created_by)
+            `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, gender, dob, blood_group, village, role, is_blood_donor, created_by)
              VALUES (:p, :hash, :nm, :gu, :g, :dob, :bg, :v, :role, :donor, :by)`,
             { p, hash, nm, gu, g, dob, bg, v, role, donor: dob < '2006-01-01' ? 1 : 0, by: adminId },
         );
@@ -108,7 +108,7 @@ async function seedDemo() {
     );
 
     const g = await run(
-        `INSERT INTO admin_groups (name, name_gu, created_by) VALUES ('Temple Committee', 'મંદિર સમિતિ', :by)`,
+        `INSERT INTO admin_groups (name, name_local, created_by) VALUES ('Temple Committee', 'મંદિર સમિતિ', :by)`,
         { by: adminId },
     );
     for (const [who, mr] of [['ramesh', 'admin'], ['mahesh', 'member'], ['nirav', 'member'], ['jignesh', 'member']])
@@ -118,7 +118,7 @@ async function seedDemo() {
         );
 
     const c = await run(
-        `INSERT INTO fundraise_campaigns (group_id, title, title_gu, target_amount, start_date, end_date, status, is_public, public_token, created_by)
+        `INSERT INTO fundraise_campaigns (group_id, title, title_local, target_amount, start_date, end_date, status, is_public, public_token, created_by)
          VALUES (:g, 'Temple renovation', 'મંદિર જીર્ણોદ્ધાર', 250000, CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 20 DAY,
                  'active', 1, 'demoTempleRenovation2026', :by)`,
         { g: g.insertId, by: adminId },
@@ -153,7 +153,7 @@ async function seedDemo() {
         );
 
     await run(
-        `INSERT INTO events_list (title, title_gu, event_type, start_date, start_time, location, group_id, created_by)
+        `INSERT INTO events_list (title, title_local, event_type, start_date, start_time, location, group_id, created_by)
          VALUES ('Samaj general meeting', 'સમાજ સામાન્ય સભા', 'meeting', CURDATE() + INTERVAL 4 DAY, '18:00:00', 'Panchayat hall', :g, :by)`,
         { g: g.insertId, by: adminId },
     );

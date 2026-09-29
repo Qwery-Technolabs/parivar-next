@@ -63,7 +63,7 @@ export default function PublicLinkCard({ campaignId, isPublic, token, canManage 
                             type="button"
                             onClick={copy}
                             aria-label={t('common.copy')}
-                            className="flex size-8 shrink-0 items-center justify-center rounded-md border border-surface-border bg-white text-primary hover:bg-accent"
+                            className="flex size-8 shrink-0 items-center justify-center rounded-md btn-secondary"
                         >
                             <Copy className="size-4" />
                         </button>
@@ -73,7 +73,7 @@ export default function PublicLinkCard({ campaignId, isPublic, token, canManage 
                             href={`/p/${token}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-border bg-white px-2.5 text-xs font-medium text-primary hover:bg-accent"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-md btn-secondary px-2.5 text-xs font-medium"
                         >
                             <ExternalLink className="size-3.5" /> {t('fundraise.openPublic')}
                         </a>
@@ -82,7 +82,7 @@ export default function PublicLinkCard({ campaignId, isPublic, token, canManage 
                                 type="button"
                                 disabled={pending}
                                 onClick={() => window.confirm(t('fundraise.regenerateConfirm')) && run(() => regenerateToken(campaignId))}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-border bg-white px-2.5 text-xs font-medium text-primary hover:bg-accent"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-md btn-secondary px-2.5 text-xs font-medium"
                             >
                                 <RefreshCw className="size-3.5" /> {t('fundraise.regenerate')}
                             </button>

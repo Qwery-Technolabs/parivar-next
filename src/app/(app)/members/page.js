@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Phone, UserPlus } from 'lucide-react';
+import { Network, Phone, UserPlus } from 'lucide-react';
 import MemberRowActions from '@/components/members/member-row-actions';
 import MembersToolbar from '@/components/members/members-toolbar';
 import PageHeader, { LinkButton } from '@/components/shell/page-header';
@@ -13,9 +13,9 @@ import { casteOptions } from '@/lib/castes';
 import { age } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { activeFilterCount, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
+import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canManageGroups, canManageMembers, ROLES } from '@/lib/roles';
+import { canEditUser, canManageGroups, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
 export async function generateMetadata() {
@@ -32,12 +32,13 @@ export default async function MembersPage({ searchParams }) {
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
 
     const groupManager = canManageGroups(user.role);
-    const [{ total, rows }, villages, groups, ownGroups, castes] = await Promise.all([
+    const [{ total, rows }, villages, groups, ownGroups, castes, cities] = await Promise.all([
         listMembers(filters, page, perPage),
         listVillages(),
         listGroupsBrief(),
         groupManager ? null : adminGroupIds(user.id),
         casteOptions(locale),
+        listCities(),
     ]);
     const manage = canManageMembers(user.role);
     // A group admin may appoint only inside the groups they run; assignToGroup re-checks per group.
@@ -51,10 +52,19 @@ export default async function MembersPage({ searchParams }) {
                 title={t('members.title')}
                 subtitle={`${t('members.subtitle')} · ${t('members.count', { count: total })}`}
                 actions={
-                    manage && (
-                        <LinkButton href="/members/new" icon={UserPlus} className="w-full sm:w-auto">
-                            {t('members.add')}
-                        </LinkButton>
+                    (manage || canManageSettings(user.role)) && (
+                        <>
+                            {canManageSettings(user.role) && (
+                                <LinkButton href="/members/castes" icon={Network} variant="secondary" className="flex-1 sm:flex-none">
+                                    {t('members.manageCastes')}
+                                </LinkButton>
+                            )}
+                            {manage && (
+                                <LinkButton href="/members/new" icon={UserPlus} className="flex-1 sm:flex-none">
+                                    {t('members.add')}
+                                </LinkButton>
+                            )}
+                        </>
                     )
                 }
             />
@@ -63,6 +73,7 @@ export default async function MembersPage({ searchParams }) {
                 filters={filters}
                 activeCount={activeFilterCount(filters)}
                 villages={villages}
+                cities={cities}
                 castes={castes}
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
             />
@@ -72,7 +83,7 @@ export default async function MembersPage({ searchParams }) {
                     <Th>{t('members.fullName')}</Th>
                     <Th>{t('members.phone')}</Th>
                     <Th>{t('members.role')}</Th>
-                    <Th className="hidden md:table-cell">{t('members.village')}</Th>
+                    <Th className="hidden md:table-cell">{t('members.cityVillage')}</Th>
                     <Th className="hidden lg:table-cell">{t('members.caste')}</Th>
                     <Th>{t('members.bloodGroup')}</Th>
                     <Th numeric className="hidden sm:table-cell">
@@ -86,7 +97,7 @@ export default async function MembersPage({ searchParams }) {
                     {rows.length === 0 && <EmptyRow colSpan={8}>{t('common.noResults')}</EmptyRow>}
                     {rows.map((m) => {
                         const primary = localized(m, 'full_name', locale);
-                        const secondary = locale === 'gu' ? m.full_name : m.full_name_gu;
+                        const secondary = locale === 'gu' ? m.full_name : m.full_name_local;
                         return (
                             <Tr key={m.id}>
                                 <Td className="max-w-64">
@@ -96,6 +107,7 @@ export default async function MembersPage({ searchParams }) {
                                     {secondary && secondary !== primary && (
                                         <span className="block text-xs text-ink-gray">{secondary}</span>
                                     )}
+                                    {m.position && <span className="block text-xs font-medium text-brand-navy">{m.position}</span>}
                                     {m.status !== 'active' && (
                                         <Badge status={m.status} className="mt-1">
                                             {t(`status.${m.status}`)}
@@ -114,14 +126,21 @@ export default async function MembersPage({ searchParams }) {
                                 <Td>
                                     <Badge tone={m.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${m.role}`)}</Badge>
                                 </Td>
-                                <Td className="hidden md:table-cell">{m.village}</Td>
+                                <Td className="hidden md:table-cell">
+                                    {m.city || m.village ? (
+                                        <>
+                                            {m.city}
+                                            {m.village && m.village !== m.city && <span className="block text-xs text-ink-gray">{m.village}</span>}
+                                        </>
+                                    ) : null}
+                                </Td>
                                 <Td className="hidden lg:table-cell">
                                     {m.caste_name && (
                                         <>
-                                            {localized({ n: m.caste_name, n_gu: m.caste_name_gu }, 'n', locale)}
+                                            {localized({ n: m.caste_name, n_local: m.caste_name_local }, 'n', locale)}
                                             {m.subcaste_name && (
                                                 <span className="block text-xs text-ink-gray">
-                                                    {localized({ n: m.subcaste_name, n_gu: m.subcaste_name_gu }, 'n', locale)}
+                                                    {localized({ n: m.subcaste_name, n_local: m.subcaste_name_local }, 'n', locale)}
                                                 </span>
                                             )}
                                         </>

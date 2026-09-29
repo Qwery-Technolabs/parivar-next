@@ -26,7 +26,7 @@ export default function MemberPicker({ name, defaultValue = null, onPick, placeh
                 const rows = await res.json();
                 return rows
                     .filter((r) => !skip.has(r.value))
-                    .map((r) => ({ ...r, label: (locale === 'gu' && r.labelGu) || r.label }));
+                    .map((r) => ({ ...r, label: (locale === 'gu' && r.labelLocal) || r.label }));
             }}
             onSelect={(opt) => {
                 setSel(opt);

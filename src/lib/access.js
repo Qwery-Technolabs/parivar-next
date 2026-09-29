@@ -43,28 +43,28 @@ export async function fundraiseTeamRole(userId, campaignId) {
 /**
  * Everything one user may do on one fundraise, resolved in one place so pages and
  * actions cannot disagree.
- *   manage       — edit, delete rows, public link, team, meetings: sarpanch+, the group's admins, organizers
- *   contribution — record contributions: manage, treasurer, collector
- *   expense      — record expenses: manage, treasurer
- *   post         — post updates / minutes: manage and any team member
+ *   manage       — record / edit / delete contributions and expenses, edit the fundraise,
+ *                  public link, team, meetings: super_admin, administrator, sub_admin, and
+ *                  admins of the fundraise's group. Nobody else.
+ *   contribution — same as manage (kept separate so callers need not change)
+ *   expense      — same as manage
+ *   post         — updates / minutes: manage and any team member
+ *   teamRole     — informational only (organizer / treasurer / collector / volunteer): shown
+ *                  and notified, but it grants no write access to the ledger.
+ * Viewing needs no permission: every signed-in member sees every non-draft fundraise.
  * @param {{id: number, role: string}} user
  * @param {{id: number, group_id: number|null}} campaign
  */
 export async function fundraisePermissions(user, campaign) {
     const none = { manage: false, contribution: false, expense: false, post: false, teamRole: null };
     if (!user || !campaign) return none;
+    const appLevel = canManageAllFundraises(user.role);
     const [teamRole, groupAdmin] = await Promise.all([
         fundraiseTeamRole(user.id, campaign.id),
-        !canManageAllFundraises(user.role) && campaign.group_id ? isGroupAdmin(user.id, campaign.group_id) : false,
+        !appLevel && campaign.group_id ? isGroupAdmin(user.id, campaign.group_id) : false,
     ]);
-    const manage = canManageAllFundraises(user.role) || groupAdmin || teamRole === 'organizer';
-    return {
-        manage,
-        contribution: manage || teamRole === 'treasurer' || teamRole === 'collector',
-        expense: manage || teamRole === 'treasurer',
-        post: manage || Boolean(teamRole),
-        teamRole,
-    };
+    const manage = appLevel || groupAdmin;
+    return { manage, contribution: manage, expense: manage, post: manage || Boolean(teamRole), teamRole };
 }
 
 /**

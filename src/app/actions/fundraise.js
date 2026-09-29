@@ -5,9 +5,9 @@ import { redirect } from 'next/navigation';
 import { canCreateFundraiseIn, FUNDRAISE_TEAM_ROLES, fundraisePermissions } from '@/lib/access';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
-import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
-import { bool, date, id, money, oneOf, str, strOrNull, time, todayIST } from '@/lib/forms';
-import { CAMPAIGN_STATUSES, PAY_MODES } from '@/lib/fundraise';
+import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
+import { bool, date, id, money, oneOf, str, strOrNull } from '@/lib/forms';
+import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, listHistory, PAY_MODES } from '@/lib/fundraise';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
 import { canManageAllFundraises } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
@@ -24,7 +24,7 @@ async function authorize(campaignId, perm = 'manage') {
     const user = await getCurrentUser();
     if (!user || !campaignId) return { user: null, campaign: null };
     const campaign = await queryOne(
-        'SELECT id, group_id, title, title_gu, is_public, public_token FROM fundraise_campaigns WHERE id = :campaignId',
+        'SELECT id, group_id, title, title_local, is_public, public_token FROM fundraise_campaigns WHERE id = :campaignId',
         { campaignId },
     );
     if (!campaign) return { user: null, campaign: null };
@@ -39,6 +39,56 @@ function refreshCampaign(campaignId) {
 }
 
 // ── campaign ──────────────────────────────────────────────────────────────────
+
+const MAX_AUDIENCE = 30;
+
+/**
+ * Audience rows from the form: audience_surname[] (the surname multi-select, one row each)
+ * plus the parallel audience_kind[] / audience_value[] rows for the other kinds.
+ * Unknown kinds and blank values are dropped; duplicates are removed case-insensitively
+ * (the unique key is case-insensitive too, so a "Patel"/"patel" pair would otherwise fail
+ * the insert). caste / subcaste must be a real admin_castes id at the right level.
+ * @returns {Promise<Array<{kind: string, value: string}> | null>} null = invalid caste id
+ */
+async function parseAudience(fd) {
+    const clean = (v) => String(v).trim().replace(/\s+/g, ' ').slice(0, 150);
+    const surnames = fd.getAll('audience_surname').map(clean);
+    const kinds = [...surnames.map(() => 'surname'), ...fd.getAll('audience_kind').map(String)];
+    const values = [...surnames, ...fd.getAll('audience_value').map(clean)];
+    const seen = new Set();
+    const rows = [];
+    kinds.forEach((kind, i) => {
+        const value = values[i] ?? '';
+        if (!AUDIENCE_KINDS.includes(kind) || !value) return;
+        const key = `${kind}|${value.toLowerCase()}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        rows.push({ kind, value });
+    });
+    const casteRows = rows.filter((r) => r.kind === 'caste' || r.kind === 'subcaste');
+    if (casteRows.length) {
+        if (casteRows.some((r) => !/^\d+$/.test(r.value))) return null;
+        const l = inList(casteRows.map((r) => Number(r.value)), 'ca');
+        const found = await query(`SELECT id, parent_id FROM admin_castes WHERE id IN (${l.sql})`, l.params);
+        const byId = new Map(found.map((r) => [String(r.id), r]));
+        for (const r of casteRows) {
+            const row = byId.get(r.value);
+            if (!row || (r.kind === 'caste') !== (row.parent_id == null)) return null;
+        }
+    }
+    return rows.slice(0, MAX_AUDIENCE);
+}
+
+/** Replace a campaign's audience rules (inside the caller's transaction). */
+async function writeAudience(q, campaignId, rows) {
+    await q('DELETE FROM fundraise_audience WHERE campaign_id = :campaignId', { campaignId });
+    for (const r of rows)
+        await q('INSERT INTO fundraise_audience (campaign_id, kind, value) VALUES (:campaignId, :kind, :value)', {
+            campaignId,
+            kind: r.kind,
+            value: r.value,
+        });
+}
 
 export async function saveCampaign(prev, fd) {
     const user = await getCurrentUser();
@@ -60,17 +110,19 @@ export async function saveCampaign(prev, fd) {
     if (rawStart && !start) fieldErrors.start_date = 'fundraise.errors.date';
     if (rawEnd && !end) fieldErrors.end_date = 'fundraise.errors.date';
     if (start && end && end < start) fieldErrors.end_date = 'fundraise.errors.dates';
+    // Every fundraise belongs to a group (group_id is NOT NULL).
+    if (!groupId) fieldErrors.group_id = 'fundraise.errors.group';
+    const audience = await parseAudience(fd);
+    if (!audience) fieldErrors.audience = 'fundraise.errors.audience';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
-    if (groupId) {
-        const g = await queryOne('SELECT id FROM admin_groups WHERE id = :groupId', { groupId });
-        if (!g) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
-    }
+    const g = await queryOne('SELECT id FROM admin_groups WHERE id = :groupId', { groupId });
+    if (!g) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
 
     const row = {
         groupId,
         title,
-        titleGu: strOrNull(fd, 'title_gu', 200),
+        titleLocal: strOrNull(fd, 'title_local', 200),
         target,
         start,
         end,
@@ -79,7 +131,7 @@ export async function saveCampaign(prev, fd) {
     };
     const meta = {
         description: str(fd, 'description', 20000),
-        description_gu: str(fd, 'description_gu', 20000),
+        description_local: str(fd, 'description_local', 20000),
     };
 
     if (campaignId) {
@@ -91,14 +143,15 @@ export async function saveCampaign(prev, fd) {
         await withTransaction(async (q) => {
             await q(
                 `UPDATE fundraise_campaigns
-                    SET group_id = :groupId, title = :title, title_gu = :titleGu, location = :location, target_amount = :target,
+                    SET group_id = :groupId, title = :title, title_local = :titleLocal, location = :location, target_amount = :target,
                         start_date = :start, end_date = :end, status = :status
                   WHERE id = :campaignId`,
                 { ...row, campaignId },
             );
             await setMeta('fundraise_campaigns', campaignId, meta, q);
+            await writeAudience(q, campaignId, audience);
         });
-        await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title });
+        await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title, audience: audience.length });
         refreshCampaign(campaignId);
         redirect(`/fundraise/${campaignId}`);
     }
@@ -108,14 +161,15 @@ export async function saveCampaign(prev, fd) {
     const isPublic = bool(fd, 'is_public');
     const newId = await withTransaction(async (q) => {
         const r = await q(
-            `INSERT INTO fundraise_campaigns (group_id, title, title_gu, location, target_amount, start_date, end_date, status, is_public, public_token, created_by)
-             VALUES (:groupId, :title, :titleGu, :location, :target, :start, :end, :status, :isPublic, :token, :by)`,
+            `INSERT INTO fundraise_campaigns (group_id, title, title_local, location, target_amount, start_date, end_date, status, is_public, public_token, created_by)
+             VALUES (:groupId, :title, :titleLocal, :location, :target, :start, :end, :status, :isPublic, :token, :by)`,
             { ...row, isPublic: isPublic ? 1 : 0, token: isPublic ? newToken() : null, by: user.id },
         );
         await setMeta('fundraise_campaigns', r.insertId, meta, q);
+        await writeAudience(q, r.insertId, audience);
         return r.insertId;
     });
-    await audit(user.id, 'fundraise.create', 'fundraise', newId, { title });
+    await audit(user.id, 'fundraise.create', 'fundraise', newId, { title, audience: audience.length });
     revalidatePath('/fundraise');
     redirect(`/fundraise/${newId}`);
 }
@@ -158,13 +212,51 @@ export async function regenerateToken(campaignId) {
     return { ok: true, message: 'fundraise.regenerated', token };
 }
 
+// ── ledger history ────────────────────────────────────────────────────────────
+// Contributions and expenses are edited in place and soft-deleted; each add / edit / delete
+// writes a fundraise_history row in the same transaction as the change, so the history can
+// never disagree with the ledger.
+
+async function contributionSnapshot(q, contributionId) {
+    const [row] = await q(
+        `SELECT id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at
+           FROM fundraise_contributions WHERE id = :contributionId`,
+        { contributionId },
+    );
+    return row ? { ...row, amount: Number(row.amount), is_anonymous: Number(row.is_anonymous) } : null;
+}
+
+async function expenseSnapshot(q, expenseId) {
+    const [row] = await q(
+        `SELECT id, title, place, category, amount, spent_on, deleted_at FROM fundraise_expenses WHERE id = :expenseId`,
+        { expenseId },
+    );
+    if (!row) return null;
+    const meta = await q(
+        `SELECT meta_key, meta_value FROM fundraise_expensesmeta WHERE expense_id = :expenseId AND meta_key IN ('notes', 'bill_ref')`,
+        { expenseId },
+    );
+    const m = Object.fromEntries(meta.map((r) => [r.meta_key, r.meta_value]));
+    return { ...row, amount: Number(row.amount), notes: m.notes ?? null, bill_ref: m.bill_ref ?? null };
+}
+
+async function writeHistory(q, { campaignId, entity, entityId, action, actorId, snapshot }) {
+    await q(
+        `INSERT INTO fundraise_history (campaign_id, entity, entity_id, action, actor_id, snapshot)
+         VALUES (:campaignId, :entity, :entityId, :action, :actorId, :snapshot)`,
+        { campaignId, entity, entityId, action, actorId, snapshot: JSON.stringify(snapshot) },
+    );
+}
+
 // ── contributions ─────────────────────────────────────────────────────────────
 
-export async function addContribution(prev, fd) {
+/** Add (no contribution_id) or edit a contribution. Needs perms.manage. */
+export async function saveContribution(prev, fd) {
     const campaignId = id(fd, 'campaign_id');
     const { user, campaign } = await authorize(campaignId, 'contribution');
     if (!campaign) return FORBIDDEN;
 
+    const contributionId = id(fd, 'contribution_id');
     const userId = id(fd, 'user_id');
     let donorName = str(fd, 'donor_name', 150);
     const amount = money(fd, 'amount');
@@ -183,49 +275,92 @@ export async function addContribution(prev, fd) {
     if (!paidOn) fieldErrors.paid_on = 'fundraise.errors.date';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
-    const r = await query(
-        `INSERT INTO fundraise_contributions
-            (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, recorded_by)
-         VALUES (:campaignId, :userId, :donorName, :amount, :paidOn, :mode, :reference, :anon, :by)`,
-        {
+    const values = {
+        campaignId,
+        userId: member?.id ?? null,
+        donorName,
+        amount,
+        paidOn,
+        mode: oneOf(fd, 'mode', PAY_MODES, 'cash'),
+        reference: strOrNull(fd, 'reference', 100),
+        // Forced off server-side when the setting disallows it — hiding the switch enforces nothing.
+        anon: bool(fd, 'is_anonymous') && (await getSettings('fundraise')).allow_anonymous ? 1 : 0,
+    };
+
+    const result = await withTransaction(async (q) => {
+        if (contributionId) {
+            // campaign_id + deleted_at in the WHERE: a forged or deleted id changes nothing.
+            const before = await contributionSnapshot(q, contributionId);
+            const [owner] = await q(
+                'SELECT 1 AS ok FROM fundraise_contributions WHERE id = :contributionId AND campaign_id = :campaignId AND deleted_at IS NULL',
+                { contributionId, campaignId },
+            );
+            if (!before || !owner) return null;
+            await q(
+                `UPDATE fundraise_contributions
+                    SET user_id = :userId, donor_name = :donorName, amount = :amount, paid_on = :paidOn,
+                        mode = :mode, reference = :reference, is_anonymous = :anon
+                  WHERE id = :contributionId AND campaign_id = :campaignId`,
+                { ...values, contributionId },
+            );
+            const after = await contributionSnapshot(q, contributionId);
+            await writeHistory(q, {
+                campaignId,
+                entity: 'contribution',
+                entityId: contributionId,
+                action: 'edit',
+                actorId: user.id,
+                snapshot: { ...after, before },
+            });
+            return { id: contributionId, action: 'edit' };
+        }
+        const r = await q(
+            `INSERT INTO fundraise_contributions
+                (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, recorded_by)
+             VALUES (:campaignId, :userId, :donorName, :amount, :paidOn, :mode, :reference, :anon, :by)`,
+            { ...values, by: user.id },
+        );
+        await writeHistory(q, {
             campaignId,
-            userId: member?.id ?? null,
-            donorName,
-            amount,
-            paidOn,
-            mode: oneOf(fd, 'mode', PAY_MODES, 'cash'),
-            reference: strOrNull(fd, 'reference', 100),
-            // Forced off server-side when the setting disallows it — hiding the switch enforces nothing.
-            anon: bool(fd, 'is_anonymous') && (await getSettings('fundraise')).allow_anonymous ? 1 : 0,
-            by: user.id,
-        },
-    );
-    await audit(user.id, 'fundraise.contribution.add', 'fundraise', campaignId, {
-        contribution: r.insertId,
+            entity: 'contribution',
+            entityId: r.insertId,
+            action: 'add',
+            actorId: user.id,
+            snapshot: await contributionSnapshot(q, r.insertId),
+        });
+        return { id: r.insertId, action: 'add' };
+    });
+    if (!result) return FORBIDDEN;
+
+    await audit(user.id, `fundraise.contribution.${result.action}`, 'fundraise', campaignId, {
+        contribution: result.id,
         donor: donorName,
         amount,
     });
     refreshCampaign(campaignId);
-    return { ok: true, message: 'fundraise.contributionAdded' };
+    return { ok: true, message: result.action === 'edit' ? 'fundraise.contributionUpdated' : 'fundraise.contributionAdded' };
 }
 
+/** Soft delete: the row stays (hidden, out of totals) so its history remains complete. */
 export async function deleteContribution(campaignId, contributionId) {
     const { user, campaign } = await authorize(campaignId);
     if (!campaign) return FORBIDDEN;
-    // campaign_id in the WHERE: a forged id from another campaign deletes nothing.
-    const row = await queryOne(
-        'SELECT donor_name, amount FROM fundraise_contributions WHERE id = :contributionId AND campaign_id = :campaignId',
-        { contributionId, campaignId },
-    );
-    if (!row) return FORBIDDEN;
-    await query('DELETE FROM fundraise_contributions WHERE id = :contributionId AND campaign_id = :campaignId', {
-        contributionId,
-        campaignId,
+    const snap = await withTransaction(async (q) => {
+        const r = await q(
+            `UPDATE fundraise_contributions SET deleted_at = NOW(), deleted_by = :by
+              WHERE id = :contributionId AND campaign_id = :campaignId AND deleted_at IS NULL`,
+            { by: user.id, contributionId, campaignId },
+        );
+        if (!r.affectedRows) return null;
+        const s = await contributionSnapshot(q, contributionId);
+        await writeHistory(q, { campaignId, entity: 'contribution', entityId: contributionId, action: 'delete', actorId: user.id, snapshot: s });
+        return s;
     });
+    if (!snap) return FORBIDDEN;
     await audit(user.id, 'fundraise.contribution.delete', 'fundraise', campaignId, {
         contribution: contributionId,
-        donor: row.donor_name,
-        amount: row.amount,
+        donor: snap.donor_name,
+        amount: snap.amount,
     });
     refreshCampaign(campaignId);
     return { ok: true, message: 'common.deleted' };
@@ -233,11 +368,13 @@ export async function deleteContribution(campaignId, contributionId) {
 
 // ── expenses ──────────────────────────────────────────────────────────────────
 
-export async function addExpense(prev, fd) {
+/** Add (no expense_id) or edit an expense. Needs perms.manage. */
+export async function saveExpense(prev, fd) {
     const campaignId = id(fd, 'campaign_id');
     const { user, campaign } = await authorize(campaignId, 'expense');
     if (!campaign) return FORBIDDEN;
 
+    const expenseId = id(fd, 'expense_id');
     const title = str(fd, 'title', 200);
     const amount = money(fd, 'amount');
     const spentOn = date(fd, 'spent_on');
@@ -248,52 +385,100 @@ export async function addExpense(prev, fd) {
     if (!spentOn) fieldErrors.spent_on = 'fundraise.errors.date';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
-    const expenseId = await withTransaction(async (q) => {
+    const values = {
+        campaignId,
+        title,
+        place: strOrNull(fd, 'place', 200),
+        // Any stored category is accepted, so a row keeps a category later removed from settings.
+        category: strOrNull(fd, 'category', 64),
+        amount,
+        spentOn,
+    };
+    const meta = { notes: str(fd, 'notes', 5000), bill_ref: str(fd, 'bill_ref', 100) };
+
+    const result = await withTransaction(async (q) => {
+        if (expenseId) {
+            const [owner] = await q(
+                'SELECT 1 AS ok FROM fundraise_expenses WHERE id = :expenseId AND campaign_id = :campaignId AND deleted_at IS NULL',
+                { expenseId, campaignId },
+            );
+            if (!owner) return null;
+            const before = await expenseSnapshot(q, expenseId);
+            await q(
+                `UPDATE fundraise_expenses
+                    SET title = :title, place = :place, category = :category, amount = :amount, spent_on = :spentOn
+                  WHERE id = :expenseId AND campaign_id = :campaignId`,
+                { ...values, expenseId },
+            );
+            await setMeta('fundraise_expenses', expenseId, meta, q);
+            const after = await expenseSnapshot(q, expenseId);
+            await writeHistory(q, {
+                campaignId,
+                entity: 'expense',
+                entityId: expenseId,
+                action: 'edit',
+                actorId: user.id,
+                snapshot: { ...after, before },
+            });
+            return { id: expenseId, action: 'edit' };
+        }
         const r = await q(
             `INSERT INTO fundraise_expenses (campaign_id, title, place, category, amount, spent_on, recorded_by)
              VALUES (:campaignId, :title, :place, :category, :amount, :spentOn, :by)`,
-            {
-                campaignId,
-                title,
-                place: strOrNull(fd, 'place', 200),
-                category: strOrNull(fd, 'category', 64),
-                amount,
-                spentOn,
-                by: user.id,
-            },
+            { ...values, by: user.id },
         );
-        await setMeta(
-            'fundraise_expenses',
-            r.insertId,
-            { notes: str(fd, 'notes', 5000), bill_ref: str(fd, 'bill_ref', 100) },
-            q,
-        );
-        return r.insertId;
+        await setMeta('fundraise_expenses', r.insertId, meta, q);
+        await writeHistory(q, {
+            campaignId,
+            entity: 'expense',
+            entityId: r.insertId,
+            action: 'add',
+            actorId: user.id,
+            snapshot: await expenseSnapshot(q, r.insertId),
+        });
+        return { id: r.insertId, action: 'add' };
     });
-    await audit(user.id, 'fundraise.expense.add', 'fundraise', campaignId, { expense: expenseId, title, amount });
+    if (!result) return FORBIDDEN;
+
+    await audit(user.id, `fundraise.expense.${result.action}`, 'fundraise', campaignId, { expense: result.id, title, amount });
     refreshCampaign(campaignId);
-    return { ok: true, message: 'fundraise.expenseAdded' };
+    return { ok: true, message: result.action === 'edit' ? 'fundraise.expenseUpdated' : 'fundraise.expenseAdded' };
 }
 
+/** Soft delete, like contributions. */
 export async function deleteExpense(campaignId, expenseId) {
     const { user, campaign } = await authorize(campaignId);
     if (!campaign) return FORBIDDEN;
-    const row = await queryOne(
-        'SELECT title, amount FROM fundraise_expenses WHERE id = :expenseId AND campaign_id = :campaignId',
-        { expenseId, campaignId },
-    );
-    if (!row) return FORBIDDEN;
-    await query('DELETE FROM fundraise_expenses WHERE id = :expenseId AND campaign_id = :campaignId', {
-        expenseId,
-        campaignId,
+    const snap = await withTransaction(async (q) => {
+        const r = await q(
+            `UPDATE fundraise_expenses SET deleted_at = NOW(), deleted_by = :by
+              WHERE id = :expenseId AND campaign_id = :campaignId AND deleted_at IS NULL`,
+            { by: user.id, expenseId, campaignId },
+        );
+        if (!r.affectedRows) return null;
+        const s = await expenseSnapshot(q, expenseId);
+        await writeHistory(q, { campaignId, entity: 'expense', entityId: expenseId, action: 'delete', actorId: user.id, snapshot: s });
+        return s;
     });
+    if (!snap) return FORBIDDEN;
     await audit(user.id, 'fundraise.expense.delete', 'fundraise', campaignId, {
         expense: expenseId,
-        title: row.title,
-        amount: row.amount,
+        title: snap.title,
+        amount: snap.amount,
     });
     refreshCampaign(campaignId);
     return { ok: true, message: 'common.deleted' };
+}
+
+/** One entry's history for the row "History" dialog. Any signed-in member may read it. */
+export async function entryHistory(campaignId, entity, entityId) {
+    const user = await getCurrentUser();
+    if (!user || !['contribution', 'expense'].includes(entity)) return { error: 'common.forbidden' };
+    const c = await queryOne('SELECT id, group_id, status FROM fundraise_campaigns WHERE id = :campaignId', { campaignId });
+    if (!c) return { error: 'common.forbidden' };
+    if (c.status === 'draft' && !(await fundraisePermissions(user, c)).manage) return { error: 'common.forbidden' };
+    const rows = await listHistory(campaignId, { entity, entityId: Number(entityId), limit: 100 });
+    return { ok: true, rows: rows.map((r) => ({ ...r, created_at: String(r.created_at) })) };
 }
 
 // ── team ──────────────────────────────────────────────────────────────────────
@@ -358,96 +543,6 @@ export async function removeTeamMember(campaignId, userId) {
 
 // ── meetings ──────────────────────────────────────────────────────────────────
 
-const MEETING_WORD = { en: 'Meeting', gu: 'મીટિંગ' };
-
-/** Schedule (no meeting_id) or edit a meeting — an events_list row the calendar already shows. */
-export async function saveMeeting(prev, fd) {
-    const campaignId = id(fd, 'campaign_id');
-    const { user, campaign } = await authorize(campaignId);
-    if (!campaign) return FORBIDDEN;
-
-    const meetingId = id(fd, 'meeting_id');
-    const day = date(fd, 'start_date');
-    const rawTime = str(fd, 'start_time', 8);
-    const at = time(fd, 'start_time');
-    const fieldErrors = {};
-    if (!day) fieldErrors.start_date = 'fundraise.errors.date';
-    else if (!meetingId && day < todayIST()) fieldErrors.start_date = 'fundraise.errors.pastDate';
-    if (rawTime && !at) fieldErrors.start_time = 'fundraise.errors.time';
-    if (Object.keys(fieldErrors).length) return { fieldErrors };
-
-    const place = strOrNull(fd, 'location', 200);
-    const agenda = str(fd, 'agenda', 20000);
-
-    let eventId = meetingId;
-    if (meetingId) {
-        const existing = await queryOne(
-            `SELECT id FROM events_list WHERE id = :meetingId AND campaign_id = :campaignId AND event_type = 'meeting'`,
-            { meetingId, campaignId },
-        );
-        if (!existing) return FORBIDDEN;
-        await withTransaction(async (q) => {
-            await q(
-                `UPDATE events_list SET start_date = :day, start_time = :at, location = :place
-                  WHERE id = :meetingId AND campaign_id = :campaignId`,
-                { day, at, place, meetingId, campaignId },
-            );
-            await setMeta('events_list', meetingId, { description: agenda }, q);
-        });
-    } else {
-        eventId = await withTransaction(async (q) => {
-            const r = await q(
-                `INSERT INTO events_list (title, title_gu, event_type, start_date, start_time, location, group_id, campaign_id, created_by)
-                 VALUES (:title, :titleGu, 'meeting', :day, :at, :place, :groupId, :campaignId, :by)`,
-                {
-                    title: `${campaign.title} — ${MEETING_WORD.en}`.slice(0, 200),
-                    titleGu: `${campaign.title_gu || campaign.title} — ${MEETING_WORD.gu}`.slice(0, 200),
-                    day,
-                    at,
-                    place,
-                    groupId: campaign.group_id,
-                    campaignId,
-                    by: user.id,
-                },
-            );
-            await setMeta('events_list', r.insertId, { description: agenda }, q);
-            return r.insertId;
-        });
-    }
-
-    await audit(user.id, meetingId ? 'fundraise.meeting.update' : 'fundraise.meeting.add', 'fundraise', campaignId, {
-        event: eventId,
-        date: day,
-    });
-    // A rescheduled meeting is notified too — a moved date is exactly what people need to hear.
-    await notifyMany(await fundraiseAudienceIds(campaignId), {
-        type: 'fundraise.meeting',
-        data: { title: campaign.title, date: day, time: at, place },
-        link: campaignLink(campaignId, 'meetings'),
-        actorId: user.id,
-    });
-    refreshCampaign(campaignId);
-    revalidatePath('/calendar');
-    return { ok: true, message: meetingId ? 'fundraise.meetingUpdated' : 'fundraise.meetingScheduled' };
-}
-
-export async function cancelMeeting(campaignId, meetingId) {
-    const { user, campaign } = await authorize(campaignId);
-    if (!campaign) return FORBIDDEN;
-    const row = await queryOne(
-        `SELECT start_date FROM events_list WHERE id = :meetingId AND campaign_id = :campaignId AND event_type = 'meeting'`,
-        { meetingId, campaignId },
-    );
-    if (!row) return FORBIDDEN;
-    // Minutes already written survive as updates (fundraise_updates.event_id → SET NULL).
-    await query('DELETE FROM events_list WHERE id = :meetingId AND campaign_id = :campaignId', { meetingId, campaignId });
-    await audit(user.id, 'fundraise.meeting.cancel', 'fundraise', campaignId, { event: meetingId, date: row.start_date });
-    refreshCampaign(campaignId);
-    revalidatePath('/calendar');
-    return { ok: true, message: 'fundraise.meetingCancelled' };
-}
-
-// ── updates & minutes ─────────────────────────────────────────────────────────
 
 /** Post an update, or minutes when meeting_id is given. Needs perms.post (manage or any team member). */
 export async function postUpdate(prev, fd) {

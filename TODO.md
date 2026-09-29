@@ -31,7 +31,7 @@ Legend: `[x]` done · `[~]` in progress · `[ ]` pending
 - [x] First-visit language chooser, cookie + `users_list.language`, header toggle
 - [x] `en` / `gu` dictionaries (key parity checked), `_gu` name/title columns
 
-## Phase 4 — Parivar Jano
+## Phase 4 — Members (પરિવારજનો)
 - [x] Directory with URL filters (search, role, blood group + compatible donors, donor, village, gender, status), pagination
 - [x] Profile page, add/edit member, role assignment bounded by own role
 - [x] Make group admin / add to group from the list

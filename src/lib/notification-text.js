@@ -19,8 +19,14 @@ export function notificationText(n, t, locale) {
         const label = t(key);
         vars.role = label === key ? d.role : label;
     }
-    if (locale === 'gu' && d.group_gu) vars.group = d.group_gu;
-    if (locale === 'gu' && d.title_gu) vars.title = d.title_gu;
+    // Meeting reminders say when: "tomorrow", "in 1 hour", "in 15 minutes", "now".
+    if (d.offset != null) {
+        const key = `meetings.when.${d.offset}`;
+        const label = t(key);
+        vars.when = label === key ? '' : label;
+    }
+    if (locale === 'gu' && d.group_local) vars.group = d.group_local;
+    if (locale === 'gu' && d.title_local) vars.title = d.title_local;
     // Dictionary keys use _ because translate() walks dotted paths ('blood.request' → blood_request).
     return t(`notifications.types.${n.type.replace('.', '_')}`, vars);
 }

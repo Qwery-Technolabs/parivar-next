@@ -40,8 +40,11 @@ export const canManageMembers = (role) => atLeast(role, 'up_sarpanch');
 /** Create groups and appoint group admins. */
 export const canManageGroups = (role) => atLeast(role, 'sarpanch');
 
-/** Create a fundraise under any group (group admins can for their own group — see lib/groups). */
-export const canManageAllFundraises = (role) => atLeast(role, 'sarpanch');
+/**
+ * Create and manage (record, edit, delete) any fundraise: super_admin, administrator, sub_admin.
+ * Otherwise only that fundraise's group admins may — see fundraisePermissions in lib/access.
+ */
+export const canManageAllFundraises = (role) => atLeast(role, 'sub_admin');
 
 export const canManageEvents = (role) => atLeast(role, 'up_sarpanch');
 

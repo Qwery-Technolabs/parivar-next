@@ -28,7 +28,7 @@ export default async function PublicFundraisePage({ params }) {
         listContributions(campaign.id),
         listExpenses(campaign.id),
     ]);
-    const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_gu: campaign.group_name_gu }, 'name', locale) : '';
+    const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale) : '';
     const dates = campaign.start_date || campaign.end_date ? `${date(campaign.start_date, locale)} – ${date(campaign.end_date, locale)}` : '';
 
     return (

@@ -21,9 +21,9 @@ export default async function PublicLayout({ children }) {
                         <input type="hidden" name="locale" value={other} />
                         <button
                             type="submit"
-                            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-surface-border bg-white px-2.5 text-sm font-medium text-primary hover:bg-accent"
+                            className="inline-flex h-9 items-center gap-1.5 rounded-md btn-secondary px-2.5 text-sm font-medium"
                         >
-                            <Languages className="size-4 text-ink-gray" />
+                            <Languages className="size-4" />
                             <span lang={other}>{other === 'gu' ? 'ગુજરાતી' : 'English'}</span>
                         </button>
                     </form>

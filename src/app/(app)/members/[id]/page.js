@@ -5,12 +5,12 @@ import FamilyCard from '@/components/members/family-card';
 import PageHeader, { Card, LinkButton } from '@/components/shell/page-header';
 import Badge, { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
-import { age, date } from '@/lib/format';
+import { age, date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { getFamily, getMember, memberGroups } from '@/lib/members';
+import { getFamily, getMember, memberDonations, memberGroups } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser } from '@/lib/roles';
+import { canEditUser, canManageAllFundraises } from '@/lib/roles';
 
 export async function generateMetadata({ params }) {
     const { id } = await params;
@@ -34,10 +34,14 @@ export default async function MemberPage({ params }) {
     const member = await getMember(Number(id) || 0);
     if (!member) notFound();
     const { t, locale } = await getT();
-    const [family, groups] = await Promise.all([getFamily(member.id), memberGroups(member.id)]);
+    const [family, groups, donations] = await Promise.all([
+        getFamily(member.id),
+        memberGroups(member.id),
+        memberDonations(member.id, user.id === member.id || canManageAllFundraises(user.role)),
+    ]);
     const canEdit = canEditUser(user, member);
     const name = localized(member, 'full_name', locale);
-    const otherName = locale === 'gu' ? member.full_name : member.full_name_gu;
+    const otherName = locale === 'gu' ? member.full_name : member.full_name_local;
     const m = member.meta;
 
     return (
@@ -48,7 +52,7 @@ export default async function MemberPage({ params }) {
                 back={{ href: '/members', label: t('members.title') }}
                 actions={
                     <>
-                        <LinkButton href={`/members/${member.id}/tree`} icon={GitFork} variant="outline">
+                        <LinkButton href={`/members/${member.id}/tree`} icon={GitFork} variant="secondary">
                             {t('members.familyTree')}
                         </LinkButton>
                         {canEdit && (
@@ -67,9 +71,9 @@ export default async function MemberPage({ params }) {
                 {member.is_blood_donor ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
                 <a
                     href={`tel:${member.phone}`}
-                    className="ml-auto inline-flex h-9 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
+                    className="ml-auto inline-flex h-9 items-center gap-2 rounded-md btn-secondary px-3 text-sm font-medium"
                 >
-                    <Phone className="size-4 text-ink-gray" />
+                    <Phone className="size-4" />
                     <span className="tabular-nums">{formatPhone(member.phone)}</span>
                 </a>
             </div>
@@ -82,12 +86,13 @@ export default async function MemberPage({ params }) {
                             {member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}
                         </Detail>
                         <Detail label={t('members.village')}>{member.village}</Detail>
-                        <Detail label={t('members.nativePlace')}>{m.native_place}</Detail>
+                        <Detail label={t('members.position')}>{m.position}</Detail>
+                        <Detail label={t('members.city')}>{member.city}</Detail>
                         <Detail label={t('members.caste')}>
                             {member.caste_name &&
                                 [
-                                    (locale === 'gu' && member.caste_name_gu) || member.caste_name,
-                                    member.subcaste_name && ((locale === 'gu' && member.subcaste_name_gu) || member.subcaste_name),
+                                    (locale === 'gu' && member.caste_name_local) || member.caste_name,
+                                    member.subcaste_name && ((locale === 'gu' && member.subcaste_name_local) || member.subcaste_name),
                                 ]
                                     .filter(Boolean)
                                     .join(' · ')}
@@ -140,6 +145,45 @@ export default async function MemberPage({ params }) {
                             </ul>
                         )}
                     </Card>
+                    {donations.gifts > 0 && (
+                        <Card title={t('members.donations')} bodyClass="" className="theme-fundraise">
+                            <div className="flex items-end justify-between gap-3 border-b border-surface-border px-4 py-3">
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('members.totalDonated')}</p>
+                                    <p className="text-2xl font-semibold tabular-nums text-emerald-700">{money(donations.total)}</p>
+                                </div>
+                                <p className="text-xs text-ink-gray">{t('members.donationCount', { count: donations.gifts })}</p>
+                            </div>
+                            <ul className="divide-y divide-surface-border">
+                                {donations.groups.map((g) => (
+                                    <li key={g.id ?? 0} className="px-4 py-3">
+                                        <div className="flex items-center justify-between gap-2">
+                                            {g.id ? (
+                                                <Link href={`/groups/${g.id}`} className="min-w-0 break-words text-sm font-semibold text-primary hover:underline">
+                                                    {localized(g, 'name', locale)}
+                                                </Link>
+                                            ) : (
+                                                <span className="text-sm font-semibold text-ink-gray">{t('fundraise.noGroup')}</span>
+                                            )}
+                                            <span className="shrink-0 text-sm font-semibold tabular-nums text-emerald-700">{money(g.total)}</span>
+                                        </div>
+                                        <ul className="mt-1.5 space-y-1">
+                                            {g.campaigns.map((c) => (
+                                                <li key={c.campaign_id} className="flex items-center justify-between gap-2 text-xs">
+                                                    <Link href={`/fundraise/${c.campaign_id}`} className="min-w-0 break-words text-primary hover:underline">
+                                                        {localized(c, 'title', locale)}
+                                                    </Link>
+                                                    <span className="shrink-0 tabular-nums text-ink-gray">
+                                                        {money(c.total)} · {date(c.last_paid, locale)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>

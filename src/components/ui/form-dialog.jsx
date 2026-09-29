@@ -86,7 +86,7 @@ function DialogForm({ action, hidden, submitLabel, submitIcon, onDone, onCancel,
                 const fd = new FormData(e.currentTarget);
                 startTransition(() => formAction(fd));
             }}
-            className="space-y-4"
+            className="space-y-3"
         >
             {Object.entries(hidden).map(([k, v]) => (
                 <input key={k} type="hidden" name={k} value={v ?? ''} />

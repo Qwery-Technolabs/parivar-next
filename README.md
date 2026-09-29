@@ -1,6 +1,6 @@
 # Parivar
 
-A family / samaj management app: member directory (Parivar Jano) with family tree, castes,
+A family / samaj management app: member directory (Members / પરિવારજનો) with family tree, castes,
 roles and groups; blood-donor search; manual fundraise ledgers with teams, meetings,
 updates, public links and printable statements; an events calendar; in-app notifications;
 and admin settings. Gujarati and English throughout.
@@ -33,7 +33,7 @@ hiding a button is never the only gate. Nobody can assign a role equal to or abo
 own (except super_admin), and nobody changes their own role.
 
 Group admin is separate from app role (`admin_group_members.member_role`): any member can
-be made admin of a group from the Parivar Jano list, which lets them manage that group and
+be made admin of a group from the Members list, which lets them manage that group and
 its fundraises without any app-wide power.
 
 Fundraise team roles (`fundraise_members`): organizer (manages the fundraise), treasurer

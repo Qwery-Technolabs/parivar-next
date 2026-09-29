@@ -12,7 +12,7 @@ export async function GET(request) {
     const params = { like: `%${q}%` };
     let where = "status = 'active'";
     if (q) {
-        where += ' AND (full_name LIKE :like OR full_name_gu LIKE :like';
+        where += ' AND (full_name LIKE :like OR full_name_local LIKE :like';
         if (digits.length >= 3) {
             where += ' OR phone LIKE :phone';
             params.phone = `%${digits}%`;
@@ -20,14 +20,14 @@ export async function GET(request) {
         where += ')';
     }
     const rows = await query(
-        `SELECT id, full_name, full_name_gu, phone, village FROM users_list WHERE ${where} ORDER BY full_name LIMIT 20`,
+        `SELECT id, full_name, full_name_local, phone, village FROM users_list WHERE ${where} ORDER BY full_name LIMIT 20`,
         params,
     );
     return NextResponse.json(
         rows.map((r) => ({
             value: String(r.id),
             label: r.full_name,
-            labelGu: r.full_name_gu,
+            labelLocal: r.full_name_local,
             hint: [r.phone, r.village].filter(Boolean).join(' · '),
         })),
     );

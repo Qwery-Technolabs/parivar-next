@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation';
 import { saveGroup } from '@/app/actions/groups';
 import { Field, textArea, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
+import BilingualName from '@/components/ui/bilingual-name';
 import { useT } from '@/lib/i18n/client';
 
-export default function GroupFormDialog({ group }) {
+export default function GroupFormDialog({ group, onNavy = false }) {
     const { t } = useT();
     const router = useRouter();
     const isEdit = Boolean(group);
@@ -21,10 +22,12 @@ export default function GroupFormDialog({ group }) {
                 <button
                     type="button"
                     onClick={open}
-                    className={`inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium sm:w-auto ${
-                        isEdit
-                            ? 'border border-surface-border bg-white text-primary hover:bg-accent'
-                            : 'bg-primary text-white hover:bg-primary/90'
+                    className={`inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium ${
+                        onNavy
+                            ? 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
+                            : isEdit
+                              ? 'btn-secondary w-full sm:w-auto'
+                              : 'w-full bg-primary text-white hover:bg-primary/90 sm:w-auto'
                     }`}
                 >
                     {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
@@ -34,12 +37,16 @@ export default function GroupFormDialog({ group }) {
         >
             {({ fieldError }) => (
                 <>
-                    <Field label={t('groups.name')} error={fieldError('name')} required>
-                        <input name="name" defaultValue={group?.name ?? ''} required maxLength={150} className={`${textInput(!!fieldError('name'))} w-full`} />
-                    </Field>
-                    <Field label={t('groups.nameGu')}>
-                        <input name="name_gu" lang="gu" defaultValue={group?.name_gu ?? ''} maxLength={150} className={`${textInput()} w-full`} />
-                    </Field>
+                    <BilingualName
+                        enLabel={t('groups.name')}
+                        guLabel={t('groups.nameLocal')}
+                        enName="name"
+                        guName="name_local"
+                        defaultEn={group?.name}
+                        defaultGu={group?.name_local}
+                        error={fieldError('name')}
+                        required
+                    />
                     <Field label={t('groups.description')}>
                         <textarea name="description" rows={3} defaultValue={group?.meta?.description ?? ''} className={`${textArea()} w-full`} />
                     </Field>

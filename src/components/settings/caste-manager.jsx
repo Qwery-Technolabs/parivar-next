@@ -7,6 +7,7 @@ import Badge from '@/components/ui/badge';
 import { Field, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
+import BilingualName from '@/components/ui/bilingual-name';
 import { useT } from '@/lib/i18n/client';
 
 function CasteDialog({ caste, parent, trigger }) {
@@ -25,12 +26,17 @@ function CasteDialog({ caste, parent, trigger }) {
         >
             {({ fieldError }) => (
                 <>
-                    <Field label={t('castes.name')} error={fieldError('name')} required>
-                        <input name="name" defaultValue={caste?.name ?? ''} required maxLength={100} className={`${textInput(!!fieldError('name'))} w-full`} />
-                    </Field>
-                    <Field label={t('castes.nameGu')}>
-                        <input name="name_gu" lang="gu" defaultValue={caste?.name_gu ?? ''} maxLength={100} className={`${textInput()} w-full`} />
-                    </Field>
+                    <BilingualName
+                        enLabel={t('castes.name')}
+                        guLabel={t('castes.nameLocal')}
+                        enName="name"
+                        guName="name_local"
+                        defaultEn={caste?.name}
+                        defaultGu={caste?.name_local}
+                        error={fieldError('name')}
+                        maxLength={100}
+                        required
+                    />
                     <Field label={t('castes.sortOrder')} hint={t('castes.sortHint')}>
                         <input name="sort_order" type="number" min={0} max={9999} defaultValue={caste?.sort_order ?? 0} className={`${textInput()} w-32 tabular-nums`} />
                     </Field>
@@ -42,10 +48,10 @@ function CasteDialog({ caste, parent, trigger }) {
 
 function Row({ c, parent, run, pending }) {
     const { t, locale } = useT();
-    const name = (locale === 'gu' && c.name_gu) || c.name;
-    const other = locale === 'gu' ? c.name : c.name_gu;
+    const name = (locale === 'gu' && c.name_local) || c.name;
+    const other = locale === 'gu' ? c.name : c.name_local;
     return (
-        <div className={`flex items-center gap-3 py-2.5 pr-2 ${parent ? 'pl-10' : 'pl-4'} ${c.status === 'inactive' ? 'opacity-60' : ''}`}>
+        <div className={`flex items-center gap-2 py-1.5 pr-1.5 ${parent ? 'pl-9' : 'pl-3'} ${c.status === 'inactive' ? 'opacity-60' : ''}`}>
             <div className="min-w-0 flex-1">
                 <span className={`break-words text-sm text-primary ${parent ? '' : 'font-semibold'}`}>{name}</span>
                 {other && other !== name && <span className="ml-2 text-xs text-ink-gray">{other}</span>}
@@ -56,6 +62,23 @@ function Row({ c, parent, run, pending }) {
                 )}
             </div>
             <span className="shrink-0 text-xs tabular-nums text-ink-gray">{t('members.count', { count: c.members })}</span>
+            {/* Add sub-caste: a small icon beside the kebab, only on top-level castes — no row of its own. */}
+            {!parent && (
+                <CasteDialog
+                    parent={c}
+                    trigger={({ open }) => (
+                        <button
+                            type="button"
+                            onClick={open}
+                            title={t('castes.addSub')}
+                            aria-label={`${t('castes.addSub')}: ${name}`}
+                            className="btn-secondary flex size-7 shrink-0 items-center justify-center rounded-md"
+                        >
+                            <Plus className="size-3.5" />
+                        </button>
+                    )}
+                />
+            )}
             <CasteDialog
                 caste={c}
                 parent={parent}
@@ -138,20 +161,6 @@ export default function CasteManager({ castes }) {
                             {c.children.map((s) => (
                                 <Row key={s.id} c={s} parent={c} run={run} pending={pending} />
                             ))}
-                            <div className="pb-2 pl-10">
-                                <CasteDialog
-                                    parent={c}
-                                    trigger={({ open }) => (
-                                        <button
-                                            type="button"
-                                            onClick={open}
-                                            className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-ink-gray hover:bg-accent hover:text-primary"
-                                        >
-                                            <Plus className="size-3.5" /> {t('castes.addSub')}
-                                        </button>
-                                    )}
-                                />
-                            </div>
                         </div>
                     ))}
                 </div>

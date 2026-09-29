@@ -6,9 +6,10 @@ import { selectInput } from '@/components/ui/field';
 /**
  * A URL-backed select (DESIGN.md §6 live control): one change is one intent, so it
  * navigates on change; the default is the absence of the param; a new filter resets the page.
- * @param {{ param: string, options: Array<{value: string, label: string}>, allLabel: string }} props
+ * `reset` lists other params to drop on change (switching the view clears that view's filters).
+ * @param {{ param: string, options: Array<{value: string, label: string}>, allLabel: string, reset?: string[], className?: string }} props
  */
-export default function GroupFilter({ param, options, allLabel }) {
+export default function GroupFilter({ param, options, allLabel, reset = [], className = 'sm:w-48' }) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ export default function GroupFilter({ param, options, allLabel }) {
         if (value) params.set(param, value);
         else params.delete(param);
         params.delete('page');
+        reset.forEach((k) => params.delete(k));
         const qs = params.toString();
         startTransition(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
     }
@@ -35,7 +37,7 @@ export default function GroupFilter({ param, options, allLabel }) {
             onChange={onChange}
             disabled={pending}
             aria-label={allLabel}
-            className={`${selectInput()} w-full min-w-0 sm:w-48 ${pending ? 'cursor-wait opacity-70' : ''}`}
+            className={`${selectInput()} w-full min-w-0 ${className} ${pending ? 'cursor-wait opacity-70' : ''}`}
         >
             <option value="">{allLabel}</option>
             {opts.map((o) => (

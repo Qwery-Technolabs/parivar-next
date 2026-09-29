@@ -9,11 +9,11 @@ import { notify } from '@/lib/notifications';
 import { canManageGroups } from '@/lib/roles';
 
 async function notifyGroupRole(userId, groupId, memberRole, actorId) {
-    const g = await queryOne('SELECT name, name_gu FROM admin_groups WHERE id = :groupId', { groupId });
+    const g = await queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId });
     if (!g) return;
     await notify(userId, {
         type: memberRole === 'admin' ? 'group.admin' : 'group.member',
-        data: { group: g.name, group_gu: g.name_gu },
+        data: { group: g.name, group_local: g.name_local },
         link: `/groups/${groupId}`,
         actorId,
     });
@@ -30,17 +30,17 @@ export async function saveGroup(prev, fd) {
 
     const name = str(fd, 'name', 150);
     if (!name) return { fieldErrors: { name: 'common.required' } };
-    const nameGu = strOrNull(fd, 'name_gu', 150);
+    const nameLocal = strOrNull(fd, 'name_local', 150);
     const description = str(fd, 'description', 4000);
 
     const savedId = await withTransaction(async (q) => {
         let gid = groupId;
         if (gid) {
-            await q('UPDATE admin_groups SET name = :name, name_gu = :nameGu WHERE id = :gid', { name, nameGu, gid });
+            await q('UPDATE admin_groups SET name = :name, name_local = :nameLocal WHERE id = :gid', { name, nameLocal, gid });
         } else {
-            const r = await q('INSERT INTO admin_groups (name, name_gu, created_by) VALUES (:name, :nameGu, :by)', {
+            const r = await q('INSERT INTO admin_groups (name, name_local, created_by) VALUES (:name, :nameLocal, :by)', {
                 name,
-                nameGu,
+                nameLocal,
                 by: actor.id,
             });
             gid = r.insertId;

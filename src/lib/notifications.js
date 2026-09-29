@@ -1,5 +1,6 @@
 import 'server-only';
 import { inList, query, queryOne } from './db';
+import { pushToUsers } from './push';
 
 /**
  * Notification types. Each maps to `notifications.types.<type>` in the dictionaries,
@@ -36,6 +37,8 @@ export async function notifyMany(userIds, { type, data = {}, link = null, actorI
             });
             await query(`INSERT INTO users_notifications (user_id, type, data, link, actor_id) VALUES ${values.join(', ')}`, params);
         }
+        // Browser push goes out after the rows exist, and does not hold up the caller.
+        pushToUsers(ids, { type, data, link }).catch(() => {});
         return ids.length;
     } catch (err) {
         console.error('notify failed', type, err.message);
@@ -84,7 +87,7 @@ export async function listNotifications(userId, page, perPage) {
     const [countRow, rows] = await Promise.all([
         queryOne('SELECT COUNT(*) AS n FROM users_notifications WHERE user_id = :userId', { userId }),
         query(
-            `SELECT n.id, n.type, n.data, n.link, n.read_at, n.created_at, a.full_name AS actor_name, a.full_name_gu AS actor_name_gu
+            `SELECT n.id, n.type, n.data, n.link, n.read_at, n.created_at, a.full_name AS actor_name, a.full_name_local AS actor_name_local
                FROM users_notifications n LEFT JOIN users_list a ON a.id = n.actor_id
               WHERE n.user_id = :userId
               ORDER BY n.id DESC

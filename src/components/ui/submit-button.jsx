@@ -2,9 +2,11 @@
 import { Loader2 } from 'lucide-react';
 import { isValidElement } from 'react';
 import { useFormStatus } from 'react-dom';
+import { cn } from '@/lib/utils';
 
 const VARIANTS = {
     primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+    secondary: 'btn-secondary',
     outline: 'border border-surface-border bg-white text-primary hover:bg-accent',
     danger: 'bg-destructive text-white hover:bg-destructive/90',
 };
@@ -30,7 +32,7 @@ export default function SubmitButton({
         <button
             type="submit"
             disabled={busy}
-            className={`inline-flex ${size} shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium disabled:opacity-60 ${VARIANTS[variant]} ${className}`}
+            className={cn('inline-flex shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium disabled:opacity-60', size, VARIANTS[variant], className)}
         >
             {busy ? <Loader2 className="size-4 animate-spin" /> : isValidElement(Icon) ? Icon : Icon ? <Icon className="size-4" /> : null}
             {busy && pendingText ? pendingText : children}

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { saveModuleSettings } from '@/app/actions/settings';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
+import BilingualName from '@/components/ui/bilingual-name';
 import Switch from '@/components/ui/switch';
 import { useT } from '@/lib/i18n/client';
 
@@ -41,10 +42,26 @@ export default function SettingsForm({ module, title, fields }) {
             className="rounded-lg border border-surface-border bg-white shadow-sm"
         >
             <input type="hidden" name="module" value={module} />
-            <h2 className="border-b border-surface-border px-4 py-3 text-sm font-semibold text-primary">{title}</h2>
-            <div className="grid gap-4 p-4 sm:grid-cols-2">
-                {fields.map((f) =>
-                    f.type === 'bool' ? (
+            <h2 className="rounded-t-lg border-b border-surface-border bg-card-head px-3.5 py-2.5 text-sm font-semibold text-primary">{title}</h2>
+            <div className="grid gap-3 p-3.5 sm:grid-cols-2">
+                {fields.map((f) => {
+                    // A text setting with a `<key>_local` twin renders as one English→local-language pair.
+                    if (f.key.endsWith('_local') && fields.some((g) => `${g.key}_local` === f.key)) return null;
+                    const twin = f.type === 'text' && !f.options && fields.find((g) => g.key === `${f.key}_local`);
+                    if (twin)
+                        return (
+                            <BilingualName
+                                key={f.key}
+                                enLabel={f.label}
+                                guLabel={twin.label}
+                                enName={f.key}
+                                guName={twin.key}
+                                defaultEn={f.value}
+                                defaultGu={twin.value}
+                                maxLength={500}
+                            />
+                        );
+                    return f.type === 'bool' ? (
                         <div key={f.key} className="sm:col-span-2">
                             <BoolSetting name={f.key} label={f.label} hint={f.hint} initial={f.value} />
                         </div>
@@ -71,11 +88,11 @@ export default function SettingsForm({ module, title, fields }) {
                                 className={`${textInput()} w-full`}
                             />
                         </Field>
-                    ),
-                )}
+                    );
+                })}
             </div>
             {state?.error && <p className="px-4 pb-3 text-xs font-medium text-destructive">{t(state.error)}</p>}
-            <div className="flex justify-end border-t border-surface-border px-4 py-3">
+            <div className="flex justify-end border-t border-surface-border px-3.5 py-2.5">
                 <SubmitButton icon={Save} pending={pending} pendingText={t('common.saving')}>
                     {t('common.save')}
                 </SubmitButton>

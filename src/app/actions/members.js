@@ -16,13 +16,14 @@ const FORBIDDEN = { error: 'common.forbidden' };
 function readMember(fd) {
     return {
         full_name: str(fd, 'full_name', 150),
-        full_name_gu: strOrNull(fd, 'full_name_gu', 150),
+        full_name_local: strOrNull(fd, 'full_name_local', 150),
         phoneRaw: str(fd, 'phone', 30),
         phone: normalizePhone(fd.get('phone')),
         gender: oneOf(fd, 'gender', ['male', 'female', 'other']),
         dob: date(fd, 'dob'),
         blood_group: oneOf(fd, 'blood_group', BLOOD_GROUPS),
         village: strOrNull(fd, 'village', 100),
+        city: strOrNull(fd, 'city', 100),
         caste_id: id(fd, 'caste_id'),
         subcaste_id: id(fd, 'subcaste_id'),
         status: oneOf(fd, 'status', ['active', 'inactive', 'deceased'], 'active'),
@@ -82,9 +83,9 @@ export async function createMember(prev, fd) {
     const language = await getSetting('admin', 'default_language');
     const newId = await withTransaction(async (q) => {
         const r = await q(
-            `INSERT INTO users_list (phone, password_hash, full_name, full_name_gu, gender, dob, blood_group, village,
+            `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, gender, dob, blood_group, village, city,
                                      caste_id, subcaste_id, role, status, is_blood_donor, language, created_by)
-             VALUES (:phone, :hash, :full_name, :full_name_gu, :gender, :dob, :blood_group, :village,
+             VALUES (:phone, :hash, :full_name, :full_name_local, :gender, :dob, :blood_group, :village, :city,
                      :caste_id, :subcaste_id, :role, :status, :is_blood_donor, :language, :by)`,
             { ...m, hash, role, language, by: actor.id },
         );
@@ -117,8 +118,8 @@ export async function updateMember(prev, fd) {
 
     await withTransaction(async (q) => {
         await q(
-            `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_gu = :full_name_gu, gender = :gender,
-                    dob = :dob, blood_group = :blood_group, village = :village, caste_id = :caste_id,
+            `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local, gender = :gender,
+                    dob = :dob, blood_group = :blood_group, village = :village, city = :city, caste_id = :caste_id,
                     subcaste_id = :subcaste_id, role = :role, status = :status,
                     is_blood_donor = :is_blood_donor ${hash ? ', password_hash = :hash' : ''}
               WHERE id = :id`,
@@ -221,7 +222,7 @@ export async function removeRelation(personId, relativeId) {
 
 // ── groups, from the directory ────────────────────────────────────────────────
 
-/** "Make group admin" / "Add to group" from the Parivar Jano list. Upserts membership. */
+/** "Make group admin" / "Add to group" from the Members list. Upserts membership. */
 export async function assignToGroup(prev, fd) {
     const actor = await getCurrentUser();
     const userId = id(fd, 'user_id');
@@ -232,7 +233,7 @@ export async function assignToGroup(prev, fd) {
 
     const [user, group] = await Promise.all([
         queryOne('SELECT full_name FROM users_list WHERE id = :userId', { userId }),
-        queryOne('SELECT name, name_gu FROM admin_groups WHERE id = :groupId', { groupId }),
+        queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId }),
     ]);
     if (!user || !group) return { error: 'common.error' };
 
@@ -247,7 +248,7 @@ export async function assignToGroup(prev, fd) {
     await audit(actor.id, memberRole === 'admin' ? 'group.admin' : 'group.member.add', 'group', groupId, { userId });
     await notify(userId, {
         type: memberRole === 'admin' ? 'group.admin' : 'group.member',
-        data: { group: group.name, group_gu: group.name_gu },
+        data: { group: group.name, group_local: group.name_local },
         link: `/groups/${groupId}`,
         actorId: actor.id,
     });

@@ -29,6 +29,21 @@ function createPool() {
 
 // A module-level pool without the globalThis cache leaks a pool per hot reload in dev.
 const pool = globalThis.__parivarPool ?? createPool();
+if (!pool.__tzHooked) {
+    // The hosting server's clock is UTC (@@system_time_zone). Without this, NOW() and every
+    // DEFAULT CURRENT_TIMESTAMP record UTC, and chat/notification/audit times read 5h30m
+    // early to people in India. The `timezone` pool option only converts JS Dates; it does
+    // not change what the server's own clock functions return.
+    // Strict mode too: the host runs MariaDB without STRICT_TRANS_TABLES, where a bad enum
+    // value is silently stored as '' and overlong text is cut off. Refusing is better than
+    // quietly storing something else.
+    pool.pool.on('connection', (conn) =>
+        conn.query(
+            "SET time_zone = '+05:30', sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'",
+        ),
+    );
+    pool.__tzHooked = true;
+}
 if (process.env.NODE_ENV !== 'production') globalThis.__parivarPool = pool;
 
 const LOCK_ERRORS = new Set(['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT']);
@@ -117,6 +132,7 @@ const META = {
     fundraise_expenses: ['fundraise_expensesmeta', 'expense_id'],
     fundraise_updates: ['fundraise_updatesmeta', 'update_id'],
     events_list: ['events_listmeta', 'event_id'],
+    chat_messages: ['chat_messagesmeta', 'message_id'],
 };
 
 function metaTable(base) {

@@ -41,9 +41,9 @@ export default function GroupMembers({ groupId, members, canManage, currentUserI
                             <button
                                 type="button"
                                 onClick={open}
-                                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
+                                className="inline-flex h-9 shrink-0 items-center gap-2 btn-secondary rounded-md px-3 text-sm font-medium"
                             >
-                                <UserPlus className="size-4 text-ink-gray" /> {t('groups.addMember')}
+                                <UserPlus className="size-4" /> {t('groups.addMember')}
                             </button>
                         )}
                     >
@@ -81,7 +81,7 @@ export default function GroupMembers({ groupId, members, canManage, currentUserI
                             <Tr key={m.id}>
                                 <Td className="max-w-64">
                                     <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
-                                        {(locale === 'gu' && m.full_name_gu) || m.full_name}
+                                        {(locale === 'gu' && m.full_name_local) || m.full_name}
                                     </Link>
                                     {m.village && <span className="block text-xs text-ink-gray">{m.village}</span>}
                                 </Td>

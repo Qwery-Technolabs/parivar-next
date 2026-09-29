@@ -12,6 +12,10 @@
   --color-brand-navy-soft: #30466a;
   --color-brand-orange: #f79812;
   --color-brand-orange-dark: #e6890f;
+  /* Deep orange for FILLED surfaces carrying white text: white on it 4.56:1 (AA), hover 5.42:1.
+     The bright brand orange (2.22:1 with white) stays for bars, dots and switch tracks. */
+  --color-brand-orange-strong: #b85d09;
+  --color-brand-orange-strong-hover: #a8520b;
   --color-brand-blue: #66aae1;
   --color-brand-blue-deep: #003294;
   --color-ink: #041527;
@@ -40,9 +44,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
+  --color-card-head: var(--card-head);
 
-  /* Geist has no Gujarati glyphs; Noto Sans Gujarati takes over per character. */
-  --font-sans: var(--font-geist-sans), var(--font-gujarati), system-ui, sans-serif;
+  /* Geist has no Gujarati or Devanagari glyphs; the Noto faces take over per character. */
+  --font-sans: var(--font-geist-sans), var(--font-gujarati), var(--font-devanagari), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-heading: var(--font-sans);
 
@@ -73,10 +78,14 @@
   --input: #d3d5d8;
   --ring: #66aae1;
   --destructive: #c0262d; /* 5.90:1 on white */
+  /* Card header strip: navy on it 11.42:1, ink-gray 6.84:1 — enough tint to separate the
+     header from the body without competing with it. */
+  --card-head: #e9eef5;
 }
 
 /* Fundraise area: white on #003294 is 11.15:1 (AAA). */
 .theme-fundraise {
+  --card-head: #e6edfb;
   --primary: #003294;
   --accent: #eef3ff;
   --secondary-foreground: #003294;
@@ -85,10 +94,33 @@
 
 /* Blood area: white on #9f1239 is 8.02:1 (AAA); #9f1239 on #fff1f2 is 7.30:1. */
 .theme-blood {
+  --card-head: #fce8ec;
   --primary: #9f1239;
   --accent: #fff1f2;
   --secondary-foreground: #9f1239;
   --accent-foreground: #9f1239;
+}
+
+/* Secondary colour = orange, with WHITE text on the deep shade (4.56:1, AA).
+   btn-secondary: every non-primary action. seg-active: the selected tab / segment. */
+@utility btn-secondary {
+  background-color: var(--color-brand-orange-strong);
+  color: #ffffff;
+  &:hover {
+    background-color: var(--color-brand-orange-strong-hover);
+  }
+}
+
+@utility seg-active {
+  background-color: var(--color-brand-orange-strong);
+  color: #ffffff;
+}
+
+/* Density: a 15px root (93.75% of the browser default, so a person's own larger font
+   setting still scales it). Type, spacing, control heights and the sidebar are all rem, so
+   everything tightens together by ~6% and more of a page fits above the fold. */
+html {
+  font-size: 93.75%;
 }
 
 /* §5 — a backstop, not a licence: wide content scrolls inside its own container. */

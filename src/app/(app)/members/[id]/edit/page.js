@@ -5,7 +5,7 @@ import { requireUser } from '@/lib/auth';
 import { localized } from '@/lib/i18n/config';
 import { casteOptions } from '@/lib/castes';
 import { getT } from '@/lib/i18n/server';
-import { getMember, listVillages } from '@/lib/members';
+import { getMember, listCities, listVillages } from '@/lib/members';
 import { assignableRoles, canEditUser } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -20,10 +20,10 @@ export default async function EditMemberPage({ params }) {
     if (!member) notFound();
     if (!canEditUser(user, member)) redirect(`/members/${member.id}`);
     const { t, locale } = await getT();
-    const [villages, castes] = await Promise.all([listVillages(), casteOptions(locale)]);
+    const [villages, cities, castes] = await Promise.all([listVillages(), listCities(), casteOptions(locale)]);
     const self = user.id === member.id;
     return (
-        <div className="mx-auto max-w-3xl">
+        <div>
             <PageHeader
                 title={t('members.edit')}
                 subtitle={localized(member, 'full_name', locale)}
@@ -37,6 +37,7 @@ export default async function EditMemberPage({ params }) {
                 // Own password is changed from the profile page, which asks for the current one.
                 canSetPassword={!self}
                 villages={villages.map((v) => v.value)}
+                cities={cities.map((c) => c.value)}
                 casteOptions={castes}
             />
         </div>

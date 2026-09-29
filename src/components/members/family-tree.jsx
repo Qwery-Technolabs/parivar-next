@@ -8,7 +8,7 @@ import { useT } from '@/lib/i18n/client';
 
 function PersonCard({ p, isRoot, showDetails }) {
     const { t, locale } = useT();
-    const name = (locale === 'gu' && p.full_name_gu) || p.full_name;
+    const name = (locale === 'gu' && p.full_name_local) || p.full_name;
     const a = age(p.dob);
     const tone = p.gender === 'female' ? 'border-t-rose-700' : p.gender === 'male' ? 'border-t-brand-navy' : 'border-t-surface-border';
     return (

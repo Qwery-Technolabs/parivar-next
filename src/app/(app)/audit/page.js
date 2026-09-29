@@ -53,7 +53,7 @@ export default async function AuditPage({ searchParams }) {
         // perPage/offset are server-clamped integers, inlined on purpose (DESIGN.md §9).
         query(
             `SELECT a.id, a.action, a.entity, a.entity_id, a.detail, a.created_at,
-                    u.id AS actor_id, u.full_name, u.full_name_gu
+                    u.id AS actor_id, u.full_name, u.full_name_local
                FROM admin_audit_log a LEFT JOIN users_list u ON u.id = a.actor_id
               WHERE ${where}
               ORDER BY a.id DESC

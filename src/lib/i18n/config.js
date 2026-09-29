@@ -20,8 +20,8 @@ export function translate(dict, key, vars) {
     return raw.replace(/\{(\w+)\}/g, (m, name) => (vars[name] ?? m));
 }
 
-/** Pick the Gujarati field when the UI is Gujarati and it is filled, else the base field. */
+/** The local-language spelling (`<field>_local`) when the UI is not English and it is filled, else the base field. */
 export function localized(row, field, locale) {
     if (!row) return '';
-    return (locale === 'gu' && row[`${field}_gu`]) || row[field] || '';
+    return (locale === 'gu' && row[`${field}_local`]) || row[field] || '';
 }

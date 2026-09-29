@@ -26,7 +26,7 @@ export default function ActionButton({ action, confirm, icon, children, danger =
                 });
             }}
             className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium disabled:opacity-60 ${
-                danger ? 'text-destructive hover:bg-destructive/10' : 'border border-surface-border bg-white text-primary hover:bg-accent'
+                danger ? 'text-destructive hover:bg-destructive/10' : 'btn-secondary'
             } ${className}`}
         >
             {pending ? <Loader2 className="size-3.5 animate-spin" /> : icon}

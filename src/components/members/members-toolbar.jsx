@@ -1,5 +1,5 @@
 'use client';
-import { Droplet, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { Field, selectInput, textInput } from '@/components/ui/field';
@@ -9,13 +9,13 @@ import CasteSelect from './caste-select';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 
-const FILTER_KEYS = ['role', 'blood', 'compat', 'donor', 'village', 'gender', 'caste', 'subcaste', 'status'];
+const FILTER_KEYS = ['role', 'blood', 'compat', 'donor', 'village', 'city', 'gender', 'caste', 'subcaste', 'age_min', 'age_max', 'status'];
 
 /**
  * DESIGN.md §5 "combining several controls" + §6 draft panel: one <form> so the search
  * and the filter button wrap as a unit; type → narrow → go.
  */
-export default function MembersToolbar({ filters, activeCount, villages, roles, castes }) {
+export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes }) {
     const { t } = useT();
     const router = useRouter();
     const pathname = usePathname();
@@ -64,6 +64,7 @@ export default function MembersToolbar({ filters, activeCount, villages, roles, 
                     filters={filters}
                     activeCount={activeCount}
                     villages={villages}
+                    cities={cities}
                     roles={roles}
                     castes={castes}
                     onApply={navigate}
@@ -79,26 +80,7 @@ export default function MembersToolbar({ filters, activeCount, villages, roles, 
                 </button>
             </form>
 
-            {/* Quick blood filter chips — the most-asked question of this directory. */}
             <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto">
-                <Droplet className="size-4 text-rose-700" aria-hidden />
-                {BLOOD_GROUPS.map((g) => {
-                    const on = filters.blood === g;
-                    return (
-                        <button
-                            key={g}
-                            type="button"
-                            disabled={pending}
-                            onClick={() => navigate({ blood: on ? null : g, compat: on ? null : filters.compat })}
-                            aria-pressed={on}
-                            className={`h-7 shrink-0 rounded-full px-2.5 text-xs font-medium tabular-nums ring-1 ring-inset ${
-                                on ? 'bg-brand-orange text-brand-navy ring-brand-orange' : 'bg-brand-navy/5 text-brand-navy ring-brand-navy/20 hover:bg-accent'
-                            }`}
-                        >
-                            {g}
-                        </button>
-                    );
-                })}
                 {(filters.q || activeCount > 0) && (
                     <button
                         type="button"
@@ -113,10 +95,16 @@ export default function MembersToolbar({ filters, activeCount, villages, roles, 
     );
 }
 
-function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, disabled }) {
+function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, onApply, disabled }) {
     const { t } = useT();
     // Ids travel as strings in the draft so they match <option value>.
-    const initial = () => ({ ...filters, caste: filters.caste ? String(filters.caste) : '', subcaste: filters.subcaste ? String(filters.subcaste) : '' });
+    const initial = () => ({
+        ...filters,
+        caste: filters.caste ? String(filters.caste) : '',
+        subcaste: filters.subcaste ? String(filters.subcaste) : '',
+        ageMin: filters.ageMin != null ? String(filters.ageMin) : '',
+        ageMax: filters.ageMax != null ? String(filters.ageMax) : '',
+    });
     const [draft, setDraft] = useState(initial);
     const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
 
@@ -136,9 +124,9 @@ function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, 
                     aria-haspopup="dialog"
                     aria-expanded={open}
                     aria-label={activeCount ? `${t('common.filters')} (${activeCount})` : t('common.filters')}
-                    className="relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
+                    className="relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md btn-secondary px-3 text-sm font-medium"
                 >
-                    <SlidersHorizontal className="size-4 text-ink-gray" />
+                    <SlidersHorizontal className="size-4" />
                     {t('common.filters')}
                     {activeCount > 0 && (
                         <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-destructive ring-2 ring-white" />
@@ -179,6 +167,16 @@ function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, 
                         </div>
                     )}
                     <Switch checked={draft.donor} onChange={(v) => set('donor', v)} label={t('members.donorsOnly')} />
+                    <Field label={t('members.city')}>
+                        <select value={draft.city} onChange={(e) => set('city', e.target.value)} className={`${selectInput()} w-full`}>
+                            <option value="">{t('common.any')}</option>
+                            {cities.map((c) => (
+                                <option key={c.value} value={c.value}>
+                                    {c.label} ({c.count})
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
                     <Field label={t('members.village')}>
                         <select value={draft.village} onChange={(e) => set('village', e.target.value)} className={`${selectInput()} w-full`}>
                             <option value="">{t('common.any')}</option>
@@ -198,6 +196,34 @@ function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, 
                             onChange={(v) => setDraft((d) => ({ ...d, ...v }))}
                         />
                     )}
+                    {/* A min/max pair answers one question, so it is one Field with one label. */}
+                    <Field label={t('members.ageRange')}>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={120}
+                                value={draft.ageMin}
+                                onChange={(e) => set('ageMin', e.target.value)}
+                                placeholder={t('members.ageMin')}
+                                aria-label={t('members.ageMin')}
+                                className={`${textInput()} w-full min-w-0 tabular-nums`}
+                            />
+                            <span className="shrink-0 text-ink-gray">–</span>
+                            <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={120}
+                                value={draft.ageMax}
+                                onChange={(e) => set('ageMax', e.target.value)}
+                                placeholder={t('members.ageMax')}
+                                aria-label={t('members.ageMax')}
+                                className={`${textInput()} w-full min-w-0 tabular-nums`}
+                            />
+                        </div>
+                    </Field>
                     <Field label={t('members.gender')}>
                         <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
                             {[
@@ -211,7 +237,7 @@ function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, 
                                     onClick={() => set('gender', v)}
                                     className={`h-8 shrink-0 rounded px-2.5 text-xs font-medium ${
                                         draft.gender === v
-                                            ? 'bg-white text-brand-navy shadow-sm ring-1 ring-surface-border'
+                                            ? 'seg-active shadow-sm'
                                             : 'text-ink-gray hover:text-brand-navy'
                                     }`}
                                 >
@@ -232,7 +258,7 @@ function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, 
                         <button
                             type="button"
                             onClick={() =>
-                                setDraft({ ...filters, role: '', blood: '', compat: false, donor: false, village: '', gender: '', caste: '', subcaste: '', status: 'active' })
+                                setDraft({ ...filters, role: '', blood: '', compat: false, donor: false, village: '', city: '', gender: '', caste: '', subcaste: '', ageMin: '', ageMax: '', status: 'active' })
                             }
                             className="h-8 rounded-md px-3 text-sm font-medium text-ink-gray hover:bg-accent hover:text-primary"
                         >
@@ -247,9 +273,12 @@ function FiltersPanel({ filters, activeCount, villages, roles, castes, onApply, 
                                     compat: draft.blood && draft.compat,
                                     donor: draft.donor,
                                     village: draft.village,
+                                    city: draft.city,
                                     gender: draft.gender,
                                     caste: draft.caste,
                                     subcaste: draft.caste ? draft.subcaste : null,
+                                    age_min: draft.ageMin.trim(),
+                                    age_max: draft.ageMax.trim(),
                                     status: draft.status === 'active' ? null : draft.status,
                                 });
                                 close();

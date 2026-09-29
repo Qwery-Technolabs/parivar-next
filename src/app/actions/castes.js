@@ -20,7 +20,7 @@ export async function saveCaste(prev, fd) {
     const casteId = id(fd, 'id');
     const parentId = id(fd, 'parent_id');
     const name = str(fd, 'name', 100);
-    const nameGu = strOrNull(fd, 'name_gu', 100);
+    const nameLocal = strOrNull(fd, 'name_local', 100);
     const sortOrder = Math.min(9999, Math.max(0, Number.parseInt(String(fd.get('sort_order') ?? '0'), 10) || 0));
     if (!name) return { fieldErrors: { name: 'common.required' } };
 
@@ -39,22 +39,22 @@ export async function saveCaste(prev, fd) {
     if (casteId) {
         // parent_id is fixed after creation: moving a sub-caste would silently change the
         // caste of every member who picked it.
-        await query('UPDATE admin_castes SET name = :name, name_gu = :nameGu, sort_order = :sortOrder WHERE id = :casteId', {
+        await query('UPDATE admin_castes SET name = :name, name_local = :nameLocal, sort_order = :sortOrder WHERE id = :casteId', {
             name,
-            nameGu,
+            nameLocal,
             sortOrder,
             casteId,
         });
     } else {
         const r = await query(
-            `INSERT INTO admin_castes (parent_id, name, name_gu, sort_order, created_by)
-             VALUES (:parentId, :name, :nameGu, :sortOrder, :by)`,
-            { parentId, name, nameGu, sortOrder, by: user.id },
+            `INSERT INTO admin_castes (parent_id, name, name_local, sort_order, created_by)
+             VALUES (:parentId, :name, :nameLocal, :sortOrder, :by)`,
+            { parentId, name, nameLocal, sortOrder, by: user.id },
         );
         savedId = r.insertId;
     }
     await audit(user.id, casteId ? 'caste.update' : 'caste.create', 'caste', savedId, { name, parentId });
-    revalidatePath('/settings/castes');
+    revalidatePath('/members/castes');
     return { ok: true, message: 'common.saved' };
 }
 
@@ -70,7 +70,7 @@ export async function setCasteStatus(casteId, status) {
         cid2: status === 'inactive' ? cid : -1,
     });
     await audit(user.id, 'caste.status', 'caste', cid, { status });
-    revalidatePath('/settings/castes');
+    revalidatePath('/members/castes');
     return { ok: true, message: 'common.saved' };
 }
 
@@ -89,6 +89,6 @@ export async function deleteCaste(casteId) {
     if (used.children > 0) return { error: 'castes.errors.hasChildren' };
     await query('DELETE FROM admin_castes WHERE id = :cid', { cid });
     await audit(user.id, 'caste.delete', 'caste', cid);
-    revalidatePath('/settings/castes');
+    revalidatePath('/members/castes');
     return { ok: true, message: 'common.deleted' };
 }

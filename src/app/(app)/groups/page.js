@@ -1,12 +1,11 @@
-import { ShieldCheck, Users } from 'lucide-react';
-import Link from 'next/link';
+import GroupChatList from '@/components/groups/group-chat-list';
 import GroupFormDialog from '@/components/groups/group-form-dialog';
 import PageHeader from '@/components/shell/page-header';
 import { requireUser } from '@/lib/auth';
-import { number } from '@/lib/format';
-import { localized } from '@/lib/i18n/config';
+import { date as fmtDate, time as fmtTime } from '@/lib/format';
+import { todayIST } from '@/lib/forms';
 import { getT } from '@/lib/i18n/server';
-import { listGroups } from '@/lib/groups';
+import { listGroupsForChat } from '@/lib/groups';
 import { canManageGroups } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -14,46 +13,52 @@ export async function generateMetadata() {
     return { title: t('groups.title') };
 }
 
+/** Time label like WhatsApp's chat list: 18:04 today, "Yesterday", else the date. */
+function whenLabel(at, t, locale) {
+    if (!at) return '';
+    const day = String(at).slice(0, 10);
+    const today = todayIST();
+    const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+    if (day === today) return fmtTime(String(at).slice(11, 16));
+    if (day === yesterday) return t('groups.yesterday');
+    return fmtDate(day, locale);
+}
+
 export default async function GroupsPage() {
     const user = await requireUser();
     const { t, locale } = await getT();
-    const groups = await listGroups();
+    const manager = canManageGroups(user.role);
+    const rows = await listGroupsForChat(user.id);
+
+    const groups = rows.map((g) => {
+        // Only people who can read a discussion see its preview and unread count.
+        const canRead = manager || Boolean(g.my_role);
+        const name = (locale !== 'en' && g.name_local) || g.name;
+        let preview = null;
+        if (!canRead) preview = t('groups.membersOnlyPreview');
+        else if (!g.last_id) preview = t('groups.noMessages');
+        else if (g.last_deleted) preview = t('chat.deleted');
+        else {
+            const who = g.last_user_id === user.id ? t('groups.you') : (locale !== 'en' && g.last_author_local) || g.last_author || t('chat.formerMember');
+            preview = `${who}: ${String(g.last_body ?? '').replace(/\s+/g, ' ').slice(0, 120)}`;
+        }
+        return {
+            id: g.id,
+            name,
+            members: Number(g.members),
+            admin: g.my_role === 'admin',
+            member: Boolean(g.my_role),
+            preview,
+            muted: !canRead || !g.last_id,
+            when: canRead ? whenLabel(g.last_at, t, locale) : '',
+            unread: canRead ? Number(g.unread) : 0,
+        };
+    });
 
     return (
         <div>
-            <PageHeader
-                title={t('groups.title')}
-                subtitle={t('groups.subtitle')}
-                actions={canManageGroups(user.role) && <GroupFormDialog />}
-            />
-            {groups.length === 0 ? (
-                <p className="rounded-lg border border-surface-border bg-white px-4 py-10 text-center text-sm text-ink-gray">
-                    {t('groups.empty')}
-                </p>
-            ) : (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {groups.map((g) => (
-                        <Link
-                            key={g.id}
-                            href={`/groups/${g.id}`}
-                            className="block min-w-0 rounded-lg border border-surface-border bg-white p-4 shadow-sm hover:bg-accent/40"
-                        >
-                            <p className="break-words text-sm font-semibold text-primary">{localized(g, 'name', locale)}</p>
-                            {locale === 'gu' && g.name_gu && <p className="text-xs text-ink-gray">{g.name}</p>}
-                            <div className="mt-3 flex gap-4 text-xs text-ink-gray">
-                                <span className="inline-flex items-center gap-1.5">
-                                    <Users className="size-3.5" />
-                                    <span className="tabular-nums">{number(g.members)}</span> {t('groups.members')}
-                                </span>
-                                <span className="inline-flex items-center gap-1.5">
-                                    <ShieldCheck className="size-3.5" />
-                                    <span className="tabular-nums">{number(g.admins)}</span> {t('groups.admins')}
-                                </span>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
-            )}
+            <PageHeader title={t('groups.title')} subtitle={t('groups.subtitle')} actions={manager && <GroupFormDialog />} />
+            <GroupChatList groups={groups} />
         </div>
     );
 }

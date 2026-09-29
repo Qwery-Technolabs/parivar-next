@@ -12,7 +12,7 @@ import { useT } from '@/lib/i18n/client';
 
 function PersonRow({ person, label, onRemove, busy }) {
     const { locale } = useT();
-    const name = (locale === 'gu' && person.full_name_gu) || person.full_name;
+    const name = (locale === 'gu' && person.full_name_local) || person.full_name;
     return (
         <li className="flex items-center gap-3 px-4 py-2.5">
             <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray">{label}</span>
@@ -72,7 +72,7 @@ export default function FamilyCard({ personId, personName, family, canEdit }) {
                             <button
                                 type="button"
                                 onClick={open}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-border bg-white px-2.5 text-xs font-medium text-primary hover:bg-accent"
+                                className="inline-flex h-8 items-center gap-1.5 btn-secondary rounded-md px-2.5 text-xs font-medium"
                             >
                                 <Plus className="size-3.5" /> {t('relations.add')}
                             </button>

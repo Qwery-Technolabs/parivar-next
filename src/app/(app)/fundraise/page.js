@@ -1,27 +1,23 @@
-import { MapPin, Plus } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import GroupFilter from '@/components/fundraise/group-filter';
-import PageHeader, { LinkButton, StatCard } from '@/components/shell/page-header';
+import PageHeader, { StatCard } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
-import { adminGroupIds } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money } from '@/lib/format';
 import {
     CAMPAIGN_STATUSES,
     listCampaigns,
     listGroupsForSelect,
-    locationCounts,
     myContributions,
     myTeamCampaigns,
     progressPct,
-    userVillage,
 } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { canManageAllFundraises } from '@/lib/roles';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref, sp1 } from '@/lib/url';
 
@@ -40,7 +36,6 @@ function resolveFilters(sp) {
         view: VIEWS.includes(sp1(sp.view)) ? sp1(sp.view) : '',
         status,
         groupId: Number.isInteger(g) && g > 0 ? g : null,
-        location: sp1(sp.location).slice(0, 100),
         page: normalizePage(sp1(sp.page)),
     };
 }
@@ -51,8 +46,6 @@ export default async function FundraiseListPage({ searchParams }) {
     const { t, locale } = await getT();
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
     const f = resolveFilters(sp);
-    const myAdminGroups = await adminGroupIds(user.id);
-    const canCreate = canManageAllFundraises(user.role) || myAdminGroups.length > 0;
 
     const views = [
         { value: '', label: t('fundraise.views.all') },
@@ -62,35 +55,20 @@ export default async function FundraiseListPage({ searchParams }) {
 
     return (
         <div className="theme-fundraise">
-            <PageHeader
-                title={t('fundraise.title')}
-                subtitle={t('fundraise.subtitle')}
-                actions={
-                    canCreate && (
-                        <LinkButton href="/fundraise/new" icon={Plus} className="w-full sm:w-auto">
-                            {t('fundraise.add')}
-                        </LinkButton>
-                    )
-                }
-            />
+            {/* No "New fundraise" here: a fundraise is started from its group's page. */}
+            <PageHeader title={t('fundraise.title')} subtitle={t('fundraise.subtitle')} />
 
-            {/* View tabs scroll rather than wrap. Changing view drops the other view's filters. */}
-            <div className="scrollbar-none -mx-1 mb-4 flex max-w-full overflow-x-auto px-1">
-                <div className="inline-flex shrink-0 rounded-lg border border-surface-border bg-white p-0.5">
-                    {views.map((v) => (
-                        <Link
-                            key={v.value || 'all'}
-                            href={v.value ? `/fundraise?view=${v.value}` : '/fundraise'}
-                            scroll={false}
-                            aria-current={f.view === v.value ? 'page' : undefined}
-                            className={`inline-flex h-8 shrink-0 items-center whitespace-nowrap rounded-md px-3 text-xs font-medium ${
-                                f.view === v.value ? 'bg-primary text-primary-foreground' : 'text-ink-gray hover:bg-accent hover:text-primary'
-                            }`}
-                        >
-                            {v.label}
-                        </Link>
-                    ))}
-                </div>
+            {/* One filter row. The view select clears the other view's filters; status and group
+                only mean something on the all-fundraises view, so they appear there. */}
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+                <GroupFilter
+                    param="view"
+                    options={views.filter((v) => v.value).map((v) => ({ value: v.value, label: v.label }))}
+                    allLabel={views.find((v) => !v.value)?.label ?? ''}
+                    reset={['status', 'group']}
+                    className="sm:w-52"
+                />
+                {f.view === '' && <FeedFilters locale={locale} t={t} />}
             </div>
 
             {f.view === 'mine' && <MyDonations user={user} sp={sp} page={f.page} perPage={perPage} t={t} locale={locale} />}
@@ -102,75 +80,52 @@ export default async function FundraiseListPage({ searchParams }) {
 
 // ── feed ──────────────────────────────────────────────────────────────────────
 
+/** Status + group selects for the all-fundraises view (URL-backed, live). */
+async function FeedFilters({ t, locale }) {
+    const groups = await listGroupsForSelect();
+    return (
+        <>
+            <GroupFilter
+                param="status"
+                options={CAMPAIGN_STATUSES.map((s) => ({ value: s, label: t(`fundraise.${s}`) }))}
+                allLabel={t('fundraise.allStatuses')}
+                className="sm:w-40"
+            />
+            {groups.length > 0 && (
+                <GroupFilter
+                    param="group"
+                    options={groups.map((g) => ({ value: String(g.id), label: (locale !== 'en' && g.name_local) || g.name }))}
+                    allLabel={t('fundraise.allGroups')}
+                />
+            )}
+        </>
+    );
+}
+
 async function Feed({ user, sp, f, perPage, t, locale }) {
-    const village = await userVillage(user.id);
-    const [{ rows, total }, groups, locations] = await Promise.all([
-        listCampaigns(user, { ...f, village, perPage }),
-        listGroupsForSelect(),
-        locationCounts(user),
-    ]);
-    const statusTabs = [
-        { value: '', label: t('fundraise.allStatuses') },
-        ...CAMPAIGN_STATUSES.map((s) => ({ value: s, label: t(`fundraise.${s}`) })),
-    ];
-    // "Near you" only means something while no explicit location is chosen.
-    const near = f.location ? [] : rows.filter((r) => r.near);
-    const rest = f.location ? rows : rows.filter((r) => !r.near);
+    const { rows, total } = await listCampaigns(user, { ...f, perPage });
+    // "For you": any audience rule (surname, caste, sub-caste, village, native place) matches the viewer.
+    const forYou = rows.filter((r) => r.for_you);
+    const rest = rows.filter((r) => !r.for_you);
 
     return (
         <>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex flex-wrap rounded-md bg-surface-bggray/70 p-0.5">
-                    {statusTabs.map((s) => {
-                        const active = f.status === s.value;
-                        return (
-                            <Link
-                                key={s.value || 'all'}
-                                href={buildHref('/fundraise', sp, { status: s.value || null, page: null })}
-                                scroll={false}
-                                aria-current={active ? 'true' : undefined}
-                                className={`inline-flex h-8 shrink-0 items-center rounded px-2.5 text-xs font-medium ${
-                                    active ? 'bg-white text-primary shadow-sm ring-1 ring-surface-border' : 'text-ink-gray hover:text-primary'
-                                }`}
-                            >
-                                {s.label}
-                            </Link>
-                        );
-                    })}
-                </div>
-                <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
-                    {locations.length > 0 && (
-                        <GroupFilter
-                            param="location"
-                            options={locations.map((l) => ({ value: l.location, label: `${l.location} (${l.n})` }))}
-                            allLabel={t('fundraise.allLocations')}
-                        />
-                    )}
-                    {groups.length > 0 && (
-                        <GroupFilter
-                            param="group"
-                            options={groups.map((g) => ({ value: String(g.id), label: (locale === 'gu' && g.name_gu) || g.name }))}
-                            allLabel={t('fundraise.allGroups')}
-                        />
-                    )}
-                </div>
-            </div>
-
-            {near.length > 0 && (
+            {forYou.length > 0 && (
                 <>
                     <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-primary">
-                        <MapPin className="size-4" /> {t('fundraise.nearYou')} · {village}
+                        <Sparkles className="size-4" /> {t('fundraise.forYou')}
                     </h2>
-                    <CampaignTable rows={near} t={t} locale={locale} className="mb-5" />
+                    <p className="-mt-1 mb-2 text-xs text-ink-gray">{t('fundraise.forYouHint')}</p>
+                    <CampaignTable rows={forYou} t={t} locale={locale} className="mb-5" />
                     {rest.length > 0 && <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.otherFundraises')}</h2>}
                 </>
             )}
-            {(rest.length > 0 || near.length === 0) && (
+            {(rest.length > 0 || forYou.length === 0) && (
                 <CampaignTable
                     rows={rest}
                     t={t}
                     locale={locale}
-                    empty={f.status || f.groupId || f.location ? t('common.noResults') : t('fundraise.empty')}
+                    empty={f.status || f.groupId ? t('common.noResults') : t('fundraise.empty')}
                 />
             )}
             <Pagination pathname="/fundraise" searchParams={sp} page={f.page} perPage={perPage} total={total} t={t} />
@@ -197,7 +152,7 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                 ) : (
                     rows.map((c) => {
                         const pct = progressPct(c);
-                        const groupName = c.group_id ? localized({ name: c.group_name, name_gu: c.group_name_gu }, 'name', locale) : '';
+                        const groupName = c.group_id ? localized({ name: c.group_name, name_local: c.group_name_local }, 'name', locale) : '';
                         return (
                             <Tr key={c.id}>
                                 <Td>

@@ -7,7 +7,7 @@ import { query } from './db';
  */
 export async function listCastes({ activeOnly = false } = {}) {
     const rows = await query(
-        `SELECT c.id, c.parent_id, c.name, c.name_gu, c.sort_order, c.status,
+        `SELECT c.id, c.parent_id, c.name, c.name_local, c.sort_order, c.status,
                 COALESCE(n.members, 0) AS members
            FROM admin_castes c
            LEFT JOIN (
@@ -27,7 +27,7 @@ export async function listCastes({ activeOnly = false } = {}) {
 /** Flat option lists for selects: castes, and sub-castes keyed by caste id. */
 export async function casteOptions(locale) {
     const tree = await listCastes({ activeOnly: true });
-    const label = (c) => (locale === 'gu' && c.name_gu) || c.name;
+    const label = (c) => (locale === 'gu' && c.name_local) || c.name;
     return {
         castes: tree.map((c) => ({ value: String(c.id), label: label(c) })),
         subcastes: Object.fromEntries(

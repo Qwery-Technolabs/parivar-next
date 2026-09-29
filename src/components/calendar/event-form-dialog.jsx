@@ -6,12 +6,13 @@ import { saveEvent } from '@/app/actions/events';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
+import BilingualName from '@/components/ui/bilingual-name';
 import { useT } from '@/lib/i18n/client';
 
 /**
  * Create / edit an event. Loaded with next/dynamic on first open — the calendar
  * page ships without this form's code until someone actually adds or edits.
- * @param {{ open: boolean, onOpenChange: (v: boolean) => void, event?: any, groups: Array<{id: number, name: string, name_gu?: string}>, types: string[], defaultDate?: string }} props
+ * @param {{ open: boolean, onOpenChange: (v: boolean) => void, event?: any, groups: Array<{id: number, name: string, name_local?: string}>, types: string[], defaultDate?: string }} props
  */
 export default function EventFormDialog({ open, onOpenChange, event, groups, types, defaultDate }) {
     const { t } = useT();
@@ -62,12 +63,17 @@ function EventForm({ event, groups, types, defaultDate, onDone }) {
             className="space-y-4"
         >
             {event && <input type="hidden" name="id" value={event.id} />}
-            <Field label={t('calendar.name')} required error={fe('title')}>
-                <input name="title" defaultValue={e.title ?? ''} required maxLength={200} className={`${textInput(!!fe('title'))} w-full`} />
-            </Field>
-            <Field label={t('calendar.nameGu')}>
-                <input name="title_gu" lang="gu" defaultValue={e.title_gu ?? ''} maxLength={200} className={`${textInput()} w-full`} />
-            </Field>
+            <BilingualName
+                enLabel={t('calendar.name')}
+                guLabel={t('calendar.nameLocal')}
+                enName="title"
+                guName="title_local"
+                defaultEn={e.title}
+                defaultGu={e.title_local}
+                error={fe('title')}
+                maxLength={200}
+                required
+            />
             <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={t('calendar.type')}>
                     <select name="event_type" defaultValue={e.event_type ?? 'event'} className={`${selectInput()} w-full`}>
@@ -83,7 +89,7 @@ function EventForm({ event, groups, types, defaultDate, onDone }) {
                         <option value="">—</option>
                         {groups.map((g) => (
                             <option key={g.id} value={g.id}>
-                                {(locale === 'gu' && g.name_gu) || g.name}
+                                {(locale === 'gu' && g.name_local) || g.name}
                             </option>
                         ))}
                     </select>

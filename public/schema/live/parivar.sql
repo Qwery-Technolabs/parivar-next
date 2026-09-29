@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS admin_castes (
     id          INT UNSIGNED      NOT NULL AUTO_INCREMENT,
     parent_id   INT UNSIGNED      NULL,
     name        VARCHAR(100)      NOT NULL,
-    name_gu     VARCHAR(100)      NULL,
+    name_local     VARCHAR(100)      NULL,
     sort_order  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     status      ENUM('active','inactive') NOT NULL DEFAULT 'active',  -- inactive = hidden from pickers, kept on members
     created_by  INT UNSIGNED      NULL,
@@ -34,11 +34,12 @@ CREATE TABLE IF NOT EXISTS users_list (
     phone          VARCHAR(15)      NOT NULL,                 -- login id, digits only, 10–15
     password_hash  VARCHAR(100)     NULL,                     -- NULL = listed member who cannot log in yet
     full_name      VARCHAR(150)     NOT NULL,
-    full_name_gu   VARCHAR(150)     NULL,                     -- Gujarati spelling, shown when UI is gu
+    full_name_local VARCHAR(150)    NULL,                     -- local-language script (Gujarati default), shown when UI is not English
     gender         ENUM('male','female','other') NULL,
     dob            DATE             NULL,
     blood_group    ENUM('A+','A-','B+','B-','AB+','AB-','O+','O-') NULL,
-    village        VARCHAR(100)     NULL,
+    village        VARCHAR(100)     NULL,                     -- native village (gaam)
+    city           VARCHAR(100)     NULL,                     -- current residence
     caste_id       INT UNSIGNED     NULL,                     -- admin_castes (parent_id NULL)
     subcaste_id    INT UNSIGNED     NULL,                     -- admin_castes (child of caste_id)
     role           ENUM('super_admin','administrator','sub_admin','sarpanch','up_sarpanch','sabhyo')
@@ -55,13 +56,14 @@ CREATE TABLE IF NOT EXISTS users_list (
     KEY idx_users_role (role),
     KEY idx_users_blood (blood_group, is_blood_donor),
     KEY idx_users_village (village),
+    KEY idx_users_city (city),
     KEY idx_users_status_name (status, full_name),
     KEY idx_users_caste (caste_id, subcaste_id),
     CONSTRAINT fk_users_caste    FOREIGN KEY (caste_id)    REFERENCES admin_castes (id) ON DELETE SET NULL,
     CONSTRAINT fk_users_subcaste FOREIGN KEY (subcaste_id) REFERENCES admin_castes (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Known keys: address, occupation, education, bio, alt_phone, email, native_place, photo_url
+-- Known keys: position, address, occupation, education, bio, alt_phone, email, local_language
 CREATE TABLE IF NOT EXISTS users_listmeta (
     meta_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id     INT UNSIGNED NOT NULL,
@@ -123,7 +125,7 @@ CREATE TABLE IF NOT EXISTS users_notifications (
 CREATE TABLE IF NOT EXISTS admin_groups (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name        VARCHAR(150) NOT NULL,
-    name_gu     VARCHAR(150) NULL,
+    name_local     VARCHAR(150) NULL,
     status      ENUM('active','archived') NOT NULL DEFAULT 'active',
     created_by  INT UNSIGNED NULL,
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -223,9 +225,9 @@ CREATE TABLE IF NOT EXISTS blood_settings (
 
 CREATE TABLE IF NOT EXISTS fundraise_campaigns (
     id             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-    group_id       INT UNSIGNED  NULL,
+    group_id       INT UNSIGNED  NOT NULL,          -- a fundraise always belongs to a group
     title          VARCHAR(200)  NOT NULL,
-    title_gu       VARCHAR(200)  NULL,
+    title_local       VARCHAR(200)  NULL,
     location       VARCHAR(100)  NULL,               -- village/town; drives the "near me" feed
     target_amount  DECIMAL(12,2) NULL,
     start_date     DATE          NULL,
@@ -241,10 +243,22 @@ CREATE TABLE IF NOT EXISTS fundraise_campaigns (
     KEY idx_fundraise_group (group_id, status),
     KEY idx_fundraise_dates (start_date, end_date),
     KEY idx_fundraise_location (location, status),
-    CONSTRAINT fk_fundraise_group FOREIGN KEY (group_id) REFERENCES admin_groups (id) ON DELETE SET NULL
+    CONSTRAINT fk_fundraise_group FOREIGN KEY (group_id) REFERENCES admin_groups (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Known keys: description, description_gu
+-- Who sees a fundraise first. caste/subcaste values are admin_castes.id as text.
+CREATE TABLE IF NOT EXISTS fundraise_audience (
+    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    campaign_id  INT UNSIGNED NOT NULL,
+    kind         ENUM('surname','caste','subcaste','city','village') NOT NULL,   -- city = current residence, village = native
+    value        VARCHAR(150) NOT NULL,     -- caste / subcaste: admin_castes.id as text; others: the name as typed
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_fundraise_audience (campaign_id, kind, value),
+    KEY idx_fundraise_audience_match (kind, value),
+    CONSTRAINT fk_fundraise_audience_camp FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Known keys: description, description_local
 CREATE TABLE IF NOT EXISTS fundraise_campaignsmeta (
     meta_id      INT UNSIGNED NOT NULL AUTO_INCREMENT,
     campaign_id  INT UNSIGNED NOT NULL,
@@ -268,6 +282,8 @@ CREATE TABLE IF NOT EXISTS fundraise_contributions (
     reference    VARCHAR(100)  NULL,
     is_anonymous TINYINT(1)    NOT NULL DEFAULT 0,  -- public page shows "Anonymous", admins see the name
     recorded_by  INT UNSIGNED  NULL,
+    deleted_at   DATETIME      NULL,             -- soft delete: hidden and out of totals, kept for history
+    deleted_by   INT UNSIGNED  NULL,
     created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_fundraise_contrib_camp (campaign_id, paid_on),
@@ -285,6 +301,8 @@ CREATE TABLE IF NOT EXISTS fundraise_expenses (
     amount       DECIMAL(12,2) NOT NULL,
     spent_on     DATE          NOT NULL,
     recorded_by  INT UNSIGNED  NULL,
+    deleted_at   DATETIME      NULL,             -- soft delete: hidden and out of totals, kept for history
+    deleted_by   INT UNSIGNED  NULL,
     created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_fundraise_exp_camp (campaign_id, spent_on),
@@ -300,6 +318,23 @@ CREATE TABLE IF NOT EXISTS fundraise_expensesmeta (
     PRIMARY KEY (meta_id),
     UNIQUE KEY uq_fundraise_exp_meta (expense_id, meta_key),
     CONSTRAINT fk_fundraise_exp_meta FOREIGN KEY (expense_id) REFERENCES fundraise_expenses (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One row per add / edit / delete of a contribution or expense. snapshot = the full row after
+-- the change; for an edit it also carries {"before": {...}} so the UI can show old → new per field.
+CREATE TABLE IF NOT EXISTS fundraise_history (
+    id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    campaign_id  INT UNSIGNED    NOT NULL,
+    entity       ENUM('contribution','expense') NOT NULL,
+    entity_id    INT UNSIGNED    NOT NULL,
+    action       ENUM('add','edit','delete') NOT NULL,
+    actor_id     INT UNSIGNED    NULL,
+    snapshot     JSON            NULL,
+    created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_fundraise_history_camp (campaign_id, created_at),
+    KEY idx_fundraise_history_entity (entity, entity_id),
+    CONSTRAINT fk_fundraise_history_camp FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS fundraise_settings (
@@ -334,7 +369,7 @@ CREATE TABLE IF NOT EXISTS fundraise_members (
 CREATE TABLE IF NOT EXISTS events_list (
     id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
     title        VARCHAR(200) NOT NULL,
-    title_gu     VARCHAR(200) NULL,
+    title_local     VARCHAR(200) NULL,
     event_type   ENUM('event','fundraise','meeting','festival','other') NOT NULL DEFAULT 'event',
     start_date   DATE         NOT NULL,
     end_date     DATE         NULL,                  -- NULL = single day
@@ -397,4 +432,85 @@ CREATE TABLE IF NOT EXISTS events_settings (
     setting_value  LONGTEXT    NULL,
     updated_at     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ──────────────────────────────────────────────────────────────── chat_
+-- Discussions for groups and fundraises, keyed by (scope, scope_id). Text in meta (body).
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    scope       ENUM('group','fundraise') NOT NULL,
+    scope_id    INT UNSIGNED    NOT NULL,           -- admin_groups.id or fundraise_campaigns.id
+    user_id     INT UNSIGNED    NULL,               -- NULL once the author's account is removed
+    deleted_at  DATETIME        NULL,               -- soft delete: the thread keeps its shape
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_chat_thread (scope, scope_id, id),
+    KEY idx_chat_user (user_id),
+    CONSTRAINT fk_chat_user FOREIGN KEY (user_id) REFERENCES users_list (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Known keys: body
+CREATE TABLE IF NOT EXISTS chat_messagesmeta (
+    meta_id     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    message_id  BIGINT UNSIGNED NOT NULL,
+    meta_key    VARCHAR(64)     NOT NULL,
+    meta_value  LONGTEXT        NULL,
+    PRIMARY KEY (meta_id),
+    UNIQUE KEY uq_chat_meta (message_id, meta_key),
+    CONSTRAINT fk_chat_meta FOREIGN KEY (message_id) REFERENCES chat_messages (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Unread counts: newest message each member has seen, per discussion.
+CREATE TABLE IF NOT EXISTS chat_reads (
+    user_id       INT UNSIGNED    NOT NULL,
+    scope         ENUM('group','fundraise') NOT NULL,
+    scope_id      INT UNSIGNED    NOT NULL,
+    last_read_id  BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    read_at       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, scope, scope_id),
+    CONSTRAINT fk_chat_reads_user FOREIGN KEY (user_id) REFERENCES users_list (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────── meetings: attendees, reminders; browser push
+
+CREATE TABLE IF NOT EXISTS events_attendees (
+    event_id      INT UNSIGNED NOT NULL,
+    user_id       INT UNSIGNED NOT NULL,
+    rsvp          ENUM('pending','yes','maybe','no') NOT NULL DEFAULT 'pending',
+    responded_at  DATETIME     NULL,
+    PRIMARY KEY (event_id, user_id),
+    KEY idx_events_att_user (user_id, rsvp),
+    CONSTRAINT fk_events_att_event FOREIGN KEY (event_id) REFERENCES events_list (id) ON DELETE CASCADE,
+    CONSTRAINT fk_events_att_user  FOREIGN KEY (user_id)  REFERENCES users_list (id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- remind_at is precomputed (start − offset) so the scheduler's query is one indexed range scan.
+CREATE TABLE IF NOT EXISTS events_reminders (
+    id              INT UNSIGNED      NOT NULL AUTO_INCREMENT,
+    event_id        INT UNSIGNED      NOT NULL,
+    offset_minutes  SMALLINT UNSIGNED NOT NULL,   -- 1440 = a day before, 60, 15, 0 = at start
+    remind_at       DATETIME          NOT NULL,
+    sent_at         DATETIME          NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_events_reminder (event_id, offset_minutes),
+    KEY idx_events_reminder_due (sent_at, remind_at),
+    CONSTRAINT fk_events_reminder_event FOREIGN KEY (event_id) REFERENCES events_list (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- endpoint URLs are long; uniqueness is on their SHA-256 so the index stays small.
+CREATE TABLE IF NOT EXISTS users_push_subscriptions (
+    id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id        INT UNSIGNED NOT NULL,
+    endpoint_hash  CHAR(64)     NOT NULL,
+    endpoint       VARCHAR(1000) NOT NULL,
+    p256dh         VARCHAR(255) NOT NULL,
+    auth           VARCHAR(255) NOT NULL,
+    user_agent     VARCHAR(255) NULL,
+    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at   DATETIME     NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_users_push_endpoint (endpoint_hash),
+    KEY idx_users_push_user (user_id),
+    CONSTRAINT fk_users_push_user FOREIGN KEY (user_id) REFERENCES users_list (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

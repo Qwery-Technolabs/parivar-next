@@ -11,7 +11,7 @@ import Statement from './statement';
  * h-dvh overflow-hidden frame would clip everything past the first printed page.
  */
 export default function PrintSheet({ campaign, contributors, contributions, expenses, t, locale, backHref, publicView }) {
-    const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_gu: campaign.group_name_gu }, 'name', locale) : '';
+    const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale) : '';
     const dates = campaign.start_date || campaign.end_date ? `${date(campaign.start_date, locale)} – ${date(campaign.end_date, locale)}` : '';
     return (
         <div className="min-h-dvh bg-surface-login print:bg-white">

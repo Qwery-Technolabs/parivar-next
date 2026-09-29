@@ -48,8 +48,8 @@ export function resolveMonth(sp = {}) {
 export async function listMonth(first, last) {
     const [events, campaigns] = await Promise.all([
         query(
-            `SELECT e.id, e.title, e.title_gu, e.event_type, e.start_date, e.end_date, e.start_time, e.location,
-                    e.group_id, e.campaign_id, g.name AS group_name, g.name_gu AS group_name_gu
+            `SELECT e.id, e.title, e.title_local, e.event_type, e.start_date, e.end_date, e.start_time, e.location,
+                    e.group_id, e.campaign_id, g.name AS group_name, g.name_local AS group_name_local
                FROM events_list e LEFT JOIN admin_groups g ON g.id = e.group_id
               WHERE e.start_date <= :last AND COALESCE(e.end_date, e.start_date) >= :first
               ORDER BY e.start_date, e.start_time IS NULL, e.start_time, e.id`,
@@ -57,7 +57,7 @@ export async function listMonth(first, last) {
         ),
         // Read straight from fundraise_campaigns so a fundraise's dates have one source of truth.
         query(
-            `SELECT id, title, title_gu, start_date, end_date, status
+            `SELECT id, title, title_local, start_date, end_date, status
                FROM fundraise_campaigns
               WHERE status <> 'draft' AND start_date IS NOT NULL
                 AND start_date <= :last AND COALESCE(end_date, start_date) >= :first
@@ -73,5 +73,5 @@ export async function listMonth(first, last) {
 }
 
 export async function listGroupOptions() {
-    return query(`SELECT id, name, name_gu FROM admin_groups WHERE status = 'active' ORDER BY name`);
+    return query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`);
 }

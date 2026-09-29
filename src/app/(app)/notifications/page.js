@@ -32,14 +32,14 @@ export default async function NotificationsPage({ searchParams }) {
     const [{ total, rows }, unread] = await Promise.all([listNotifications(user.id, page, perPage), unreadCount(user.id)]);
 
     return (
-        <div className="mx-auto max-w-3xl">
+        <div>
             <PageHeader
                 title={t('notifications.title')}
                 subtitle={unread ? t('notifications.unread', { count: unread }) : undefined}
                 actions={
                     unread > 0 && (
                         <form action={markAllRead}>
-                            <SubmitButton icon={<CheckCheck className="size-4" />} variant="outline">
+                            <SubmitButton icon={<CheckCheck className="size-4" />} variant="secondary">
                                 {t('notifications.markAllRead')}
                             </SubmitButton>
                         </form>
@@ -55,7 +55,7 @@ export default async function NotificationsPage({ searchParams }) {
                 <ul className="overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
                     {rows.map((n) => {
                         const [Icon, tone] = ICONS[n.type.split('.')[0]] ?? [Users, 'text-ink-gray bg-muted'];
-                        const actor = (locale === 'gu' && n.actor_name_gu) || n.actor_name;
+                        const actor = (locale === 'gu' && n.actor_name_local) || n.actor_name;
                         return (
                             <li key={n.id} className="border-b border-surface-border last:border-0">
                                 <form action={openNotification}>
