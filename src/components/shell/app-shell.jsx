@@ -22,6 +22,7 @@ import { useState } from 'react';
 import { logout } from '@/app/actions/session';
 import { Popover } from '@/components/ui/popover';
 import { BACK_SLOT_ID } from './header-back';
+import SamajLogo from './samaj-logo';
 import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
 
 // Icons are mapped here rather than passed from the server layout: a component
@@ -104,7 +105,7 @@ function SidebarNav({ sections, footer, pathname, collapsed = false, onNavigate 
  * @param {{ sections: Array<{title: string, items: any[]}>, footer: any[], user: {name: string, role: string},
  *           labels: Record<string, string>, unread?: number, initialCollapsed?: boolean, children: React.ReactNode }} props
  */
-export default function AppShell({ sections, footer, user, labels, unread = 0, initialCollapsed = false, children }) {
+export default function AppShell({ sections, footer, user, labels, logo = {}, unread = 0, initialCollapsed = false, children }) {
     const pathname = usePathname();
     const [drawer, setDrawer] = useState(false);
     // Initial state comes from a cookie read on the server, so the first paint already has
@@ -126,9 +127,7 @@ export default function AppShell({ sections, footer, user, labels, unread = 0, i
 
     const brand = (small) => (
         <Link href="/" title={labels.app} className={`flex h-12 shrink-0 items-center gap-2.5 text-white ${small ? 'justify-center' : 'px-4'}`}>
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/10">
-                <Users className="size-4" />
-            </span>
+            <SamajLogo settings={logo} name={labels.app} />
             {!small && <span className="min-w-0 truncate text-base font-semibold">{labels.app}</span>}
         </Link>
     );
@@ -222,6 +221,8 @@ export default function AppShell({ sections, footer, user, labels, unread = 0, i
                         >
                             <CalendarDays className="size-5" />
                         </Link>
+                        {/* A light divider: the tools (bell, calendar) on one side, the person on the other. */}
+                        <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-white/25" />
                         <Popover
                             width="w-56"
                             trigger={({ open, toggle, id }) => (

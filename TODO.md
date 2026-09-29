@@ -129,3 +129,36 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Meeting row: Edit and Cancel side by side, Cancel in red
 - [x] Back link moved into the top header (right of the collapse arrow); on phones it goes back in history
 - [x] Notifications: delete one (trash per row), delete read, delete all (with confirm)
+- [x] Fundraise page sits inside the content gutters like the group page (rounded header card); its Edit button matches the group Edit
+- [x] "Post an update" moved into the discussion: bell toggle before Send alerts everyone (default normal message); earlier updates stay read-only in About
+- [x] Fundraise has its own Meetings tab (Discussion · Income/Expense · Meetings · About)
+- [x] Fundraise picture picker like groups (icon / emoji / 2 letters on a colour); shown in header, /fundraise list and group Fundraise tab
+- [x] Public fundraise page: PDF download is an icon-only button
+- [x] Public fundraise page shows the fundraise picture beside its title
+- [x] /fundraise list: row kebab for project admins (Open, Edit, Income/Expense, Meetings, Public page, Delete)
+- [x] Login: "Remember me" (1-year cookie; off = until the browser closes)
+- [x] /members bulk: "Reset password to phone" (password = own phone, must change at next login, signed out; sub-admin+, not higher ranks)
+- [x] Logo on orange background (sidebar and sign-in)
+- [x] Sidebar: Fundraise is its own item (no longer indented under Groups)
+- [x] Fundraise: Archive instead of delete; archived → Restore or Delete (delete refused unless archived); Archived view for project admins; archived hidden from lists, group tabs, public link
+- [x] Sidebar: Overview (Home) · Community (Groups) · Services (Blood, Fundraise) · Miscellaneous (Members, Activity log)
+- [x] Print/PDF: fundraise picture in the header; prints with background graphics by default
+- [x] Member name in parts: first name, father's name, surname (Gujarati: તમારું નામ / તમારા પિતાનું નામ / અટક), all required; full_name = their join; old records split (2 words → first + surname); surname matching uses the column
+- [x] /calendar shows members' birthdays (cake, "turns N", links to the profile)
+- [x] Calendar entries have an icon per kind (cake, fundraise, event, meeting, festival)
+- [x] /calendar filters: show birthdays / meetings / fundraises / events / festivals only; birthdays of one member role
+- [x] Group & fundraise meeting calendars: members' birthdays + All / Meetings / Birthdays filter and a role filter
+- [x] Public page header: navy, orange logo, Samaj name from settings (Gujarati spelling on Gujarati pages)
+- [x] Samaj logo: picked in Settings → General (left of the Samaj name, same picker as groups); shown in sidebar, sign-in and public pages; default orange people icon
+- [x] Filter popups everywhere: tinted header (Filters + close) and tinted footer (Clear / Apply)
+- [x] /calendar: Filters button on the month row (right side)
+- [x] Activity log moved into Settings (admin group, sub-admin+); removed from the sidebar
+- [x] Local-language name in parts too (first / father's / surname, each auto-filled from its English twin); full_name_local = their join; old records split
+- [x] Sidebar: "Home" renamed "Dashboard"
+- [x] Fundraise form Details card: picture alone in the left column, all other fields in the right column
+- [x] Fundraise edit page: Archive / Restore / Delete moved into the kebab at the right of the title row
+- [x] Fundraise new/edit: Status picker in the title row, left of the kebab (still saves with the form)
+- [x] "Restore" renamed "Unarchive"; archived fundraise page shows a notice with an Unarchive button (project admins)
+- [x] Filter popups: only the middle scrolls (header / footer fixed); no white strips above the header or below the footer
+- [x] Invite by phone: paste a list (one per line, +91 or not, optional name) and each number gets its own row; duplicates skipped
+- [x] Header: light divider between the calendar button and the profile button

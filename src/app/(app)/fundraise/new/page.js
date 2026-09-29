@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
+import StatusSelect from '@/components/fundraise/status-select';
 import PageHeader from '@/components/shell/page-header';
 import { fundraiseGroupIds, canCreateFundraiseIn } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
@@ -49,6 +50,7 @@ export default async function NewFundraisePage({ searchParams }) {
                 title={t('fundraise.add')}
                 subtitle={group ? localized(group, 'name', locale) : t('fundraise.standalone')}
                 back={back}
+                actions={<StatusSelect t={t} />}
             />
             <CampaignForm
                     groups={allowed}

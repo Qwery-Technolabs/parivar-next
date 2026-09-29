@@ -2,7 +2,7 @@
 import { CheckCircle2, UserPlus } from 'lucide-react';
 import { startTransition, useActionState } from 'react';
 import { register } from '@/app/actions/session';
-import BilingualName from '@/components/ui/bilingual-name';
+import NameFields from '@/components/members/name-fields';
 import { Field, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
@@ -34,16 +34,7 @@ export default function RegisterForm() {
             }}
             className="mt-5 space-y-3"
         >
-            <BilingualName
-                enLabel={t('members.fullName')}
-                guLabel={t('members.fullNameLocal')}
-                enName="full_name"
-                guName="full_name_local"
-                defaultEn={v.full_name}
-                defaultGu={v.full_name_local}
-                error={fe('full_name')}
-                required
-            />
+            <NameFields member={v} fe={fe} />
             <Field label={t('auth.phone')} hint={t('auth.phoneHint')} error={fe('phone')} required>
                 <input
                     name="phone"

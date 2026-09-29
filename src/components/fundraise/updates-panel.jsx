@@ -3,7 +3,6 @@ import { deleteUpdate } from '@/app/actions/fundraise';
 import Badge from '@/components/ui/badge';
 import { date, time } from '@/lib/format';
 import ActionButton from './action-button';
-import PostDialog from './post-dialog';
 
 /** One post. Authors may delete their own; managers any (the action re-checks). */
 export function UpdateItem({ u, campaignId, perms, userId, t, locale, compact = false }) {
@@ -39,15 +38,13 @@ export function UpdateItem({ u, campaignId, perms, userId, t, locale, compact = 
     );
 }
 
-/** Server component: newest-first timeline of updates and minutes. */
+/**
+ * Server component: newest-first timeline of earlier updates and minutes (read-only list —
+ * new updates are sent in the discussion with "alert everyone" on).
+ */
 export default function UpdatesPanel({ campaignId, updates, perms, userId, t, locale }) {
     return (
         <div className="space-y-3">
-            {perms.post && (
-                <div className="flex justify-end">
-                    <PostDialog campaignId={campaignId} />
-                </div>
-            )}
             {updates.length === 0 ? (
                 <p className="rounded-lg border border-surface-border bg-white px-4 py-10 text-center text-sm text-ink-gray">{t('fundraise.noUpdates')}</p>
             ) : (

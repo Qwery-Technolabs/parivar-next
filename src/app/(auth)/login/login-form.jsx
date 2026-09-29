@@ -35,6 +35,11 @@ export default function LoginForm({ next }) {
                     className={`${textInput(false, 'h-10')} w-full`}
                 />
             </Field>
+            {/* Remember me: stay signed in for a year on this device (off = until the browser closes). */}
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-primary">
+                <input type="checkbox" name="remember" defaultChecked className="size-4 accent-[var(--color-brand-orange-strong)]" />
+                {t('auth.remember')}
+            </label>
             <SubmitButton icon={LogIn} pendingText={t('auth.loggingIn')} size="h-10" className="w-full">
                 {t('auth.login')}
             </SubmitButton>

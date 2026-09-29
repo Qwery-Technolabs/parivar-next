@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { date } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
+import GroupAvatar from '@/components/groups/group-avatar';
 import PrintButton from './print-button';
 import Statement from './statement';
 
@@ -25,14 +26,26 @@ export default function PrintSheet({ campaign, contributors, contributions, expe
                 </div>
             </div>
             <article className="theme-fundraise mx-auto my-4 max-w-4xl rounded-lg border border-surface-border bg-white p-6 shadow-sm print:my-0 print:max-w-none print:rounded-none print:border-0 print:p-0 print:shadow-none sm:p-8">
-                <header className="mb-5 border-b-2 border-primary pb-3">
-                    <p className="text-[11px] uppercase tracking-wide text-ink-gray">
-                        {t('app.name')} · {t('fundraise.publicTitle')}
-                    </p>
-                    <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
-                    <p className="mt-0.5 text-xs text-ink-gray">
-                        {[groupName, campaign.location, dates, t('fundraise.generatedOn', { date: date(todayLocal(), locale) })].filter(Boolean).join(' · ')}
-                    </p>
+                <header className="mb-5 flex items-start gap-3 border-b-2 border-primary pb-3">
+                    {/* The fundraise's picture, as in the app and on the public page. */}
+                    <GroupAvatar
+                        id={campaign.id}
+                        name={campaign.title}
+                        kind={campaign.meta?.avatar_kind}
+                        value={campaign.meta?.avatar_value}
+                        color={campaign.meta?.avatar_color}
+                        size="lg"
+                        className="mt-1"
+                    />
+                    <div className="min-w-0">
+                        <p className="text-[11px] uppercase tracking-wide text-ink-gray">
+                            {t('app.name')} · {t('fundraise.publicTitle')}
+                        </p>
+                        <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
+                        <p className="mt-0.5 text-xs text-ink-gray">
+                            {[groupName, campaign.location, dates, t('fundraise.generatedOn', { date: date(todayLocal(), locale) })].filter(Boolean).join(' · ')}
+                        </p>
+                    </div>
                 </header>
                 <Statement
                     campaign={campaign}

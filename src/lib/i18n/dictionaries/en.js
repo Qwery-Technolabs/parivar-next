@@ -1,6 +1,7 @@
 const en = {
     app: { name: 'Parivar', tagline: 'Our family, together' },
     common: {
+        open: 'Open',
         creator: 'Creator',
         guAuto: 'Filled in from the English — edit if needed',
         guManual: 'Your spelling is kept',
@@ -65,8 +66,8 @@ const en = {
     nav: {
         collapse: 'Collapse',
         expand: 'Expand sidebar',
-        sections: { community: 'Community', services: 'Services', admin: 'Admin' },
-        dashboard: 'Home',
+        sections: { overview: 'Overview', community: 'Community', services: 'Services', admin: 'Miscellaneous' },
+        dashboard: 'Dashboard',
         members: 'Members',
         groups: 'Groups',
         blood: 'Blood',
@@ -80,6 +81,7 @@ const en = {
         menu: 'Menu',
     },
     auth: {
+        remember: 'Remember me (stay signed in for a year)',
         setPassword: {
             title: 'Set your password',
             subtitle: 'You signed in with your phone number. Choose your own password to continue.',
@@ -137,8 +139,12 @@ const en = {
         viewAll: 'View all',
     },
     members: {
+        firstName: 'First name',
+        middleName: "Father's name",
+        surname: 'Surname',
         filterSections: { person: 'Person', place: 'Place', community: 'Community', blood: 'Blood' },
         invite: {
+            pasteHint: 'Tip: paste a list of numbers into a phone box — one per line, with or without +91 or a name — and each gets its own row.',
             button: 'Invite by phone',
             title: 'Invite members by phone',
             description: 'They log in with their phone number as the password, then set their own and fill in their details.',
@@ -156,6 +162,13 @@ const en = {
         welcomeFill: 'Welcome! Your password is set. Please fill in your details below — each tab saves on its own.',
         tabs: { basic: 'Basic info', community: 'Community', details: 'Details', access: 'Role & status', password: 'Password' },
         bulk: {
+            reset: 'Reset password to phone',
+            resetTitle: 'Reset passwords to phone number',
+            resetSubmit: 'Reset passwords',
+            resetNote: 'Each selected member will log in with their own phone number as the password and must choose a new one. They are signed out everywhere.',
+            resetNone: 'None of the selected members can be reset by you.',
+            resetDone: '{reset} password(s) reset to the phone number.',
+            resetDoneSkipped: '{reset} password(s) reset to the phone number; {skipped} skipped (not allowed).',
             selectAll: 'Select all on this page',
             selected: '{count} selected',
             chooseGroups: 'Choose one or more groups',
@@ -344,6 +357,14 @@ const en = {
         errors: { units: 'Enter 1 to 20 units.', date: 'Enter a valid date.' },
     },
     fundraise: {
+        archive: 'Archive',
+        archiveConfirm: 'Archive this fundraise? It leaves the lists and its public link stops working. Nothing is deleted; you can restore it.',
+        restore: 'Unarchive',
+        archivedNotice: 'This fundraise is archived: hidden from lists, group tabs and its public link. Unarchive it if that was a mistake.',
+        archived: 'Fundraise archived.',
+        restored: 'Fundraise unarchived.',
+        archivedBadge: 'Archived',
+        publicPage: 'Public page',
         standalone: 'Standalone fundraise (no group)',
         noHomeGroup: 'No group — standalone',
         sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing' },
@@ -455,6 +476,7 @@ const en = {
         entries: 'Entries',
         lastPaid: 'Last paid',
         errors: {
+            archiveFirst: 'Archive the fundraise first; only an archived fundraise can be deleted.',
             extraGroup: 'You can only add groups where you may start a fundraise.',
             selfDemote: 'You cannot remove your own admin role. Ask another admin.',
             title: 'Enter a title.',
@@ -499,14 +521,14 @@ const en = {
             },
         },
         searchPlaceholder: 'Search fundraises',
-        views: { label: 'Show', all: 'All fundraises', mine: 'My donations', team: 'My teams' },
+        views: { label: 'Show', archived: 'Archived', all: 'All fundraises', mine: 'My donations', team: 'My teams' },
         myTotal: 'You have given',
         myTotalNote: { one: 'across {count} fundraise', other: 'across {count} fundraises' },
         noMyDonations: 'No donations recorded in your name yet.',
         noMyTeams: 'You are not on any fundraise team yet.',
         fundraise: 'Fundraise',
         yourRole: 'Your role',
-        tabs: { discussion: 'Discussion', money: 'Income / Expense', details: 'Details', team: 'Team', meetings: 'Meetings', updates: 'Updates' },
+        tabs: { discussion: 'Discussion', money: 'Income / Expense', details: 'About', team: 'Team', meetings: 'Meetings', updates: 'Updates' },
         teamRole: 'Role',
         teamRoles: { admin: 'Admin', organizer: 'Organizer', treasurer: 'Treasurer', collector: 'Collector', volunteer: 'Volunteer' },
         teamRoleHints: {
@@ -551,6 +573,9 @@ const en = {
         deleteUpdateConfirm: 'Delete this post?',
     },
     calendar: {
+        filters: { show: 'Show', everything: 'Everything', birthday: 'Birthdays only', meeting: 'Meetings only', fundraise: 'Fundraises only', event: 'Events only', festival: 'Festivals only', birthdayRole: 'Birthdays of members with role' },
+        birthday: 'Birthday',
+        turns: 'turns {age}',
         title: 'Calendar',
         subtitle: 'Events and fundraise dates',
         add: 'New event',
@@ -619,6 +644,7 @@ const en = {
             member_pending: '{name} registered and is waiting for approval',
             member_joined: '{name} registered and joined',
             group_sub_admin: 'You are now a sub-admin of {group}',
+            chat_alert: 'Alert in {title}: {preview}',
             meeting_invite: 'You are invited: {title} — {date}{time}{place}',
             meeting_updated: 'Meeting changed: {title} — {date}{time}{place}',
             meeting_cancelled: 'Meeting cancelled: {title} — {date}',
@@ -634,6 +660,7 @@ const en = {
         },
     },
     settings: {
+        logo: { title: 'Samaj logo', hint: 'Shown in the sidebar, on the sign-in screen and on public fundraise pages. Click the picture to change it.' },
         language: {
             app: 'App language',
             appHint: 'Menus, buttons and messages are shown in this language.',
@@ -642,6 +669,7 @@ const en = {
         },
         groups: { personal: 'My account', admin: 'Samaj' },
         sections: {
+            activity: { title: 'Activity log', hint: 'Who changed what, for admins.' },
             notifications: { title: 'Notifications', hint: 'Phone and browser notifications' },
             profile: { title: 'Profile', hint: 'Your details as other members see them' },
             security: { title: 'Security', hint: 'Mobile number and password you log in with' },
@@ -706,6 +734,11 @@ const en = {
         },
     },
     chat: {
+        alertToggle: 'Alert everyone',
+        alertOn: 'Alert on: everyone will be notified',
+        alertOff: 'Normal message (tap to alert everyone)',
+        sendAlert: 'Send and alert everyone',
+        alertBadge: 'Alert',
         restricted: 'Only these roles can send messages in this group: {roles}.',
         memberAdded: '{who} added {names}',
         memberRemoved: '{who} removed {names}',
@@ -725,6 +758,9 @@ const en = {
         },
     },
     meetings: {
+        filterLabel: 'Show on the calendar',
+        filters: { all: 'All', meetings: 'Meetings', birthdays: 'Birthdays', birthdayRole: 'Birthdays of role', anyRole: 'Any role' },
+        groupMember: 'Group member',
         views: { list: 'List', calendar: 'Calendar' },
         viewLabel: 'View',
         noneOnDay: 'No meetings on this day.',

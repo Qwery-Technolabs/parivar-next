@@ -1,7 +1,7 @@
 'use client';
-import { ShieldCheck, UserPlus, X } from 'lucide-react';
+import { KeyRound, ShieldCheck, UserPlus, X } from 'lucide-react';
 import { createContext, useContext, useState } from 'react';
-import { bulkAssignToGroup } from '@/app/actions/members';
+import { bulkAssignToGroup, bulkResetPasswords } from '@/app/actions/members';
 import FormDialog from '@/components/ui/form-dialog';
 import GroupChecklist from '@/components/ui/group-checklist';
 import { useT } from '@/lib/i18n/client';
@@ -62,9 +62,10 @@ export function RowCheck({ id, label }) {
 /**
  * Bar above the table that appears once anyone is selected: Add to group / Make group admin, each
  * opening a dialog where one or more groups are ticked.
- * @param {{ groups: Array<{ value: string, label: string }> }} props
+ * canReset adds "Reset password to phone" (for people who forgot theirs).
+ * @param {{ groups: Array<{ value: string, label: string }>, canReset?: boolean }} props
  */
-export function BulkBar({ groups }) {
+export function BulkBar({ groups, canReset = false }) {
     const { t } = useT();
     const { selected, clear } = useContext(Ctx);
     if (selected.size === 0) return null;
@@ -112,6 +113,31 @@ export function BulkBar({ groups }) {
             <span className="text-sm font-semibold text-primary">{t('members.bulk.selected', { count: ids.length })}</span>
             <span className="flex-1" />
             {groups.length > 0 && ['member', 'admin'].map(dialog)}
+            {canReset && (
+                <FormDialog
+                    title={t('members.bulk.resetTitle')}
+                    description={t('members.bulk.selected', { count: ids.length })}
+                    action={bulkResetPasswords}
+                    submitIcon={KeyRound}
+                    submitLabel={t('members.bulk.resetSubmit')}
+                    width="sm:max-w-md"
+                    onSuccess={clear}
+                    trigger={({ open }) => (
+                        <button type="button" onClick={open} className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-medium">
+                            <KeyRound className="size-3.5" /> {t('members.bulk.reset')}
+                        </button>
+                    )}
+                >
+                    {() => (
+                        <>
+                            {ids.map((id) => (
+                                <input key={id} type="hidden" name="user_ids" value={id} />
+                            ))}
+                            <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{t('members.bulk.resetNote')}</p>
+                        </>
+                    )}
+                </FormDialog>
+            )}
             <button type="button" onClick={clear} className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-ink-gray hover:bg-accent hover:text-primary">
                 <X className="size-3.5" /> {t('common.clear')}
             </button>

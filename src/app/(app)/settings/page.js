@@ -1,4 +1,4 @@
-import { BellRing, CalendarDays, Check, Droplet, HandCoins, Languages, ShieldCheck, SlidersHorizontal, UserCircle } from 'lucide-react';
+import { BellRing, CalendarDays, Check, Droplet, HandCoins, Languages, ShieldCheck, SlidersHorizontal, UserCircle, History } from 'lucide-react';
 import Link from 'next/link';
 import { setLocalLanguage } from '@/app/actions/profile';
 import { setLanguage } from '@/app/actions/session';
@@ -13,7 +13,7 @@ import { date } from '@/lib/format';
 import { getLocalLanguage, getT } from '@/lib/i18n/server';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
 import { formatPhone } from '@/lib/phone';
-import { canManageSettings } from '@/lib/roles';
+import { canManageSettings, canViewAudit } from '@/lib/roles';
 import { vapidPublicKey } from '@/lib/push';
 import { getSettings, SETTINGS } from '@/lib/settings';
 import { sp1 } from '@/lib/url';
@@ -38,6 +38,8 @@ const SECTIONS = [
     { key: 'fundraise', group: 'admin', icon: HandCoins, module: 'fundraise', admin: true },
     { key: 'blood', group: 'admin', icon: Droplet, module: 'blood', admin: true },
     { key: 'calendar', group: 'admin', icon: CalendarDays, module: 'events', admin: true },
+    // Kept out of the sidebar: an internal record, reached from here.
+    { key: 'activity', group: 'admin', icon: History, href: '/audit', audit: true },
 ];
 
 export default async function SettingsPage({ searchParams }) {
@@ -45,12 +47,13 @@ export default async function SettingsPage({ searchParams }) {
     const sp = await searchParams;
     const { t, locale } = await getT();
     const isAdmin = canManageSettings(user.role);
-    const visible = SECTIONS.filter((s) => !s.admin || isAdmin);
-    const current = visible.find((s) => s.key === sp1(sp.section)) ?? visible[0];
+    const visible = SECTIONS.filter((s) => (s.audit ? canViewAudit(user.role) : !s.admin || isAdmin));
+    // Link entries (the activity log) are pages of their own, never the open section.
+    const current = visible.find((s) => !s.href && s.key === sp1(sp.section)) ?? visible[0];
 
     const groups = [
         { key: 'personal', title: t('settings.groups.personal') },
-        ...(isAdmin ? [{ key: 'admin', title: t('settings.groups.admin') }] : []),
+        ...(visible.some((s) => s.group === 'admin') ? [{ key: 'admin', title: t('settings.groups.admin') }] : []),
     ];
 
     return (
@@ -71,7 +74,7 @@ export default async function SettingsPage({ searchParams }) {
                                         return (
                                             <Link
                                                 key={s.key}
-                                                href={s.key === visible[0].key ? '/settings' : `/settings?section=${s.key}`}
+                                                href={s.href ?? (s.key === visible[0].key ? '/settings' : `/settings?section=${s.key}`)}
                                                 scroll={false}
                                                 aria-current={active ? 'page' : undefined}
                                                 className={`inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-medium ${
@@ -228,18 +231,38 @@ async function ModuleSection({ module: mod, title, t }) {
         <SettingsForm
             module={mod}
             title={title}
-            fields={Object.entries(SETTINGS[mod].keys).map(([key, def]) => {
-                const hintKey = `settings.hints.${mod}_${key}`;
-                const hint = t(hintKey);
-                return {
-                    key,
-                    type: def.type,
-                    value: values[key],
-                    label: t(`settings.keys.${mod}_${key}`),
-                    hint: hint === hintKey ? undefined : hint,
-                    options: def.options?.map((o) => ({ value: o, label: def.labels?.[o] ?? t(`lang.${o}`) })),
-                };
-            })}
+            fields={[
+                // General: the Samaj logo, drawn left of the Samaj name (default: the orange people icon).
+                ...(mod === 'admin'
+                    ? [
+                          {
+                              key: 'logo',
+                              type: 'logo',
+                              with: 'samaj_name',
+                              value: {
+                                  avatar_kind: values.logo_kind || 'icon',
+                                  avatar_value: values.logo_value || 'Users',
+                                  avatar_color: values.logo_color || '#b85d09',
+                              },
+                          },
+                      ]
+                    : []),
+                ...Object.entries(SETTINGS[mod].keys)
+                    .filter(([, def]) => !def.hidden)
+                    .map(([key, def]) => {
+                        const hintKey = `settings.hints.${mod}_${key}`;
+                        const hint = t(hintKey);
+                        return {
+                            key,
+                            type: def.type,
+                            value: values[key],
+                            label: t(`settings.keys.${mod}_${key}`),
+                            hint: hint === hintKey ? undefined : hint,
+                            options: def.options?.map((o) => ({ value: o, label: def.labels?.[o] ?? t(`lang.${o}`) })),
+                        };
+                    }),
+            ]}
         />
     );
 }
+

@@ -2,6 +2,8 @@ import { Sparkles, Plus } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import FilterBar from '@/components/ui/filter-bar';
+import CampaignRowMenu from '@/components/fundraise/campaign-row-menu';
+import GroupAvatar from '@/components/groups/group-avatar';
 import PageHeader, { LinkButton, StatCard } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
@@ -22,7 +24,7 @@ import { getT } from '@/lib/i18n/server';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref, sp1 } from '@/lib/url';
 
-const VIEWS = ['mine', 'team']; // the default feed is the ABSENCE of ?view=
+const VIEWS = ['mine', 'team', 'archived']; // the default feed is the ABSENCE of ?view=; archived = project admins
 
 export async function generateMetadata() {
     const { t } = await getT();
@@ -52,6 +54,7 @@ export default async function FundraiseListPage({ searchParams }) {
     const views = [
         { value: 'mine', label: t('fundraise.views.mine') },
         { value: 'team', label: t('fundraise.views.team') },
+        ...(canManageAllFundraises(user.role) ? [{ value: 'archived', label: t('fundraise.views.archived') }] : []),
     ];
     const groups = f.view === '' ? await listGroupsForSelect() : [];
     const feedOnly = { param: 'view', value: '' };
@@ -104,6 +107,9 @@ export default async function FundraiseListPage({ searchParams }) {
             {f.view === 'mine' && <MyDonations user={user} sp={sp} page={f.page} perPage={perPage} t={t} locale={locale} />}
             {f.view === 'team' && <MyTeams user={user} t={t} locale={locale} />}
             {f.view === '' && <Feed user={user} sp={sp} f={f} perPage={perPage} t={t} locale={locale} />}
+            {f.view === 'archived' && canManageAllFundraises(user.role) && (
+                <Feed user={user} sp={sp} f={{ ...f, archived: true }} perPage={perPage} t={t} locale={locale} />
+            )}
         </div>
     );
 }
@@ -111,6 +117,7 @@ export default async function FundraiseListPage({ searchParams }) {
 // ── feed ──────────────────────────────────────────────────────────────────────
 
 async function Feed({ user, sp, f, perPage, t, locale }) {
+    const adminMenu = canManageAllFundraises(user.role);
     const { rows, total } = await listCampaigns(user, { ...f, perPage });
     // "For you": any audience rule (surname, caste, sub-caste, village, native place) matches the viewer.
     const forYou = rows.filter((r) => r.for_you);
@@ -124,7 +131,7 @@ async function Feed({ user, sp, f, perPage, t, locale }) {
                         <Sparkles className="size-4" /> {t('fundraise.forYou')}
                     </h2>
                     <p className="-mt-1 mb-2 text-xs text-ink-gray">{t('fundraise.forYouHint')}</p>
-                    <CampaignTable rows={forYou} t={t} locale={locale} className="mb-5" />
+                    <CampaignTable rows={forYou} t={t} locale={locale} className="mb-5" adminMenu={adminMenu} />
                     {rest.length > 0 && <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.otherFundraises')}</h2>}
                 </>
             )}
@@ -133,6 +140,7 @@ async function Feed({ user, sp, f, perPage, t, locale }) {
                     rows={rest}
                     t={t}
                     locale={locale}
+                    adminMenu={adminMenu}
                     empty={f.status || f.groupId || f.q ? t('common.noResults') : t('fundraise.empty')}
                 />
             )}
@@ -141,7 +149,8 @@ async function Feed({ user, sp, f, perPage, t, locale }) {
     );
 }
 
-function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = false }) {
+/** adminMenu: project admins get a row kebab (open a tab, edit, public page, delete). */
+function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = false, adminMenu = false }) {
     return (
         <TableShell className={className}>
             <THead>
@@ -153,10 +162,15 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                     {t('fundraise.spent')}
                 </Th>
                 <Th>{roleColumn ? t('fundraise.yourRole') : t('fundraise.status')}</Th>
+                {adminMenu && (
+                    <Th className="w-12">
+                        <span className="sr-only">{t('common.actions')}</span>
+                    </Th>
+                )}
             </THead>
             <tbody>
                 {rows.length === 0 ? (
-                    <EmptyRow colSpan={6}>{empty}</EmptyRow>
+                    <EmptyRow colSpan={adminMenu ? 7 : 6}>{empty}</EmptyRow>
                 ) : (
                     rows.map((c) => {
                         const pct = progressPct(c);
@@ -164,6 +178,9 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                         return (
                             <Tr key={c.id}>
                                 <Td>
+                                    <div className="flex items-start gap-2.5">
+                                    <GroupAvatar id={c.id} name={c.title} kind={c.avatar?.avatar_kind} value={c.avatar?.avatar_value} color={c.avatar?.avatar_color} size="sm" />
+                                    <div className="min-w-0">
                                     <Link href={`/fundraise/${c.id}`} className="font-medium text-primary hover:underline">
                                         {localized(c, 'title', locale)}
                                     </Link>
@@ -177,6 +194,8 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                             <span className="text-xs text-ink-gray tabular-nums">{pct}%</span>
                                         </div>
                                     )}
+                                    </div>
+                                    </div>
                                 </Td>
                                 <Td className="hidden md:table-cell">{c.location || null}</Td>
                                 <Td className="hidden text-xs text-ink-gray lg:table-cell">
@@ -195,6 +214,11 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                         <Badge status={c.status}>{t(`fundraise.${c.status}`)}</Badge>
                                     )}
                                 </Td>
+                                {adminMenu && (
+                                    <Td className="text-right">
+                                        <CampaignRowMenu id={c.id} publicToken={c.public_token} isPublic={Boolean(c.is_public)} archived={Boolean(c.archived_at)} />
+                                    </Td>
+                                )}
                             </Tr>
                         );
                     })

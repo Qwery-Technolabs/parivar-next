@@ -8,6 +8,7 @@ import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { postMemberNote } from '@/lib/chat';
 import { isDescendant, MEMBER_META_KEYS } from '@/lib/members';
+import { composeName } from '@/lib/names';
 import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
 import { ensureInvitedUser } from '@/lib/invite';
@@ -17,9 +18,23 @@ import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMem
 const FORBIDDEN = { error: 'common.forbidden' };
 
 function readMember(fd) {
+    const first_name = str(fd, 'first_name', 60);
+    const middle_name = str(fd, 'middle_name', 60);
+    const surname = str(fd, 'surname', 60);
+    const first_name_local = str(fd, 'first_name_local', 60);
+    const middle_name_local = str(fd, 'middle_name_local', 60);
+    const surname_local = str(fd, 'surname_local', 60);
     return {
-        full_name: str(fd, 'full_name', 150),
-        full_name_local: strOrNull(fd, 'full_name_local', 150),
+        first_name,
+        middle_name,
+        surname,
+        first_name_local: first_name_local || null,
+        middle_name_local: middle_name_local || null,
+        surname_local: surname_local || null,
+        // One field everything else reads (search, lists, tree): the parts joined.
+        full_name: composeName({ first: first_name, middle: middle_name, surname }).slice(0, 150),
+        // The local-script name: its parts joined too (empty → null).
+        full_name_local: composeName({ first: first_name_local, middle: middle_name_local, surname: surname_local }).slice(0, 150) || null,
         phoneRaw: str(fd, 'phone', 30),
         phone: normalizePhone(fd.get('phone')),
         gender: oneOf(fd, 'gender', ['male', 'female', 'other']),
@@ -39,7 +54,10 @@ function readMember(fd) {
 
 function validate(m, { requirePhone = true } = {}) {
     const fieldErrors = {};
-    if (!m.full_name) fieldErrors.full_name = 'common.required';
+    // First name, father's name and surname are all required.
+    if (!m.first_name) fieldErrors.first_name = 'common.required';
+    if (!m.middle_name) fieldErrors.middle_name = 'common.required';
+    if (!m.surname) fieldErrors.surname = 'common.required';
     if (requirePhone && !m.phone) fieldErrors.phone = 'auth.errors.phoneInvalid';
     if (m.password) {
         const p = passwordProblem(m.password);
@@ -86,9 +104,11 @@ export async function createMember(prev, fd) {
     const language = await getSetting('admin', 'default_language');
     const newId = await withTransaction(async (q) => {
         const r = await q(
-            `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, gender, dob, blood_group, village, city,
+            `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, first_name, middle_name, surname,
+                                     first_name_local, middle_name_local, surname_local, gender, dob, blood_group, village, city,
                                      caste_id, subcaste_id, role, status, is_blood_donor, language, created_by)
-             VALUES (:phone, :hash, :full_name, :full_name_local, :gender, :dob, :blood_group, :village, :city,
+             VALUES (:phone, :hash, :full_name, :full_name_local, :first_name, :middle_name, :surname,
+                     :first_name_local, :middle_name_local, :surname_local, :gender, :dob, :blood_group, :village, :city,
                      :caste_id, :subcaste_id, :role, :status, :is_blood_donor, :language, :by)`,
             { ...m, hash, role, language, by: actor.id },
         );
@@ -126,7 +146,9 @@ export async function updateMemberSection(prev, fd) {
         if (bad) return bad;
         if (m.phone !== target.phone && (await phoneTaken(m.phone, target.id))) return { fieldErrors: { phone: 'auth.errors.phoneTaken' } };
         await query(
-            `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local, gender = :gender,
+            `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local,
+                    first_name = :first_name, middle_name = :middle_name, surname = :surname,
+                    first_name_local = :first_name_local, middle_name_local = :middle_name_local, surname_local = :surname_local, gender = :gender,
                     dob = :dob, village = :village, city = :city WHERE id = :id`,
             { ...m, id: target.id },
         );
@@ -415,4 +437,35 @@ export async function inviteMembers(prev, fd) {
         message: out.failed.length ? 'members.invite.doneFailed' : 'members.invite.done',
         vars: { created: out.created, existing: out.existing, rows: out.failed.join(', ') },
     };
+}
+
+/**
+ * Bulk "reset password to phone" on the Members list: each selected member's password becomes
+ * their own phone number, they must choose a new one at next login (must_change_password) and
+ * their open sessions end. Same rule as a single reset: sub-admin and up, never yourself, never
+ * someone ranked above you — those rows are skipped and counted.
+ */
+export async function bulkResetPasswords(prev, fd) {
+    const actor = await getCurrentUser();
+    if (!actor) return FORBIDDEN;
+    const userIds = [...new Set(fd.getAll('user_ids').map(Number))].filter((n) => n > 0).slice(0, 500);
+    if (!userIds.length) return { error: 'members.bulk.noneSelected' };
+    const list = inList(userIds, 'u');
+    const targets = await query(`SELECT id, role, phone FROM users_list WHERE id IN (${list.sql})`, list.params);
+    let reset = 0;
+    let skipped = userIds.length - targets.length;
+    for (const target of targets) {
+        if (!canResetPassword(actor, target) || !target.phone) {
+            skipped++;
+            continue;
+        }
+        await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(target.phone), id: target.id });
+        await setMeta('users_list', target.id, { must_change_password: '1' });
+        await revokeUserSessions(target.id, false);
+        await audit(actor.id, 'user.password_reset', 'user', target.id, { to: 'phone', bulk: true });
+        reset++;
+    }
+    if (!reset) return { error: 'members.bulk.resetNone' };
+    revalidatePath('/members');
+    return { ok: true, message: skipped ? 'members.bulk.resetDoneSkipped' : 'members.bulk.resetDone', vars: { reset, skipped } };
 }

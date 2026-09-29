@@ -1,4 +1,6 @@
-import { CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet } from 'lucide-react';
+import { setCampaignArchived } from '@/app/actions/fundraise';
+import SubmitButton from '@/components/ui/submit-button';
 import { cookies } from 'next/headers';
 import HeaderBack from '@/components/shell/header-back';
 import Link from 'next/link';
@@ -6,6 +8,8 @@ import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
 import WaTabs from '@/components/ui/wa-tabs';
 import DetailsTab from '@/components/fundraise/details-tab';
+import GroupAvatar from '@/components/groups/group-avatar';
+import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import Badge from '@/components/ui/badge';
 import { fundraisePermissions } from '@/lib/access';
@@ -19,13 +23,13 @@ import {
     listContributions,
     listExpenses,
     listHistory,
-    listMeetings,
     listTeam,
     listUpdates,
     nextMeeting,
 } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
+import { canManageAllFundraises } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref, sp1 } from '@/lib/url';
@@ -37,13 +41,12 @@ const LEGACY = {
     expenses: ['money', 'expenses'],
     contributors: ['money', 'contributors'],
     team: ['details'],
-    meetings: ['details'],
     updates: ['details'],
 };
 
 function resolveTab(sp) {
     const raw = sp1(sp.tab);
-    if (raw === 'money' || raw === 'details') return { tab: raw, view: sp1(sp.view) };
+    if (raw === 'money' || raw === 'details' || raw === 'meetings') return { tab: raw, view: sp1(sp.view) };
     if (LEGACY[raw]) return { tab: LEGACY[raw][0], view: LEGACY[raw][1] ?? '' };
     return { tab: 'discussion', view: '' };
 }
@@ -63,7 +66,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
 
     const perms = await fundraisePermissions(user, campaign);
     // Drafts stay invisible to everyone who could not manage them (same rule as the list).
-    if (campaign.status === 'draft' && !perms.manage) notFound();
+    // Archived ones too: out of sight for everyone but managers.
+    if ((campaign.status === 'draft' || campaign.archived_at) && !perms.manage) notFound();
 
     const { t, locale } = await getT();
     const { tab, view: rawView } = resolveTab(sp);
@@ -78,6 +82,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     const tabs = [
         { key: 'discussion', label: t('fundraise.tabs.discussion'), href: base, icon: MessageCircle },
         { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money`, icon: Wallet },
+        { key: 'meetings', label: t('fundraise.tabs.meetings'), href: `${base}?tab=meetings`, icon: CalendarClock },
         { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details`, icon: Info },
     ];
 
@@ -112,11 +117,25 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 locale={locale}
             />
         );
+    } else if (tab === 'meetings') {
+        // Minutes are updates tied to a meeting; they show under that meeting.
+        const updates = await listUpdates(campaign.id);
+        body = (
+            <MeetingsSection
+                scope="fundraise"
+                scopeId={campaign.id}
+                defaultTitle={`${campaign.title} — ${t('meetings.word')}`}
+                defaultPlace={campaign.location ?? ''}
+                minutes={updates
+                    .filter((u) => u.update_type === 'minutes' && u.event_id)
+                    .map((u) => ({ id: u.id, event_id: u.event_id, body: u.body, author: u.author, author_local: u.author_local }))}
+                canPostMinutes={perms.post}
+            />
+        );
     } else if (tab === 'details') {
-        const [audience, team, meetings, updates, history] = await Promise.all([
+        const [audience, team, updates, history] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
-            listMeetings(campaign.id, today),
             listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
         ]);
@@ -125,7 +144,6 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 campaign={campaign}
                 audience={audience}
                 team={team}
-                meetings={meetings}
                 updates={updates}
                 history={history}
                 perms={perms}
@@ -142,10 +160,11 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     }
 
     return (
-        <div className="theme-fundraise -mx-3 -mt-3 sm:-mx-5 sm:-mt-5">
+        // Inside the normal content gutters, like the group page: a rounded header card, then the tab.
+        <div className="theme-fundraise">
             {/* Header strip: title, group, one-line totals; then three equal tabs. */}
-            <div className="bg-brand-navy text-white">
-                <div className="px-3 pt-3 sm:px-5">
+            <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
+                <div className="px-3 pt-3 sm:px-4">
                     <HeaderBack href={campaign.group_id ? `/groups/${campaign.group_id}` : '/fundraise'} label={campaign.group_id ? groupName : t('fundraise.title')} />
                     {/* Also shown in other groups: one chip each (the header's back link is the home group). */}
                     {(campaign.groups ?? []).some((g) => g.id !== campaign.group_id) && (
@@ -164,9 +183,20 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                         </span>
                     )}
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                        <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>
+                        <div className="flex min-w-0 items-center gap-3">
+                            <GroupAvatar
+                                name={campaign.title}
+                                kind={campaign.meta.avatar_kind}
+                                value={campaign.meta.avatar_value}
+                                color={campaign.meta.avatar_color}
+                                tint="bg-white/15 text-white"
+                                className="ring-2 ring-white/25"
+                            />
+                            <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>
+                        </div>
                         <div className="flex flex-wrap items-center gap-2">
                             <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
+                            {campaign.archived_at && <Badge tone="gray">{t('fundraise.archivedBadge')}</Badge>}
                             {perms.teamRole && (
                                 <Badge tone="orange">
                                     {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
@@ -175,9 +205,10 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                             {perms.manage && (
                                 <Link
                                     href={`${base}/edit`}
-                                    className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white/10 px-2.5 text-xs font-medium text-white hover:bg-white/20"
+                                    // Same as the group page's Edit on navy.
+                                    className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20"
                                 >
-                                    <Pencil className="size-3.5" /> {t('common.edit')}
+                                    <Pencil className="size-4" /> {t('common.edit')}
                                 </Link>
                             )}
                         </div>
@@ -200,7 +231,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     </p>
                     {upNext && (
                         <Link
-                            href={`${base}?tab=details#meetings`}
+                            href={`${base}?tab=meetings`}
                             className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1 text-xs hover:bg-white/20"
                         >
                             <CalendarClock className="size-3.5 shrink-0" />
@@ -217,7 +248,21 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     <WaTabs tabs={tabs} active={tab} />
                 </div>
             </div>
-            <div className="p-3 sm:p-5">{body}</div>
+            {/* Archived (only managers get here): say so, and let a project admin undo it on the spot. */}
+            {campaign.archived_at && (
+                <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-surface-border bg-surface-bggray/60 px-3 py-2.5">
+                    <Archive className="size-4 shrink-0 text-ink-gray" />
+                    <p className="min-w-0 flex-1 text-sm text-ink">{t('fundraise.archivedNotice')}</p>
+                    {canManageAllFundraises(user.role) && (
+                        <form action={setCampaignArchived.bind(null, campaign.id, false)}>
+                            <SubmitButton icon={<ArchiveRestore className="size-4" />} variant="secondary">
+                                {t('fundraise.restore')}
+                            </SubmitButton>
+                        </form>
+                    )}
+                </div>
+            )}
+            <div>{body}</div>
         </div>
     );
 }

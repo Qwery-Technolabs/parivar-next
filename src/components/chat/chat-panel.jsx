@@ -39,6 +39,7 @@ export default async function ChatPanel({ scope, scopeId }) {
             me={user.id}
             moderate={access.moderate}
             canPost={access.canPost}
+            canAlert={access.canAlert}
             postRoles={access.postRoles ?? []}
             messages={messages.map((m) => ({
                 id: m.id,
@@ -46,6 +47,7 @@ export default async function ChatPanel({ scope, scopeId }) {
                 name: m.full_name,
                 nameLocal: m.full_name_local,
                 body: m.deleted_at ? null : m.body,
+                alert: !m.deleted_at && m.alert === '1',
                 kind: m.deleted_at ? null : m.kind || null,
                 data: m.kind ? parseData(m.data) : null,
                 at: m.created_at,

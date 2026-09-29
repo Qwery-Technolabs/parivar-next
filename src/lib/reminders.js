@@ -53,7 +53,7 @@ export async function processDueReminders() {
                     place: event.location,
                     offset: r.offset_minutes,
                 },
-                link: event.campaign_id ? `/fundraise/${event.campaign_id}?tab=details` : `/groups/${event.group_id}?tab=meetings`,
+                link: event.campaign_id ? `/fundraise/${event.campaign_id}?tab=meetings` : `/groups/${event.group_id}?tab=meetings`,
             },
         );
         sent++;

@@ -8,6 +8,7 @@ import { notifyMany } from '@/lib/notifications';
 import { atLeast } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { LANG_COOKIE, LANG_MAX_AGE, normalizeLocale } from '@/lib/i18n/config';
+import { composeName } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
 import { safeNext } from '@/lib/url';
 
@@ -55,7 +56,7 @@ export async function login(prev, formData) {
     // off by an admin. Said only after the password checks out, so it reveals nothing to a guesser.
     if (user.status !== 'active') return { error: 'auth.errors.inactive', values };
 
-    await createSession(user.id);
+    await createSession(user.id, { remember: formData.get('remember') === 'on' });
     // The profile's language wins over the device's on login — the person chose it once.
     (await cookies()).set(LANG_COOKIE, user.language, { path: '/', maxAge: LANG_MAX_AGE, sameSite: 'lax' });
     // Still on the temporary password (their phone number): choose a real one before anything else.
@@ -91,8 +92,12 @@ export async function register(prev, formData) {
     const settings = await getSettings('admin');
     if (!settings.allow_registration) return { error: 'auth.register.closed' };
     const values = {
-        full_name: str(formData, 'full_name', 150),
-        full_name_local: str(formData, 'full_name_local', 150),
+        first_name: str(formData, 'first_name', 60),
+        middle_name: str(formData, 'middle_name', 60),
+        surname: str(formData, 'surname', 60),
+        first_name_local: str(formData, 'first_name_local', 60),
+        middle_name_local: str(formData, 'middle_name_local', 60),
+        surname_local: str(formData, 'surname_local', 60),
         phone: str(formData, 'phone', 30),
         village: str(formData, 'village', 100),
         city: str(formData, 'city', 100),
@@ -100,7 +105,11 @@ export async function register(prev, formData) {
     const phone = normalizePhone(formData.get('phone'));
     const password = String(formData.get('password') ?? '');
     const fieldErrors = {};
-    if (!values.full_name) fieldErrors.full_name = 'common.required';
+    if (!values.first_name) fieldErrors.first_name = 'common.required';
+    if (!values.middle_name) fieldErrors.middle_name = 'common.required';
+    if (!values.surname) fieldErrors.surname = 'common.required';
+    const fullName = composeName({ first: values.first_name, middle: values.middle_name, surname: values.surname }).slice(0, 150);
+    const fullNameLocal = composeName({ first: values.first_name_local, middle: values.middle_name_local, surname: values.surname_local }).slice(0, 150) || null;
     if (!phone) fieldErrors.phone = 'auth.errors.phoneInvalid';
     const pwErr = passwordProblem(password);
     if (pwErr) fieldErrors.password = pwErr;
@@ -120,13 +129,21 @@ export async function register(prev, formData) {
     const pending = settings.registration_approval;
     const language = normalizeLocale((await cookies()).get(LANG_COOKIE)?.value) || settings.default_language;
     const r = await query(
-        `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, village, city, role, status, language)
-         VALUES (:phone, :hash, :full_name, :full_name_local, :village, :city, 'sabhyo', :status, :language)`,
+        `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, first_name, middle_name, surname,
+                                 first_name_local, middle_name_local, surname_local, village, city, role, status, language)
+         VALUES (:phone, :hash, :full_name, :full_name_local, :first_name, :middle_name, :surname,
+                 :first_name_local, :middle_name_local, :surname_local, :village, :city, 'sabhyo', :status, :language)`,
         {
             phone,
             hash: await hashPassword(password),
-            full_name: values.full_name,
-            full_name_local: strOrNull(formData, 'full_name_local', 150),
+            full_name: fullName,
+            first_name: values.first_name,
+            middle_name: values.middle_name,
+            surname: values.surname,
+            full_name_local: fullNameLocal,
+            first_name_local: values.first_name_local || null,
+            middle_name_local: values.middle_name_local || null,
+            surname_local: values.surname_local || null,
             village: strOrNull(formData, 'village', 100),
             city: strOrNull(formData, 'city', 100),
             status: pending ? 'inactive' : 'active',
@@ -140,7 +157,7 @@ export async function register(prev, formData) {
         .map((a) => a.id);
     await notifyMany(approvers, {
         type: pending ? 'member.pending' : 'member.joined',
-        data: { name: values.full_name },
+        data: { name: fullName },
         link: `/members/${newId}/edit?tab=access`,
     });
     if (pending) return { ok: true, pending: true };

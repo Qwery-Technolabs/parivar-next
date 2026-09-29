@@ -44,12 +44,15 @@ export default async function MembersPage({ searchParams }) {
         listCities(),
     ]);
     const manage = canManageMembers(user.role);
+    // Row selection serves bulk group actions and the bulk password reset (sub-admin and up).
+    const canBulkReset = canInviteMembers(user.role);
     // Who has never signed in is admin information (invites still pending).
     const seesRegistration = canInviteMembers(user.role);
     // A group admin may appoint only inside the groups they run; assignToGroup re-checks per group.
     const groupOptions = groups
         .filter((g) => groupManager || ownGroups.includes(g.id))
         .map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }));
+    const bulk = groupOptions.length > 0 || canBulkReset;
 
     return (
         <div>
@@ -79,12 +82,12 @@ export default async function MembersPage({ searchParams }) {
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
             />
 
-            {/* Bulk selection is offered only to people who can put others into at least one group. */}
-            <BulkSelectProvider pageIds={groupOptions.length > 0 ? rows.map((r) => r.id) : []}>
-            <BulkBar groups={groupOptions} />
+            {/* Bulk selection: for people who can put others into a group, or reset passwords. */}
+            <BulkSelectProvider pageIds={bulk ? rows.map((r) => r.id) : []}>
+            <BulkBar groups={groupOptions} canReset={canBulkReset} />
             <TableShell className="mt-4">
                 <THead>
-                    {groupOptions.length > 0 && (
+                    {bulk && (
                         <Th className="w-10">
                             <SelectAll />
                         </Th>
@@ -103,13 +106,13 @@ export default async function MembersPage({ searchParams }) {
                     </Th>
                 </THead>
                 <tbody>
-                    {rows.length === 0 && <EmptyRow colSpan={groupOptions.length > 0 ? 9 : 8}>{t('common.noResults')}</EmptyRow>}
+                    {rows.length === 0 && <EmptyRow colSpan={bulk ? 9 : 8}>{t('common.noResults')}</EmptyRow>}
                     {rows.map((m) => {
                         const primary = localized(m, 'full_name', locale);
                         const secondary = locale === 'gu' ? m.full_name : m.full_name_local;
                         return (
                             <Tr key={m.id}>
-                                {groupOptions.length > 0 && (
+                                {bulk && (
                                     <Td className="w-10">
                                         <RowCheck id={m.id} label={primary} />
                                     </Td>

@@ -10,6 +10,7 @@ import { bool, date, id, money, oneOf, str, strOrNull } from '@/lib/forms';
 import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, listHistory, PAY_MODES } from '@/lib/fundraise';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
 import { canManageAllFundraises } from '@/lib/roles';
+import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getSettings } from '@/lib/settings';
 
 const FORBIDDEN = { error: 'common.forbidden' };
@@ -167,6 +168,8 @@ export async function saveCampaign(prev, fd) {
     };
     const meta = {
         description: str(fd, 'description', 20000),
+        // Picture: icon / emoji / ≤2 letters on a colour, like a group's (lib/group-avatar).
+        ...sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10)),
         // No local-language description on the form any more; an older one is left as it is.
     };
 
@@ -223,12 +226,30 @@ export async function saveCampaign(prev, fd) {
     redirect(`/fundraise/${newId}`);
 }
 
+/**
+ * Archive / restore a fundraise (project admins). Archived: out of every list, the group tabs
+ * and its public link, kept intact — and only then deletable.
+ */
+export async function setCampaignArchived(campaignId, archived) {
+    const user = await getCurrentUser();
+    if (!user || !canManageAllFundraises(user.role)) return FORBIDDEN;
+    const c = await queryOne('SELECT id, title FROM fundraise_campaigns WHERE id = :campaignId', { campaignId });
+    if (!c) return FORBIDDEN;
+    await query(`UPDATE fundraise_campaigns SET archived_at = ${archived ? 'NOW()' : 'NULL'} WHERE id = :campaignId`, { campaignId });
+    await audit(user.id, archived ? 'fundraise.archive' : 'fundraise.restore', 'fundraise', campaignId, { title: c.title });
+    revalidatePath('/fundraise');
+    refreshCampaign(campaignId);
+    return { ok: true, message: archived ? 'fundraise.archived' : 'fundraise.restored' };
+}
+
 export async function deleteCampaign(campaignId) {
     const user = await getCurrentUser();
     // Deleting wipes the ledger, so it is not delegated to group admins.
     if (!user || !canManageAllFundraises(user.role)) return FORBIDDEN;
-    const c = await queryOne('SELECT id, title FROM fundraise_campaigns WHERE id = :campaignId', { campaignId });
+    const c = await queryOne('SELECT id, title, archived_at FROM fundraise_campaigns WHERE id = :campaignId', { campaignId });
     if (!c) return FORBIDDEN;
+    // Only an archived fundraise can be deleted: archiving first is the safety step.
+    if (!c.archived_at) return { error: 'fundraise.errors.archiveFirst' };
     await query('DELETE FROM fundraise_campaigns WHERE id = :campaignId', { campaignId });
     await audit(user.id, 'fundraise.delete', 'fundraise', campaignId, { title: c.title });
     revalidatePath('/fundraise');

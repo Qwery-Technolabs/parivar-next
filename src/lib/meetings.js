@@ -49,7 +49,7 @@ export async function meetingScope(user, scope, scopeId) {
             titleLocal: c.title_local,
             manage: (await fundraisePermissions(user, c)).manage,
             candidateIds: people.map((m) => m.user_id),
-            link: `/fundraise/${c.id}?tab=details`,
+            link: `/fundraise/${c.id}?tab=meetings`,
         };
     }
     return null;
@@ -140,4 +140,38 @@ export async function upcomingMeetingCount(groupId, today) {
         { groupId, today },
     );
     return row.n;
+}
+
+/**
+ * Birthdays of the people of one group (with their group role) or one fundraise (team members
+ * with their team role; members of its groups as 'group_member'), for the meeting calendar.
+ * Month/day only — the calendar places them in whichever month is showing.
+ * @returns {Promise<Array<{ id: number, name: string, nameLocal: string|null, month: number, day: number, born: number, role: string }>>}
+ */
+export async function scopeBirthdays(scope, scopeId) {
+    const cols = 'u.id, u.full_name, u.full_name_local, MONTH(u.dob) AS m, DAY(u.dob) AS d, YEAR(u.dob) AS born';
+    const alive = "u.status = 'active' AND u.dob IS NOT NULL";
+    let rows;
+    if (scope === 'group') {
+        rows = await query(
+            `SELECT ${cols}, gm.member_role AS role FROM admin_group_members gm JOIN users_list u ON u.id = gm.user_id
+              WHERE gm.group_id = :scopeId AND ${alive}`,
+            { scopeId },
+        );
+    } else {
+        const [team, members] = await Promise.all([
+            query(`SELECT ${cols}, fm.member_role AS role FROM fundraise_members fm JOIN users_list u ON u.id = fm.user_id WHERE fm.campaign_id = :scopeId AND ${alive}`, { scopeId }),
+            query(
+                `SELECT DISTINCT ${cols}, 'group_member' AS role FROM fundraise_groups fg
+                   JOIN admin_group_members gm ON gm.group_id = fg.group_id JOIN users_list u ON u.id = gm.user_id
+                  WHERE fg.campaign_id = :scopeId AND ${alive}`,
+                { scopeId },
+            ),
+        ]);
+        // A team role says more than "in one of its groups".
+        const byId = new Map(members.map((r) => [r.id, r]));
+        for (const r of team) byId.set(r.id, r);
+        rows = [...byId.values()];
+    }
+    return rows.map((r) => ({ id: r.id, name: r.full_name, nameLocal: r.full_name_local, month: r.m, day: r.d, born: r.born, role: r.role }));
 }

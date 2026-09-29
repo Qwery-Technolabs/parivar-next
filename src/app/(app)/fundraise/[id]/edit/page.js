@@ -1,7 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
-import DeleteCampaignButton from '@/components/fundraise/delete-campaign-button';
+import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { deleteCampaign, setCampaignArchived } from '@/app/actions/fundraise';
 import PageHeader from '@/components/shell/page-header';
+import PageMenu from '@/components/shell/page-menu';
+import StatusSelect from '@/components/fundraise/status-select';
 import { fundraiseGroupIds, canManageFundraise } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
@@ -52,6 +55,38 @@ export default async function EditFundraisePage({ params }) {
                 title={t('fundraise.edit')}
                 subtitle={localized(campaign, 'title', locale)}
                 back={campaign.group_id ? { href: `/groups/${campaign.group_id}`, label: groupName } : { href: '/fundraise', label: t('fundraise.title') }}
+                // Status left of the kebab; it still saves with the form below.
+                actions={<StatusSelect value={campaign.status} t={t} />}
+                // Project admins: Archive — and once archived, Restore or Delete — in the kebab.
+                menu={
+                    all && (
+                        <PageMenu
+                            items={
+                                campaign.archived_at
+                                    ? [
+                                          { key: 'restore', label: t('fundraise.restore'), icon: <ArchiveRestore />, action: setCampaignArchived.bind(null, campaign.id, false) },
+                                          {
+                                              key: 'delete',
+                                              label: t('fundraise.deleteCampaign'),
+                                              icon: <Trash2 />,
+                                              action: deleteCampaign.bind(null, campaign.id),
+                                              confirm: t('fundraise.deleteCampaignConfirm'),
+                                              danger: true,
+                                          },
+                                      ]
+                                    : [
+                                          {
+                                              key: 'archive',
+                                              label: t('fundraise.archive'),
+                                              icon: <Archive />,
+                                              action: setCampaignArchived.bind(null, campaign.id, true),
+                                              confirm: t('fundraise.archiveConfirm'),
+                                          },
+                                      ]
+                            }
+                        />
+                    )
+                }
             />
             <div className="space-y-4">
                 {/* The form draws its own card; Status sits above it. */}
@@ -66,11 +101,6 @@ export default async function EditFundraisePage({ params }) {
                     castes={castes}
                     suggestions={suggestions}
                 />
-                {all && (
-                    <div className="flex justify-end">
-                        <DeleteCampaignButton campaignId={campaign.id} />
-                    </div>
-                )}
             </div>
         </div>
     );

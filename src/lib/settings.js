@@ -17,6 +17,10 @@ export const SETTINGS = {
         keys: {
             samaj_name: { type: 'text', default: '' }, // shown beside the app name when set
             samaj_name_local: { type: 'text', default: '' },
+            // Samaj logo (picker in Settings → General; hidden from the generic form).
+            logo_kind: { type: 'text', default: '', hidden: true },
+            logo_value: { type: 'text', default: '', hidden: true },
+            logo_color: { type: 'text', default: '', hidden: true },
             contact_phone: { type: 'text', default: '' },
             allow_registration: { type: 'bool', default: false }, // "Create an account" link on the login page
             registration_approval: { type: 'bool', default: true }, // new sign-ups wait (inactive) until an admin activates them

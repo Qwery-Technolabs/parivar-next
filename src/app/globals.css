@@ -157,4 +157,10 @@ body {
   body {
     overflow: visible !important;
   }
+  /* Print with background graphics by default: colours, tints and badges survive "Save as
+     PDF" without ticking the browser's "Background graphics" box. Inherited by everything. */
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

@@ -20,7 +20,7 @@ const FOR_YOU = `EXISTS (
     SELECT 1 FROM fundraise_audience a
       JOIN users_list me ON me.id = :viewerId
      WHERE a.campaign_id = c.id AND (
-           (a.kind = 'surname' AND a.value = SUBSTRING_INDEX(TRIM(me.full_name), ' ', -1))
+           (a.kind = 'surname' AND a.value = COALESCE(me.surname, SUBSTRING_INDEX(TRIM(me.full_name), ' ', -1)))
         OR (a.kind = 'caste' AND a.value = CAST(me.caste_id AS CHAR))
         OR (a.kind = 'subcaste' AND a.value = CAST(me.subcaste_id AS CHAR))
         OR (a.kind = 'city' AND a.value = me.city)
@@ -35,7 +35,7 @@ const TOTALS = `
     (SELECT COALESCE(SUM(amount), 0) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS spent,
     (SELECT COUNT(*) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS expense_count`;
 
-const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amount, c.start_date, c.end_date, c.status,
+const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amount, c.start_date, c.end_date, c.status, c.archived_at,
     c.is_public, c.public_token, c.created_at, c.created_by, g.name AS group_name, g.name_local AS group_name_local`;
 
 /**
@@ -58,9 +58,10 @@ async function visibilityClause(user) {
  * @param {{ status?: string, groupId?: number|null, page: number, perPage: number }} f
  * Campaigns with an audience rule matching the viewer sort first and carry for_you = 1.
  */
-export async function listCampaigns(user, { status, groupId, q = '', page, perPage }) {
+export async function listCampaigns(user, { status, groupId, q = '', archived = false, page, perPage }) {
     const vis = await visibilityClause(user);
-    const where = [vis.sql];
+    // Archived fundraises leave the feed; managers find them under the Archived view.
+    const where = [vis.sql, archived ? 'c.archived_at IS NOT NULL' : 'c.archived_at IS NULL'];
     const params = { ...vis.params };
     if (status) {
         where.push('c.status = :status');
@@ -88,7 +89,8 @@ export async function listCampaigns(user, { status, groupId, q = '', page, perPa
         ),
         queryOne(`SELECT COUNT(*) AS n FROM fundraise_campaigns c WHERE ${whereSql}`, params),
     ]);
-    return { rows, total: count.n };
+    const pics = await getMetaMany('fundraise_campaigns', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);
+    return { rows: rows.map((r) => ({ ...r, avatar: pics[r.id] ?? {} })), total: count.n };
 }
 
 /** Every group a fundraise is shown in, home group first. */
@@ -124,7 +126,7 @@ export async function getCampaignByToken(token) {
     const row = await queryOne(
         `SELECT ${COLS}, ${TOTALS}
            FROM fundraise_campaigns c LEFT JOIN admin_groups g ON g.id = c.group_id
-          WHERE c.public_token = :token AND c.is_public = 1 AND c.status <> 'draft'`,
+          WHERE c.public_token = :token AND c.is_public = 1 AND c.status <> 'draft' AND c.archived_at IS NULL`,
         { token },
     );
     if (!row) return null;
@@ -319,8 +321,8 @@ export async function getAudience(campaignId) {
 export async function audienceSuggestions() {
     const [surnames, cities, villages] = await Promise.all([
         query(
-            `SELECT SUBSTRING_INDEX(TRIM(full_name), ' ', -1) AS v, COUNT(*) AS n FROM users_list
-              WHERE full_name LIKE '% %' AND status = 'active'
+            `SELECT COALESCE(surname, SUBSTRING_INDEX(TRIM(full_name), ' ', -1)) AS v, COUNT(*) AS n FROM users_list
+              WHERE (surname IS NOT NULL OR full_name LIKE '% %') AND status = 'active'
               GROUP BY v ORDER BY v LIMIT 1000`,
         ),
         query(`SELECT DISTINCT city AS v FROM users_list WHERE city IS NOT NULL AND city <> '' ORDER BY v LIMIT 500`),

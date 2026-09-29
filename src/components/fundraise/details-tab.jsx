@@ -3,7 +3,6 @@ import { Card, LinkButton } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import { localized } from '@/lib/i18n/config';
 import { describeHistory, historyWhen } from './history-format';
-import MeetingsSection from '@/components/meetings/meetings-section';
 import PublicLinkCard from './public-link-card';
 import TeamPanel from './team-panel';
 import UpdatesPanel from './updates-panel';
@@ -18,11 +17,11 @@ export function audienceLabel(rule, t, locale) {
 }
 
 /**
- * Details tab (server component): description, audience chips, team, meetings (next one
- * highlighted), updates / minutes timeline, public link. Each section has an id so old
- * ?tab=team / meetings / updates links can land on it.
+ * About tab (server component): description, audience chips, team, earlier updates, public
+ * link, history. Meetings have their own tab. Sections keep ids so old ?tab=team / updates
+ * links can land on them.
  */
-export default function DetailsTab({ campaign, audience, team, meetings, updates, history, perms, userId, today, printHref, t, locale }) {
+export default function DetailsTab({ campaign, audience, team, updates, history, perms, userId, today, printHref, t, locale }) {
     const description = localized(campaign.meta, 'description', locale);
     return (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
@@ -45,23 +44,13 @@ export default function DetailsTab({ campaign, audience, team, meetings, updates
                     </Card>
                 )}
 
-                <section id="meetings" className="scroll-mt-4">
-                    <MeetingsSection
-                        scope="fundraise"
-                        scopeId={campaign.id}
-                        defaultTitle={`${campaign.title} — ${t('meetings.word')}`}
-                        defaultPlace={campaign.location ?? ''}
-                        minutes={updates
-                            .filter((u) => u.update_type === 'minutes' && u.event_id)
-                            .map((u) => ({ id: u.id, event_id: u.event_id, body: u.body, author: u.author, author_local: u.author_local }))}
-                        canPostMinutes={perms.post}
-                    />
-                </section>
-
-                <section id="updates" className="scroll-mt-4">
-                    <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.tabs.updates')}</h2>
-                    <UpdatesPanel campaignId={campaign.id} updates={updates} perms={perms} userId={userId} t={t} locale={locale} />
-                </section>
+                {/* Updates are now posted in the discussion ("alert everyone"); earlier ones stay here. */}
+                {updates.length > 0 && (
+                    <section id="updates" className="scroll-mt-4">
+                        <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.tabs.updates')}</h2>
+                        <UpdatesPanel campaignId={campaign.id} updates={updates} perms={perms} userId={userId} t={t} locale={locale} />
+                    </section>
+                )}
 
                 <section id="history" className="scroll-mt-4">
                     <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.history.title')}</h2>

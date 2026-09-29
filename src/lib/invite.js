@@ -2,7 +2,10 @@ import 'server-only';
 import { audit } from './audit';
 import { hashPassword } from './auth';
 import { query, queryOne, setMeta } from './db';
+import { splitName } from './names';
 import { canInviteMembers } from './roles';
+
+const nullParts = (p) => ({ first: p.first || null, middle: p.middle || null, surname: p.surname || null });
 
 /**
  * Find or create the member behind a mobile number, for invites (Members page, group Add).
@@ -30,9 +33,10 @@ export async function ensureInvitedUser(actor, phone, fullName = '', fullNameLoc
         return { id: user.id, status: 'enabled' };
     }
     const r = await query(
-        `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, role, status, created_by)
-         VALUES (:phone, :hash, :fullName, :fullNameLocal, 'sabhyo', 'active', :by)`,
-        { phone, hash, fullName: fullName || phone, fullNameLocal: fullNameLocal || null, by: actor.id },
+        `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, first_name, middle_name, surname, role, status, created_by)
+         VALUES (:phone, :hash, :fullName, :fullNameLocal, :first, :middle, :surname, 'sabhyo', 'active', :by)`,
+        // Parts from the typed name, if any; the person completes them after first sign-in.
+        { phone, hash, fullName: fullName || phone, fullNameLocal: fullNameLocal || null, ...nullParts(splitName(fullName)), by: actor.id },
     );
     await setMeta('users_list', r.insertId, { must_change_password: '1', invited_by: String(actor.id) });
     await audit(actor.id, 'user.create', 'user', r.insertId, { via: 'invite' });

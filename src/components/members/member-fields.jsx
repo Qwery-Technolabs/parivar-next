@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import Switch from '@/components/ui/switch';
-import BilingualName from '@/components/ui/bilingual-name';
 import PickOrType from '@/components/ui/pick-or-type';
 import CasteSelect from './caste-select';
+import NameFields from './name-fields';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 
@@ -17,21 +17,12 @@ import { BLOOD_GROUPS } from '@/lib/roles';
 // Full-width page: three columns on wide screens so a group is not one long scroll.
 export const FIELD_GRID = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3';
 
-/** Name, phone, gender, birth date, native village, current city. */
+/** Name (first, father's, surname + local), phone, gender, birth date, native village, current city. */
 export function BasicFields({ member, fe, villages = [], cities = [] }) {
     const { t } = useT();
     return (
         <div className={FIELD_GRID}>
-            <BilingualName
-                enLabel={t('members.fullName')}
-                guLabel={t('members.fullNameLocal')}
-                enName="full_name"
-                guName="full_name_local"
-                defaultEn={member?.full_name}
-                defaultGu={member?.full_name_local}
-                error={fe('full_name')}
-                required
-            />
+            <NameFields member={member} fe={fe} />
             <Field label={t('members.phone')} hint={t('auth.phoneHint')} error={fe('phone')} required>
                 <input
                     name="phone"

@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { withTransaction } from '@/lib/db';
+import { sanitizeAvatar } from '@/lib/group-avatar';
 import { canManageSettings } from '@/lib/roles';
 import { coerceSetting, saveSettings, SETTINGS } from '@/lib/settings';
 
@@ -20,8 +21,14 @@ export async function saveModuleSettings(prev, fd) {
         if (!fd.has(key)) continue;
         values[key] = coerceSetting(mod, key, fd.get(key));
     }
+    // General carries the Samaj logo picker (same values and checks as a group picture).
+    if (mod === 'admin' && fd.has('avatar_kind')) {
+        const a = sanitizeAvatar(String(fd.get('avatar_kind') ?? ''), String(fd.get('avatar_value') ?? ''), String(fd.get('avatar_color') ?? ''));
+        Object.assign(values, { logo_kind: a.avatar_kind, logo_value: a.avatar_value, logo_color: a.avatar_color });
+    }
     await withTransaction((q) => saveSettings(mod, values, q));
     await audit(user.id, 'settings.update', 'settings', null, { module: mod, keys: Object.keys(values) });
     revalidatePath('/', 'layout');
     return { ok: true, message: 'common.saved' };
 }
+

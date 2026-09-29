@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, CheckCheck, Droplet, HandCoins, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Bell, BellRing, CalendarDays, CheckCheck, Droplet, HandCoins, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { deleteAllNotifications, deleteNotification, deleteReadNotifications, markAllRead, openNotification } from '@/app/actions/notifications';
 import PageHeader from '@/components/shell/page-header';
@@ -21,6 +21,9 @@ const ICONS = {
     group: [ShieldCheck, 'text-brand-navy bg-brand-navy/10'],
     fundraise: [HandCoins, 'text-brand-blue-deep bg-blue-50'],
     event: [CalendarDays, 'text-emerald-700 bg-emerald-50'],
+    chat: [BellRing, 'text-amber-900 bg-amber-100'],
+    meeting: [CalendarDays, 'text-emerald-700 bg-emerald-50'],
+    member: [Users, 'text-brand-navy bg-brand-navy/10'],
 };
 
 export default async function NotificationsPage({ searchParams }) {

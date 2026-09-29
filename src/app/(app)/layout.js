@@ -4,7 +4,6 @@ import { requireUser } from '@/lib/auth';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { unreadCount } from '@/lib/notifications';
-import { canViewAudit } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
 import AppShell from '@/components/shell/app-shell';
@@ -21,26 +20,22 @@ export default async function AppLayout({ children }) {
     ]);
     const samaj = (locale === 'gu' && general.samaj_name_local) || general.samaj_name;
 
+    // Overview · Community · Services · Miscellaneous (Members).
     const sections = [
-        // Home stands alone at the top; the community pages get their own titled section.
-        { key: 'home', items: [{ href: '/', icon: 'home', label: t('nav.dashboard') }] },
-        {
-            title: t('nav.sections.community'),
-            items: [
-                { href: '/members', icon: 'users', label: t('nav.members') },
-                // A fundraise always belongs to a group, so it sits under Groups.
-                { href: '/groups', icon: 'group', label: t('nav.groups'), children: [{ href: '/fundraise', icon: 'fund', label: t('nav.fundraise') }] },
-            ],
-        },
+        { title: t('nav.sections.overview'), items: [{ href: '/', icon: 'home', label: t('nav.dashboard') }] },
+        { title: t('nav.sections.community'), items: [{ href: '/groups', icon: 'group', label: t('nav.groups') }] },
         {
             title: t('nav.sections.services'),
             items: [
                 { href: '/blood', icon: 'blood', label: t('nav.blood') },
+                { href: '/fundraise', icon: 'fund', label: t('nav.fundraise') },
             ],
         },
-        ...(canViewAudit(user.role)
-            ? [{ title: t('nav.sections.admin'), items: [{ href: '/audit', icon: 'audit', label: t('nav.audit') }] }]
-            : []),
+        {
+            title: t('nav.sections.admin'),
+            // The activity log lives in Settings (admins), not here.
+            items: [{ href: '/members', icon: 'users', label: t('nav.members') }],
+        },
     ];
     // Pinned to the bottom of the sidebar. Everyone has Settings (language, phone,
     // password); admins also get the Samaj tab there.
@@ -53,6 +48,7 @@ export default async function AppLayout({ children }) {
             unread={unread}
             initialCollapsed={jar.get(SIDEBAR_COOKIE)?.value === 'collapsed'}
             user={{ name: localized(user, 'full_name', locale), role: t(`roles.${user.role}`) }}
+            logo={{ logo_kind: general.logo_kind, logo_value: general.logo_value, logo_color: general.logo_color }}
             labels={{
                 app: samaj || t('app.name'),
                 menu: t('nav.menu'),

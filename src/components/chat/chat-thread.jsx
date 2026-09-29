@@ -1,5 +1,5 @@
 'use client';
-import { CalendarClock, Loader2, SendHorizontal, Trash2 } from 'lucide-react';
+import { Bell, BellRing, CalendarClock, Loader2, SendHorizontal, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { startTransition, useActionState, useEffect, useRef, useState } from 'react';
@@ -21,16 +21,21 @@ const colourFor = (id) => NAME_COLOURS[(id ?? 0) % NAME_COLOURS.length];
  *                             kind?: 'meeting'|null, data?: object|null }> }} props
  * A message with a `kind` is a system note (e.g. a meeting was scheduled), shown centred.
  */
-export default function ChatThread({ scope, scopeId, me, moderate, canPost = true, postRoles = [], messages }) {
+export default function ChatThread({ scope, scopeId, me, moderate, canPost = true, canAlert = false, postRoles = [], messages }) {
     const { t, locale } = useT();
     const router = useRouter();
     const scroller = useRef(null);
     const input = useRef(null);
     const [text, setText] = useState('');
+    // Off by default: a normal message. On: it also notifies everyone (and turns off after sending).
+    const [alert, setAlert] = useState(false);
 
     const [, send, sending] = useActionState(async (prev, fd) => {
         const res = await postMessage(prev, fd);
-        if (res?.ok) setText('');
+        if (res?.ok) {
+            setText('');
+            setAlert(false);
+        }
         else toast.error(t(res?.error ?? 'common.error'));
         return res;
     }, null);
@@ -58,6 +63,7 @@ export default function ChatThread({ scope, scopeId, me, moderate, canPost = tru
         fd.set('scope', scope);
         fd.set('scope_id', String(scopeId));
         fd.set('body', text);
+        if (alert) fd.set('alert', '1');
         startTransition(() => send(fd));
         input.current?.focus();
     }
@@ -101,6 +107,11 @@ export default function ChatThread({ scope, scopeId, me, moderate, canPost = tru
                                     }`}
                                 >
                                     {!mine && <p className={`text-xs font-semibold ${colourFor(m.userId)}`}>{name}</p>}
+                                    {m.alert && (
+                                        <p className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-900">
+                                            <BellRing className="size-3" /> {t('chat.alertBadge')}
+                                        </p>
+                                    )}
                                     {m.body == null ? (
                                         <p className="text-sm italic text-ink-gray">{t('chat.deleted')}</p>
                                     ) : (
@@ -143,10 +154,24 @@ export default function ChatThread({ scope, scopeId, me, moderate, canPost = tru
                     placeholder={t('chat.placeholder')}
                     className="max-h-32 min-h-9 min-w-0 flex-1 resize-none rounded-2xl border border-surface-border bg-white px-3 py-1.5 text-sm text-ink outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
+                {canAlert && (
+                    <button
+                        type="button"
+                        onClick={() => setAlert((a) => !a)}
+                        aria-pressed={alert}
+                        aria-label={t('chat.alertToggle')}
+                        title={alert ? t('chat.alertOn') : t('chat.alertOff')}
+                        className={`flex size-9 shrink-0 items-center justify-center rounded-full border ${
+                            alert ? 'border-amber-300 bg-amber-100 text-amber-900' : 'border-surface-border bg-white text-ink-gray hover:text-primary'
+                        }`}
+                    >
+                        {alert ? <BellRing className="size-4" /> : <Bell className="size-4" />}
+                    </button>
+                )}
                 <button
                     type="submit"
                     disabled={!text.trim() || sending}
-                    aria-label={t('chat.send')}
+                    aria-label={alert ? t('chat.sendAlert') : t('chat.send')}
                     className="btn-secondary flex size-9 shrink-0 items-center justify-center rounded-full disabled:opacity-50"
                 >
                     {sending ? <Loader2 className="size-4 animate-spin" /> : <SendHorizontal className="size-4" />}

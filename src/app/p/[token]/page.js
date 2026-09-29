@@ -1,7 +1,8 @@
-import { Printer } from 'lucide-react';
+import { FileDown } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FundraiseSummary from '@/components/fundraise/summary';
+import GroupAvatar from '@/components/groups/group-avatar';
 import Statement from '@/components/fundraise/statement';
 import Badge from '@/components/ui/badge';
 import { date } from '@/lib/format';
@@ -34,20 +35,35 @@ export default async function PublicFundraisePage({ params }) {
     return (
         <main className="theme-fundraise mx-auto max-w-4xl space-y-5 px-4 py-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('fundraise.publicTitle')}</p>
-                    <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
-                    {(groupName || dates || campaign.location) && (
-                        <p className="mt-0.5 text-xs text-ink-gray">{[groupName, campaign.location, dates].filter(Boolean).join(' · ')}</p>
-                    )}
+                {/* The fundraise's picture beside its title, as inside the app. */}
+                <div className="flex min-w-0 items-start gap-3">
+                    <GroupAvatar
+                        id={campaign.id}
+                        name={campaign.title}
+                        kind={campaign.meta.avatar_kind}
+                        value={campaign.meta.avatar_value}
+                        color={campaign.meta.avatar_color}
+                        size="lg"
+                        className="mt-1"
+                    />
+                    <div className="min-w-0">
+                        <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('fundraise.publicTitle')}</p>
+                        <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
+                        {(groupName || dates || campaign.location) && (
+                            <p className="mt-0.5 text-xs text-ink-gray">{[groupName, campaign.location, dates].filter(Boolean).join(' · ')}</p>
+                        )}
+                    </div>
                 </div>
                 <div className="flex w-full items-center gap-2 sm:w-auto">
                     <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
+                    {/* Icon only; the label stays as tooltip and screen-reader name. */}
                     <Link
                         href={`/p/${token}/print`}
-                        className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:flex-none"
+                        aria-label={t('common.downloadPdf')}
+                        title={t('common.downloadPdf')}
+                        className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 sm:ml-0"
                     >
-                        <Printer className="size-4" /> {t('common.downloadPdf')}
+                        <FileDown className="size-4" />
                     </Link>
                 </div>
             </div>

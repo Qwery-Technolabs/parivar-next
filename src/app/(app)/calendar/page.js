@@ -1,14 +1,16 @@
-import { ChevronLeft, ChevronRight, Clock, HandCoins, MapPin, UsersRound } from 'lucide-react';
+import { Cake, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Circle, Clock, HandCoins, MapPin, PartyPopper, UsersRound } from 'lucide-react';
 import Link from 'next/link';
 import { EventRowMenu, NewEventButton } from '@/components/calendar/event-controls';
 import PageHeader from '@/components/shell/page-header';
+import FilterBar from '@/components/ui/filter-bar';
 import Badge from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
-import { EVENT_TYPES, listGroupOptions, listMonth, resolveMonth } from '@/lib/events';
+import { EVENT_TYPES, listGroupOptions, listMonth, resolveMonth, listBirthdays } from '@/lib/events';
 import { date as fmtDate, time as fmtTime } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { canManageEvents } from '@/lib/roles';
+import { canManageEvents, ROLES } from '@/lib/roles';
+import { sp1 } from '@/lib/url';
 
 export async function generateMetadata() {
     const { t } = await getT();
@@ -23,8 +25,11 @@ const TYPE_CHIP = {
     festival: 'bg-purple-50 text-purple-800',
     other: 'bg-surface-bggray text-ink-gray',
     fundraise: 'bg-orange-100 text-brand-navy',
+    birthday: 'bg-rose-50 text-rose-700',
 };
-const TYPE_TONE = { event: 'navy', meeting: 'blue', festival: 'purple', other: 'gray', fundraise: 'orange' };
+// An icon per kind, shown before the title in the grid and the agenda.
+const TYPE_ICON = { event: CalendarDays, meeting: CalendarClock, festival: PartyPopper, other: Circle, fundraise: HandCoins, birthday: Cake };
+const TYPE_TONE = { event: 'navy', meeting: 'blue', festival: 'purple', other: 'gray', fundraise: 'orange', birthday: 'red' };
 
 const pad = (n) => String(n).padStart(2, '0');
 const monthHref = (key, currentKey) => (key === currentKey ? '/calendar' : `/calendar?m=${key}`);
@@ -34,11 +39,17 @@ export default async function CalendarPage({ searchParams }) {
     const sp = await searchParams;
     const { t, locale } = await getT();
     const cal = resolveMonth(sp);
+    // Filters: what to show (all = absence) and, for birthdays, whose (an app role).
+    const SHOW = ['birthday', 'meeting', 'fundraise', 'event', 'festival'];
+    const show = SHOW.includes(sp1(sp.show)) ? sp1(sp.show) : '';
+    const brole = ROLES.includes(sp1(sp.brole)) ? sp1(sp.brole) : '';
+    const wants = (type) => !show || show === type;
     const manager = canManageEvents(user.role);
 
-    const [{ events, campaigns }, groups] = await Promise.all([
+    const [{ events, campaigns }, groups, birthdays] = await Promise.all([
         listMonth(cal.first, cal.last),
         manager ? listGroupOptions() : Promise.resolve([]),
+        wants('birthday') ? listBirthdays(cal.year, cal.month, cal.days, brole) : Promise.resolve([]),
     ]);
 
     const months = t('calendar.months').split(',');
@@ -69,7 +80,23 @@ export default async function CalendarPage({ searchParams }) {
             href: `/fundraise/${c.id}`,
             status: c.status,
         })),
-    ].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : (a.time ?? '') < (b.time ?? '') ? -1 : 1));
+        // Members' birthdays this month (day only; the year is theirs).
+        ...birthdays.map((b) => {
+            const iso = `${cal.key}-${pad(b.day)}`;
+            return {
+                key: `b${b.id}`,
+                kind: 'birthday',
+                type: 'birthday',
+                title: localized(b, 'full_name', locale),
+                start: iso,
+                end: iso,
+                href: `/members/${b.id}`,
+                turns: b.turns,
+            };
+        }),
+    ]
+        .filter((it) => wants(it.type))
+        .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : (a.time ?? '') < (b.time ?? '') ? -1 : 1));
 
     const cells = [];
     for (let i = 0; i < cal.firstWeekday; i++) cells.push(null);
@@ -90,26 +117,49 @@ export default async function CalendarPage({ searchParams }) {
                 actions={manager ? <NewEventButton groups={groups} types={EVENT_TYPES} defaultDate={defaultDate} /> : null}
             />
 
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-                <Link href={monthHref(cal.prev, cal.currentKey)} scroll={false} aria-label={t('common.prev')} className={navBtn}>
-                    <ChevronLeft className="size-4" />
-                </Link>
-                <Link href={monthHref(cal.next, cal.currentKey)} scroll={false} aria-label={t('common.next')} className={navBtn}>
-                    <ChevronRight className="size-4" />
-                </Link>
-                <h2 className="ml-1 text-base font-semibold text-primary tabular-nums">
-                    {months[cal.month - 1]} {cal.year}
-                </h2>
-                {cal.key !== cal.currentKey && (
-                    <Link
-                        href="/calendar"
-                        scroll={false}
-                        className="ml-auto inline-flex h-9 items-center rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
-                    >
-                        {t('calendar.today')}
-                    </Link>
-                )}
-            </div>
+            {/* One row: month navigation on the left, Filters on the right. */}
+            <FilterBar
+                left={
+                    <>
+                        <Link href={monthHref(cal.prev, cal.currentKey)} scroll={false} aria-label={t('common.prev')} className={navBtn}>
+                            <ChevronLeft className="size-4" />
+                        </Link>
+                        <Link href={monthHref(cal.next, cal.currentKey)} scroll={false} aria-label={t('common.next')} className={navBtn}>
+                            <ChevronRight className="size-4" />
+                        </Link>
+                        <h2 className="ml-1 text-base font-semibold text-primary tabular-nums">
+                            {months[cal.month - 1]} {cal.year}
+                        </h2>
+                        {cal.key !== cal.currentKey && (
+                            <Link
+                                href="/calendar"
+                                scroll={false}
+                                className="inline-flex h-9 items-center rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
+                            >
+                                {t('calendar.today')}
+                            </Link>
+                        )}
+                    </>
+                }
+                filters={[
+                    {
+                        param: 'show',
+                        label: t('calendar.filters.show'),
+                        type: 'select',
+                        allLabel: t('calendar.filters.everything'),
+                        options: SHOW.map((v) => ({ value: v, label: t(`calendar.filters.${v}`) })),
+                    },
+                    {
+                        param: 'brole',
+                        label: t('calendar.filters.birthdayRole'),
+                        type: 'select',
+                        allLabel: t('common.any'),
+                        options: ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) })),
+                        // Only while birthdays are shown (everything, or birthdays only).
+                        showIf: { param: 'show', in: ['', 'birthday'] },
+                    },
+                ]}
+            />
 
             {/* Month grid — hidden below sm, where seven columns are ~48px each and unreadable. */}
             <div className="hidden overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm sm:block">
@@ -150,12 +200,16 @@ export default async function CalendarPage({ searchParams }) {
                                             const showLabel = it.start === c.iso || c.weekday === 0 || c.d === 1;
                                             const chip = `block truncate rounded px-1.5 py-0.5 text-[11px] font-medium ${TYPE_CHIP[it.type]}`;
                                             const label = showLabel ? it.title : ' ';
+                                            const Icon = TYPE_ICON[it.type] ?? Circle;
+                                            const icon = showLabel && <Icon aria-hidden className="mr-1 inline size-3 -translate-y-px" />;
                                             return it.href ? (
                                                 <Link key={it.key} href={it.href} title={it.title} className={`${chip} hover:underline`}>
+                                                    {icon}
                                                     {label}
                                                 </Link>
                                             ) : (
                                                 <span key={it.key} title={it.title} className={chip}>
+                                                    {icon}
                                                     {showLabel && it.time && <span className="tabular-nums">{fmtTime(it.time)} </span>}
                                                     {label}
                                                 </span>
@@ -186,6 +240,14 @@ export default async function CalendarPage({ searchParams }) {
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex flex-wrap items-center gap-2">
+                                        {(() => {
+                                            const Icon = TYPE_ICON[it.type] ?? Circle;
+                                            return (
+                                                <span aria-hidden className={`flex size-6 shrink-0 items-center justify-center rounded-full ${TYPE_CHIP[it.type]}`}>
+                                                    <Icon className="size-3.5" />
+                                                </span>
+                                            );
+                                        })()}
                                         {it.href ? (
                                             <Link href={it.href} className="font-medium text-primary break-words hover:underline">
                                                 {it.title}
@@ -194,9 +256,15 @@ export default async function CalendarPage({ searchParams }) {
                                             <span className="font-medium text-primary break-words">{it.title}</span>
                                         )}
                                         <Badge tone={TYPE_TONE[it.type]}>
-                                            {it.kind === 'fundraise' && <HandCoins className="size-3" />}
-                                            {it.kind === 'fundraise' ? t('calendar.fundraiseWindow') : t(`calendar.types.${it.type}`)}
+                                            {it.kind === 'fundraise'
+                                                ? t('calendar.fundraiseWindow')
+                                                : it.kind === 'birthday'
+                                                  ? t('calendar.birthday')
+                                                  : t(`calendar.types.${it.type}`)}
                                         </Badge>
+                                        {it.kind === 'birthday' && it.turns > 0 && (
+                                            <span className="text-xs text-ink-gray">{t('calendar.turns', { age: it.turns })}</span>
+                                        )}
                                     </div>
                                     <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink-gray">
                                         {it.end !== it.start && (

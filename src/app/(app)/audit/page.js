@@ -82,7 +82,7 @@ export default async function AuditPage({ searchParams }) {
 
     return (
         <div>
-            <PageHeader title={t('audit.title')} />
+            <PageHeader title={t('audit.title')} back={{ href: '/settings', label: t('settings.title') }} />
             <FilterBar
                 search={{ placeholder: t('audit.searchPlaceholder') }}
                 filters={[

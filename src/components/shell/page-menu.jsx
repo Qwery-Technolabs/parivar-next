@@ -58,6 +58,7 @@ export default function PageMenu({ items, children, label }) {
                                               if (item.action) {
                                                   startTransition(async () => {
                                                       const res = await item.action();
+                                                      if (res?.error) return toast.error(t(res.error));
                                                       if (res?.message) toast.success(t(res.message));
                                                       router.refresh();
                                                   });

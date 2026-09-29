@@ -72,6 +72,24 @@ export async function listMonth(first, last) {
     };
 }
 
+/**
+ * Active members whose birthday falls in this month, for the calendar: day of the month and
+ * the age they turn. 29 February shows on the 28th in a non-leap year.
+ * @returns {Promise<Array<{ id: number, full_name: string, full_name_local: string|null, day: number, turns: number }>>}
+ */
+export async function listBirthdays(year, month, daysInMonth, role = '') {
+    const rows = await query(
+        `SELECT id, full_name, full_name_local, DAY(dob) AS day, YEAR(dob) AS born
+           FROM users_list
+          WHERE status = 'active' AND dob IS NOT NULL AND MONTH(dob) = :month ${role ? 'AND role = :role' : ''}
+          ORDER BY DAY(dob), full_name`,
+        { month, role },
+    );
+    return rows
+        .filter((r) => r.born <= year)
+        .map((r) => ({ id: r.id, full_name: r.full_name, full_name_local: r.full_name_local, day: Math.min(r.day, daysInMonth), turns: year - r.born }));
+}
+
 export async function listGroupOptions() {
     return query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`);
 }

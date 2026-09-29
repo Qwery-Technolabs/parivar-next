@@ -156,7 +156,8 @@ export async function listCities() {
 
 export async function getMember(id) {
     const row = await queryOne(
-        `SELECT u.id, u.phone, u.full_name, u.full_name_local, u.gender, u.dob, u.blood_group, u.village, u.city, u.role, u.language,
+        `SELECT u.id, u.phone, u.full_name, u.full_name_local, u.first_name, u.middle_name, u.surname,
+                u.first_name_local, u.middle_name_local, u.surname_local, u.gender, u.dob, u.blood_group, u.village, u.city, u.role, u.language,
                 u.is_blood_donor, u.status, u.last_login_at, u.created_at, (u.password_hash IS NOT NULL) AS can_login,
                 u.caste_id, u.subcaste_id, c.name AS caste_name, c.name_local AS caste_name_local,
                 sc.name AS subcaste_name, sc.name_local AS subcaste_name_local

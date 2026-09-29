@@ -29,6 +29,7 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
             // Two columns: wide enough for two selects side by side, never wider than the phone.
             width="w-[min(34rem,calc(100vw-2rem))]"
             role="dialog"
+            flush
             trigger={({ open, toggle, id }) => (
                 <button
                     id={id}
@@ -50,14 +51,32 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
             )}
         >
             {(close) => (
-                <div className="px-3 py-2">
-                    <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">{children}</div>
-                    {/* Pinned: Apply stays reachable however long the (scrolling) panel gets. */}
-                    <div className="sticky bottom-0 -mx-3 mt-3 flex justify-end gap-2 border-t border-surface-border bg-white px-3 py-2">
+                // Header and footer stay put; only the fields between them scroll.
+                <div className="flex min-h-0 flex-1 flex-col">
+                    {/* Tinted header: what this panel is, and a way out. */}
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-border bg-card-head px-3 py-2">
+                        <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                            <SlidersHorizontal className="size-4" /> {t('common.filters')}
+                            {activeCount > 0 && <span className="text-xs font-medium text-ink-gray tabular-nums">({activeCount})</span>}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={close}
+                            aria-label={t('common.close')}
+                            className="flex size-7 items-center justify-center rounded-md text-ink-gray hover:bg-white hover:text-primary"
+                        >
+                            <X className="size-4" />
+                        </button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                        <div className="grid grid-cols-1 gap-x-3 gap-y-3 px-3 py-3 sm:grid-cols-2">{children}</div>
+                    </div>
+                    {/* Tinted footer: Clear / Apply always in reach. */}
+                    <div className="flex shrink-0 justify-end gap-2 border-t border-surface-border bg-card-head px-3 py-2">
                         <button
                             type="button"
                             onClick={onClear}
-                            className="h-8 rounded-md px-3 text-sm font-medium text-ink-gray hover:bg-accent hover:text-primary"
+                            className="h-8 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
                         >
                             {t('common.clear')}
                         </button>
@@ -148,7 +167,7 @@ export function useUrlFilters(fixed = {}) {
  * @param {{
  *   search?: { param?: string, placeholder?: string },
  *   filters?: Array<{ param: string, label: string, type: 'select'|'switch'|'text', options?: Array<{value: string, label: string}>,
- *                     allLabel?: string, defaultValue?: string, hint?: string, showIf?: { param: string, value?: string, not?: string } }>,
+ *                     allLabel?: string, defaultValue?: string, hint?: string, showIf?: { param: string, value?: string, not?: string, in?: string[] } }>,
  *   fixed?: Record<string, string>,   // params always written (e.g. { tab: 'donors' })
  *   left?: React.ReactNode,
  *   className?: string,
@@ -180,7 +199,14 @@ export default function FilterBar({ search, filters = [], fixed = {}, left, clas
     }
 
     const now = applied();
-    const visible = (f, values) => !f.showIf || (f.showIf.value != null ? values[f.showIf.param] === f.showIf.value : f.showIf.not != null ? values[f.showIf.param] !== f.showIf.not : Boolean(values[f.showIf.param]));
+    const visible = (f, values) => {
+        if (!f.showIf) return true;
+        const v = values[f.showIf.param];
+        if (f.showIf.in) return f.showIf.in.includes(v ?? '');
+        if (f.showIf.value != null) return v === f.showIf.value;
+        if (f.showIf.not != null) return v !== f.showIf.not;
+        return Boolean(v);
+    };
     const activeCount = filters.filter((f) => visible(f, now) && (f.type === 'switch' ? now[f.param] : now[f.param] !== (f.defaultValue ?? ''))).length;
     const toParams = (values) =>
         Object.fromEntries(

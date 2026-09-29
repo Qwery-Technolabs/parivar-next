@@ -1,5 +1,5 @@
 'use client';
-import { CalendarDays, Check, ChevronDown, Clock, HelpCircle, List, MapPin, Trash2, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, Clock, HelpCircle, List, MapPin, Trash2, Users, X, Cake } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import { date as fmtDate, time as fmtTime } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 import PostDialog from '@/components/fundraise/post-dialog';
 import MeetingCalendar from './meeting-calendar';
+import { selectInput } from '@/components/ui/field';
 import MeetingDialog from './meeting-dialog';
 
 const RSVP = {
@@ -131,7 +132,7 @@ function MeetingCard({ m, scope, scopeId, manage, people, me, past, today, minut
  * Upcoming meetings (soonest first) and, folded away, past ones — or the same meetings on a
  * month calendar. View is ?view=calendar (default list = absence), so it survives reload/back.
  */
-export default function MeetingList({ meetings, scope, scopeId, manage, people, me, today, defaultTitle, defaultPlace, minutes = [], canPostMinutes = false }) {
+export default function MeetingList({ meetings, scope, scopeId, manage, people, me, today, defaultTitle, defaultPlace, minutes = [], canPostMinutes = false, birthdays = [], birthdayRoles = [] }) {
     const minutesOf = (id) => minutes.filter((u) => u.event_id === id);
     const { t, locale } = useT();
     const router = useRouter();
@@ -139,6 +140,11 @@ export default function MeetingList({ meetings, scope, scopeId, manage, people, 
     const searchParams = useSearchParams();
     const view = searchParams.get('view') === 'calendar' ? 'calendar' : 'list';
     const [showPast, setShowPast] = useState(false);
+    // Calendar filters: meetings and/or birthdays; birthdays of one role only.
+    const [show, setShow] = useState('all');
+    const [role, setRole] = useState('');
+    const calMeetings = show === 'birthday' ? [] : meetings;
+    const calBirthdays = show === 'meeting' ? [] : birthdays.filter((b) => !role || b.role === role);
     const upcoming = meetings.filter((m) => m.start_date >= today).reverse();
     const past = meetings.filter((m) => m.start_date < today);
     const card = (m) => (
@@ -190,14 +196,62 @@ export default function MeetingList({ meetings, scope, scopeId, manage, people, 
                 {manage && <MeetingDialog scope={scope} scopeId={scopeId} people={people} today={today} defaultTitle={defaultTitle} defaultPlace={defaultPlace} compact />}
             </div>
 
+            {view === 'calendar' && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5" role="group" aria-label={t('meetings.filterLabel')}>
+                        {[
+                            ['all', t('meetings.filters.all')],
+                            ['meeting', t('meetings.filters.meetings')],
+                            ['birthday', t('meetings.filters.birthdays')],
+                        ].map(([v, label]) => (
+                            <button
+                                key={v}
+                                type="button"
+                                onClick={() => setShow(v)}
+                                aria-pressed={show === v}
+                                className={`inline-flex h-7 items-center rounded px-2 text-xs font-medium ${show === v ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-brand-navy'}`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    {show !== 'meeting' && birthdayRoles.length > 0 && (
+                        <select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            aria-label={t('meetings.filters.birthdayRole')}
+                            className={`${selectInput()} h-8 w-auto text-xs`}
+                        >
+                            <option value="">{t('meetings.filters.anyRole')}</option>
+                            {birthdayRoles.map((r) => (
+                                <option key={r.value} value={r.value}>
+                                    {r.label}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+            )}
+
             {view === 'calendar' ? (
                 <MeetingCalendar
-                    meetings={meetings}
+                    meetings={calMeetings}
+                    birthdays={calBirthdays}
                     today={today}
-                    renderDay={(day, list) => (
+                    renderDay={(day, list, dayBirthdays) => (
                         <div className="space-y-2">
                             <p className="text-xs font-semibold text-ink-gray">{fmtDate(day, locale)}</p>
-                            {list.length === 0 ? (
+                            {dayBirthdays.length > 0 && (
+                                <ul className="flex flex-wrap gap-1.5">
+                                    {dayBirthdays.map((b) => (
+                                        <li key={b.id} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">
+                                            <Cake className="size-3.5" /> {(locale !== 'en' && b.nameLocal) || b.name}
+                                            {b.turns > 0 && <span className="font-normal">· {t('calendar.turns', { age: b.turns })}</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {list.length === 0 && dayBirthdays.length === 0 ? (
                                 <p className="rounded-lg border border-surface-border bg-white px-4 py-5 text-center text-sm text-ink-gray">{t('meetings.noneOnDay')}</p>
                             ) : (
                                 <ul className="space-y-2">{list.map(card)}</ul>

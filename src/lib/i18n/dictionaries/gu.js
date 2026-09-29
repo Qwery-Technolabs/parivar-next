@@ -2,6 +2,7 @@
 const gu = {
     app: { name: 'પરિવાર', tagline: 'આપણો પરિવાર, સાથે' },
     common: {
+        open: 'ખોલો',
         creator: 'બનાવનાર',
         guAuto: 'અંગ્રેજી પરથી ભરાયું — જરૂર હોય તો સુધારો',
         guManual: 'તમારી લખેલી જોડણી રહેશે',
@@ -66,8 +67,8 @@ const gu = {
     nav: {
         collapse: 'નાનું કરો',
         expand: 'સાઇડબાર ખોલો',
-        sections: { community: 'સમુદાય', services: 'સેવાઓ', admin: 'વહીવટ' },
-        dashboard: 'હોમ',
+        sections: { overview: 'ઝાંખી', community: 'સમુદાય', services: 'સેવાઓ', admin: 'અન્ય' },
+        dashboard: 'ડેશબોર્ડ',
         members: 'પરિવારજનો',
         groups: 'જૂથો',
         blood: 'રક્ત',
@@ -81,6 +82,7 @@ const gu = {
         menu: 'મેનુ',
     },
     auth: {
+        remember: 'મને યાદ રાખો (એક વર્ષ લૉગ ઇન રહો)',
         setPassword: {
             title: 'તમારો પાસવર્ડ બનાવો',
             subtitle: 'તમે ફોન નંબરથી લૉગ ઇન કર્યું છે. આગળ વધવા પોતાનો પાસવર્ડ પસંદ કરો.',
@@ -138,8 +140,12 @@ const gu = {
         viewAll: 'બધું જુઓ',
     },
     members: {
+        firstName: 'તમારું નામ',
+        middleName: 'તમારા પિતાનું નામ',
+        surname: 'અટક',
         filterSections: { person: 'વ્યક્તિ', place: 'સ્થળ', community: 'સમાજ', blood: 'રક્ત' },
         invite: {
+            pasteHint: 'ટિપ: ફોન ખાનામાં નંબરની યાદી પેસ્ટ કરો — દરેક લાઇનમાં એક, +91 કે નામ સાથે કે વગર — દરેક માટે અલગ લાઇન બનશે.',
             button: 'ફોનથી આમંત્રણ',
             title: 'ફોન નંબરથી સભ્યોને આમંત્રણ',
             description: 'તેઓ ફોન નંબરને પાસવર્ડ તરીકે વાપરી લૉગ ઇન કરશે, પછી પોતાનો પાસવર્ડ બનાવી વિગતો ભરશે.',
@@ -157,6 +163,13 @@ const gu = {
         welcomeFill: 'સ્વાગત છે! તમારો પાસવર્ડ બની ગયો. કૃપા કરીને નીચે તમારી વિગતો ભરો — દરેક ટૅબ અલગથી સચવાય છે.',
         tabs: { basic: 'મૂળ માહિતી', community: 'સમાજ', details: 'વિગતો', access: 'ભૂમિકા અને સ્થિતિ', password: 'પાસવર્ડ' },
         bulk: {
+            reset: 'પાસવર્ડ ફોન નંબર કરો',
+            resetTitle: 'પાસવર્ડ ફોન નંબર પર રીસેટ કરો',
+            resetSubmit: 'પાસવર્ડ રીસેટ કરો',
+            resetNote: 'પસંદ કરેલા દરેક સભ્ય પોતાના ફોન નંબરને પાસવર્ડ તરીકે વાપરી લૉગ ઇન કરશે અને નવો પાસવર્ડ બનાવવો પડશે. બધે લૉગ આઉટ થઈ જશે.',
+            resetNone: 'પસંદ કરેલામાંથી કોઈનો પાસવર્ડ તમે રીસેટ કરી શકતા નથી.',
+            resetDone: '{reset} પાસવર્ડ ફોન નંબર પર રીસેટ થયા.',
+            resetDoneSkipped: '{reset} પાસવર્ડ ફોન નંબર પર રીસેટ થયા; {skipped} છોડ્યા (મંજૂરી નથી).',
             selectAll: 'આ પાનાના બધા પસંદ કરો',
             selected: '{count} પસંદ',
             chooseGroups: 'એક કે વધુ જૂથ પસંદ કરો',
@@ -345,6 +358,14 @@ const gu = {
         errors: { units: '1 થી 20 યુનિટ દાખલ કરો.', date: 'માન્ય તારીખ દાખલ કરો.' },
     },
     fundraise: {
+        archive: 'આર્કાઇવ કરો',
+        archiveConfirm: 'આ ફંડ ફાળો આર્કાઇવ કરવો? તે યાદીમાંથી જશે અને જાહેર લિંક બંધ થશે. કંઈ કાઢી નંખાતું નથી; પાછો લાવી શકાય.',
+        restore: 'આર્કાઇવમાંથી પાછો લાવો',
+        archivedNotice: 'આ ફંડ ફાળો આર્કાઇવ થયેલો છે: યાદી, જૂથ ટૅબ અને જાહેર લિંકમાંથી છુપાયેલો છે. ભૂલથી થયું હોય તો પાછો લાવો.',
+        archived: 'ફંડ ફાળો આર્કાઇવ થયો.',
+        restored: 'ફંડ ફાળો આર્કાઇવમાંથી પાછો આવ્યો.',
+        archivedBadge: 'આર્કાઇવ',
+        publicPage: 'જાહેર પાનું',
         standalone: 'સ્વતંત્ર ફંડ ફાળો (જૂથ વગર)',
         noHomeGroup: 'કોઈ જૂથ નહીં — સ્વતંત્ર',
         sections: { details: 'વિગતો', groups: 'જૂથો', sharing: 'શેર' },
@@ -456,6 +477,7 @@ const gu = {
         entries: 'નોંધ',
         lastPaid: 'છેલ્લી ચુકવણી',
         errors: {
+            archiveFirst: 'પહેલાં ફંડ ફાળો આર્કાઇવ કરો; ફક્ત આર્કાઇવ થયેલો જ કાઢી શકાય.',
             extraGroup: 'જ્યાં તમે ફંડ ફાળો શરૂ કરી શકો તે જ જૂથ ઉમેરી શકાય.',
             selfDemote: 'તમે તમારી પોતાની એડમિન ભૂમિકા દૂર ન કરી શકો. બીજા એડમિનને કહો.',
             title: 'શીર્ષક લખો.',
@@ -500,14 +522,14 @@ const gu = {
             },
         },
         searchPlaceholder: 'ફંડ ફાળા શોધો',
-        views: { label: 'બતાવો', all: 'બધા ફંડ ફાળા', mine: 'મારું દાન', team: 'મારી ટીમો' },
+        views: { label: 'બતાવો', archived: 'આર્કાઇવ', all: 'બધા ફંડ ફાળા', mine: 'મારું દાન', team: 'મારી ટીમો' },
         myTotal: 'તમે આપેલ કુલ દાન',
         myTotalNote: { one: '{count} ફંડ ફાળામાં', other: '{count} ફંડ ફાળામાં' },
         noMyDonations: 'તમારા નામે હજુ કોઈ દાન નોંધાયું નથી.',
         noMyTeams: 'તમે હજુ કોઈ ફંડ ફાળાની ટીમમાં નથી.',
         fundraise: 'ફંડ ફાળો',
         yourRole: 'તમારી ભૂમિકા',
-        tabs: { discussion: 'ચર્ચા', money: 'આવક / ખર્ચ', details: 'વિગતો', team: 'ટીમ', meetings: 'મીટિંગો', updates: 'સમાચાર' },
+        tabs: { discussion: 'ચર્ચા', money: 'આવક / ખર્ચ', details: 'વિશે', team: 'ટીમ', meetings: 'મીટિંગો', updates: 'સમાચાર' },
         teamRole: 'ભૂમિકા',
         teamRoles: { admin: 'એડમિન', organizer: 'આયોજક', treasurer: 'ખજાનચી', collector: 'ફાળો ઉઘરાવનાર', volunteer: 'સ્વયંસેવક' },
         teamRoleHints: {
@@ -552,6 +574,9 @@ const gu = {
         deleteUpdateConfirm: 'આ પોસ્ટ કાઢી નાખવી છે?',
     },
     calendar: {
+        filters: { show: 'બતાવો', everything: 'બધું', birthday: 'ફક્ત જન્મદિવસ', meeting: 'ફક્ત મીટિંગ', fundraise: 'ફક્ત ફંડ ફાળા', event: 'ફક્ત કાર્યક્રમ', festival: 'ફક્ત તહેવાર', birthdayRole: 'આ ભૂમિકાના સભ્યોના જન્મદિવસ' },
+        birthday: 'જન્મદિવસ',
+        turns: '{age} વર્ષ પૂરા',
         title: 'કેલેન્ડર',
         subtitle: 'કાર્યક્રમો અને ફંડ ફાળાની તારીખો',
         add: 'નવો કાર્યક્રમ',
@@ -620,6 +645,7 @@ const gu = {
             member_pending: '{name}એ નોંધણી કરી છે, મંજૂરીની રાહ જુએ છે',
             member_joined: '{name}એ નોંધણી કરી અને જોડાયા',
             group_sub_admin: 'તમે હવે {group}ના સહ-એડમિન છો',
+            chat_alert: '{title}માં જાણ: {preview}',
             meeting_invite: 'તમને આમંત્રણ: {title} — {date}{time}{place}',
             meeting_updated: 'મીટિંગમાં ફેરફાર: {title} — {date}{time}{place}',
             meeting_cancelled: 'મીટિંગ રદ: {title} — {date}',
@@ -635,6 +661,7 @@ const gu = {
         },
     },
     settings: {
+        logo: { title: 'સમાજનો લોગો', hint: 'સાઇડબાર, લૉગ ઇન પાના અને જાહેર ફંડ ફાળા પાના પર દેખાય છે. બદલવા ચિત્ર પર ક્લિક કરો.' },
         language: {
             app: 'એપની ભાષા',
             appHint: 'મેનુ, બટન અને સંદેશા આ ભાષામાં દેખાશે.',
@@ -643,6 +670,7 @@ const gu = {
         },
         groups: { personal: 'મારું ખાતું', admin: 'સમાજ' },
         sections: {
+            activity: { title: 'પ્રવૃત્તિ નોંધ', hint: 'કોણે શું બદલ્યું — વ્યવસ્થાપકો માટે.' },
             notifications: { title: 'સૂચનાઓ', hint: 'ફોન અને બ્રાઉઝર સૂચનાઓ' },
             profile: { title: 'પ્રોફાઇલ', hint: 'અન્ય સભ્યો તમારી જે વિગતો જુએ છે' },
             security: { title: 'સુરક્ષા', hint: 'લૉગ ઇન માટેનો મોબાઇલ નંબર અને પાસવર્ડ' },
@@ -707,6 +735,11 @@ const gu = {
         },
     },
     chat: {
+        alertToggle: 'બધાને જાણ કરો',
+        alertOn: 'જાણ ચાલુ: બધાને સૂચના જશે',
+        alertOff: 'સામાન્ય સંદેશ (બધાને જાણ કરવા દબાવો)',
+        sendAlert: 'મોકલો અને બધાને જાણ કરો',
+        alertBadge: 'જાણ',
         restricted: 'આ જૂથમાં ફક્ત આ ભૂમિકાઓ સંદેશ મોકલી શકે: {roles}.',
         memberAdded: '{who}એ {names}ને ઉમેર્યા',
         memberRemoved: '{who}એ {names}ને કાઢ્યા',
@@ -726,6 +759,9 @@ const gu = {
         },
     },
     meetings: {
+        filterLabel: 'કેલેન્ડરમાં બતાવો',
+        filters: { all: 'બધું', meetings: 'મીટિંગ', birthdays: 'જન્મદિવસ', birthdayRole: 'આ ભૂમિકાના જન્મદિવસ', anyRole: 'કોઈ પણ ભૂમિકા' },
+        groupMember: 'જૂથના સભ્ય',
         views: { list: 'યાદી', calendar: 'કેલેન્ડર' },
         viewLabel: 'દૃશ્ય',
         noneOnDay: 'આ દિવસે કોઈ મીટિંગ નથી.',

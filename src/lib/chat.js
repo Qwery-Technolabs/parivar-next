@@ -1,6 +1,7 @@
 import 'server-only';
 import { fundraisePermissions, groupStanding, isInFundraiseGroup } from './access';
 import { canPostIn, chatRolesFrom } from './group-roles';
+import { fundraiseAudienceIds } from './notifications';
 import { query, queryOne, setMeta } from './db';
 import { canManageAllFundraises, canManageGroups } from './roles';
 
@@ -15,10 +16,12 @@ export const CHAT_MAX_LENGTH = 2000;
  *   fundraise — its team, members of any group it is shown in, and fundraise managers
  * A group admin chooses which group roles may post (admin_groupsmeta.chat_roles); everyone
  * else in the group still reads. postRoles lists them for the read-only notice.
- * @returns {Promise<{ allowed: boolean, canPost: boolean, moderate: boolean, postRoles?: string[] }>} moderate = may delete others' messages
+ * canAlert — may send a message that also notifies everyone (the old "post an update"): a
+ * group's admins and sub-admins; a fundraise's team and managers.
+ * @returns {Promise<{ allowed: boolean, canPost: boolean, canAlert: boolean, moderate: boolean, postRoles?: string[] }>} moderate = may delete others' messages
  */
 export async function chatAccess(user, scope, scopeId) {
-    const none = { allowed: false, canPost: false, moderate: false };
+    const none = { allowed: false, canPost: false, canAlert: false, moderate: false };
     if (!user || !CHAT_SCOPES.includes(scope) || !scopeId) return none;
     if (scope === 'group') {
         const group = await queryOne(
@@ -32,14 +35,15 @@ export async function chatAccess(user, scope, scopeId) {
         const { standing, myRole } = await groupStanding(user, scopeId);
         if (!standing && !myRole) return none;
         const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
-        return { allowed: true, canPost: canPostIn(postRoles, standing, myRole), moderate: Boolean(standing), postRoles };
+        const canPost = canPostIn(postRoles, standing, myRole);
+        return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), postRoles };
     }
     const campaign = await queryOne('SELECT id, group_id FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;
-    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, moderate: true };
+    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, canAlert: true, moderate: true };
     const [perms, member] = await Promise.all([fundraisePermissions(user, campaign), isInFundraiseGroup(user.id, campaign.id)]);
     const allowed = perms.post || member;
-    return { allowed, canPost: allowed, moderate: perms.manage };
+    return { allowed, canPost: allowed, canAlert: perms.post, moderate: perms.manage };
 }
 
 /**
@@ -49,12 +53,13 @@ export async function chatAccess(user, scope, scopeId) {
  */
 export async function listMessages(scope, scopeId) {
     const rows = await query(
-        `SELECT m.id, m.user_id, m.created_at, m.deleted_at, b.meta_value AS body, k.meta_value AS kind, d.meta_value AS data,
+        `SELECT m.id, m.user_id, m.created_at, m.deleted_at, b.meta_value AS body, k.meta_value AS kind, d.meta_value AS data, a.meta_value AS alert,
                 u.full_name, u.full_name_local
            FROM chat_messages m
            LEFT JOIN chat_messagesmeta b ON b.message_id = m.id AND b.meta_key = 'body'
            LEFT JOIN chat_messagesmeta k ON k.message_id = m.id AND k.meta_key = 'kind'
            LEFT JOIN chat_messagesmeta d ON d.message_id = m.id AND d.meta_key = 'data'
+           LEFT JOIN chat_messagesmeta a ON a.message_id = m.id AND a.meta_key = 'alert'
            LEFT JOIN users_list u ON u.id = m.user_id
           WHERE m.scope = :scope AND m.scope_id = :scopeId
           ORDER BY m.id DESC
@@ -107,6 +112,23 @@ export async function postMemberNote(groupId, actorId, action, userIds) {
     } catch (err) {
         console.error('member note failed', err.message);
     }
+}
+
+/**
+ * Who an alert message reaches, and what the notification names: every member of the group,
+ * or a fundraise's team plus the members of every group it is shown in.
+ * @returns {Promise<{ userIds: number[], title: string, titleLocal: string|null, link: string }>}
+ */
+export async function alertAudience(scope, scopeId) {
+    if (scope === 'group') {
+        const [g, rows] = await Promise.all([
+            queryOne('SELECT name, name_local FROM admin_groups WHERE id = :scopeId', { scopeId }),
+            query('SELECT user_id FROM admin_group_members WHERE group_id = :scopeId', { scopeId }),
+        ]);
+        return { userIds: rows.map((r) => r.user_id), title: g?.name ?? '', titleLocal: g?.name_local ?? null, link: `/groups/${scopeId}` };
+    }
+    const c = await queryOne('SELECT title, title_local FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
+    return { userIds: await fundraiseAudienceIds(scopeId), title: c?.title ?? '', titleLocal: c?.title_local ?? null, link: `/fundraise/${scopeId}` };
 }
 
 /** Message count per thread, for the tab badges. */

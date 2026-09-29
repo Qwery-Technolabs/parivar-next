@@ -35,6 +35,12 @@ CREATE TABLE IF NOT EXISTS users_list (
     password_hash  VARCHAR(100)     NULL,                     -- NULL = listed member who cannot log in yet
     full_name      VARCHAR(150)     NOT NULL,
     full_name_local VARCHAR(150)    NULL,                     -- local-language script (Gujarati default), shown when UI is not English
+    first_name     VARCHAR(60)      NULL,                     -- name parts (full_name is their join)
+    middle_name    VARCHAR(60)      NULL,                     -- father's name
+    surname        VARCHAR(60)      NULL,
+    first_name_local  VARCHAR(60)   NULL,                     -- the same parts in the local script
+    middle_name_local VARCHAR(60)   NULL,
+    surname_local     VARCHAR(60)   NULL,
     gender         ENUM('male','female','other') NULL,
     dob            DATE             NULL,
     blood_group    ENUM('A+','A-','B+','B-','AB+','AB-','O+','O-') NULL,
@@ -59,6 +65,7 @@ CREATE TABLE IF NOT EXISTS users_list (
     KEY idx_users_city (city),
     KEY idx_users_status_name (status, full_name),
     KEY idx_users_caste (caste_id, subcaste_id),
+    KEY idx_users_surname (surname),
     CONSTRAINT fk_users_caste    FOREIGN KEY (caste_id)    REFERENCES admin_castes (id) ON DELETE SET NULL,
     CONSTRAINT fk_users_subcaste FOREIGN KEY (subcaste_id) REFERENCES admin_castes (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -233,6 +240,7 @@ CREATE TABLE IF NOT EXISTS fundraise_campaigns (
     start_date     DATE          NULL,
     end_date       DATE          NULL,
     status         ENUM('draft','active','closed') NOT NULL DEFAULT 'active',
+    archived_at    DATETIME      NULL,              -- archived (hidden from lists); only then deletable
     is_public      TINYINT(1)    NOT NULL DEFAULT 0,
     public_token   CHAR(24)      NULL,               -- random, url-safe; regenerating kills old links
     created_by     INT UNSIGNED  NULL,
@@ -243,6 +251,7 @@ CREATE TABLE IF NOT EXISTS fundraise_campaigns (
     KEY idx_fundraise_group (group_id, status),
     KEY idx_fundraise_dates (start_date, end_date),
     KEY idx_fundraise_location (location, status),
+    KEY idx_fundraise_archived (archived_at),
     CONSTRAINT fk_fundraise_group FOREIGN KEY (group_id) REFERENCES admin_groups (id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

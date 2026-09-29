@@ -37,9 +37,9 @@ function place(rect, align) {
  * scroll box, and a scroll box clips absolutely positioned children — the menu came out as a
  * tiny scrolling sliver. Fixed + portal escapes every such container.
  *
- * @param {{ trigger: (p: { open: boolean, toggle: () => void, id: string }) => React.ReactNode, children: React.ReactNode | ((close: () => void) => React.ReactNode), align?: 'left'|'right', width?: string, role?: string }} props
+ * @param {{ trigger: (p: { open: boolean, toggle: () => void, id: string }) => React.ReactNode, children: React.ReactNode | ((close: () => void) => React.ReactNode), align?: 'left'|'right', width?: string, role?: string, flush?: boolean }} props
  */
-export function Popover({ trigger, children, align = 'right', width = 'w-52', role = 'menu' }) {
+export function Popover({ trigger, children, align = 'right', width = 'w-52', role = 'menu', flush = false }) {
     const [pos, setPos] = useState(null); // null = closed
     const open = pos !== null;
     const panelRef = useRef(null);
@@ -102,7 +102,11 @@ export function Popover({ trigger, children, align = 'right', width = 'w-52', ro
                             role={role}
                             style={pos}
                             // overscroll-contain: scrolling a long panel does not scroll the page behind.
-                            className={`z-41 ${width} max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-md border border-surface-border bg-white py-1 shadow-lg`}
+                            // flush: no padding and no outer scroll — the content pins its header/footer and
+                            // scrolls only its body (filter panels).
+                            className={`z-41 ${width} max-w-[calc(100vw-1rem)] overscroll-contain rounded-md border border-surface-border bg-white shadow-lg ${
+                                flush ? 'flex flex-col overflow-hidden' : 'overflow-y-auto py-1'
+                            }`}
                         >
                             {typeof children === 'function' ? children(close) : children}
                         </div>

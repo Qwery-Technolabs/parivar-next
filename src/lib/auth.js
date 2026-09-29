@@ -9,6 +9,8 @@ import { atLeast } from './roles';
 
 export const SESSION_COOKIE = 'pv_session';
 const SESSION_DAYS = 30;
+// "Remember me" on the login form: the cookie (and the session row) last a year.
+const REMEMBER_DAYS = 365;
 
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 
@@ -32,12 +34,18 @@ export function passwordProblem(plain) {
     return null;
 }
 
-export async function createSession(userId) {
+/**
+ * @param {number} userId
+ * @param {{ remember?: boolean }} [opts] remember → 1-year cookie; otherwise a browser-session
+ *   cookie (gone when the browser closes) over a SESSION_DAYS server session.
+ */
+export async function createSession(userId, { remember = false } = {}) {
+    const days = remember ? REMEMBER_DAYS : SESSION_DAYS;
     const token = randomBytes(32).toString('base64url');
     const ua = (await headers()).get('user-agent')?.slice(0, 255) ?? null;
     await query(
         `INSERT INTO users_sessions (token_hash, user_id, expires_at, user_agent)
-         VALUES (:h, :uid, DATE_ADD(NOW(), INTERVAL ${SESSION_DAYS} DAY), :ua)`,
+         VALUES (:h, :uid, DATE_ADD(NOW(), INTERVAL ${days} DAY), :ua)`,
         { h: sha256(token), uid: userId, ua },
     );
     await query('UPDATE users_list SET last_login_at = NOW() WHERE id = :uid', { uid: userId });
@@ -46,7 +54,7 @@ export async function createSession(userId) {
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production',
         path: '/',
-        maxAge: SESSION_DAYS * 24 * 60 * 60,
+        ...(remember ? { maxAge: days * 24 * 60 * 60 } : {}),
     });
 }
 

@@ -7,6 +7,7 @@ import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import BilingualName from '@/components/ui/bilingual-name';
 import Switch from '@/components/ui/switch';
+import AvatarPicker from '@/components/groups/avatar-picker';
 import { useT } from '@/lib/i18n/client';
 
 function BoolSetting({ name, label, hint, initial }) {
@@ -45,6 +46,30 @@ export default function SettingsForm({ module, title, fields }) {
             <h2 className="rounded-t-lg border-b border-surface-border bg-card-head px-3.5 py-2.5 text-sm font-semibold text-primary">{title}</h2>
             <div className="grid gap-3 p-3.5 sm:grid-cols-2">
                 {fields.map((f) => {
+                    // A logo field is drawn with the name it belongs to (`with`), so that name is skipped here.
+                    if (fields.some((g) => g.type === 'logo' && g.with === f.key)) return null;
+                    if (f.type === 'logo') {
+                        const named = fields.find((g) => g.key === f.with);
+                        const namedTwin = named && fields.find((g) => g.key === `${named.key}_local`);
+                        return (
+                            <div key={f.key} className="flex items-start gap-3 sm:col-span-2">
+                                <AvatarPicker name={named?.value || ''} initial={f.value} />
+                                {named && (
+                                    <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                                        <BilingualName
+                                            enLabel={named.label}
+                                            guLabel={namedTwin?.label ?? named.label}
+                                            enName={named.key}
+                                            guName={namedTwin?.key ?? `${named.key}_local`}
+                                            defaultEn={named.value}
+                                            defaultGu={namedTwin?.value}
+                                            maxLength={500}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    }
                     // A text setting with a `<key>_local` twin renders as one English→local-language pair.
                     if (f.key.endsWith('_local') && fields.some((g) => `${g.key}_local` === f.key)) return null;
                     const twin = f.type === 'text' && !f.options && fields.find((g) => g.key === `${f.key}_local`);
