@@ -110,12 +110,7 @@ export default async function AuditLog({ sp, t, locale, canClear = false }) {
                         options: actors.map((a) => ({ value: String(a.id), label: localized(a, 'full_name', locale) })),
                     },
                 ]}
-                left={
-                    <>
-                        <span className="text-xs text-ink-gray tabular-nums">{t('audit.count', { count: total })}</span>
-                        {canClear && total > 0 && <ClearLogButton entity={entity} q={q} actor={actor} count={total} />}
-                    </>
-                }
+                left={<span className="text-xs text-ink-gray tabular-nums">{t('audit.count', { count: total })}</span>}
             />
             <TableShell>
                 <THead>
@@ -158,6 +153,12 @@ export default async function AuditLog({ sp, t, locale, canClear = false }) {
                 </tbody>
             </TableShell>
             <Pagination pathname={pathname} searchParams={sp} page={page} perPage={perPage} total={total} t={t} />
+            {/* Out of the way, below the table: deleting log entries is not an everyday action. */}
+            {canClear && total > 0 && (
+                <div className="mt-6 flex justify-end border-t border-surface-border pt-3">
+                    <ClearLogButton entity={entity} q={q} actor={actor} count={total} />
+                </div>
+            )}
         </div>
     );
 }

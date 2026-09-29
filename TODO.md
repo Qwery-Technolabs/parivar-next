@@ -176,3 +176,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Public link card: the public switch sits in the card header
 - [x] Pending (not paid) contributions: "Mark as paid" in the row kebab (mode + date, default today; logged in history)
 - [x] Samaj logo → favicon & app icon: drawn on a canvas on save (512/192/32 PNG), stored in public/app-icons/, served via /api/app-icon; web manifest with the Samaj name
+- [x] Activity log: "Clear these entries" moved below the table (out of the filter row)
