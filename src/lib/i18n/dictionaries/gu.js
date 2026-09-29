@@ -345,6 +345,8 @@ const gu = {
         errors: { units: '1 થી 20 યુનિટ દાખલ કરો.', date: 'માન્ય તારીખ દાખલ કરો.' },
     },
     fundraise: {
+        sections: { details: 'વિગતો', groups: 'જૂથો', sharing: 'શેર' },
+        homeGroup: 'મુખ્ય જૂથ',
         alsoInGroups: 'આ જૂથોમાં પણ બતાવો',
         alsoInGroupsHint: 'આ જૂથોના સભ્યો પણ પોતાના જૂથમાં તે જોશે. જ્યાં તમે ફંડ ફાળો શરૂ કરી શકો તે જૂથ ઉમેરી શકો છો.',
         ledger: {

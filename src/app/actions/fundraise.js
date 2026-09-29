@@ -165,7 +165,7 @@ export async function saveCampaign(prev, fd) {
     };
     const meta = {
         description: str(fd, 'description', 20000),
-        description_local: str(fd, 'description_local', 20000),
+        // No local-language description on the form any more; an older one is left as it is.
     };
 
     if (campaignId) {

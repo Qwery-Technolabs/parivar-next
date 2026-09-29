@@ -12,6 +12,7 @@ import { useId, useRef, useState } from 'react';
  * - `count` is shown beside an option only when given (it helps choose, e.g. "Patel 214").
  * - `allowCustom`: Enter / comma adds the typed text even when no option matches.
  * - `name`: posts one hidden input per selected value, so it works inside a plain <form>.
+ * - `commitOnBlur` (with allowCustom): typed text not yet confirmed is added on leaving the field.
  * Keyboard: ↑/↓ move, Enter picks, Backspace on an empty query removes the last chip,
  * Escape closes.
  *
@@ -26,6 +27,7 @@ import { useId, useRef, useState } from 'react';
  *   allowCustom?: boolean,
  *   max?: number,
  *   label?: string,
+ *   commitOnBlur?: boolean,
  * }} props
  */
 export default function TagSelect({
@@ -39,6 +41,7 @@ export default function TagSelect({
     allowCustom = false,
     max = 100,
     label,
+    commitOnBlur = false,
 }) {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState('');
@@ -138,6 +141,10 @@ export default function TagSelect({
                         setOpen(true);
                     }}
                     onFocus={() => setOpen(true)}
+                    // Suggestions cancel mousedown, so picking one never blurs; only really leaving does.
+                    onBlur={() => {
+                        if (commitOnBlur && allowCustom && query) add(query);
+                    }}
                     onKeyDown={onKeyDown}
                     placeholder={value.length ? '' : placeholder}
                     className="h-7 min-w-24 flex-1 bg-transparent px-1 text-sm text-primary outline-none"

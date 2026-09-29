@@ -5,6 +5,7 @@ import { startTransition, useActionState, useState } from 'react';
 import { saveCampaign } from '@/app/actions/fundraise';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import GroupChecklist from '@/components/ui/group-checklist';
+import PickOrType from '@/components/ui/pick-or-type';
 import SubmitButton from '@/components/ui/submit-button';
 import Switch from '@/components/ui/switch';
 import BilingualName from '@/components/ui/bilingual-name';
@@ -46,104 +47,112 @@ export default function CampaignForm({
         startTransition(() => action(fd));
     };
 
+    const groupName = (g) => (locale === 'gu' && g.name_local) || g.name;
+
     return (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-3">
             {c.id && <input type="hidden" name="id" value={c.id} />}
+            {/* Status above the cards, top-right: the first thing checked when reopening a fundraise. */}
             <div className="flex justify-end">
-                <Field label={t('fundraise.status')} className="w-full sm:w-52">
-                    <select name="status" defaultValue={c.status ?? 'active'} className={`${selectInput()} w-full`}>
-                        {['active', 'draft', 'closed'].map((s) => (
-                            <option key={s} value={s}>
-                                {t(`fundraise.${s}`)}
+                <label className="flex w-full items-center gap-2 sm:w-auto">
+                    <span className="shrink-0 text-xs font-medium text-ink-gray">{t('fundraise.status')}</span>
+                    <select name="status" defaultValue={c.status ?? 'active'} className={`${selectInput()} w-full sm:w-44`}>
+                        {['active', 'draft', 'closed'].map((st) => (
+                            <option key={st} value={st}>
+                                {t(`fundraise.${st}`)}
                             </option>
                         ))}
                     </select>
-                </Field>
+                </label>
             </div>
-            <section className="min-w-0 space-y-4 rounded-lg border border-surface-border bg-white p-3.5 shadow-sm">
-            {/* Full-width page: 4 columns on wide screens → the basics sit in two rows. */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <BilingualName
-                    enLabel={t('fundraise.name')}
-                    guLabel={t('fundraise.nameLocal')}
-                    enName="title"
-                    guName="title_local"
-                    defaultEn={c.title}
-                    defaultGu={c.title_local}
-                    error={fe('title')}
-                    maxLength={200}
-                    required
-                />
-                <Field label={t('fundraise.group')} error={fe('group_id')}>
-                    <select
-                        name="group_id"
-                        defaultValue={c.group_id ?? defaultGroupId ?? groups[0]?.id ?? ''}
-                        className={`${selectInput(!!fe('group_id'))} w-full`}
-                    >
-                        {groups.map((g) => (
-                            <option key={g.id} value={g.id}>
-                                {(locale === 'gu' && g.name_local) || g.name}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
-                <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
-                    <input
-                        name="target_amount"
-                        inputMode="decimal"
-                        defaultValue={c.target_amount ?? ''}
-                        className={`${textInput(!!fe('target_amount'))} w-full tabular-nums`}
-                    />
-                </Field>
-                <Field label={t('fundraise.startDate')} error={fe('start_date')}>
-                    <input type="date" name="start_date" defaultValue={c.start_date ?? ''} className={`${textInput(!!fe('start_date'))} w-full`} />
-                </Field>
-                <Field label={t('fundraise.endDate')} error={fe('end_date')}>
-                    <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
-                </Field>
-                <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
-                    <input name="location" list="fundraise-locations" maxLength={100} defaultValue={c.location ?? ''} className={`${textInput()} w-full`} />
-                    {/* A datalist is fine here: free text is the point, the list is only suggestions. */}
-                    <datalist id="fundraise-locations">
-                        {locations.map((l) => (
-                            <option key={l} value={l} />
-                        ))}
-                    </datalist>
-                </Field>
-            </div>
-            {otherGroups.length > 0 && (
-                <div className="sm:max-w-md">
-                    <GroupChecklist
-                        name="extra_group_ids"
-                        label={t('fundraise.alsoInGroups')}
-                        hint={t('fundraise.alsoInGroupsHint')}
-                        error={fe('extra_group_ids')}
-                        groups={otherGroups.map((g) => ({ value: String(g.id), label: (locale === 'gu' && g.name_local) || g.name }))}
-                        defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
-                        lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
-                    />
+
+            {/* Wide screens: the fundraise itself on the left, where it shows and to whom on the right. */}
+            <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_24rem]">
+                <Panel title={t('fundraise.sections.details')}>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <BilingualName
+                            enLabel={t('fundraise.name')}
+                            guLabel={t('fundraise.nameLocal')}
+                            enName="title"
+                            guName="title_local"
+                            defaultEn={c.title}
+                            defaultGu={c.title_local}
+                            error={fe('title')}
+                            maxLength={200}
+                            required
+                        />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
+                            <input
+                                name="target_amount"
+                                inputMode="decimal"
+                                defaultValue={c.target_amount ?? ''}
+                                className={`${textInput(!!fe('target_amount'))} w-full tabular-nums`}
+                            />
+                        </Field>
+                        <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
+                            <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
+                        </Field>
+                        <Field label={t('fundraise.startDate')} error={fe('start_date')}>
+                            <input type="date" name="start_date" defaultValue={c.start_date ?? ''} className={`${textInput(!!fe('start_date'))} w-full`} />
+                        </Field>
+                        <Field label={t('fundraise.endDate')} error={fe('end_date')}>
+                            <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
+                        </Field>
+                    </div>
+                    {/* One description; no separate local-language copy. */}
+                    <Field label={t('fundraise.description')}>
+                        <textarea name="description" rows={4} maxLength={5000} defaultValue={meta.description ?? ''} className={`${textArea()} w-full`} />
+                    </Field>
+                </Panel>
+
+                <div className="space-y-3">
+                    <Panel title={t('fundraise.sections.groups')}>
+                        <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
+                            <select
+                                name="group_id"
+                                defaultValue={c.group_id ?? defaultGroupId ?? groups[0]?.id ?? ''}
+                                className={`${selectInput(!!fe('group_id'))} w-full`}
+                            >
+                                {groups.map((g) => (
+                                    <option key={g.id} value={g.id}>
+                                        {groupName(g)}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+                        {otherGroups.length > 0 && (
+                            <GroupChecklist
+                                name="extra_group_ids"
+                                label={t('fundraise.alsoInGroups')}
+                                hint={t('fundraise.alsoInGroupsHint')}
+                                error={fe('extra_group_ids')}
+                                groups={otherGroups.map((g) => ({ value: String(g.id), label: groupName(g) }))}
+                                defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
+                                lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
+                            />
+                        )}
+                    </Panel>
+                    {/* An existing fundraise's public link is switched from its detail page. */}
+                    {!c.id && (
+                        <Panel title={t('fundraise.sections.sharing')}>
+                            <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />
+                        </Panel>
+                    )}
+                    <Panel title={t('fundraise.audience.title')}>
+                        <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} bare />
+                    </Panel>
                 </div>
-            )}
-            <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} />
-            {!c.id && <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />}
-            <div className="grid gap-3 lg:grid-cols-2">
-                <BilingualName
-                    enLabel={t('fundraise.description')}
-                    guLabel={t('fundraise.descriptionLocal')}
-                    enName="description"
-                    guName="description_local"
-                    defaultEn={meta.description}
-                    defaultGu={meta.description_local}
-                    maxLength={5000}
-                    multiline
-                />
             </div>
+
             {state?.error && (
                 <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                     {t(state.error)}
                 </p>
             )}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            {/* Pinned to the bottom of the screen: Save is reachable without scrolling back down. */}
+            <div className="sticky bottom-0 z-10 -mx-2 -mb-3 flex flex-col-reverse gap-2 border-t border-surface-border bg-white/95 px-2 py-2.5 backdrop-blur sm:-mx-3 sm:flex-row sm:justify-end sm:px-3 lg:-mx-4 lg:px-4">
                 <Link
                     href={cancelHref}
                     className="inline-flex h-9 items-center justify-center rounded-md border border-surface-border bg-white px-4 text-sm font-medium text-primary hover:bg-accent"
@@ -154,7 +163,16 @@ export default function CampaignForm({
                     {c.id ? t('common.save') : t('common.create')}
                 </SubmitButton>
             </div>
-            </section>
         </form>
+    );
+}
+
+/** A form card with a tinted title bar, like the app's other cards. */
+function Panel({ title, children }) {
+    return (
+        <section className="min-w-0 overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
+            <h2 className="border-b border-surface-border bg-card-head px-3.5 py-2 text-sm font-semibold text-primary">{title}</h2>
+            <div className="space-y-3 p-3.5">{children}</div>
+        </section>
     );
 }

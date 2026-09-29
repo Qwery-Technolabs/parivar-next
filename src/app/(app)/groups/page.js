@@ -66,7 +66,11 @@ export default async function GroupsPage() {
 
     return (
         <div>
-            <PageHeader title={t('groups.title')} subtitle={t('groups.subtitle')} actions={manager && <GroupFormDialog />} />
+            <PageHeader
+                title={t('groups.title')}
+                subtitle={t('groups.subtitle')}
+                actions={manager && <GroupFormDialog />}
+            />
             <GroupChatList groups={groups} />
         </div>
     );

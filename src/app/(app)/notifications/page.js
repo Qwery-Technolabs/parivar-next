@@ -2,8 +2,8 @@ import { Bell, CalendarDays, CheckCheck, Droplet, HandCoins, ShieldCheck, Users 
 import { cookies } from 'next/headers';
 import { markAllRead, openNotification } from '@/app/actions/notifications';
 import PageHeader from '@/components/shell/page-header';
+import PageMenu from '@/components/shell/page-menu';
 import Pagination from '@/components/ui/pagination';
-import SubmitButton from '@/components/ui/submit-button';
 import { requireUser } from '@/lib/auth';
 import { date } from '@/lib/format';
 import { getT } from '@/lib/i18n/server';
@@ -36,13 +36,9 @@ export default async function NotificationsPage({ searchParams }) {
             <PageHeader
                 title={t('notifications.title')}
                 subtitle={unread ? t('notifications.unread', { count: unread }) : undefined}
-                actions={
+                menu={
                     unread > 0 && (
-                        <form action={markAllRead}>
-                            <SubmitButton icon={<CheckCheck className="size-4" />} variant="secondary">
-                                {t('notifications.markAllRead')}
-                            </SubmitButton>
-                        </form>
+                        <PageMenu items={[{ key: 'read', label: t('notifications.markAllRead'), icon: <CheckCheck />, action: markAllRead }]} />
                     )
                 }
             />

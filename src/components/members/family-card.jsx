@@ -7,7 +7,7 @@ import { addRelation, removeRelation } from '@/app/actions/members';
 import { Card } from '@/components/shell/page-header';
 import { Field, selectInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
-import MemberPicker from '@/components/ui/member-picker';
+import PersonOrPhone from '@/components/ui/person-or-phone';
 import { useT } from '@/lib/i18n/client';
 
 function PersonRow({ person, label, onRemove, busy }) {
@@ -34,7 +34,7 @@ function PersonRow({ person, label, onRemove, busy }) {
     );
 }
 
-export default function FamilyCard({ personId, personName, family, canEdit }) {
+export default function FamilyCard({ personId, personName, family, canEdit, canInvite = false }) {
     const { t } = useT();
     const [busy, startTransition] = useTransition();
 
@@ -88,9 +88,8 @@ export default function FamilyCard({ personId, personName, family, canEdit }) {
                                         <option value="child">{t('relations.children')}</option>
                                     </select>
                                 </Field>
-                                <Field label={t('relations.person')} error={fieldError('relative_id')} required>
-                                    <MemberPicker name="relative_id" exclude={[personId]} hasError={!!fieldError('relative_id')} />
-                                </Field>
+                                {/* A relative who is not registered yet can be added by phone number (invited). */}
+                                <PersonOrPhone fieldError={fieldError} pickerName="relative_id" exclude={[personId]} allowPhone={canInvite} />
                             </>
                         )}
                     </FormDialog>

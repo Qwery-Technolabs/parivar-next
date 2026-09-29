@@ -9,8 +9,9 @@ import BilingualName from '@/components/ui/bilingual-name';
 import ChatRolesSelect from '@/components/groups/chat-roles-select';
 import { chatRolesFrom } from '@/lib/group-roles';
 import { useT } from '@/lib/i18n/client';
+import { MenuOpener } from '@/components/shell/page-menu';
 
-export default function GroupFormDialog({ group, onNavy = false }) {
+export default function GroupFormDialog({ group, onNavy = false, menuKey }) {
     const { t } = useT();
     const router = useRouter();
     const isEdit = Boolean(group);
@@ -21,7 +22,10 @@ export default function GroupFormDialog({ group, onNavy = false }) {
             hidden={isEdit ? { id: group.id } : {}}
             submitIcon={isEdit ? Pencil : Plus}
             onSuccess={(res) => !isEdit && router.push(`/groups/${res.id}`)}
-            trigger={({ open }) => (
+            trigger={({ open }) =>
+                menuKey ? (
+                    <MenuOpener id={menuKey} open={open} />
+                ) : (
                 <button
                     type="button"
                     onClick={open}
@@ -36,7 +40,8 @@ export default function GroupFormDialog({ group, onNavy = false }) {
                     {isEdit ? <Pencil className="size-4" /> : <Plus className="size-4" />}
                     {isEdit ? t('common.edit') : t('groups.add')}
                 </button>
-            )}
+                )
+            }
         >
             {({ fieldError }) => (
                 <>
@@ -57,16 +62,20 @@ export default function GroupFormDialog({ group, onNavy = false }) {
                         </div>
                     </div>
                     {/* One row: who sees the group, and who may post in it. */}
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <Field label={t('groups.visibility.label')} hint={t('groups.visibility.hint')}>
+                    {/* Visibility a quarter of the row, posting roles the other three quarters. */}
+                    <div className="grid gap-3 sm:grid-cols-4">
+                        <Field label={t('groups.visibility.label')} hint={t('groups.visibility.hint')} className="sm:col-span-1">
                             <select name="visibility" defaultValue={group?.meta?.visibility || 'public'} className={`${selectInput()} w-full`}>
                                 <option value="public">{t('groups.visibility.public')}</option>
                                 <option value="private">{t('groups.visibility.private')}</option>
                             </select>
                         </Field>
-                        <div className="min-w-0">
+                        <div className="min-w-0 sm:col-span-3">
                             <span className="mb-1 block text-xs font-medium text-ink-gray">{t('groups.chatMode.label')}</span>
-                            <ChatRolesSelect defaultValue={chatRolesFrom(group?.meta?.chat_roles, group?.meta?.chat_mode)} />
+                            <ChatRolesSelect
+                                // A new group starts with admins and sub-admins posting; an existing one shows its setting.
+                                defaultValue={group ? chatRolesFrom(group.meta?.chat_roles, group.meta?.chat_mode) : ['admin', 'sub_admin']}
+                            />
                             <p className="mt-1 text-xs text-ink-gray">{t('groups.chatMode.hint')}</p>
                         </div>
                     </div>

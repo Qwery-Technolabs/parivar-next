@@ -6,6 +6,7 @@ import { textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import GroupChecklist from '@/components/ui/group-checklist';
 import { useT } from '@/lib/i18n/client';
+import { MenuOpener } from '@/components/shell/page-menu';
 
 const MAX_ROWS = 50;
 
@@ -14,7 +15,7 @@ const MAX_ROWS = 50;
  * and optionally groups to join. First password = the number (actions/members.js inviteMembers).
  * @param {{ groups: Array<{ value: string, label: string }> }} props
  */
-export default function InviteMembersDialog({ groups }) {
+export default function InviteMembersDialog({ groups, menuKey }) {
     const { t } = useT();
     return (
         <FormDialog
@@ -24,7 +25,10 @@ export default function InviteMembersDialog({ groups }) {
             submitIcon={Send}
             submitLabel={t('members.invite.submit')}
             width="sm:max-w-xl"
-            trigger={({ open }) => (
+            trigger={({ open }) =>
+                menuKey ? (
+                    <MenuOpener id={menuKey} open={open} />
+                ) : (
                 <button
                     type="button"
                     onClick={open}
@@ -32,7 +36,8 @@ export default function InviteMembersDialog({ groups }) {
                 >
                     <Smartphone className="size-4" /> {t('members.invite.button')}
                 </button>
-            )}
+                )
+            }
         >
             {() => <InviteRows groups={groups} />}
         </FormDialog>

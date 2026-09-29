@@ -1,11 +1,12 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Network, Phone, UserPlus } from 'lucide-react';
+import { Network, Phone, Smartphone, UserPlus } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import InviteMembersDialog from '@/components/members/invite-members-dialog';
 import MemberRowActions from '@/components/members/member-row-actions';
 import MembersToolbar from '@/components/members/members-toolbar';
-import PageHeader, { LinkButton } from '@/components/shell/page-header';
+import PageHeader from '@/components/shell/page-header';
+import PageMenu from '@/components/shell/page-menu';
 import Badge, { BloodBadge } from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
@@ -55,22 +56,17 @@ export default async function MembersPage({ searchParams }) {
             <PageHeader
                 title={t('members.title')}
                 subtitle={`${t('members.subtitle')} · ${t('members.count', { count: total })}`}
-                actions={
-                    (manage || canManageSettings(user.role)) && (
-                        <>
-                            {canInviteMembers(user.role) && <InviteMembersDialog groups={groupOptions} />}
-                            {canManageSettings(user.role) && (
-                                <LinkButton href="/members/castes" icon={Network} variant="secondary" className="flex-1 sm:flex-none">
-                                    {t('members.manageCastes')}
-                                </LinkButton>
-                            )}
-                            {manage && (
-                                <LinkButton href="/members/new" icon={UserPlus} className="flex-1 sm:flex-none">
-                                    {t('members.add')}
-                                </LinkButton>
-                            )}
-                        </>
-                    )
+                // The page's actions as a kebab beside the title.
+                menu={
+                    <PageMenu
+                        items={[
+                            manage && { key: 'add', label: t('members.add'), icon: <UserPlus />, href: '/members/new' },
+                            canInviteMembers(user.role) && { key: 'invite', label: t('members.invite.button'), icon: <Smartphone /> },
+                            canManageSettings(user.role) && { key: 'castes', label: t('members.manageCastes'), icon: <Network />, href: '/members/castes' },
+                        ]}
+                    >
+                        {canInviteMembers(user.role) && <InviteMembersDialog groups={groupOptions} menuKey="invite" />}
+                    </PageMenu>
                 }
             />
 

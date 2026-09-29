@@ -5,8 +5,9 @@ import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
+import { MenuOpener } from '@/components/shell/page-menu';
 
-export default function PostRequestButton() {
+export default function PostRequestButton({ menuKey } = {}) {
     const { t } = useT();
     return (
         <FormDialog
@@ -14,7 +15,10 @@ export default function PostRequestButton() {
             action={createBloodRequest}
             submitLabel={t('blood.add')}
             submitIcon={Plus}
-            trigger={({ open }) => (
+            trigger={({ open }) =>
+                menuKey ? (
+                    <MenuOpener id={menuKey} open={open} />
+                ) : (
                 <button
                     type="button"
                     onClick={open}
@@ -22,7 +26,8 @@ export default function PostRequestButton() {
                 >
                     <Plus className="size-4" /> {t('blood.add')}
                 </button>
-            )}
+                )
+            }
         >
             {({ fieldError }) => (
                 <>

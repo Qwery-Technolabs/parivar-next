@@ -2,7 +2,7 @@
 import { MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useId, useRef, useState } from 'react';
+import { isValidElement, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const GAP = 4;
@@ -114,9 +114,10 @@ export function Popover({ trigger, children, align = 'right', width = 'w-52', ro
 }
 
 /** The kebab (⋮). Keep every kebab in the app identical. */
-export function KebabMenu({ label, children }) {
+export function KebabMenu({ label, children, align = 'right' }) {
     return (
         <Popover
+            align={align}
             trigger={({ open, toggle, id }) => (
                 <button
                     id={id}
@@ -140,7 +141,12 @@ export function MenuItem({ icon: Icon, children, onClick, href, danger = false, 
     const cls = `flex w-full items-center gap-2 px-3 py-2 text-left text-sm disabled:opacity-50 ${
         danger ? 'text-destructive hover:bg-destructive/10' : 'text-primary hover:bg-accent'
     }`;
-    const icon = Icon ? <Icon className={`size-4 ${danger ? '' : 'text-ink-gray'}`} /> : null;
+    // A component, or an already-rendered element (what a server page can pass).
+    const icon = isValidElement(Icon) ? (
+        <span className={`flex size-4 items-center justify-center [&>svg]:size-4 ${danger ? '' : 'text-ink-gray'}`}>{Icon}</span>
+    ) : Icon ? (
+        <Icon className={`size-4 ${danger ? '' : 'text-ink-gray'}`} />
+    ) : null;
     if (href)
         return (
             <Link role="menuitem" href={href} className={cls}>

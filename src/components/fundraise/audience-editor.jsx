@@ -2,6 +2,7 @@
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { selectInput, textInput } from '@/components/ui/field';
+import PickOrType from '@/components/ui/pick-or-type';
 import TagSelect from '@/components/ui/tag-select';
 import { useT } from '@/lib/i18n/client';
 
@@ -13,16 +14,17 @@ const ROW_KINDS = ['caste', 'subcaste', 'city', 'village'];
  *   - Surnames: one multi-select (chips), posted as audience_surname[] — one row each.
  *   - Other rules: rows of [kind | value], posted as parallel audience_kind[] / audience_value[].
  *     Caste / sub-caste pick from the castes tree (value = admin_castes id); current city and
- *     native village are free text with suggestions.
+ *     native village are free text with suggestions (PickOrType).
  *
  * @param {{
  *   defaultRows?: Array<{kind: string, value: string}>,
  *   castes: { castes: Array<{value: string, label: string}>, subcastes: Record<string, Array<{value: string, label: string}>> },
  *   suggestions: { surname: Array<{value: string, label: string, count: number}>, city: string[], village: string[] },
  *   error?: string|null,
+ *   bare?: boolean,   // inside a card that already carries the title: no own border / legend
  * }} props
  */
-export default function AudienceEditor({ defaultRows = [], castes, suggestions, error }) {
+export default function AudienceEditor({ defaultRows = [], castes, suggestions, error, bare = false }) {
     const { t } = useT();
     const [surnames, setSurnames] = useState(() => defaultRows.filter((r) => r.kind === 'surname').map((r) => r.value));
     // Keys come from a counter kept in state, so a removed row never hands its key to another.
@@ -39,8 +41,8 @@ export default function AudienceEditor({ defaultRows = [], castes, suggestions, 
     const casteLabel = (id) => castes.castes.find((c) => c.value === id)?.label ?? id;
 
     return (
-        <fieldset className="min-w-0 space-y-3 rounded-lg border border-surface-border p-3">
-            <legend className="px-1 text-xs font-medium text-ink-gray">{t('fundraise.audience.title')}</legend>
+        <fieldset className={`min-w-0 space-y-3 ${bare ? '' : 'rounded-lg border border-surface-border p-3'}`}>
+            <legend className={bare ? 'sr-only' : 'px-1 text-xs font-medium text-ink-gray'}>{t('fundraise.audience.title')}</legend>
             <p className="text-xs text-ink-gray">{t('fundraise.audience.hint')}</p>
 
             {/* Not <Field>: that is a <label>, and a click anywhere in a label activates its first
@@ -70,7 +72,7 @@ export default function AudienceEditor({ defaultRows = [], castes, suggestions, 
                         // Switching between a caste kind and a text kind makes the old value meaningless.
                         onChange={(e) => update(r.key, { kind: e.target.value, value: '' })}
                         aria-label={t('fundraise.audience.kind')}
-                        className={`${selectInput()} w-full shrink-0 sm:w-44`}
+                        className={`${selectInput()} w-full shrink-0 sm:w-36`}
                     >
                         {ROW_KINDS.map((k) => (
                             <option key={k} value={k}>
@@ -118,14 +120,12 @@ export default function AudienceEditor({ defaultRows = [], castes, suggestions, 
                                         ))}
                                 </select>
                             ) : (
-                                <input
+                                <PickOrType
                                     name="audience_value"
                                     value={r.value}
-                                    onChange={(e) => update(r.key, { value: e.target.value })}
-                                    list={`audience-${r.kind}`}
-                                    maxLength={150}
-                                    aria-label={t('fundraise.audience.value')}
-                                    className={`${textInput()} w-full`}
+                                    onChange={(v) => update(r.key, { value: v })}
+                                    suggestions={suggestions[r.kind] ?? []}
+                                    label={t('fundraise.audience.value')}
                                 />
                             )}
                         </div>
@@ -150,14 +150,6 @@ export default function AudienceEditor({ defaultRows = [], castes, suggestions, 
             >
                 <Plus className="size-3.5" /> {t('fundraise.audience.add')}
             </button>
-
-            {['city', 'village'].map((k) => (
-                <datalist key={k} id={`audience-${k}`}>
-                    {(suggestions[k] ?? []).map((v) => (
-                        <option key={v} value={v} />
-                    ))}
-                </datalist>
-            ))}
         </fieldset>
     );
 }

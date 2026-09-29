@@ -2,7 +2,8 @@ import { GitFork, Pencil, Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilyCard from '@/components/members/family-card';
-import PageHeader, { Card, LinkButton } from '@/components/shell/page-header';
+import PageHeader, { Card } from '@/components/shell/page-header';
+import PageMenu from '@/components/shell/page-menu';
 import Badge, { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
 import { age, date, money } from '@/lib/format';
@@ -56,17 +57,13 @@ export default async function MemberPage({ params }) {
                         .join(' · ') || undefined
                 }
                 back={{ href: '/members', label: t('members.title') }}
-                actions={
-                    <>
-                        <LinkButton href={`/members/${member.id}/tree`} icon={GitFork} variant="secondary">
-                            {t('members.familyTree')}
-                        </LinkButton>
-                        {canOpenEdit && (
-                            <LinkButton href={`/members/${member.id}/edit`} icon={Pencil}>
-                                {t('common.edit')}
-                            </LinkButton>
-                        )}
-                    </>
+                menu={
+                    <PageMenu
+                        items={[
+                            canOpenEdit && { key: 'edit', label: t('common.edit'), icon: <Pencil />, href: `/members/${member.id}/edit` },
+                            { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
+                        ]}
+                    />
                 }
             />
 
@@ -128,6 +125,7 @@ export default async function MemberPage({ params }) {
                         personName={name}
                         family={family}
                         canEdit={canEdit}
+                        canInvite={canInviteMembers(user.role) || user.id === member.id}
                     />
                     <Card title={t('members.groups')} bodyClass="">
                         {groups.length === 0 ? (

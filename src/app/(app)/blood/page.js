@@ -37,7 +37,12 @@ export default async function BloodPage({ searchParams }) {
 
     return (
         <div className="theme-blood">
-            <PageHeader title={t('blood.title')} subtitle={t('blood.subtitle')} actions={<PostRequestButton />} />
+            <PageHeader
+                title={t('blood.title')}
+                subtitle={t('blood.subtitle')}
+                // A single "create" action stays a button (the kebab is for pages with several).
+                actions={<PostRequestButton />}
+            />
 
             {/* Tabs scroll rather than wrap (DESIGN.md §5). Links: the server renders the view asked for. */}
             <div className="mb-4 overflow-x-auto scrollbar-none">

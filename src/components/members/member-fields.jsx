@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import Switch from '@/components/ui/switch';
 import BilingualName from '@/components/ui/bilingual-name';
+import PickOrType from '@/components/ui/pick-or-type';
 import CasteSelect from './caste-select';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
@@ -53,22 +54,10 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                 <input name="dob" type="date" defaultValue={member?.dob ?? ''} className={`${textInput()} w-full`} />
             </Field>
             <Field label={t('members.village')}>
-                <input name="village" list="villages" defaultValue={member?.village ?? ''} maxLength={100} className={`${textInput()} w-full`} />
-                {/* A suggestion list only — the field accepts any village, so a datalist
-                    is the right tool here, unlike a select-from-list control. */}
-                <datalist id="villages">
-                    {villages.map((v) => (
-                        <option key={v} value={v} />
-                    ))}
-                </datalist>
+                <PickOrType name="village" defaultValue={member?.village ?? ''} suggestions={villages} label={t('members.village')} />
             </Field>
             <Field label={t('members.city')} hint={t('members.cityHint')}>
-                <input name="city" list="cities" defaultValue={member?.city ?? ''} maxLength={100} className={`${textInput()} w-full`} />
-                <datalist id="cities">
-                    {cities.map((c) => (
-                        <option key={c} value={c} />
-                    ))}
-                </datalist>
+                <PickOrType name="city" defaultValue={member?.city ?? ''} suggestions={cities} label={t('members.city')} />
             </Field>
         </div>
     );

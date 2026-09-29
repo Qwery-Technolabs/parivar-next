@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
 import DeleteCampaignButton from '@/components/fundraise/delete-campaign-button';
-import PageHeader, { Card } from '@/components/shell/page-header';
+import PageHeader from '@/components/shell/page-header';
 import { adminGroupIds, canManageFundraise } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';

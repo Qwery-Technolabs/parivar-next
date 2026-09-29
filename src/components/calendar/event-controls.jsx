@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteEvent } from '@/app/actions/events';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MenuOpener } from '@/components/shell/page-menu';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 
@@ -12,12 +13,19 @@ import { useT } from '@/lib/i18n/client';
 const EventFormDialog = dynamic(() => import('./event-form-dialog'), { ssr: false });
 
 /** "New event" button. */
-export function NewEventButton({ groups, types, defaultDate }) {
+export function NewEventButton({ groups, types, defaultDate, menuKey }) {
     const { t } = useT();
     const [open, setOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const show = () => {
+        setMounted(true);
+        setOpen(true);
+    };
     return (
         <>
+            {menuKey ? (
+                <MenuOpener id={menuKey} open={show} />
+            ) : (
             <button
                 type="button"
                 onClick={() => {
@@ -28,6 +36,7 @@ export function NewEventButton({ groups, types, defaultDate }) {
             >
                 <Plus className="size-4" /> {t('calendar.add')}
             </button>
+            )}
             {mounted && (
                 <EventFormDialog open={open} onOpenChange={setOpen} groups={groups} types={types} defaultDate={defaultDate} />
             )}

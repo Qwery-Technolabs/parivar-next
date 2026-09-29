@@ -178,13 +178,26 @@ export async function updateMemberSection(prev, fd) {
 export async function addRelation(prev, fd) {
     const actor = await getCurrentUser();
     const personId = id(fd, 'person_id');
-    const relativeId = id(fd, 'relative_id');
+    let relativeId = id(fd, 'relative_id');
     const relation = oneOf(fd, 'relation', ['father', 'mother', 'spouse', 'child']);
     const person = personId && (await queryOne('SELECT id, role, gender FROM users_list WHERE id = :personId', { personId }));
     if (!actor || !person || !canEditUser(actor, person)) return FORBIDDEN;
     if (!relation) return { fieldErrors: { relation: 'common.required' } };
+    // By phone number: the relative may not be registered yet — invite them first (sub-admin
+    // and up, or someone adding their own family). A new father / mother gets that gender.
+    if (fd.get('mode') === 'phone') {
+        if (!canInviteMembers(actor.role) && actor.id !== person.id) return FORBIDDEN;
+        const phone = normalizePhone(fd.get('phone'));
+        if (!phone) return { fieldErrors: { phone: 'auth.errors.phoneInvalid' } };
+        const invited = await ensureInvitedUser(actor, phone, str(fd, 'full_name', 150));
+        if (invited.error) return { fieldErrors: { phone: invited.error } };
+        if (invited.status === 'created' && (relation === 'father' || relation === 'mother')) {
+            await query('UPDATE users_list SET gender = :g WHERE id = :id', { g: relation === 'father' ? 'male' : 'female', id: invited.id });
+        }
+        relativeId = invited.id;
+    }
     if (!relativeId) return { fieldErrors: { relative_id: 'common.required' } };
-    if (relativeId === personId) return { fieldErrors: { relative_id: 'relations.selfError' } };
+    if (relativeId === personId) return { fieldErrors: { [fd.get('mode') === 'phone' ? 'phone' : 'relative_id']: 'relations.selfError' } };
     const relative = await queryOne('SELECT id, gender FROM users_list WHERE id = :relativeId', { relativeId });
     if (!relative) return { fieldErrors: { relative_id: 'common.required' } };
 

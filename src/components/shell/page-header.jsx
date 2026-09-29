@@ -2,10 +2,14 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/** Title row: title + subtitle left, actions right; wraps on a phone. */
-export default function PageHeader({ title, subtitle, back, actions }) {
+/**
+ * Title row: title + subtitle left, actions right; wraps on a phone.
+ * `menu` (a PageMenu) — the page's actions as a kebab — sits at the right end of the row,
+ * where action buttons used to be.
+ */
+export default function PageHeader({ title, subtitle, back, actions, menu }) {
     return (
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
                 {back && (
                     <Link href={back.href} className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary">
@@ -15,7 +19,12 @@ export default function PageHeader({ title, subtitle, back, actions }) {
                 <h1 className="text-lg font-semibold text-primary break-words">{title}</h1>
                 {subtitle && <p className="mt-0.5 text-xs text-ink-gray">{subtitle}</p>}
             </div>
-            {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
+            {(actions || menu) && (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    {actions}
+                    {menu}
+                </div>
+            )}
         </div>
     );
 }

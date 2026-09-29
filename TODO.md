@@ -116,3 +116,8 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Group edit: Visibility and "Who can send messages" on one row; posting chosen per role (admin always ticked); old two-choice setting still read
 - [x] "Who can send messages" is a multi-select tag selector (Admin always kept)
 - [x] Group member row menu: "Change role ›" submenu (current role ticked, ‹ Back), then Remove from group
+- [x] Add relation (સંબંધ ઉમેરો): existing member or by phone number (invited; sub-admin+ or your own family)
+- [x] Group edit popup: Visibility 25% / Who can send messages 75%; new groups default to Admin + Sub-admin posting
+- [x] /fundraise/new & edit: compact two-column layout (Details | Groups, Sharing, Who sees it first), tinted card headers, pinned Save bar; single description (no local copy)
+- [x] No <datalist> anywhere: village, city, place and audience values use a pick-or-type tag field
+- [x] Page title actions in a kebab at the right of the title row (Members: Add, Invite, Castes; profile: Edit, Family tree; Mark all read). Single "create" actions (New event, New group, Post request) stay buttons

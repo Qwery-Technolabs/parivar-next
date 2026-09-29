@@ -344,6 +344,8 @@ const en = {
         errors: { units: 'Enter 1 to 20 units.', date: 'Enter a valid date.' },
     },
     fundraise: {
+        sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing' },
+        homeGroup: 'Home group',
         alsoInGroups: 'Also show in these groups',
         alsoInGroupsHint: 'Members of these groups see it in their group too. You can add groups where you may start a fundraise.',
         ledger: {
