@@ -7,7 +7,8 @@ import Link from 'next/link';
  * The strip sits on a soft fade (a few % of white over the navy, darkening toward the bottom)
  * so it reads as its own band under the title, and the active tab gets a light wash. Measured
  * label contrast: inactive white/75 ≥6.87:1, active white 8.02:1 (AA). Orange is only a 3px bar
- * (5.99:1 on navy), never text. Links, not buttons: each tab is a URL (?tab=).
+ * (5.99:1 on navy), never text. Links, not buttons: each tab is a URL (?tab=). Switching tabs
+ * replaces the history entry, so the phone's Back leaves the page instead of replaying tabs.
  *
  * @param {{ tabs: Array<{ key: string, label: string, href: string, count?: number, icon?: React.ComponentType<{className?: string}> }>, active: string }} props
  */
@@ -25,6 +26,7 @@ export default function WaTabs({ tabs, active }) {
                         key={tab.key}
                         href={tab.href}
                         scroll={false}
+                        replace
                         aria-current={on ? 'page' : undefined}
                         className={`relative flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1.5 transition-colors ${
                             on ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/5 hover:text-white'

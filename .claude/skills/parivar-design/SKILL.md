@@ -33,7 +33,7 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
   desktop sidebar and the phone drawer, so the two edges line up.
 - Sidebar section titles (Overview, Community, …): small uppercase `text-white/60` with `pt-[5px]` above.
 - Top header (navy): menu (phone) · **page back link** (portalled into `#page-back-slot` by
-  `HeaderBack`; on phones it does history-back) · … · bell · calendar · light divider (`w-px bg-white/25`)
+  `HeaderBack`; always a link to the parent page — never history-back through tabs) · … · bell · calendar · light divider (`w-px bg-white/25`)
   · profile. Never render a back link inside the page body — pass `back` to `PageHeader`.
   On phones a page with a back link (group, fundraise) hides the hamburger (`.nav-burger`, CSS `:has`) —
   back only, like a chat app.
@@ -100,11 +100,15 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 
 ## Tabs, calendars, chat
 
-- WhatsApp-style `WaTabs` on navy headers (icon over label, count bubble, orange bar). Group tabs:
+- WhatsApp-style `WaTabs` on navy headers (icon over label, count bubble, orange bar). Tab links use
+  `replace`, so the browser Back leaves the page rather than stepping through tabs. Group tabs:
   Discussion · Meetings · Fundraise · Members · About. Fundraise tabs: Discussion · Income/Expense ·
   Meetings · About. Phones: labels `text-[10px]` without tracking, icons `size-4` (from `sm`: 11px tracked, 18px).
-- Navy-header actions (Edit group / Edit fundraise): **icon only on phones** (`size-9`, aria-label + title),
-  icon + text from `sm`.
+- Fundraise navy header: row 1 = picture + title (left) · PDF + Edit pinned top-right; row 2 = status /
+  archived badges (left) · my team role (right; phones show only the role value, "Your role:" from `sm`).
+- **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
+  `<span className="hidden sm:inline">`), icon + text from `sm`: Edit group / Edit fundraise on the navy
+  header, meetings' Schedule / Edit / Cancel. Apply the same to new row/card action buttons.
 - Calendar entries always carry a type icon (cake birthday, hand-coins fundraise, calendar event,
   calendar-clock meeting, party festival). Birthdays are rose.
 - Calendar on phones: a compact month grid (day number + one coloured dot per kind, `TYPE_DOT`); a day

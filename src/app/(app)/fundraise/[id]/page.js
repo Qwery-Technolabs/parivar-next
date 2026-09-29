@@ -181,8 +181,9 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                                 ))}
                         </span>
                     )}
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-3">
+                    {/* Row 1: picture + title on the left, PDF and Edit pinned top-right (never wrap below). */}
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
                             <GroupAvatar
                                 name={campaign.title}
                                 kind={campaign.meta.avatar_kind}
@@ -193,14 +194,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                             />
                             <h1 className="min-w-0 text-lg font-semibold break-words">{localized(campaign, 'title', locale)}</h1>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
-                            {campaign.archived_at && <Badge tone="gray">{t('fundraise.archivedBadge')}</Badge>}
-                            {perms.teamRole && (
-                                <Badge tone="orange">
-                                    {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
-                                </Badge>
-                            )}
+                        <div className="flex shrink-0 items-center gap-2">
                             {/* Print / PDF: the statement, for anyone who can see the fundraise. */}
                             <Link
                                 href={`${base}/print`}
@@ -222,6 +216,19 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                                 </Link>
                             )}
                         </div>
+                    </div>
+                    {/* Row 2: status on the left, my team role on the right (phones: the role alone). */}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
+                            {campaign.archived_at && <Badge tone="gray">{t('fundraise.archivedBadge')}</Badge>}
+                        </div>
+                        {perms.teamRole && (
+                            <Badge tone="orange" title={`${t('fundraise.yourRole')}: ${t(`fundraise.teamRoles.${perms.teamRole}`)}`}>
+                                <span className="hidden sm:inline">{t('fundraise.yourRole')}: </span>
+                                {t(`fundraise.teamRoles.${perms.teamRole}`)}
+                            </Badge>
+                        )}
                     </div>
                     <p className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-white/85 tabular-nums">
                         <span>

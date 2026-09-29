@@ -123,6 +123,18 @@ export async function isAdminOfFundraiseGroup(userId, campaignId) {
     return Boolean(row);
 }
 
+/** Admin or sub-admin of any group this fundraise is shown in (fundraise_groups)? */
+export async function isLeaderOfFundraiseGroup(userId, campaignId) {
+    if (!userId || !campaignId) return false;
+    const row = await queryOne(
+        `SELECT 1 AS ok FROM fundraise_groups fg
+           JOIN admin_group_members gm ON gm.group_id = fg.group_id AND gm.user_id = :userId AND gm.member_role IN ('admin', 'sub_admin')
+          WHERE fg.campaign_id = :campaignId LIMIT 1`,
+        { userId, campaignId },
+    );
+    return Boolean(row);
+}
+
 /** Member (any role) of any group this fundraise is shown in? */
 export async function isInFundraiseGroup(userId, campaignId) {
     if (!userId || !campaignId) return false;

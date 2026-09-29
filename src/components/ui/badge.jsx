@@ -27,10 +27,11 @@ const TONES = {
 };
 
 /** @param {{ tone?: keyof typeof TONES, status?: string, children: React.ReactNode, className?: string }} props */
-export default function Badge({ tone, status, children, className = '' }) {
+export default function Badge({ tone, status, children, className = '', ...rest }) {
     const t = TONES[tone ?? STATUS_TONE[status] ?? 'gray'];
     return (
         <span
+            {...rest}
             className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${t} ${className}`}
         >
             {children}

@@ -89,18 +89,29 @@ export default function MeetingDialog({ scope, scopeId, people, meeting = null, 
             hidden={{ scope, scope_id: scopeId, meeting_id: meeting?.id ?? '' }}
             submitIcon={isEdit ? Pencil : CalendarPlus}
             width="sm:max-w-xl"
+            // Phones: icon-only buttons (aria-label + title carry the name); icon + text from sm up.
             trigger={({ open }) =>
                 isEdit ? (
-                    <button type="button" onClick={open} className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium">
-                        <Pencil className="size-3.5" /> {t('common.edit')}
+                    <button
+                        type="button"
+                        onClick={open}
+                        aria-label={t('common.edit')}
+                        title={t('common.edit')}
+                        className="btn-secondary inline-flex size-8 items-center justify-center gap-1.5 rounded-md text-xs font-medium sm:w-auto sm:px-2.5"
+                    >
+                        <Pencil className="size-3.5" /> <span className="hidden sm:inline">{t('common.edit')}</span>
                     </button>
                 ) : (
                     <button
                         type="button"
                         onClick={open}
-                        className={`btn-secondary inline-flex shrink-0 items-center gap-1.5 rounded-md font-medium ${compact ? 'h-8 px-3 text-xs' : 'h-9 px-4 text-sm'}`}
+                        aria-label={t('meetings.schedule')}
+                        title={t('meetings.schedule')}
+                        className={`btn-secondary inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium ${
+                            compact ? 'size-8 text-xs sm:w-auto sm:px-3' : 'size-9 text-sm sm:w-auto sm:px-4'
+                        }`}
                     >
-                        <CalendarPlus className="size-4" /> {t('meetings.schedule')}
+                        <CalendarPlus className="size-4" /> <span className="hidden sm:inline">{t('meetings.schedule')}</span>
                     </button>
                 )
             }

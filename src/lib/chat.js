@@ -1,5 +1,5 @@
 import 'server-only';
-import { fundraisePermissions, groupStanding, isInFundraiseGroup } from './access';
+import { fundraisePermissions, groupStanding, isInFundraiseGroup, isLeaderOfFundraiseGroup } from './access';
 import { canPostIn, chatRolesFrom } from './group-roles';
 import { fundraiseAudienceIds } from './notifications';
 import { query, queryOne, setMeta } from './db';
@@ -16,8 +16,11 @@ export const CHAT_MAX_LENGTH = 2000;
  *   fundraise — its team, members of any group it is shown in, and fundraise managers
  * A group admin chooses which group roles may post (admin_groupsmeta.chat_roles); everyone
  * else in the group still reads. postRoles lists them for the read-only notice.
- * canAlert — may send a message that also notifies everyone (the old "post an update"): a
- * group's admins and sub-admins; a fundraise's team and managers.
+ * canAlert — may send a message that also notifies everyone (the bell in the composer). Only
+ * admins and sub-admins, never plain members, speakers or informational team roles:
+ *   group     — app-level admins / sub-admins, the group's admins and sub-admins
+ *   fundraise — app-level admins / sub-admins, the fundraise's own admins (team role 'admin'),
+ *               admins and sub-admins of any group it is shown in
  * @returns {Promise<{ allowed: boolean, canPost: boolean, canAlert: boolean, moderate: boolean, postRoles?: string[] }>} moderate = may delete others' messages
  */
 export async function chatAccess(user, scope, scopeId) {
@@ -41,9 +44,14 @@ export async function chatAccess(user, scope, scopeId) {
     const campaign = await queryOne('SELECT id, group_id FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;
     if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, canAlert: true, moderate: true };
-    const [perms, member] = await Promise.all([fundraisePermissions(user, campaign), isInFundraiseGroup(user.id, campaign.id)]);
+    const [perms, member, leader] = await Promise.all([
+        fundraisePermissions(user, campaign),
+        isInFundraiseGroup(user.id, campaign.id),
+        isLeaderOfFundraiseGroup(user.id, campaign.id),
+    ]);
     const allowed = perms.post || member;
-    return { allowed, canPost: allowed, canAlert: perms.post, moderate: perms.manage };
+    // perms.manage = app-level, a group admin, or the fundraise's own admin; plus group sub-admins.
+    return { allowed, canPost: allowed, canAlert: perms.manage || leader, moderate: perms.manage };
 }
 
 /**

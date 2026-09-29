@@ -127,7 +127,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Standalone fundraise (no group): "New fundraise" button on /fundraise for fundraise managers; group_id nullable on live
 - [x] Group sub-admins can start fundraises in their groups (and see its drafts)
 - [x] Meeting row: Edit and Cancel side by side, Cancel in red
-- [x] Back link moved into the top header (right of the collapse arrow); on phones it goes back in history
+- [x] Back link moved into the top header (right of the collapse arrow); always goes to the parent page (not back through tabs)
 - [x] Notifications: delete one (trash per row), delete read, delete all (with confirm)
 - [x] Fundraise page sits inside the content gutters like the group page (rounded header card); its Edit button matches the group Edit
 - [x] "Post an update" moved into the discussion: bell toggle before Send alerts everyone (default normal message); earlier updates stay read-only in About
@@ -191,3 +191,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Phone bottom bar (Home · Groups · Fundraise · Blood · Members) on those section pages only; hidden inside a group / fundraise / chat
 - [x] Group / fundraise pages on phones: back button instead of the hamburger; Edit is icon-only; smaller tab labels
 - [x] Vercel-ready: icons in the DB, Vercel Cron → /api/cron/reminders (Bearer CRON_SECRET), no in-process loop on Vercel, smaller DB pool; README section
+- [x] "Alert everyone" bell only for admins / sub-admins (fundraise: no longer for organizer / treasurer / collector / volunteer; group sub-admins of its groups now included)
+- [x] Header back on group / fundraise pages leaves the page directly; tab switches replace history instead of stacking
+- [x] Meetings tab on phones: Schedule / Edit / Cancel buttons icon-only
+- [x] Fundraise header: PDF + Edit top-right of the card; status left and my role right on the next row (phones: role value only)

@@ -44,6 +44,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 ## Roles and access
 
 - App roles (lib/roles.js): `super_admin > administrator > sub_admin > sabhyo` (shown as "Member").
+- **"Alert everyone" (discussion bell, `chatAccess().canAlert`) is admins and sub-admins only**: app-level
+  sub_admin+, a group's admin / sub-admin, a fundraise's own admin, admin / sub-admin of a group the
+  fundraise is shown in (`isLeaderOfFundraiseGroup`). Never members, speakers, or organizer / treasurer /
+  collector / volunteer. The action re-checks it (`alert && access.canAlert`).
   Capabilities are functions (`canManageMembers`, `canManageGroups`, `canManageSettings`,
   `canInviteMembers`, `canResetPassword`, `canManageAllFundraises`, `canViewAudit`) — add new ones there.
 - Group roles (lib/group-roles.js, pure): `admin, sub_admin, speaker, member`; "standing" = app | admin |

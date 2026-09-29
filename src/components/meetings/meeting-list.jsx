@@ -80,9 +80,11 @@ function MeetingCard({ m, scope, scopeId, manage, people, me, past, today, minut
                         <button
                             type="button"
                             onClick={() => window.confirm(t('meetings.cancelConfirm')) && run(() => cancelMeeting(scope, scopeId, m.id), 'meetings.cancelled')}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-medium text-white hover:bg-destructive/90"
+                            aria-label={t('meetings.cancel')}
+                            title={t('meetings.cancel')}
+                            className="inline-flex size-8 items-center justify-center gap-1.5 rounded-md bg-destructive text-xs font-medium text-white hover:bg-destructive/90 sm:w-auto sm:px-2.5"
                         >
-                            <Trash2 className="size-3.5" /> {t('meetings.cancel')}
+                            <Trash2 className="size-3.5" /> <span className="hidden sm:inline">{t('meetings.cancel')}</span>
                         </button>
                     </div>
                 )}
