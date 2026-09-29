@@ -134,7 +134,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   ring in the background colour — green active · grey draft/archived · red closed/inactive. Maps and sizes in
   `lib/status-dot.js` (`FUNDRAISE_STATUS_DOT`, `DOT_SIZE` size-2.5, `DOT_SIZE_SM` size-2) + `GROUP_STATUS_DOT`.
 - Group About tab → **Danger zone** card (`GroupDangerCard`): status now, Mark inactive/active, Archive/Restore,
-  and "Delete permanently" once archived (app-level only), each with a one-line explanation.
+  and "Delete permanently" once archived (app-level only), each with a one-line explanation. Buttons coloured by
+  meaning — pause amber-700, archive slate-600, active/restore emerald-700, delete red — **icon-only on phones**.
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
   `<span className="hidden sm:inline">`), icon + text from `sm`: Edit group / Edit fundraise on the navy
   header, meetings' Schedule / Edit / Cancel. Apply the same to new row/card action buttons.

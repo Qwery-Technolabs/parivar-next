@@ -10,13 +10,15 @@ import { useT } from '@/lib/i18n/client';
  * `icon` is a rendered element (<Trash2 />), not a component: a component function cannot
  * cross from a server component into this client one. Swapped for a spinner while pending.
  */
-export default function ActionButton({ action, confirm, icon, children, danger = false, className = '' }) {
+export default function ActionButton({ action, confirm, icon, children, danger = false, plain = false, label, className = '' }) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
     return (
         <button
             type="button"
             disabled={pending}
+            aria-label={label}
+            title={label}
             onClick={() => {
                 if (confirm && !window.confirm(confirm)) return;
                 startTransition(async () => {
@@ -26,7 +28,7 @@ export default function ActionButton({ action, confirm, icon, children, danger =
                 });
             }}
             className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium disabled:opacity-60 ${
-                danger ? 'text-destructive hover:bg-destructive/10' : 'btn-secondary'
+                plain ? '' : danger ? 'text-destructive hover:bg-destructive/10' : 'btn-secondary'
             } ${className}`}
         >
             {pending ? <Loader2 className="size-3.5 animate-spin" /> : icon}

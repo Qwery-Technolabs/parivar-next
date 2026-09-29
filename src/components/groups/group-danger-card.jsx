@@ -11,7 +11,16 @@ import { GROUP_STATUS_DOT } from '@/lib/group-roles';
  */
 export default function GroupDangerCard({ group, canDelete, t }) {
     const s = group.status;
-    const btn = 'btn-secondary';
+    // Colour by meaning (white text ≥4.5:1): pause amber, archive slate, back to active green, delete red.
+    // Phones: icon only (label → aria-label + title); icon + text from sm.
+    const base = 'text-white sm:px-2.5 max-sm:size-8 max-sm:justify-center max-sm:px-0';
+    const tone = {
+        pause: `bg-amber-700 hover:bg-amber-800 ${base}`,
+        archive: `bg-slate-600 hover:bg-slate-700 ${base}`,
+        active: `bg-emerald-700 hover:bg-emerald-800 ${base}`,
+        delete: `bg-destructive hover:bg-destructive/90 ${base}`,
+    };
+    const text = (key) => <span className="hidden sm:inline">{t(key)}</span>;
     return (
         <Card title={t('groups.danger.title')} className="border-destructive/40">
             <p className="mb-3 flex items-center gap-2 text-sm text-ink">
@@ -23,12 +32,12 @@ export default function GroupDangerCard({ group, canDelete, t }) {
                     <li className="flex flex-wrap items-center justify-between gap-2">
                         <span className="min-w-0 flex-1">{t('groups.danger.inactiveHint')}</span>
                         {s === 'active' ? (
-                            <ActionButton action={setGroupStatus.bind(null, group.id, 'inactive')} icon={<CirclePause className="size-3.5" />} className={btn}>
-                                {t('groups.danger.markInactive')}
+                            <ActionButton action={setGroupStatus.bind(null, group.id, 'inactive')} icon={<CirclePause className="size-3.5" />} plain label={t('groups.danger.markInactive')} className={tone.pause}>
+                                {text('groups.danger.markInactive')}
                             </ActionButton>
                         ) : (
-                            <ActionButton action={setGroupStatus.bind(null, group.id, 'active')} icon={<CirclePlay className="size-3.5" />} className={btn}>
-                                {t('groups.danger.markActive')}
+                            <ActionButton action={setGroupStatus.bind(null, group.id, 'active')} icon={<CirclePlay className="size-3.5" />} plain label={t('groups.danger.markActive')} className={tone.active}>
+                                {text('groups.danger.markActive')}
                             </ActionButton>
                         )}
                     </li>
@@ -36,17 +45,19 @@ export default function GroupDangerCard({ group, canDelete, t }) {
                 <li className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0 flex-1">{t('groups.danger.archiveHint')}</span>
                     {s === 'archived' ? (
-                        <ActionButton action={setGroupStatus.bind(null, group.id, 'active')} icon={<ArchiveRestore className="size-3.5" />} className={btn}>
-                            {t('groups.danger.restore')}
+                        <ActionButton action={setGroupStatus.bind(null, group.id, 'active')} icon={<ArchiveRestore className="size-3.5" />} plain label={t('groups.danger.restore')} className={tone.active}>
+                            {text('groups.danger.restore')}
                         </ActionButton>
                     ) : (
                         <ActionButton
                             action={setGroupStatus.bind(null, group.id, 'archived')}
                             confirm={t('groups.danger.archiveConfirm')}
                             icon={<Archive className="size-3.5" />}
-                            className={btn}
+                            plain
+                            label={t('groups.danger.archive')}
+                            className={tone.archive}
                         >
-                            {t('groups.danger.archive')}
+                            {text('groups.danger.archive')}
                         </ActionButton>
                     )}
                 </li>
@@ -57,9 +68,11 @@ export default function GroupDangerCard({ group, canDelete, t }) {
                             action={deleteGroup.bind(null, group.id)}
                             confirm={t('groups.danger.deleteConfirm')}
                             icon={<Trash2 className="size-3.5" />}
-                            className="bg-destructive text-white! hover:bg-destructive/90"
+                            plain
+                            label={t('groups.danger.delete')}
+                            className={tone.delete}
                         >
-                            {t('groups.danger.delete')}
+                            {text('groups.danger.delete')}
                         </ActionButton>
                     </li>
                 )}
