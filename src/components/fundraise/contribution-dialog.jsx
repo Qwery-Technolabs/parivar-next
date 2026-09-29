@@ -8,7 +8,8 @@ import MemberPicker from '@/components/ui/member-picker';
 import Switch from '@/components/ui/switch';
 import { useT } from '@/lib/i18n/client';
 
-const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
+// 'unpaid': pledged, money not in yet — listed as Pending, left out of the collected total.
+const MODES = ['cash', 'upi', 'bank', 'cheque', 'other', 'unpaid'];
 
 /**
  * Add a contribution, or edit one when `entry` (the row) is given. `trigger` overrides the
@@ -55,7 +56,9 @@ function ContributionFields({ fieldError, today, allowAnonymous, entry }) {
                 <MemberPicker
                     name="user_id"
                     defaultValue={entry?.user_id ? { id: entry.user_id, label: entry.donor_name } : null}
-                    onPick={(opt) => opt && setName(opt.label)}
+                    // A phone number that is not a member can be invited; the name below becomes theirs.
+                    allowInvite
+                    onPick={(opt) => opt && !opt.invite && setName(opt.label)}
                 />
             </Field>
             <Field label={t('fundraise.donor')} error={fieldError('donor_name')} required>

@@ -95,8 +95,10 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                         ) : null}
                                         {c.reference && <span className="block text-xs text-ink-gray">{c.reference}</span>}
                                     </Td>
-                                    <Td className="hidden sm:table-cell">{t(`fundraise.modes.${c.mode}`)}</Td>
-                                    <Td numeric className="font-medium text-emerald-700">
+                                    <Td className="hidden sm:table-cell">
+                                        {c.mode === 'unpaid' ? <Badge tone="amber">{t('fundraise.pendingBadge')}</Badge> : t(`fundraise.modes.${c.mode}`)}
+                                    </Td>
+                                    <Td numeric className={`font-medium ${c.mode === 'unpaid' ? 'text-amber-800' : 'text-emerald-700'}`}>
                                         {money(c.amount)}
                                     </Td>
                                     <Td className="w-12 py-1">

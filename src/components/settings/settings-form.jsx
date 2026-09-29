@@ -26,6 +26,7 @@ function BoolSetting({ name, label, hint, initial }) {
  * @param {{ module: string, title: string, fields: Array<{ key: string, type: string, value: any, label: string, hint?: string, options?: Array<{value: string, label: string}> }> }} props
  */
 export default function SettingsForm({ module, title, fields }) {
+    const logo = fields.find((f) => f.type === 'logo');
     const { t } = useT();
     const [state, action, pending] = useActionState(async (prev, fd) => {
         const res = await saveModuleSettings(prev, fd);
@@ -44,32 +45,16 @@ export default function SettingsForm({ module, title, fields }) {
         >
             <input type="hidden" name="module" value={module} />
             <h2 className="rounded-t-lg border-b border-surface-border bg-card-head px-3.5 py-2.5 text-sm font-semibold text-primary">{title}</h2>
-            <div className="grid gap-3 p-3.5 sm:grid-cols-2">
+            {/* With a logo field (General): the logo alone on the left, every other field to its right. */}
+            <div className={logo ? 'flex items-start gap-4 p-3.5' : 'p-3.5'}>
+            {logo && (
+                <div className="shrink-0">
+                    <AvatarPicker name={fields.find((g) => g.key === logo.with)?.value || ''} initial={logo.value} />
+                </div>
+            )}
+            <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
                 {fields.map((f) => {
-                    // A logo field is drawn with the name it belongs to (`with`), so that name is skipped here.
-                    if (fields.some((g) => g.type === 'logo' && g.with === f.key)) return null;
-                    if (f.type === 'logo') {
-                        const named = fields.find((g) => g.key === f.with);
-                        const namedTwin = named && fields.find((g) => g.key === `${named.key}_local`);
-                        return (
-                            <div key={f.key} className="flex items-start gap-3 sm:col-span-2">
-                                <AvatarPicker name={named?.value || ''} initial={f.value} />
-                                {named && (
-                                    <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
-                                        <BilingualName
-                                            enLabel={named.label}
-                                            guLabel={namedTwin?.label ?? named.label}
-                                            enName={named.key}
-                                            guName={namedTwin?.key ?? `${named.key}_local`}
-                                            defaultEn={named.value}
-                                            defaultGu={namedTwin?.value}
-                                            maxLength={500}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    }
+                    if (f.type === 'logo') return null; // drawn as the left column
                     // A text setting with a `<key>_local` twin renders as one English→local-language pair.
                     if (f.key.endsWith('_local') && fields.some((g) => `${g.key}_local` === f.key)) return null;
                     const twin = f.type === 'text' && !f.options && fields.find((g) => g.key === `${f.key}_local`);
@@ -115,6 +100,7 @@ export default function SettingsForm({ module, title, fields }) {
                         </Field>
                     );
                 })}
+            </div>
             </div>
             {state?.error && <p className="px-4 pb-3 text-xs font-medium text-destructive">{t(state.error)}</p>}
             <div className="flex justify-end border-t border-surface-border px-3.5 py-2.5">

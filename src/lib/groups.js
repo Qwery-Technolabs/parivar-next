@@ -33,7 +33,7 @@ export async function groupMembers(groupId) {
 export async function groupFundraises(groupId) {
     const rows = await query(
         `SELECT c.id, c.title, c.title_local, c.status, c.start_date, c.end_date, c.target_amount,
-                (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions WHERE campaign_id = c.id AND deleted_at IS NULL) AS collected,
+                (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions WHERE campaign_id = c.id AND deleted_at IS NULL AND mode <> 'unpaid') AS collected,
                 (SELECT COALESCE(SUM(amount), 0) FROM fundraise_expenses WHERE campaign_id = c.id AND deleted_at IS NULL) AS spent
            FROM fundraise_campaigns c
           WHERE c.id IN (SELECT campaign_id FROM fundraise_groups WHERE group_id = :groupId) AND c.archived_at IS NULL ORDER BY c.status = 'active' DESC, c.start_date DESC LIMIT 50`,

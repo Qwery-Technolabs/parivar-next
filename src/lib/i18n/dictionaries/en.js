@@ -144,6 +144,7 @@ const en = {
         surname: 'Surname',
         filterSections: { person: 'Person', place: 'Place', community: 'Community', blood: 'Blood' },
         invite: {
+            pickerInvite: 'Invite {phone} (new member)',
             pasteHint: 'Tip: paste a list of numbers into a phone box — one per line, with or without +91 or a name — and each gets its own row.',
             button: 'Invite by phone',
             title: 'Invite members by phone',
@@ -357,6 +358,9 @@ const en = {
         errors: { units: 'Enter 1 to 20 units.', date: 'Enter a valid date.' },
     },
     fundraise: {
+        publicSwitch: 'Public',
+        pendingBadge: 'Pending',
+        pendingTotal: 'Pending (not paid yet)',
         archive: 'Archive',
         archiveConfirm: 'Archive this fundraise? It leaves the lists and its public link stops working. Nothing is deleted; you can restore it.',
         restore: 'Unarchive',
@@ -409,7 +413,7 @@ const en = {
         amount: 'Amount',
         paidOn: 'Paid on',
         mode: 'Mode',
-        modes: { cash: 'Cash', upi: 'UPI', bank: 'Bank', cheque: 'Cheque', other: 'Other' },
+        modes: { cash: 'Cash', upi: 'UPI', bank: 'Bank', cheque: 'Cheque', other: 'Other', unpaid: 'Not paid (pending)' },
         reference: 'Reference',
         anonymous: 'Hide name publicly',
         anonymousLabel: 'Anonymous',
@@ -616,6 +620,10 @@ const en = {
         passwordChanged: 'Password changed. Other devices were logged out.',
     },
     audit: {
+        member: 'Member',
+        clear: { one: 'Clear this entry', other: 'Clear these {count} entries' },
+        clearConfirm: { one: 'Delete this log entry for good?', other: 'Delete these {count} log entries for good? The clearing itself is recorded.' },
+        cleared: { one: '1 entry cleared.', other: '{count} entries cleared.' },
         searchPlaceholder: 'Search action or person',
         entity: 'Type',
         count: { one: '{count} entry', other: '{count} entries' },
@@ -645,6 +653,7 @@ const en = {
             member_joined: '{name} registered and joined',
             group_sub_admin: 'You are now a sub-admin of {group}',
             chat_alert: 'Alert in {title}: {preview}',
+            fundraise_contribution_invite: 'You were added as a contributor to {title}',
             meeting_invite: 'You are invited: {title} — {date}{time}{place}',
             meeting_updated: 'Meeting changed: {title} — {date}{time}{place}',
             meeting_cancelled: 'Meeting cancelled: {title} — {date}',
@@ -660,6 +669,7 @@ const en = {
         },
     },
     settings: {
+        editProfile: 'Edit my details',
         logo: { title: 'Samaj logo', hint: 'Shown in the sidebar, on the sign-in screen and on public fundraise pages. Click the picture to change it.' },
         language: {
             app: 'App language',
@@ -669,7 +679,7 @@ const en = {
         },
         groups: { personal: 'My account', admin: 'Samaj' },
         sections: {
-            activity: { title: 'Activity log', hint: 'Who changed what, for admins.' },
+            audit: { title: 'Activity log', hint: 'Who changed what, for admins.' },
             notifications: { title: 'Notifications', hint: 'Phone and browser notifications' },
             profile: { title: 'Profile', hint: 'Your details as other members see them' },
             security: { title: 'Security', hint: 'Mobile number and password you log in with' },

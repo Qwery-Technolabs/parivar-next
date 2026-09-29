@@ -1,5 +1,4 @@
-import { Printer } from 'lucide-react';
-import { Card, LinkButton } from '@/components/shell/page-header';
+import { Card } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import { localized } from '@/lib/i18n/config';
 import { describeHistory, historyWhen } from './history-format';
@@ -21,10 +20,11 @@ export function audienceLabel(rule, t, locale) {
  * link, history. Meetings have their own tab. Sections keep ids so old ?tab=team / updates
  * links can land on them.
  */
-export default function DetailsTab({ campaign, audience, team, updates, history, perms, userId, today, printHref, t, locale }) {
+export default function DetailsTab({ campaign, audience, team, updates, history, perms, userId, today, t, locale }) {
     const description = localized(campaign.meta, 'description', locale);
     return (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        // Side column (team, public link): a little wider on desktop.
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
             <div className="min-w-0 space-y-4">
                 {(description || audience.length > 0) && (
                     <Card title={t('fundraise.description')}>
@@ -88,12 +88,8 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
                         <TeamPanel campaignId={campaign.id} team={team} canManage={perms.manage} creatorId={campaign.created_by} />
                     </Card>
                 </section>
-                <Card title={t('fundraise.publicLink')}>
-                    <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
-                </Card>
-                <LinkButton href={printHref} icon={Printer} variant="secondary" className="w-full">
-                    {t('common.print')}
-                </LinkButton>
+                {/* Draws its own card, with the public switch in the header. */}
+                <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
             </div>
         </div>
     );

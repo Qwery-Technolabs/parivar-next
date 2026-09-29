@@ -10,6 +10,7 @@ export default function FundraiseSummary({ campaign, t, compact = false }) {
     const spent = Number(campaign.spent);
     const balance = collected - spent;
     const pct = progressPct(campaign);
+    const pending = Number(campaign.pending ?? 0);
     const cells = [
         { label: t('fundraise.collected'), value: money(collected), tone: 'text-emerald-700' },
         { label: t('fundraise.spent'), value: money(spent), tone: 'text-rose-700' },
@@ -35,6 +36,12 @@ export default function FundraiseSummary({ campaign, t, compact = false }) {
                     </div>
                 ))}
             </div>
+            {/* Pledged but not paid yet: shown apart, never part of "collected". */}
+            {pending > 0 && (
+                <p className="rounded-md bg-amber-50 px-3 py-1.5 text-sm text-amber-900">
+                    {t('fundraise.pendingTotal')}: <span className="font-semibold tabular-nums">{money(pending)}</span>
+                </p>
+            )}
             {pct != null && (
                 <div>
                     {/* Orange is a state colour: a filled track, with the label in ink-gray beside it. */}

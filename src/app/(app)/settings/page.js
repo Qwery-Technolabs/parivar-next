@@ -16,6 +16,10 @@ import { formatPhone } from '@/lib/phone';
 import { canManageSettings, canViewAudit } from '@/lib/roles';
 import { vapidPublicKey } from '@/lib/push';
 import { getSettings, SETTINGS } from '@/lib/settings';
+import AuditLog from '@/components/audit/audit-log';
+import MemberEditTabs from '@/components/members/member-edit-tabs';
+import { casteOptions } from '@/lib/castes';
+import { getMember, listCities, listVillages } from '@/lib/members';
 import { sp1 } from '@/lib/url';
 
 export async function generateMetadata() {
@@ -38,8 +42,8 @@ const SECTIONS = [
     { key: 'fundraise', group: 'admin', icon: HandCoins, module: 'fundraise', admin: true },
     { key: 'blood', group: 'admin', icon: Droplet, module: 'blood', admin: true },
     { key: 'calendar', group: 'admin', icon: CalendarDays, module: 'events', admin: true },
-    // Kept out of the sidebar: an internal record, reached from here.
-    { key: 'activity', group: 'admin', icon: History, href: '/audit', audit: true },
+    // Kept out of the sidebar: an internal record, shown here (sub-admins and up).
+    { key: 'audit', group: 'admin', icon: History, audit: true },
 ];
 
 export default async function SettingsPage({ searchParams }) {
@@ -91,7 +95,13 @@ export default async function SettingsPage({ searchParams }) {
                     </div>
                 </nav>
                 <div className="min-w-0 flex-1">
-                    {current.key === 'profile' && <ProfileSection userId={user.id} t={t} locale={locale} />}
+                    {/* ?action=edit: edit your own details right here (tabs, each saved on its own). */}
+                    {current.key === 'profile' && sp1(sp.action) === 'edit' ? (
+                        <ProfileEditSection userId={user.id} t={t} locale={locale} initialTab={sp1(sp.tab)} />
+                    ) : (
+                        current.key === 'profile' && <ProfileSection userId={user.id} t={t} locale={locale} />
+                    )}
+                    {current.key === 'audit' && <AuditLog sp={sp} t={t} locale={locale} canClear={isAdmin} />}
                     {current.key === 'security' && <SecuritySection userId={user.id} t={t} />}
                     {current.key === 'notifications' && (
                         <Card title={t('settings.sections.notifications.title')}>
@@ -128,7 +138,7 @@ async function ProfileSection({ userId, t, locale }) {
         <Card
             title={t('settings.sections.profile.title')}
             actions={
-                <Link href={`/members/${me.id}/edit`} className="btn-secondary inline-flex h-8 items-center rounded-md px-3 text-xs font-medium">
+                <Link href="/settings?section=profile&action=edit" scroll={false} className="btn-secondary inline-flex h-8 items-center rounded-md px-3 text-xs font-medium">
                     {t('common.edit')}
                 </Link>
             }
@@ -266,3 +276,39 @@ async function ModuleSection({ module: mod, title, t }) {
     );
 }
 
+
+/**
+ * Settings → Profile → Edit: your own details in the member editor's tabs (Basic info,
+ * Community, Details), each saved on its own. No role (never your own) and no password tab
+ * (that is Settings → Security, which asks for the current one).
+ */
+async function ProfileEditSection({ userId, t, locale, initialTab }) {
+    const [member, villages, cities, castes] = await Promise.all([getMember(userId), listVillages(), listCities(), casteOptions(locale)]);
+    if (!member) return null;
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-primary">{t('settings.editProfile')}</h2>
+                <Link
+                    href="/settings"
+                    scroll={false}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-border bg-white px-3 text-xs font-medium text-primary hover:bg-accent"
+                >
+                    <Check className="size-3.5" /> {t('common.done')}
+                </Link>
+            </div>
+            <MemberEditTabs
+                // Invited without a name, the phone number stood in: show an empty (required) name to fill.
+                member={member.full_name === member.phone ? { ...member, full_name: '' } : member}
+                initialTab={initialTab}
+                roles={[]}
+                canEdit
+                canSetRole={false}
+                canSetPassword={false}
+                villages={villages.map((v) => v.value)}
+                cities={cities.map((c) => c.value)}
+                casteOptions={castes}
+            />
+        </div>
+    );
+}

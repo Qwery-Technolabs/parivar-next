@@ -356,7 +356,7 @@ export async function memberDonations(userId, includeAnonymous) {
            FROM fundraise_contributions fc
            JOIN fundraise_campaigns c ON c.id = fc.campaign_id
            LEFT JOIN admin_groups g ON g.id = c.group_id
-          WHERE fc.user_id = :userId AND fc.deleted_at IS NULL ${includeAnonymous ? '' : 'AND fc.is_anonymous = 0'}
+          WHERE fc.user_id = :userId AND fc.deleted_at IS NULL AND fc.mode <> 'unpaid' ${includeAnonymous ? '' : 'AND fc.is_anonymous = 0'}
           GROUP BY c.id, c.title, c.title_local, c.status, g.id, g.name, g.name_local
           ORDER BY last_paid DESC`,
         { userId },

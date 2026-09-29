@@ -145,6 +145,7 @@ const gu = {
         surname: 'અટક',
         filterSections: { person: 'વ્યક્તિ', place: 'સ્થળ', community: 'સમાજ', blood: 'રક્ત' },
         invite: {
+            pickerInvite: '{phone} ને આમંત્રણ (નવા સભ્ય)',
             pasteHint: 'ટિપ: ફોન ખાનામાં નંબરની યાદી પેસ્ટ કરો — દરેક લાઇનમાં એક, +91 કે નામ સાથે કે વગર — દરેક માટે અલગ લાઇન બનશે.',
             button: 'ફોનથી આમંત્રણ',
             title: 'ફોન નંબરથી સભ્યોને આમંત્રણ',
@@ -358,6 +359,9 @@ const gu = {
         errors: { units: '1 થી 20 યુનિટ દાખલ કરો.', date: 'માન્ય તારીખ દાખલ કરો.' },
     },
     fundraise: {
+        publicSwitch: 'જાહેર',
+        pendingBadge: 'બાકી',
+        pendingTotal: 'બાકી (હજી ચૂકવ્યું નથી)',
         archive: 'આર્કાઇવ કરો',
         archiveConfirm: 'આ ફંડ ફાળો આર્કાઇવ કરવો? તે યાદીમાંથી જશે અને જાહેર લિંક બંધ થશે. કંઈ કાઢી નંખાતું નથી; પાછો લાવી શકાય.',
         restore: 'આર્કાઇવમાંથી પાછો લાવો',
@@ -410,7 +414,7 @@ const gu = {
         amount: 'રકમ',
         paidOn: 'ચુકવણી તારીખ',
         mode: 'પદ્ધતિ',
-        modes: { cash: 'રોકડ', upi: 'UPI', bank: 'બેંક', cheque: 'ચેક', other: 'અન્ય' },
+        modes: { cash: 'રોકડ', upi: 'UPI', bank: 'બેંક', cheque: 'ચેક', other: 'અન્ય', unpaid: 'ચૂકવ્યું નથી (બાકી)' },
         reference: 'સંદર્ભ',
         anonymous: 'જાહેરમાં નામ છુપાવો',
         anonymousLabel: 'ગુપ્ત દાતા',
@@ -617,6 +621,10 @@ const gu = {
         passwordChanged: 'પાસવર્ડ બદલાયો. અન્ય ઉપકરણો લૉગ આઉટ થયા.',
     },
     audit: {
+        member: 'સભ્ય',
+        clear: { one: 'આ નોંધ કાઢો', other: 'આ {count} નોંધ કાઢો' },
+        clearConfirm: { one: 'આ નોંધ કાયમ માટે કાઢી નાખવી?', other: 'આ {count} નોંધ કાયમ માટે કાઢી નાખવી? કાઢવાની નોંધ રહેશે.' },
+        cleared: { one: '1 નોંધ કાઢી.', other: '{count} નોંધ કાઢી.' },
         searchPlaceholder: 'ક્રિયા કે વ્યક્તિ શોધો',
         entity: 'પ્રકાર',
         count: { one: '{count} નોંધ', other: '{count} નોંધ' },
@@ -646,6 +654,7 @@ const gu = {
             member_joined: '{name}એ નોંધણી કરી અને જોડાયા',
             group_sub_admin: 'તમે હવે {group}ના સહ-એડમિન છો',
             chat_alert: '{title}માં જાણ: {preview}',
+            fundraise_contribution_invite: 'તમને {title}માં ફાળો આપનાર તરીકે ઉમેર્યા',
             meeting_invite: 'તમને આમંત્રણ: {title} — {date}{time}{place}',
             meeting_updated: 'મીટિંગમાં ફેરફાર: {title} — {date}{time}{place}',
             meeting_cancelled: 'મીટિંગ રદ: {title} — {date}',
@@ -661,6 +670,7 @@ const gu = {
         },
     },
     settings: {
+        editProfile: 'મારી વિગતો બદલો',
         logo: { title: 'સમાજનો લોગો', hint: 'સાઇડબાર, લૉગ ઇન પાના અને જાહેર ફંડ ફાળા પાના પર દેખાય છે. બદલવા ચિત્ર પર ક્લિક કરો.' },
         language: {
             app: 'એપની ભાષા',
@@ -670,7 +680,7 @@ const gu = {
         },
         groups: { personal: 'મારું ખાતું', admin: 'સમાજ' },
         sections: {
-            activity: { title: 'પ્રવૃત્તિ નોંધ', hint: 'કોણે શું બદલ્યું — વ્યવસ્થાપકો માટે.' },
+            audit: { title: 'પ્રવૃત્તિ નોંધ', hint: 'કોણે શું બદલ્યું — વ્યવસ્થાપકો માટે.' },
             notifications: { title: 'સૂચનાઓ', hint: 'ફોન અને બ્રાઉઝર સૂચનાઓ' },
             profile: { title: 'પ્રોફાઇલ', hint: 'અન્ય સભ્યો તમારી જે વિગતો જુએ છે' },
             security: { title: 'સુરક્ષા', hint: 'લૉગ ઇન માટેનો મોબાઇલ નંબર અને પાસવર્ડ' },

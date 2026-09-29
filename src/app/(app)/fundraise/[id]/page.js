@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown } from 'lucide-react';
 import { setCampaignArchived } from '@/app/actions/fundraise';
 import SubmitButton from '@/components/ui/submit-button';
 import { cookies } from 'next/headers';
@@ -149,7 +149,6 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 perms={perms}
                 userId={user.id}
                 today={today}
-                printHref={`${base}/print`}
                 t={t}
                 locale={locale}
             />
@@ -202,6 +201,15 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                                     {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
                                 </Badge>
                             )}
+                            {/* Print / PDF: the statement, for anyone who can see the fundraise. */}
+                            <Link
+                                href={`${base}/print`}
+                                aria-label={t('common.downloadPdf')}
+                                title={t('common.downloadPdf')}
+                                className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                            >
+                                <FileDown className="size-4" />
+                            </Link>
                             {perms.manage && (
                                 <Link
                                     href={`${base}/edit`}

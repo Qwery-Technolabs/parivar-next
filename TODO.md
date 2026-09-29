@@ -162,3 +162,15 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Filter popups: only the middle scrolls (header / footer fixed); no white strips above the header or below the footer
 - [x] Invite by phone: paste a list (one per line, +91 or not, optional name) and each number gets its own row; duplicates skipped
 - [x] Header: light divider between the calendar button and the profile button
+- [x] Fixed: all member pages 404 after the build (dev server started on build output) — cleared .next, restarted
+- [x] Activity log is a Settings section (?section=audit); /audit redirects there with its filters
+- [x] Activity log: "Clear these N entries" deletes what the current filter shows (administrators, confirmed, and logged)
+- [x] Activity log: filter by member (who did it); Clear respects it
+- [x] Settings → General card: logo alone in the left column, all fields on the right
+- [x] Settings → Profile: edit your own details in place (?section=profile&action=edit), tabs saved separately; Done returns to the profile
+- [x] Sidebar Services: Fundraise first, then Blood
+- [x] Contributions: "Not paid (pending)" mode — listed with a Pending badge, left out of collected / donation totals; summary shows the pending amount
+- [x] Contribution "Member" field: type a phone number that is not a member → "Invite <number>"; saves as an invited member (name from the form), gift linked, notified
+- [x] Fundraise: Print / PDF button in the header (removed from the About tab bottom)
+- [x] Fundraise About tab: wider side column on desktop
+- [x] Public link card: the public switch sits in the card header

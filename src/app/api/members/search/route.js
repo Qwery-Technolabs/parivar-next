@@ -29,6 +29,7 @@ export async function GET(request) {
             label: r.full_name,
             labelLocal: r.full_name_local,
             hint: [r.phone, r.village].filter(Boolean).join(' · '),
+            phone: r.phone,
         })),
     );
 }

@@ -27,8 +27,8 @@ export default async function AppLayout({ children }) {
         {
             title: t('nav.sections.services'),
             items: [
-                { href: '/blood', icon: 'blood', label: t('nav.blood') },
                 { href: '/fundraise', icon: 'fund', label: t('nav.fundraise') },
+                { href: '/blood', icon: 'blood', label: t('nav.blood') },
             ],
         },
         {

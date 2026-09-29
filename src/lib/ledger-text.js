@@ -14,7 +14,8 @@ import { money } from './format';
  */
 export function ledgerText({ income = [], expense = [], title = '', kind }, t) {
     const block = (rows, nameOf, heading) => {
-        const total = rows.reduce((s, r) => s + Number(r.amount), 0);
+        // Pledged-but-unpaid lines are listed but not counted.
+        const total = rows.reduce((s, r) => s + (r.mode === 'unpaid' ? 0 : Number(r.amount)), 0);
         const amounts = rows.map((r) => money(r.amount));
         // Pad amounts to one width so the names line up in a monospace view.
         const width = Math.max(0, ...amounts.map((a) => a.length));
@@ -30,7 +31,7 @@ export function ledgerText({ income = [], expense = [], title = '', kind }, t) {
     if (kind === 'income' || kind === 'both') parts.push(block(income, donor, kind === 'both' ? `*${t('fundraise.contributions')}*` : null));
     if (kind === 'expense' || kind === 'both') parts.push(block(expense, spend, kind === 'both' ? `*${t('fundraise.expenses')}*` : null));
     if (kind === 'both') {
-        const inc = income.reduce((s, r) => s + Number(r.amount), 0);
+        const inc = income.reduce((s, r) => s + (r.mode === 'unpaid' ? 0 : Number(r.amount)), 0);
         const exp = expense.reduce((s, r) => s + Number(r.amount), 0);
         parts.push(`${t('fundraise.balance')} ${money(inc - exp)}`);
     }

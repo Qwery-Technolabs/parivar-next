@@ -4,7 +4,8 @@ import { fundraiseGroupIds } from './access';
 import { canManageAllFundraises } from './roles';
 
 export const CAMPAIGN_STATUSES = ['active', 'draft', 'closed'];
-export const PAY_MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
+// 'unpaid' = pledged, money not in yet: listed (marked Pending) but out of every collected total.
+export const PAY_MODES = ['cash', 'upi', 'bank', 'cheque', 'other', 'unpaid'];
 const TOKEN_RE = /^[A-Za-z0-9_-]{24}$/;
 
 export const AUDIENCE_KINDS = ['surname', 'caste', 'subcaste', 'city', 'village'];
@@ -30,7 +31,8 @@ const FOR_YOU = `EXISTS (
 // Totals as correlated subqueries: each hits idx_fundraise_*_camp, so a page of 20
 // campaigns costs 40 index range reads instead of a join that multiplies rows.
 const TOTALS = `
-    (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions fc WHERE fc.campaign_id = c.id AND fc.deleted_at IS NULL) AS collected,
+    (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions fc WHERE fc.campaign_id = c.id AND fc.deleted_at IS NULL AND fc.mode <> 'unpaid') AS collected,
+    (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions fc WHERE fc.campaign_id = c.id AND fc.deleted_at IS NULL AND fc.mode = 'unpaid') AS pending,
     (SELECT COUNT(*) FROM fundraise_contributions fc WHERE fc.campaign_id = c.id AND fc.deleted_at IS NULL) AS contribution_count,
     (SELECT COALESCE(SUM(amount), 0) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS spent,
     (SELECT COUNT(*) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS expense_count`;
@@ -171,7 +173,8 @@ export async function contributorTotals(campaignId, { publicView = false } = {})
     const key = publicView ? PUBLIC_KEY : CONTRIB_KEY;
     return query(
         `SELECT ${key} AS k, MAX(donor_name) AS donor_name, MAX(user_id) AS user_id,
-                MAX(is_anonymous) AS is_anonymous, SUM(amount) AS total, COUNT(*) AS entries,
+                MAX(is_anonymous) AS is_anonymous, SUM(CASE WHEN mode <> 'unpaid' THEN amount ELSE 0 END) AS total,
+                SUM(CASE WHEN mode = 'unpaid' THEN amount ELSE 0 END) AS pending, COUNT(*) AS entries,
                 MAX(paid_on) AS last_paid
            FROM fundraise_contributions WHERE campaign_id = :campaignId AND deleted_at IS NULL
           GROUP BY ${key}
@@ -219,7 +222,7 @@ export async function myContributions(userId, { page, perPage }) {
         ),
         queryOne(
             `SELECT COUNT(*) AS n, COALESCE(SUM(amount), 0) AS total, COUNT(DISTINCT campaign_id) AS campaigns
-               FROM fundraise_contributions WHERE user_id = :userId AND deleted_at IS NULL`,
+               FROM fundraise_contributions WHERE user_id = :userId AND deleted_at IS NULL AND mode <> 'unpaid'`,
             { userId },
         ),
     ]);

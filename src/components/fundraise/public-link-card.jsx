@@ -3,11 +3,13 @@ import { Copy, ExternalLink, Globe, Lock, RefreshCw } from 'lucide-react';
 import { useSyncExternalStore, useTransition } from 'react';
 import { toast } from 'sonner';
 import { regenerateToken, setPublic } from '@/app/actions/fundraise';
+import { Card } from '@/components/shell/page-header';
 import Switch from '@/components/ui/switch';
 import { useT } from '@/lib/i18n/client';
 
 const noop = () => () => {};
 
+/** The public-link card, whole: its on/off switch sits in the card header (managers only). */
 export default function PublicLinkCard({ campaignId, isPublic, token, canManage }) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
@@ -33,6 +35,19 @@ export default function PublicLinkCard({ campaignId, isPublic, token, canManage 
     }
 
     return (
+        <Card
+            title={t('fundraise.publicLink')}
+            actions={
+                canManage && (
+                    <Switch
+                        checked={isPublic}
+                        disabled={pending}
+                        onChange={(v) => run(() => setPublic(campaignId, v))}
+                        label={t('fundraise.publicSwitch')}
+                    />
+                )
+            }
+        >
         <div className={`space-y-3 ${pending ? 'cursor-wait opacity-70' : ''}`}>
             <div className="flex items-start gap-2">
                 {isPublic ? (
@@ -42,14 +57,6 @@ export default function PublicLinkCard({ campaignId, isPublic, token, canManage 
                 )}
                 <p className="min-w-0 text-xs text-ink-gray">{isPublic ? t('fundraise.publicOn') : t('fundraise.publicOff')}</p>
             </div>
-            {canManage && (
-                <Switch
-                    checked={isPublic}
-                    disabled={pending}
-                    onChange={(v) => run(() => setPublic(campaignId, v))}
-                    label={t('fundraise.makePublic')}
-                />
-            )}
             {isPublic && token && (
                 <>
                     <div className="flex min-w-0 items-center gap-2">
@@ -91,5 +98,6 @@ export default function PublicLinkCard({ campaignId, isPublic, token, canManage 
                 </>
             )}
         </div>
+        </Card>
     );
 }

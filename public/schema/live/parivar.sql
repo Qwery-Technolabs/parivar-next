@@ -302,7 +302,7 @@ CREATE TABLE IF NOT EXISTS fundraise_contributions (
     donor_name   VARCHAR(150)  NOT NULL,
     amount       DECIMAL(12,2) NOT NULL,
     paid_on      DATE          NOT NULL,
-    mode         ENUM('cash','upi','bank','cheque','other') NOT NULL DEFAULT 'cash',
+    mode         ENUM('cash','upi','bank','cheque','other','unpaid') NOT NULL DEFAULT 'cash', -- unpaid = pledged, not in totals
     reference    VARCHAR(100)  NULL,
     is_anonymous TINYINT(1)    NOT NULL DEFAULT 0,  -- public page shows "Anonymous", admins see the name
     recorded_by  INT UNSIGNED  NULL,

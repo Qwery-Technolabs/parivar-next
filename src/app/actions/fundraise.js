@@ -8,9 +8,11 @@ import { getCurrentUser } from '@/lib/auth';
 import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, money, oneOf, str, strOrNull } from '@/lib/forms';
 import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, listHistory, PAY_MODES } from '@/lib/fundraise';
+import { ensureInvitedUser } from '@/lib/invite';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
 import { canManageAllFundraises } from '@/lib/roles';
 import { sanitizeAvatar } from '@/lib/group-avatar';
+import { normalizePhone } from '@/lib/phone';
 import { getSettings } from '@/lib/settings';
 
 const FORBIDDEN = { error: 'common.forbidden' };
@@ -327,7 +329,9 @@ export async function saveContribution(prev, fd) {
     if (!campaign) return FORBIDDEN;
 
     const contributionId = id(fd, 'contribution_id');
-    const userId = id(fd, 'user_id');
+    const rawUser = str(fd, 'user_id', 40);
+    const invitePhone = rawUser.startsWith('phone:') ? normalizePhone(rawUser.slice(6)) : null;
+    const userId = invitePhone ? null : id(fd, 'user_id');
     let donorName = str(fd, 'donor_name', 150);
     const amount = money(fd, 'amount');
     const paidOn = date(fd, 'paid_on');
@@ -341,9 +345,19 @@ export async function saveContribution(prev, fd) {
 
     const fieldErrors = {};
     if (!donorName) fieldErrors.donor_name = 'fundraise.errors.donor';
+    if (rawUser.startsWith('phone:') && !invitePhone) fieldErrors.user_id = 'auth.errors.phoneInvalid';
     if (amount == null) fieldErrors.amount = 'fundraise.errors.amount';
     if (!paidOn) fieldErrors.paid_on = 'fundraise.errors.date';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
+
+    // Not a member yet: invite the number (the typed name becomes theirs) and link the gift to them.
+    let invitedId = null;
+    if (invitePhone) {
+        const inv = await ensureInvitedUser(user, invitePhone, donorName);
+        if (inv.error) return { fieldErrors: { user_id: inv.error } };
+        member = { id: inv.id };
+        invitedId = inv.status === 'existing' ? null : inv.id;
+    }
 
     const values = {
         campaignId,
@@ -408,6 +422,15 @@ export async function saveContribution(prev, fd) {
         amount,
     });
     refreshCampaign(campaignId);
+    // Point the newly invited person at the fundraise: they see it on first sign-in.
+    if (invitedId) {
+        await notifyMany([invitedId], {
+            type: 'fundraise.contribution_invite',
+            data: { title: campaign.title, title_local: campaign.title_local },
+            link: `/fundraise/${campaignId}`,
+            actorId: user.id,
+        });
+    }
     return { ok: true, message: result.action === 'edit' ? 'fundraise.contributionUpdated' : 'fundraise.contributionAdded' };
 }
 
