@@ -15,6 +15,10 @@ backfill rules) get recorded here when applied.
 - Pool (lib/db.js): cached per timezone offset, named placeholders (`:name`), `dateStrings`, strict
   `sql_mode`, session `time_zone` = the admin timezone offset (default +05:30). A standalone node script
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.
+- **Hosting limit: 500 NEW connections per hour per DB user** (Hostinger `max_connections_per_hour`; error
+  `ER_USER_LIMIT_REACHED`, the app then fails until the hour resets). Pool = 2 on Vercel / 3 elsewhere (never 1: a helper using the pool inside a transaction would deadlock), idle
+  connections kept (`idleTimeout` 15 min, keep-alive). Every probe script opens fresh connections — reuse ONE
+  connection per script, run probes sparingly, and prefer a separate DB user for local dev/scripts.
 - Helpers: `query`, `queryOne`, `withTransaction(q => …)`, `inList(values, prefix)`, `getMeta`,
   `getMetaMany(base, ids, keys)`, `setMeta(base, id, values, q)` (empty value deletes the key).
 - JSON columns come back as strings — parse defensively. `perPage`/`offset` are clamped ints inlined.

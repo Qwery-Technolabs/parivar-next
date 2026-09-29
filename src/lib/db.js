@@ -4,9 +4,11 @@ import { offsetOf } from './timezone';
 
 // design-system.md §9 — one cached pool, named placeholders, bounded prepared-statement cache.
 
-// Serverless functions each hold their own pool; keep it small there so many instances do not
-// exhaust the database's max_connections.
-const POOL_SIZE = Number(process.env.DB_POOL_SIZE || (process.env.VERCEL ? 3 : 10));
+// Few connections, kept open. The host (Hostinger shared) allows only 500 NEW connections per
+// hour per database user (max_connections_per_hour), and every serverless instance / build
+// worker has its own pool. A ~20-person app needs little parallelism: 2 per Vercel instance (not 1:
+// a helper calling the pool inside a transaction would wait forever), 3 elsewhere. DB_POOL_SIZE overrides.
+const POOL_SIZE = Number(process.env.DB_POOL_SIZE || (process.env.VERCEL ? 2 : 3));
 // MySQL's server-wide max_prepared_stmt_count defaults to 16382 and is shared with every
 // other app on the server. Budget half of it, split across our connections, floor 32 —
 // the driver default (16000 per connection) never evicts and exhausts the server.
@@ -21,6 +23,12 @@ function createPool(offset) {
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'parivar',
         connectionLimit: POOL_SIZE,
+        // Keep idle connections instead of closing them after 60 s (mysql2's default) — each
+        // reconnect counts against the hourly limit. TCP keep-alive stops routers dropping them.
+        maxIdle: POOL_SIZE,
+        idleTimeout: 15 * 60 * 1000,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 30 * 1000,
         namedPlaceholders: true,
         maxPreparedStatements: MAX_PREPARED,
         charset: 'utf8mb4_unicode_ci',

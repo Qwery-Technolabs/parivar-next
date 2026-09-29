@@ -106,7 +106,7 @@ libraries mostly do not.
 1. Import the repo in Vercel (framework: Next.js; build command `npm run build`).
 2. Environment variables (Project → Settings → Environment Variables): `DB_HOST`, `DB_PORT`, `DB_USER`,
    `DB_PASSWORD`, `DB_NAME`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`.
-   `DB_POOL_SIZE` is optional (defaults to 3 on Vercel, 10 elsewhere).
+   `DB_POOL_SIZE` is optional (defaults to 2 on Vercel, 3 elsewhere).
 3. The MariaDB server must accept connections from outside (Vercel has no fixed IPs on normal plans):
    allow remote access for the DB user, and use a strong password.
 4. Meeting reminders: `vercel.json` runs `/api/cron/reminders` once a day (03:00 UTC — the Hobby plan's limit;
@@ -114,9 +114,14 @@ libraries mostly do not.
    reminders in the background (at most once a minute), so they go out while people use the app. For exact
    timing on quiet days, point a free external scheduler (e.g. cron-job.org, every 5 minutes) at
    `https://<site>/api/cron/reminders?key=<CRON_SECRET>`. On the Pro plan you can set the cron to `*/5 * * * *`.
-5. Region: `vercel.json` pins the functions to `bom1` (Mumbai), next to the database. Vercel's default is
+5. Connections: Hostinger shared hosting allows **500 new DB connections per hour per database user**
+   (`max_connections_per_hour`, cannot be raised on shared plans). The app keeps a tiny pool (2 per Vercel
+   instance) and keeps connections open. Use a **separate database user for local development** and scripts,
+   so testing never eats production's budget (Hostinger → Databases → add a user to the same database).
+   Turn on Fluid Compute in Vercel (Settings → Functions) so fewer instances start.
+6. Region: `vercel.json` pins the functions to `bom1` (Mumbai), next to the database. Vercel's default is
    Washington (iad1) — ~200 ms per query to Mumbai, several seconds per page. If the database moves, move this too.
-6. Nothing is written to disk at runtime: the Samaj favicon / app icons live in `admin_settings`
+7. Nothing is written to disk at runtime: the Samaj favicon / app icons live in `admin_settings`
    (`app_icon_512/192/32`), so they survive deploys.
 
 Elsewhere (a normal Node server, `npm run build && npm start`) the reminder loop runs inside the process;
