@@ -45,31 +45,27 @@ function PersonTile({ p, isRoot, showDetails }) {
             aria-current={isRoot ? 'true' : undefined}
             title={fullName}
             aria-label={fullName}
-            className="flex w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-1.5 py-2 text-center transition-colors hover:bg-accent/70"
+            className="flex w-[4.25rem] shrink-0 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-center transition-colors hover:bg-accent/70"
         >
             <span className="relative">
                 <span
                     aria-hidden
-                    className={`flex size-12 items-center justify-center rounded-full text-lg font-bold shadow-md ring-2 ${face} ${
-                        isRoot ? 'outline-[3px] outline-offset-2 outline-brand-orange shadow-[0_0_0_7px_rgb(247_152_18/0.18)]' : ''
+                    className={`flex size-9 items-center justify-center rounded-full text-sm font-bold shadow ring-2 ${face} ${
+                        isRoot ? 'outline-2 outline-offset-1 outline-brand-orange' : ''
                     }`}
                 >
                     {initialOf(name)}
                 </span>
                 {late && (
-                    <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border border-surface-border bg-white" title={t('family.late')}>
-                        <Flower2 aria-hidden className="size-3 text-gray-500" />
+                    <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border border-surface-border bg-white" title={t('family.late')}>
+                        <Flower2 aria-hidden className="size-2.5 text-gray-500" />
                     </span>
                 )}
             </span>
-            {isRoot && (
-                <span className="rounded-full bg-brand-orange px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white">{t('relations.you')}</span>
-            )}
-            <span className={`block max-w-full break-words text-[13px] font-semibold leading-tight ${late ? 'text-ink-gray' : 'text-primary'}`}>{name}</span>
-            {showDetails && (
-                <span className="block text-[11px] leading-none text-ink-gray tabular-nums">
-                    {late ? t('family.late') : a != null ? `${a} ${t('matrimony.years')}` : '—'}
-                </span>
+            <span className={`block max-w-full truncate text-xs font-semibold leading-tight ${late ? 'text-ink-gray' : 'text-primary'}`}>{name}</span>
+            {/* Age or Late — nothing at all when the birth date is not known. */}
+            {showDetails && (late || a != null) && (
+                <span className="block text-[10px] leading-none text-ink-gray tabular-nums">{late ? t('family.late') : `${a} ${t('matrimony.years')}`}</span>
             )}
         </Link>
     );
@@ -86,13 +82,13 @@ function Branch({ node, rootId, showDetails }) {
     const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
         <li>
-            <div className="flex items-stretch rounded-2xl border border-white bg-linear-to-b from-white to-accent/70 shadow-[0_4px_14px_-4px_rgb(23_47_86/0.25)] ring-1 ring-surface-border/70 transition-transform hover:-translate-y-0.5">
+            <div className="flex items-stretch rounded-xl border border-white bg-linear-to-b from-white to-accent/70 shadow-[0_3px_10px_-4px_rgb(23_47_86/0.25)] ring-1 ring-surface-border/70 transition-transform hover:-translate-y-0.5">
                 {ordered.map((p, i) => (
                     <div key={p.id} className="flex items-stretch">
                         {i > 0 && (
                             <span aria-hidden className="relative w-px bg-surface-border">
-                                <span className="absolute top-[1.85rem] left-1/2 flex size-6 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow ring-1 ring-rose-200">
-                                    <Heart className="size-3.5 fill-rose-500 text-rose-500" aria-label={t('relations.spouse')} />
+                                <span className="absolute top-[1.15rem] left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow ring-1 ring-rose-200">
+                                    <Heart className="size-2.5 fill-rose-500 text-rose-500" aria-label={t('relations.spouse')} />
                                 </span>
                             </span>
                         )}

@@ -145,7 +145,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   hanging below; the person has an orange ring; navy / rose top stripe = male / female; late = muted.
   **Couples are ONE joined card — husband always left, wife right** (heart on the divider); each person a tile with a
   round gradient initial "photo" (navy men, rose women, grey + flower badge = late); the tree's person has an orange
-  outline + glow and a "This person" tag. Couple cards: soft white→accent gradient, rounded-2xl, lift on hover.
+  outline (no tag). Compact: size-9 avatars, 4.25rem tiles, 1.1rem generation step; no detail line when the
+  birth date is unknown. Couple cards: soft white→accent gradient, rounded-2xl, lift on hover.
   Canvas: warm glow + dot grid.
   **Cards show the first name only** (local first name when not English; full name as title / aria-label) and one
   detail line — age, or "Late". No father's name, surname or marital status in the tree (user's call). Dotted

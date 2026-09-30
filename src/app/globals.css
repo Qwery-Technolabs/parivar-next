@@ -174,7 +174,7 @@ body {
 
 /* Family tree (components/members/family-tree.jsx): nested lists drawn as a tree — each child
    hangs from a horizontal bar under its parents' card. --ft-gap = the vertical step. */
-.ftree { --ft-gap: 1.75rem; --ft-line: color-mix(in srgb, var(--color-ink-gray) 35%, transparent); }
+.ftree { --ft-gap: 1.1rem; --ft-line: color-mix(in srgb, var(--color-ink-gray) 35%, transparent); }
 .ftree ul {
   display: flex;
   justify-content: center;
@@ -187,7 +187,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--ft-gap) 0.625rem 0;
+  padding: var(--ft-gap) 0.3rem 0;
 }
 .ftree li::before,
 .ftree li::after {
@@ -211,9 +211,9 @@ body {
 .ftree li:last-child::after { border: 0 none; }
 .ftree li:last-child::before {
   border-right: 2px solid var(--ft-line);
-  border-radius: 0 0.75rem 0 0;
+  border-radius: 0 0.5rem 0 0;
 }
-.ftree li:first-child::after { border-radius: 0.75rem 0 0 0; }
+.ftree li:first-child::after { border-radius: 0.5rem 0 0 0; }
 .ftree ul ul::before {
   content: '';
   position: absolute;
