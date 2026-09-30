@@ -101,8 +101,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   father's name are optional there.
 - **Matrimony** (lib/matrimony.js, actions/matrimony.js, /matrimony, /matrimony/[id], /[id]/edit): opt-in rows in
   matrimony_profiles for **alive, unmarried (or unset), 18+ with a dob** members (`ELIGIBLE`); a listing drops off by
-  itself when that stops being true. List / edit / remove: the person, their family (tree) or member managers
-  (`canListFor`). **Browse rule = `canBrowseMatrimony` only** (for now: member managers + families with a listed
+  itself when that stops being true. List / edit / remove (`canListFor`): the person, their **father or mother**,
+  member managers — and, **only when the father is marked late**, anyone in their family tree (guardian). No father
+  recorded = strict. **Browse rule = `canBrowseMatrimony` only** (for now: member managers + families with a listed
   profile — the user will decide; change it there). Profile shows basics, education & work (users_listmeta
   education / occupation), family names from the tree, preferences, about, and a family contact (default: father
   with a phone, else the person). No photos yet (no upload storage).

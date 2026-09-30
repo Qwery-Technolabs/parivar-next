@@ -50,6 +50,7 @@ export default async function MatrimonyPage({ searchParams }) {
 
             {/* Your family: who can be listed (unmarried, 18+) and whether they are. */}
             <Card title={t('matrimony.yourFamily')} bodyClass="" className="mb-4">
+                <p className="border-b border-surface-border px-4 py-2 text-xs text-ink-gray">{t('matrimony.whoCanList')}</p>
                 {family.length === 0 ? (
                     <p className="px-4 py-4 text-sm text-ink-gray">{t('matrimony.noneEligible')}</p>
                 ) : (

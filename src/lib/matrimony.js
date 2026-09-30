@@ -28,11 +28,25 @@ export async function canBrowseMatrimony(user) {
     return Boolean(row);
 }
 
-/** May `actor` list / edit / remove this person's profile? Themselves, their family (tree), member managers. */
+/**
+ * May `actor` list / edit / remove this person's profile?
+ *   - the person themselves, and member managers;
+ *   - their father or mother;
+ *   - when their father has passed away (marked late): anyone in their family tree (a guardian —
+ *     elder brother, uncle, grandparent …).
+ * No father recorded counts as "father alive" (strict): only the person, their mother, managers.
+ */
 export async function canListFor(actor, personId) {
     if (!actor) return false;
     if (actor.id === personId || canManageMembers(actor.role)) return true;
-    return (await familyIds(actor.id)).has(personId);
+    const parents = await query(
+        `SELECT r.relation, u.id, u.status FROM users_relations r JOIN users_list u ON u.id = r.relative_id
+          WHERE r.user_id = :personId AND r.relation IN ('father', 'mother')`,
+        { personId },
+    );
+    if (parents.some((p) => p.id === actor.id)) return true;
+    const father = parents.find((p) => p.relation === 'father');
+    return Boolean(father && father.status === 'deceased') && (await familyIds(actor.id)).has(personId);
 }
 
 /** Is this person eligible to be listed (alive, unmarried, 18+ with a birth date)? */
@@ -40,17 +54,19 @@ export async function isEligible(personId) {
     return Boolean(await queryOne(`SELECT 1 AS ok FROM users_list u WHERE u.id = :personId AND ${ELIGIBLE}`, { personId }));
 }
 
-/** People in the actor's family (themselves included) who could be listed, with whether they are. */
+/** People in the actor's family (themselves included) whom the actor may list, with whether they are listed. */
 export async function listableInFamily(actor) {
     const ids = [...(await familyIds(actor.id))];
     const l = inList(ids, 'e');
-    return query(
+    const rows = await query(
         `SELECT u.id, u.full_name, u.full_name_local, u.gender, u.dob, (mp.is_active = 1) AS listed
            FROM users_list u LEFT JOIN matrimony_profiles mp ON mp.user_id = u.id
           WHERE u.id IN (${l.sql}) AND ${ELIGIBLE}
           ORDER BY u.full_name`,
         l.params,
     );
+    const allowed = await Promise.all(rows.map((r) => canListFor(actor, r.id)));
+    return rows.filter((_, i) => allowed[i]);
 }
 
 const LIST_COLS = `u.id, u.full_name, u.full_name_local, u.gender, u.dob, u.village, u.city,

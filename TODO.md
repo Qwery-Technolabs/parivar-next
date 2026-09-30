@@ -222,3 +222,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree: Family page per person (father, mother, wife/husband, brothers, sisters, sons, daughters) with add / remove; relatives can be new people (optional phone → login, birth date, alive / late, marital status, local name auto) or existing members (male line searched by surname); links kept consistent; tree shows siblings; family visible only to people connected in the tree (plus who added them and admins); "Deceased" shown as "Late"
 - [x] Member edit / create: marital status field; editing a family relative without a phone no longer demands phone or father's name; whoever added them can save edits
 - [x] Family: no separate page — profile Family card lists near relatives, header "Family tree" + "Add" popup (relation first, stays open to add more); tree canvas shows every generation with drag and zoom
+- [x] Matrimony: who may list — the person, their father / mother, admins; anyone in the family once the father has passed away
+- [x] Member picker (Combobox): the list closes after picking someone and no longer pops back open (focus returning to the input inside a popup)

@@ -33,6 +33,9 @@ export default function Combobox({
     const [active, setActive] = useState(0);
     const seq = useRef(0);
     const timer = useRef(null);
+    // Right after a choice the list unmounts and focus lands back on the input (a dialog's focus
+    // trap, a tap on a phone) — which must not reopen the list. Ignore opens for a moment.
+    const chosenAt = useRef(0);
     const listId = useId();
 
     async function load(query) {
@@ -52,7 +55,7 @@ export default function Combobox({
     }
 
     function openList() {
-        if (open) return;
+        if (open || Date.now() - chosenAt.current < 400) return;
         setOpen(true);
         setQ('');
         if (options === null) load('');
@@ -64,6 +67,7 @@ export default function Combobox({
     }
 
     function choose(opt) {
+        chosenAt.current = Date.now();
         onSelect(opt);
         setOpen(false);
         setQ('');
