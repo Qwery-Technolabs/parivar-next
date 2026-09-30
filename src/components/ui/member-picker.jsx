@@ -8,9 +8,10 @@ import Combobox from './combobox';
  * Combobox over /api/members/search. Controlled or uncontrolled; posts `name` as the user id.
  * allowInvite: typing a phone number that is not a member offers "Invite <number>"; picking it
  * posts `phone:<digits>` (the server invites that number — lib/invite.js).
- * @param {{ name?: string, defaultValue?: {id: string|number, label: string} | null, onPick?: (opt: any) => void, placeholder?: string, hasError?: boolean, exclude?: Array<string|number>, allowInvite?: boolean }} props
+ * search: extra query-string filters for /api/members/search (e.g. { surname: 'Patel', family: '1' }).
+ * @param {{ name?: string, defaultValue?: {id: string|number, label: string} | null, onPick?: (opt: any) => void, placeholder?: string, hasError?: boolean, exclude?: Array<string|number>, allowInvite?: boolean, search?: Record<string, string> }} props
  */
-export default function MemberPicker({ name, defaultValue = null, onPick, placeholder, hasError, exclude = [], allowInvite = false }) {
+export default function MemberPicker({ name, defaultValue = null, onPick, placeholder, hasError, exclude = [], allowInvite = false, search = null }) {
     const { t, locale } = useT();
     const [sel, setSel] = useState(defaultValue ? { value: String(defaultValue.id), label: defaultValue.label } : null);
     const skip = new Set(exclude.map(String));
@@ -24,7 +25,8 @@ export default function MemberPicker({ name, defaultValue = null, onPick, placeh
             hasError={hasError}
             emptyText={t('common.noResults')}
             fetchOptions={async (q) => {
-                const res = await fetch(`/api/members/search?q=${encodeURIComponent(q)}`);
+                const extra = search ? `&${new URLSearchParams(search).toString()}` : '';
+                const res = await fetch(`/api/members/search?q=${encodeURIComponent(q)}${extra}`);
                 if (!res.ok) return [];
                 const rows = await res.json();
                 const found = rows.filter((r) => !skip.has(r.value)).map((r) => ({ ...r, label: (locale === 'gu' && r.labelLocal) || r.label }));

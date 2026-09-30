@@ -200,12 +200,14 @@ async function Donors({ f, t, locale }) {
                             </Td>
                             <Td>{d.village || null}</Td>
                             <Td className="whitespace-nowrap">
-                                <a
-                                    href={`tel:${d.phone}`}
-                                    className="inline-flex items-center gap-1 font-medium text-primary tabular-nums hover:underline"
-                                >
-                                    <Phone className="size-3.5" /> {formatPhone(d.phone)}
-                                </a>
+                                {d.phone ? (
+                                    <a
+                                        href={`tel:${d.phone}`}
+                                        className="inline-flex items-center gap-1 font-medium text-primary tabular-nums hover:underline"
+                                    >
+                                        <Phone className="size-3.5" /> {formatPhone(d.phone)}
+                                    </a>
+                                ) : null}
                             </Td>
                         </Tr>
                     ))}

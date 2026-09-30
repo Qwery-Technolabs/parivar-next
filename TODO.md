@@ -216,3 +216,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] DB connections: pool 2 on Vercel / 3 locally, idle connections kept (host limit 500 new connections/hour per user); README: separate DB user for local dev, Fluid Compute
 - [x] All Cancel / Save bars side by side on phones (new / edit fundraise, event forms, member form, picture picker, dialog footer)
 - [x] Group danger zone: buttons icon-only on phones, coloured by meaning (pause amber, archive slate, active green, delete red)
+- [ ] Matrimony service (sidebar entry after Fundraise) — requirements to be discussed after the family tree
+- [x] Family tree: Family page per person (father, mother, wife/husband, brothers, sisters, sons, daughters) with add / remove; relatives can be new people (optional phone → login, birth date, alive / late, marital status, local name auto) or existing members (male line searched by surname); links kept consistent; tree shows siblings; family visible only to people connected in the tree (plus who added them and admins); "Deceased" shown as "Late"
+- [x] Member edit / create: marital status field; editing a family relative without a phone no longer demands phone or father's name; whoever added them can save edits

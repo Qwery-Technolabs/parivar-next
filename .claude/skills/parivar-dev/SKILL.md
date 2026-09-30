@@ -86,6 +86,19 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   no rows → everyone; rows → only matching members, unless meta `audience_others = '1'` ("also everyone else,
   lower in their list"). Team, admins / sub-admins of its groups and app-level managers always see it. Applied
   to the feed, a group's Fundraises tab, the detail page and print. Matching rows still sort first (for_you).
+- **Family tree** (lib/family.js, actions/family.js, /members/[id]/family + /tree): relatives are ordinary
+  users_list rows (may have **no phone** → no login; with a phone → login, password = phone, must change);
+  they show in the Members list (late = status 'deceased', label "Late"). Links in users_relations: child→father /
+  mother, spouse (both ways), sibling (both ways, only without a shared parent). Slots: father, mother, spouse
+  (wife/husband by gender), brother, sister, son, daughter; gender follows the slot. `linkRelative` keeps it
+  consistent (father ⇄ mother spouses, siblings share parents, a child gets the only spouse as other parent,
+  spouses → married). **Who sees / edits**: `canSeeFamily` = self, member managers, whoever added the person, or
+  anyone connected in the tree (`familyIds`, BFS over all links). Tree-added people (meta added_via='family')
+  hide phone / dob / marital status from others (profile, Members list, member search). Male-line picker
+  (father / brother / son) searches the person's surname only (`/api/members/search?surname=…&family=1`).
+  Whoever added a relative who never signed in may edit them (`canEditUser` — the target row must carry
+  created_by + last_login_at). Member edit → Basic has marital status; for a relative without a phone, phone and
+  father's name are optional there.
 - **Anonymous gifts** ("Hide name publicly"): only fundraise managers see the donor (name + badge). Everyone
   else sees `fundraise.anonymousLabel` — "Anonymous" / "રામભરોસે" — via `maskAnonymous(rows, label)`, and
   by-contributor totals use `contributorTotals(id, { publicView: !manage })`. Copied text, the PDF list and

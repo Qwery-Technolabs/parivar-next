@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS admin_castes (
 
 CREATE TABLE IF NOT EXISTS users_list (
     id             INT UNSIGNED     NOT NULL AUTO_INCREMENT,
-    phone          VARCHAR(15)      NOT NULL,                 -- login id, digits only, 10–15
+    phone          VARCHAR(15)      NULL,                     -- login id, digits only, 10–15; NULL = family-tree relative without a number (no login)
     password_hash  VARCHAR(100)     NULL,                     -- NULL = listed member who cannot log in yet
     full_name      VARCHAR(150)     NOT NULL,
     full_name_local VARCHAR(150)    NULL,                     -- local-language script (Gujarati default), shown when UI is not English
@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS users_list (
     surname_local     VARCHAR(60)   NULL,
     gender         ENUM('male','female','other') NULL,
     dob            DATE             NULL,
+    marital_status ENUM('unmarried','married','engaged','widowed','divorced') NULL, -- set from the family tree
     blood_group    ENUM('A+','A-','B+','B-','AB+','AB-','O+','O-') NULL,
     village        VARCHAR(100)     NULL,                     -- native village (gaam)
     city           VARCHAR(100)     NULL,                     -- current residence
@@ -88,7 +89,7 @@ CREATE TABLE IF NOT EXISTS users_relations (
     id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id      INT UNSIGNED NOT NULL,
     relative_id  INT UNSIGNED NOT NULL,
-    relation     ENUM('father','mother','spouse') NOT NULL,
+    relation     ENUM('father','mother','spouse','sibling') NOT NULL, -- sibling only when no shared parent is recorded (stored both ways)
     created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_rel (user_id, relation, relative_id),

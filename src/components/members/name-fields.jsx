@@ -11,9 +11,11 @@ import { LOCAL_LANGUAGES } from '@/lib/local-language';
  * the English and still editable. Posts first_name / middle_name / surname and their *_local;
  * the server joins each set into full_name / full_name_local. Renders siblings for the
  * caller's grid: the three English fields, then the three local ones.
- * @param {{ member?: any, fe: (name: string) => string|null }} props
+ * optional: English parts that may stay empty (e.g. ['middle_name'] for an older relative whose
+ * father's name is not known).
+ * @param {{ member?: any, fe: (name: string) => string|null, optional?: string[] }} props
  */
-export default function NameFields({ member, fe }) {
+export default function NameFields({ member, fe, optional = [] }) {
     const { t, localLang } = useT();
     const first = useAutoGujarati(member?.first_name ?? '', member?.first_name_local ?? '');
     const middle = useAutoGujarati(member?.middle_name ?? '', member?.middle_name_local ?? '');
@@ -21,8 +23,8 @@ export default function NameFields({ member, fe }) {
     const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';
 
     const english = (name, labelKey, auto) => (
-        <Field label={t(labelKey)} error={fe(name)} required>
-            <input name={name} required maxLength={60} autoComplete="off" {...auto.enProps} className={`${textInput(!!fe(name))} w-full`} />
+        <Field label={t(labelKey)} error={fe(name)} required={!optional.includes(name)}>
+            <input name={name} required={!optional.includes(name)} maxLength={60} autoComplete="off" {...auto.enProps} className={`${textInput(!!fe(name))} w-full`} />
         </Field>
     );
     const local = (name, labelKey, auto) => <GujaratiField label={`${t(labelKey)} (${lang})`} name={name} auto={auto} maxLength={60} />;

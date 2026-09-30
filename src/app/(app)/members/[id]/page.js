@@ -1,7 +1,7 @@
-import { GitFork, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { GitFork, Pencil, Phone, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import FamilyCard from '@/components/members/family-card';
+import FamilySummary from '@/components/members/family-summary';
 import PageHeader, { Card } from '@/components/shell/page-header';
 import PageMenu from '@/components/shell/page-menu';
 import Badge, { BloodBadge } from '@/components/ui/badge';
@@ -9,7 +9,8 @@ import { requireUser } from '@/lib/auth';
 import { age, date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { getFamily, getMember, memberDonations, memberGroups } from '@/lib/members';
+import { getMember, memberDonations, memberGroups } from '@/lib/members';
+import { canSeeFamily, getRelatives } from '@/lib/family';
 import { formatPhone } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword } from '@/lib/roles';
 
@@ -36,8 +37,9 @@ export default async function MemberPage({ params }) {
     const member = await getMember(Number(id) || 0);
     if (!member) notFound();
     const { t, locale } = await getT();
-    const [family, groups, donations] = await Promise.all([
-        getFamily(member.id),
+    const [relatives, seeFamily, groups, donations] = await Promise.all([
+        getRelatives(member.id),
+        canSeeFamily(user, member),
         memberGroups(member.id),
         memberDonations(member.id, user.id === member.id || canManageAllFundraises(user.role)),
     ]);
@@ -47,6 +49,8 @@ export default async function MemberPage({ params }) {
     const name = localized(member, 'full_name', locale);
     const otherName = locale === 'gu' ? member.full_name : member.full_name_local;
     const m = member.meta;
+    // A relative added from a family tree: phone, birth date and marital status are for the family only.
+    const privateDetails = m.added_via === 'family' && !seeFamily;
 
     return (
         <div>
@@ -62,7 +66,8 @@ export default async function MemberPage({ params }) {
                     <PageMenu
                         items={[
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: <Pencil />, href: `/members/${member.id}/edit` },
-                            { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
+                            seeFamily && { key: 'family', label: t('family.title'), icon: <Users />, href: `/members/${member.id}/family` },
+                            seeFamily && { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
                         ]}
                     />
                 }
@@ -73,13 +78,15 @@ export default async function MemberPage({ params }) {
                 {member.status !== 'active' && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
                 <BloodBadge group={member.blood_group} />
                 {member.is_blood_donor ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
-                <a
-                    href={`tel:${member.phone}`}
-                    className="ml-auto inline-flex h-9 items-center gap-2 rounded-md btn-secondary px-3 text-sm font-medium"
-                >
-                    <Phone className="size-4" />
-                    <span className="tabular-nums">{formatPhone(member.phone)}</span>
-                </a>
+                {member.phone && !privateDetails && (
+                    <a
+                        href={`tel:${member.phone}`}
+                        className="ml-auto inline-flex h-9 items-center gap-2 rounded-md btn-secondary px-3 text-sm font-medium"
+                    >
+                        <Phone className="size-4" />
+                        <span className="tabular-nums">{formatPhone(member.phone)}</span>
+                    </a>
+                )}
             </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
@@ -87,7 +94,10 @@ export default async function MemberPage({ params }) {
                     <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
                         <Detail label={t('members.gender')}>{member.gender && t(`gender.${member.gender}`)}</Detail>
                         <Detail label={t('members.dob')}>
-                            {member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}
+                            {!privateDetails && member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}
+                        </Detail>
+                        <Detail label={t('family.maritalStatus')}>
+                            {!privateDetails && member.marital_status && t(`family.marital.${member.marital_status}`)}
                         </Detail>
                         <Detail label={t('members.village')}>{member.village}</Detail>
                         <Detail label={t('members.position')}>{m.position}</Detail>
@@ -121,13 +131,7 @@ export default async function MemberPage({ params }) {
                 </Card>
 
                 <div className="space-y-4">
-                    <FamilyCard
-                        personId={member.id}
-                        personName={name}
-                        family={family}
-                        canEdit={canEdit}
-                        canInvite={canInviteMembers(user.role) || user.id === member.id}
-                    />
+                    <FamilySummary person={member} relatives={relatives} canSee={seeFamily} t={t} locale={locale} />
                     <Card title={t('members.groups')} bodyClass="">
                         {groups.length === 0 ? (
                             <p className="px-4 py-5 text-sm text-ink-gray">{t('common.none')}</p>

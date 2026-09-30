@@ -15,6 +15,9 @@ backfill rules) get recorded here when applied.
 - Pool (lib/db.js): cached per timezone offset, named placeholders (`:name`), `dateStrings`, strict
   `sql_mode`, session `time_zone` = the admin timezone offset (default +05:30). A standalone node script
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.
+- users_list.phone is **nullable** (family-tree relatives without a number; UNIQUE still holds for real numbers);
+  `marital_status` ENUM(unmarried, married, engaged, widowed, divorced); users_relations.relation adds 'sibling'.
+  Test family writes on the throwaway DB (`npm run db:dev` :3307 + `next start -p 3001` with DB_* overrides).
 - **Hosting limit: 500 NEW connections per hour per DB user** (Hostinger `max_connections_per_hour`; error
   `ER_USER_LIMIT_REACHED`, the app then fails until the hour resets). Pool = 2 on Vercel / 3 elsewhere (never 1: a helper using the pool inside a transaction would deadlock), idle
   connections kept (`idleTimeout` 15 min, keep-alive). Every probe script opens fresh connections — reuse ONE

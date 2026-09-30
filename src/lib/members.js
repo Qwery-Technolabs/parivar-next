@@ -121,7 +121,7 @@ export async function listMembers(f, page, perPage) {
         queryOne(`SELECT COUNT(*) AS n FROM users_list u ${w.sql}`, w.params),
         query(
             `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.role, u.village, u.city, u.blood_group,
-                    u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login, u.last_login_at,
+                    u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login, u.last_login_at, u.created_by,
                     c.name AS caste_name, c.name_local AS caste_name_local, sc.name AS subcaste_name, sc.name_local AS subcaste_name_local
                FROM users_list u
                LEFT JOIN admin_castes c ON c.id = u.caste_id
@@ -133,8 +133,11 @@ export async function listMembers(f, page, perPage) {
         ),
     ]);
     // One meta read for the whole page — never a query per row.
-    const meta = await getMetaMany('users_list', rows.map((r) => r.id), ['position']);
-    return { total: countRow.n, rows: rows.map((r) => ({ ...r, position: meta[r.id]?.position ?? null })) };
+    const meta = await getMetaMany('users_list', rows.map((r) => r.id), ['position', 'added_via']);
+    return {
+        total: countRow.n,
+        rows: rows.map((r) => ({ ...r, position: meta[r.id]?.position ?? null, added_via: meta[r.id]?.added_via ?? null })),
+    };
 }
 
 export async function listVillages() {
@@ -158,7 +161,7 @@ export async function getMember(id) {
     const row = await queryOne(
         `SELECT u.id, u.phone, u.full_name, u.full_name_local, u.first_name, u.middle_name, u.surname,
                 u.first_name_local, u.middle_name_local, u.surname_local, u.gender, u.dob, u.blood_group, u.village, u.city, u.role, u.language,
-                u.is_blood_donor, u.status, u.last_login_at, u.created_at, (u.password_hash IS NOT NULL) AS can_login,
+                u.is_blood_donor, u.status, u.marital_status, u.created_by, u.last_login_at, u.created_at, (u.password_hash IS NOT NULL) AS can_login,
                 u.caste_id, u.subcaste_id, c.name AS caste_name, c.name_local AS caste_name_local,
                 sc.name AS subcaste_name, sc.name_local AS subcaste_name_local
            FROM users_list u
@@ -187,44 +190,7 @@ export async function listGroupsBrief() {
 
 // ── family ─────────────────────────────────────────────────────────────────────
 
-const PERSON_COLS = 'u.id, u.full_name, u.full_name_local, u.gender, u.dob, u.status, u.blood_group';
-
-/** Direct family of one person. Children/siblings are derived from parent edges. */
-export async function getFamily(id) {
-    const [parents, spouses, children, siblings] = await Promise.all([
-        query(
-            `SELECT r.relation, ${PERSON_COLS} FROM users_relations r JOIN users_list u ON u.id = r.relative_id
-              WHERE r.user_id = :id AND r.relation IN ('father','mother') ORDER BY r.relation = 'mother'`,
-            { id },
-        ),
-        query(
-            `SELECT ${PERSON_COLS} FROM users_relations r JOIN users_list u ON u.id = r.relative_id
-              WHERE r.user_id = :id AND r.relation = 'spouse' ORDER BY u.full_name`,
-            { id },
-        ),
-        query(
-            `SELECT DISTINCT ${PERSON_COLS} FROM users_relations r JOIN users_list u ON u.id = r.user_id
-              WHERE r.relative_id = :id AND r.relation IN ('father','mother') ORDER BY u.dob IS NULL, u.dob, u.full_name`,
-            { id },
-        ),
-        query(
-            `SELECT DISTINCT ${PERSON_COLS} FROM users_relations mine
-               JOIN users_relations theirs ON theirs.relative_id = mine.relative_id
-                                          AND theirs.relation IN ('father','mother') AND theirs.user_id <> :id
-               JOIN users_list u ON u.id = theirs.user_id
-              WHERE mine.user_id = :id AND mine.relation IN ('father','mother')
-              ORDER BY u.dob IS NULL, u.dob, u.full_name`,
-            { id },
-        ),
-    ]);
-    return {
-        father: parents.find((p) => p.relation === 'father') ?? null,
-        mother: parents.find((p) => p.relation === 'mother') ?? null,
-        spouses,
-        children,
-        siblings,
-    };
-}
+const PERSON_COLS = 'u.id, u.full_name, u.full_name_local, u.gender, u.dob, u.status, u.blood_group, u.marital_status, u.created_by';
 
 /**
  * Tree around one person: up to 2 generations of ancestors and 2 of descendants, with
@@ -279,6 +245,18 @@ export async function getFamilyTree(rootId, depth = 2) {
         await load(level);
     }
 
+    // Brothers and sisters share the root's row: children of the same parents, plus explicit sibling links.
+    const sib = await query(
+        `SELECT DISTINCT theirs.user_id AS id FROM users_relations mine
+           JOIN users_relations theirs ON theirs.relative_id = mine.relative_id AND theirs.relation = mine.relation AND theirs.user_id <> :rootId
+          WHERE mine.user_id = :rootId AND mine.relation IN ('father', 'mother')
+         UNION
+         SELECT relative_id AS id FROM users_relations WHERE user_id = :rootId AND relation = 'sibling'`,
+        { rootId },
+    );
+    const siblingIds = sib.map((r) => r.id);
+    await load(siblingIds);
+
     // Spouses of everyone on the root's line
     const all = [...people.keys()];
     const sl = inList(all, 's');
@@ -311,7 +289,7 @@ export async function getFamilyTree(rootId, depth = 2) {
         rootId,
         generations: [
             ...up.map((ids) => row(ids)).reverse(),
-            row([rootId]),
+            row([rootId, ...siblingIds]),
             ...down.map((ids) => row(ids)),
         ].filter((r) => r.length),
         rootIndex: up.filter((ids) => ids.length).length,
@@ -319,28 +297,6 @@ export async function getFamilyTree(rootId, depth = 2) {
     };
 }
 
-/** Would making `ancestorId` a parent of `childId` create a cycle? (Is ancestorId a descendant of childId?) */
-export async function isDescendant(candidateId, ofId) {
-    let level = [ofId];
-    const seen = new Set(level);
-    for (let depth = 0; depth < 12 && level.length; depth++) {
-        const l = inList(level, 'd');
-        const rows = await query(
-            `SELECT user_id FROM users_relations WHERE relative_id IN (${l.sql}) AND relation IN ('father','mother')`,
-            l.params,
-        );
-        const next = [];
-        for (const r of rows) {
-            if (r.user_id === candidateId) return true;
-            if (!seen.has(r.user_id)) {
-                seen.add(r.user_id);
-                next.push(r.user_id);
-            }
-        }
-        level = next;
-    }
-    return false;
-}
 
 /**
  * What one member has given, per group and per fundraise. Anonymous gifts are hidden

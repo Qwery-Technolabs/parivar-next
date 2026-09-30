@@ -19,6 +19,7 @@ import { getT } from '@/lib/i18n/server';
 import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
+import { familyIds } from '@/lib/family';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
 export async function generateMetadata() {
@@ -44,6 +45,9 @@ export default async function MembersPage({ searchParams }) {
         listCities(),
     ]);
     const manage = canManageMembers(user.role);
+    // Phone numbers of relatives added from a family tree: their family and member managers only.
+    const family = manage ? null : await familyIds(user.id);
+    const phoneShown = (m) => Boolean(m.phone) && (m.added_via !== 'family' || manage || m.created_by === user.id || family.has(m.id));
     // Row selection serves bulk group actions and the bulk password reset (sub-admin and up).
     const canBulkReset = canInviteMembers(user.role);
     // Who has never signed in is admin information (invites still pending).
@@ -139,13 +143,15 @@ export default async function MembersPage({ searchParams }) {
                                     )}
                                 </Td>
                                 <Td>
-                                    <a
-                                        href={`tel:${m.phone}`}
-                                        className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums text-primary hover:underline"
-                                    >
-                                        <Phone className="size-3.5 text-ink-gray" />
-                                        {formatPhone(m.phone)}
-                                    </a>
+                                    {phoneShown(m) ? (
+                                        <a
+                                            href={`tel:${m.phone}`}
+                                            className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums text-primary hover:underline"
+                                        >
+                                            <Phone className="size-3.5 text-ink-gray" />
+                                            {formatPhone(m.phone)}
+                                        </a>
+                                    ) : null}
                                 </Td>
                                 <Td>
                                     <Badge tone={m.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${m.role}`)}</Badge>

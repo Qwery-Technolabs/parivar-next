@@ -69,6 +69,8 @@ export function assignableRoles(actorRole) {
 export function canEditUser(actor, target) {
     if (!actor) return false;
     if (actor.id === target.id) return true;
+    // A relative added from a family tree, who has never signed in: whoever added them may fix details.
+    if (target.created_by && target.created_by === actor.id && !target.last_login_at) return true;
     if (!canManageMembers(actor.role)) return false;
     return actor.role === 'super_admin' || rank(target.role) > rank(actor.role);
 }

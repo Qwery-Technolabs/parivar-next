@@ -19,17 +19,19 @@ export const FIELD_GRID = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3';
 
 /** Name (first, father's, surname + local), phone, gender, birth date, native village, current city. */
 export function BasicFields({ member, fe, villages = [], cities = [] }) {
+    const relativeOnly = Boolean(member?.id) && !member?.phone;
     const { t } = useT();
     return (
         <div className={FIELD_GRID}>
-            <NameFields member={member} fe={fe} />
-            <Field label={t('members.phone')} hint={t('auth.phoneHint')} error={fe('phone')} required>
+            {/* A family-tree relative without a number (member exists, no phone): phone and father's name optional. */}
+            <NameFields member={member} fe={fe} optional={relativeOnly ? ['middle_name'] : []} />
+            <Field label={t('members.phone')} hint={t('auth.phoneHint')} error={fe('phone')} required={!relativeOnly}>
                 <input
                     name="phone"
                     type="tel"
                     inputMode="numeric"
                     defaultValue={member?.phone ?? ''}
-                    required
+                    required={!relativeOnly}
                     className={`${textInput(!!fe('phone'))} w-full tabular-nums`}
                 />
             </Field>
@@ -43,6 +45,16 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
             </Field>
             <Field label={t('members.dob')}>
                 <input name="dob" type="date" defaultValue={member?.dob ?? ''} className={`${textInput()} w-full`} />
+            </Field>
+            <Field label={t('family.maritalStatus')}>
+                <select name="marital_status" defaultValue={member?.marital_status ?? ''} className={`${selectInput()} w-full`}>
+                    <option value="">—</option>
+                    {['unmarried', 'married', 'engaged', 'widowed', 'divorced'].map((s) => (
+                        <option key={s} value={s}>
+                            {t(`family.marital.${s}`)}
+                        </option>
+                    ))}
+                </select>
             </Field>
             <Field label={t('members.village')}>
                 <PickOrType name="village" defaultValue={member?.village ?? ''} suggestions={villages} label={t('members.village')} />

@@ -7,7 +7,7 @@ import { getCurrentUser, hashPassword, passwordProblem, revokeUserSessions } fro
 import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { postMemberNote } from '@/lib/chat';
-import { isDescendant, MEMBER_META_KEYS } from '@/lib/members';
+import { MEMBER_META_KEYS } from '@/lib/members';
 import { composeName } from '@/lib/names';
 import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
@@ -39,6 +39,7 @@ function readMember(fd) {
         phone: normalizePhone(fd.get('phone')),
         gender: oneOf(fd, 'gender', ['male', 'female', 'other']),
         dob: date(fd, 'dob'),
+        marital_status: oneOf(fd, 'marital_status', ['unmarried', 'married', 'engaged', 'widowed', 'divorced']),
         blood_group: oneOf(fd, 'blood_group', BLOOD_GROUPS),
         village: strOrNull(fd, 'village', 100),
         city: strOrNull(fd, 'city', 100),
@@ -52,11 +53,11 @@ function readMember(fd) {
     };
 }
 
-function validate(m, { requirePhone = true } = {}) {
+function validate(m, { requirePhone = true, requireMiddle = true } = {}) {
     const fieldErrors = {};
-    // First name, father's name and surname are all required.
+    // First name, father's name and surname are required (father's name may be unknown for an old relative).
     if (!m.first_name) fieldErrors.first_name = 'common.required';
-    if (!m.middle_name) fieldErrors.middle_name = 'common.required';
+    if (requireMiddle && !m.middle_name) fieldErrors.middle_name = 'common.required';
     if (!m.surname) fieldErrors.surname = 'common.required';
     if (requirePhone && !m.phone) fieldErrors.phone = 'auth.errors.phoneInvalid';
     if (m.password) {
@@ -105,10 +106,10 @@ export async function createMember(prev, fd) {
     const newId = await withTransaction(async (q) => {
         const r = await q(
             `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, first_name, middle_name, surname,
-                                     first_name_local, middle_name_local, surname_local, gender, dob, blood_group, village, city,
+                                     first_name_local, middle_name_local, surname_local, gender, dob, marital_status, blood_group, village, city,
                                      caste_id, subcaste_id, role, status, is_blood_donor, language, created_by)
              VALUES (:phone, :hash, :full_name, :full_name_local, :first_name, :middle_name, :surname,
-                     :first_name_local, :middle_name_local, :surname_local, :gender, :dob, :blood_group, :village, :city,
+                     :first_name_local, :middle_name_local, :surname_local, :gender, :dob, :marital_status, :blood_group, :village, :city,
                      :caste_id, :subcaste_id, :role, :status, :is_blood_donor, :language, :by)`,
             { ...m, hash, role, language, by: actor.id },
         );
@@ -132,7 +133,8 @@ export async function updateMemberSection(prev, fd) {
     const actor = await getCurrentUser();
     const targetId = id(fd, 'id');
     const target =
-        targetId && (await queryOne('SELECT id, role, phone, status, caste_id, subcaste_id FROM users_list WHERE id = :targetId', { targetId }));
+        targetId &&
+        (await queryOne('SELECT id, role, phone, status, caste_id, subcaste_id, created_by, last_login_at FROM users_list WHERE id = :targetId', { targetId }));
     const section = oneOf(fd, 'section', ['basic', 'community', 'details', 'access', 'password']);
     if (!actor || !target) return FORBIDDEN;
     // The password tab has its own, wider right; every other tab needs full edit rights.
@@ -142,14 +144,16 @@ export async function updateMemberSection(prev, fd) {
     let message = 'common.saved';
 
     if (section === 'basic') {
-        const bad = validate({ ...m, password: '' });
+        // A family-tree relative who has no number yet: phone and father's name may stay empty.
+        const relativeOnly = !target.phone;
+        const bad = validate({ ...m, password: '' }, { requirePhone: !relativeOnly || Boolean(m.phoneRaw), requireMiddle: !relativeOnly });
         if (bad) return bad;
         if (m.phone !== target.phone && (await phoneTaken(m.phone, target.id))) return { fieldErrors: { phone: 'auth.errors.phoneTaken' } };
         await query(
             `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local,
                     first_name = :first_name, middle_name = :middle_name, surname = :surname,
                     first_name_local = :first_name_local, middle_name_local = :middle_name_local, surname_local = :surname_local, gender = :gender,
-                    dob = :dob, village = :village, city = :city WHERE id = :id`,
+                    dob = :dob, marital_status = :marital_status, village = :village, city = :city WHERE id = :id`,
             { ...m, id: target.id },
         );
     } else if (section === 'community') {
@@ -190,100 +194,7 @@ export async function updateMemberSection(prev, fd) {
     return { ok: true, message, id: target.id };
 }
 
-// ── relations ─────────────────────────────────────────────────────────────────
-
-/**
- * relation (from the form): father | mother | spouse | child
- * Stored edges are only father / mother / spouse; "child" is written as the child's
- * father-or-mother edge, picked by the parent's gender.
- */
-export async function addRelation(prev, fd) {
-    const actor = await getCurrentUser();
-    const personId = id(fd, 'person_id');
-    let relativeId = id(fd, 'relative_id');
-    const relation = oneOf(fd, 'relation', ['father', 'mother', 'spouse', 'child']);
-    const person = personId && (await queryOne('SELECT id, role, gender FROM users_list WHERE id = :personId', { personId }));
-    if (!actor || !person || !canEditUser(actor, person)) return FORBIDDEN;
-    if (!relation) return { fieldErrors: { relation: 'common.required' } };
-    // By phone number: the relative may not be registered yet — invite them first (sub-admin
-    // and up, or someone adding their own family). A new father / mother gets that gender.
-    if (fd.get('mode') === 'phone') {
-        if (!canInviteMembers(actor.role) && actor.id !== person.id) return FORBIDDEN;
-        const phone = normalizePhone(fd.get('phone'));
-        if (!phone) return { fieldErrors: { phone: 'auth.errors.phoneInvalid' } };
-        const invited = await ensureInvitedUser(actor, phone, str(fd, 'full_name', 150));
-        if (invited.error) return { fieldErrors: { phone: invited.error } };
-        if (invited.status === 'created' && (relation === 'father' || relation === 'mother')) {
-            await query('UPDATE users_list SET gender = :g WHERE id = :id', { g: relation === 'father' ? 'male' : 'female', id: invited.id });
-        }
-        relativeId = invited.id;
-    }
-    if (!relativeId) return { fieldErrors: { relative_id: 'common.required' } };
-    if (relativeId === personId) return { fieldErrors: { [fd.get('mode') === 'phone' ? 'phone' : 'relative_id']: 'relations.selfError' } };
-    const relative = await queryOne('SELECT id, gender FROM users_list WHERE id = :relativeId', { relativeId });
-    if (!relative) return { fieldErrors: { relative_id: 'common.required' } };
-
-    let child;
-    let parent;
-    let parentRel;
-    if (relation === 'father' || relation === 'mother') {
-        child = person.id;
-        parent = relative.id;
-        parentRel = relation;
-    } else if (relation === 'child') {
-        child = relative.id;
-        parent = person.id;
-        parentRel = person.gender === 'female' ? 'mother' : 'father';
-    }
-
-    if (parentRel) {
-        // A parent must not already be a descendant of the child, or the tree loops forever.
-        if (await isDescendant(parent, child)) return { fieldErrors: { relative_id: 'relations.cycleError' } };
-        await withTransaction(async (q) => {
-            // One father and one mother: replacing is how a wrong link gets corrected.
-            await q('DELETE FROM users_relations WHERE user_id = :child AND relation = :parentRel', { child, parentRel });
-            await q('INSERT INTO users_relations (user_id, relative_id, relation) VALUES (:child, :parent, :parentRel)', {
-                child,
-                parent,
-                parentRel,
-            });
-        });
-    } else {
-        // Spouse is symmetric; both directions are stored so either side reads it with one lookup.
-        await withTransaction(async (q) => {
-            for (const [a, b] of [[person.id, relative.id], [relative.id, person.id]]) {
-                await q(
-                    `INSERT IGNORE INTO users_relations (user_id, relative_id, relation) VALUES (:a, :b, 'spouse')`,
-                    { a, b },
-                );
-            }
-        });
-    }
-    await audit(actor.id, 'user.relation.add', 'user', person.id, { relation, relativeId });
-    revalidatePath(`/members/${person.id}`);
-    revalidatePath(`/members/${relative.id}`);
-    return { ok: true, message: 'common.saved' };
-}
-
-/** Remove the edge between two people, whichever direction/kind it is. */
-export async function removeRelation(personId, relativeId) {
-    const actor = await getCurrentUser();
-    const person = await queryOne('SELECT id, role FROM users_list WHERE id = :personId', { personId: Number(personId) });
-    if (!actor || !person || !canEditUser(actor, person)) return FORBIDDEN;
-    const a = Number(personId);
-    const b = Number(relativeId);
-    await withTransaction(async (q) => {
-        await q(
-            `DELETE FROM users_relations
-              WHERE (user_id = :a AND relative_id = :b) OR (user_id = :b AND relative_id = :a)`,
-            { a, b },
-        );
-    });
-    await audit(actor.id, 'user.relation.remove', 'user', a, { relativeId: b });
-    revalidatePath(`/members/${a}`);
-    revalidatePath(`/members/${b}`);
-    return { ok: true, message: 'common.deleted' };
-}
+// Relations (family tree) live in actions/family.js.
 
 // ── groups, from the directory ────────────────────────────────────────────────
 
