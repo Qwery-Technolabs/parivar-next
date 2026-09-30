@@ -232,3 +232,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [ ] Family tree: real photos on the avatars (needs upload storage)
 - [x] Family tree like the reference: boxless round avatars with first name + relation (Father, Kaka …), couples joined by a line, children from its middle, compact
 - [x] "How you're related" on profiles: chain from you to the person with each step and the kinship word (Kaka, Foi, Fuva, Mama, Bhabhi, Jamai …)
+- [x] Family tree tiles: man / woman avatar figures (same colour), plain canvas, slim 1.5px ring for the tree's person
+- [x] Family tree Details: marital status shown only for the last person in a line (no spouse, no children)
+- [x] Members list: unregistered people (never signed in) hidden by default; Registration filter shows them
+- [x] Family tree: pinch to zoom and drag to pan inside the box (trackpad pinch / Ctrl + scroll on desktop); zoom buttons removed

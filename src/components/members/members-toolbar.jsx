@@ -83,7 +83,22 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
             disabled={disabled}
             onOpen={() => setDraft(initial())}
             onClear={() =>
-                setDraft({ ...filters, role: '', blood: '', compat: false, donor: false, village: '', city: '', gender: '', caste: '', subcaste: '', ageMin: '', ageMax: '', status: 'active' })
+                setDraft({
+                    ...filters,
+                    role: '',
+                    blood: '',
+                    compat: false,
+                    donor: false,
+                    village: '',
+                    city: '',
+                    gender: '',
+                    caste: '',
+                    subcaste: '',
+                    ageMin: '',
+                    ageMax: '',
+                    status: 'active',
+                    reg: 'registered',
+                })
             }
             onApply={() =>
                 onApply({
@@ -99,6 +114,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     age_min: draft.ageMin.trim(),
                     age_max: draft.ageMax.trim(),
                     status: draft.status === 'active' ? null : draft.status,
+                    reg: draft.reg === 'registered' ? null : draft.reg,
                 })
             }
         >
@@ -118,6 +134,13 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     <option value="active">{t('status.active')}</option>
                     <option value="inactive">{t('status.inactive')}</option>
                     <option value="deceased">{t('status.deceased')}</option>
+                    <option value="all">{t('common.all')}</option>
+                </select>
+            </Field>
+            <Field label={t('members.registration')}>
+                <select value={draft.reg} onChange={(e) => set('reg', e.target.value)} className={`${selectInput()} w-full`}>
+                    <option value="registered">{t('members.reg.registered')}</option>
+                    <option value="unregistered">{t('members.reg.unregistered')}</option>
                     <option value="all">{t('common.all')}</option>
                 </select>
             </Field>

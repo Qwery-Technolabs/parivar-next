@@ -31,6 +31,8 @@ export function resolveMemberFilters(sp = {}) {
         subcaste: posInt(sp.caste) ? posInt(sp.subcaste) : null,
         // Default view is active members; `status=all` shows everyone.
         status: sp1(sp.status) === 'all' ? 'all' : pick(sp.status, STATUSES) || 'active',
+        // Default view is people who have signed in at least once; reg=unregistered / all to see the rest.
+        reg: pick(sp.reg, ['unregistered', 'all']) || 'registered',
     };
 }
 
@@ -44,7 +46,8 @@ function ageRange(minRaw, maxRaw) {
 }
 
 export function activeFilterCount(f) {
-    return [f.role, f.blood, f.donor, f.village, f.city, f.gender, f.caste, f.ageMin != null || f.ageMax != null, f.status !== 'active'].filter(Boolean).length;
+    return [f.role, f.blood, f.donor, f.village, f.city, f.gender, f.caste, f.ageMin != null || f.ageMax != null, f.status !== 'active', f.reg !== 'registered']
+        .filter(Boolean).length;
 }
 
 function whereFor(f) {
@@ -54,6 +57,9 @@ function whereFor(f) {
         where.push('u.status = :status');
         params.status = f.status;
     }
+    // Registered = has signed in at least once; the others were invited or added from a family tree.
+    if (f.reg === 'registered') where.push('u.last_login_at IS NOT NULL');
+    else if (f.reg === 'unregistered') where.push('u.last_login_at IS NULL');
     if (f.q) {
         const digits = f.q.replace(/\D/g, '');
         params.like = `%${f.q}%`;

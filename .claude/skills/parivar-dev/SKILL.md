@@ -112,6 +112,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `KIN_TERMS` maps a path ('father.sister.husband' → 'fuva') to `kin.terms.*`. lib/family.js `relationPath(from, to)`
   (shortest chain, BFS over parents / children / spouses / siblings incl. shared-parent siblings) and
   `relationStepsFrom(root)` (labels for the tree). Add new names to KIN_TERMS + both dictionaries.
+- **Members list default = registered only** (`last_login_at IS NOT NULL`); the Filters panel's Registration
+  select (`reg=unregistered|all`) shows the rest (invited / family-tree people). Counts as an active filter.
 - **Anonymous gifts** ("Hide name publicly"): only fundraise managers see the donor (name + badge). Everyone
   else sees `fundraise.anonymousLabel` — "Anonymous" / "રામભરોસે" — via `maskAnonymous(rows, label)`, and
   by-contributor totals use `contributorTotals(id, { publicView: !manage })`. Copied text, the PDF list and

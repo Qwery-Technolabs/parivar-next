@@ -140,6 +140,8 @@ const en = {
         viewAll: 'View all',
     },
     members: {
+        registration: 'Registration',
+        reg: { registered: 'Registered', unregistered: 'Not registered yet' },
         loginEnabled: 'Saved. They can now sign in with this number — it is also their first password.',
         noLogin: 'Cannot sign in yet — add a mobile number to give them a login.',
         phoneGivesLogin: 'Optional. Adding a number gives them a login (the number is their first password).',
@@ -336,6 +338,7 @@ const en = {
         },
     },
     family: {
+        gestureHint: 'Drag to move · pinch (or Ctrl + scroll) to zoom.',
         fullName: 'Full name',
         changeName: 'Change surname / father’s name',
         title: 'Family',
