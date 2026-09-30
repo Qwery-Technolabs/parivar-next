@@ -26,6 +26,8 @@ export default function FormDialog({
     width = 'sm:max-w-lg',
     hidden = {},
     onSuccess,
+    // keepOpen: after a save, show a fresh empty form instead of closing (add several in a row).
+    keepOpen = false,
 }) {
     const { t } = useT();
     const [open, setOpen] = useState(false);
@@ -56,7 +58,8 @@ export default function FormDialog({
                         submitIcon={submitIcon}
                         submitVariant={submitVariant}
                         onDone={(state) => {
-                            setOpen(false);
+                            if (keepOpen) setFormKey((k) => k + 1);
+                            else setOpen(false);
                             if (state.message) toast.success(t(state.message, state.vars));
                             onSuccess?.(state);
                         }}

@@ -1,4 +1,4 @@
-import { GitFork, Pencil, Phone, ShieldCheck, Users } from 'lucide-react';
+import { GitFork, Pencil, Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
@@ -66,7 +66,6 @@ export default async function MemberPage({ params }) {
                     <PageMenu
                         items={[
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: <Pencil />, href: `/members/${member.id}/edit` },
-                            seeFamily && { key: 'family', label: t('family.title'), icon: <Users />, href: `/members/${member.id}/family` },
                             seeFamily && { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
                         ]}
                     />
@@ -131,7 +130,7 @@ export default async function MemberPage({ params }) {
                 </Card>
 
                 <div className="space-y-4">
-                    <FamilySummary person={member} relatives={relatives} canSee={seeFamily} t={t} locale={locale} />
+                    <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} t={t} locale={locale} />
                     <Card title={t('members.groups')} bodyClass="">
                         {groups.length === 0 ? (
                             <p className="px-4 py-5 text-sm text-ink-gray">{t('common.none')}</p>

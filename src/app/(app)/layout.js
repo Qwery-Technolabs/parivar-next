@@ -30,6 +30,7 @@ export default async function AppLayout({ children }) {
             title: t('nav.sections.services'),
             items: [
                 { href: '/fundraise', icon: 'fund', label: t('nav.fundraise') },
+                { href: '/matrimony', icon: 'matrimony', label: t('nav.matrimony') },
                 { href: '/blood', icon: 'blood', label: t('nav.blood') },
             ],
         },

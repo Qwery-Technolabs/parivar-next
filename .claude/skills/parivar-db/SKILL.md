@@ -15,6 +15,8 @@ backfill rules) get recorded here when applied.
 - Pool (lib/db.js): cached per timezone offset, named placeholders (`:name`), `dateStrings`, strict
   `sql_mode`, session `time_zone` = the admin timezone offset (default +05:30). A standalone node script
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.
+- `matrimony_profiles` (PK user_id): is_active, height_cm, income_range, contact_name / contact_phone, pref_* ,
+  about, listed_by. Module prefix `matrimony_`.
 - users_list.phone is **nullable** (family-tree relatives without a number; UNIQUE still holds for real numbers);
   `marital_status` ENUM(unmarried, married, engaged, widowed, divorced); users_relations.relation adds 'sibling'.
   Test family writes on the throwaway DB (`npm run db:dev` :3307 + `next start -p 3001` with DB_* overrides).

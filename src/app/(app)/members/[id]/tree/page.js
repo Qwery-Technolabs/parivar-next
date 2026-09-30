@@ -15,7 +15,8 @@ export async function generateMetadata() {
 export default async function FamilyTreePage({ params }) {
     const { id } = await params;
     const user = await requireUser();
-    const tree = await getFamilyTree(Number(id) || 0);
+    // Every generation: from the youngest descendant up to the oldest recorded ancestor.
+    const tree = await getFamilyTree(Number(id) || 0, 30);
     if (!tree) notFound();
     // Only the family (anyone connected in the tree), whoever added the person and member managers.
     const rootRow = tree.generations[tree.rootIndex].find((n) => n.id === tree.rootId) ?? tree.generations[tree.rootIndex][0];
@@ -29,7 +30,7 @@ export default async function FamilyTreePage({ params }) {
             <PageHeader
                 title={t('members.familyTree')}
                 subtitle={name}
-                back={{ href: `/members/${root.id}/family`, label: t('family.title') }}
+                back={{ href: `/members/${root.id}`, label: name }}
             />
             {tree.generations.length === 1 && tree.generations[0].length === 1 && root.spouses.length === 0 ? (
                 <p className="rounded-lg border border-surface-border bg-white px-4 py-10 text-center text-sm text-ink-gray">

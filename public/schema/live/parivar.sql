@@ -539,3 +539,30 @@ CREATE TABLE IF NOT EXISTS users_push_subscriptions (
     KEY idx_users_push_user (user_id),
     CONSTRAINT fk_users_push_user FOREIGN KEY (user_id) REFERENCES users_list (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─────────────────────────────────────────────────────────── matrimony_
+-- Opt-in matrimony listings: one row per listed member (unmarried, 18+ — checked in lib/matrimony.js).
+-- Name, age, gender, place and caste come from users_list; education / occupation from users_listmeta.
+-- Listed by the person, anyone in their family tree, or a member manager. is_active 0 = taken off the list.
+CREATE TABLE IF NOT EXISTS matrimony_profiles (
+    user_id        INT UNSIGNED NOT NULL,
+    is_active      TINYINT(1)   NOT NULL DEFAULT 1,
+    height_cm      SMALLINT UNSIGNED NULL,
+    income_range   ENUM('lt3','3to6','6to10','10to20','gt20') NULL,   -- lakh per year
+    contact_name   VARCHAR(150) NULL,                                  -- family contact shown on the profile
+    contact_phone  VARCHAR(15)  NULL,
+    pref_age_min   TINYINT UNSIGNED NULL,
+    pref_age_max   TINYINT UNSIGNED NULL,
+    pref_caste_id  INT UNSIGNED NULL,
+    pref_city      VARCHAR(100) NULL,
+    pref_education VARCHAR(150) NULL,
+    about          TEXT         NULL,
+    listed_by      INT UNSIGNED NULL,
+    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id),
+    KEY idx_matrimony_active (is_active),
+    CONSTRAINT fk_matrimony_user   FOREIGN KEY (user_id)       REFERENCES users_list (id)   ON DELETE CASCADE,
+    CONSTRAINT fk_matrimony_lister FOREIGN KEY (listed_by)     REFERENCES users_list (id)   ON DELETE SET NULL,
+    CONSTRAINT fk_matrimony_caste  FOREIGN KEY (pref_caste_id) REFERENCES admin_castes (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

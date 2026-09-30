@@ -216,6 +216,9 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] DB connections: pool 2 on Vercel / 3 locally, idle connections kept (host limit 500 new connections/hour per user); README: separate DB user for local dev, Fluid Compute
 - [x] All Cancel / Save bars side by side on phones (new / edit fundraise, event forms, member form, picture picker, dialog footer)
 - [x] Group danger zone: buttons icon-only on phones, coloured by meaning (pause amber, archive slate, active green, delete red)
-- [ ] Matrimony service (sidebar entry after Fundraise) — requirements to be discussed after the family tree
+- [x] Matrimony (sidebar after Fundraise): opt-in profiles (unmarried, 18+), listed by the person / family / admins; list with filters (bride / groom, age, caste, place); profile with basics, education & work, family, preferences, family contact
+- [ ] Matrimony: decide who may browse (now: admins + families with a listed profile) — `canBrowseMatrimony`
+- [ ] Matrimony: photos (needs upload storage)
 - [x] Family tree: Family page per person (father, mother, wife/husband, brothers, sisters, sons, daughters) with add / remove; relatives can be new people (optional phone → login, birth date, alive / late, marital status, local name auto) or existing members (male line searched by surname); links kept consistent; tree shows siblings; family visible only to people connected in the tree (plus who added them and admins); "Deceased" shown as "Late"
 - [x] Member edit / create: marital status field; editing a family relative without a phone no longer demands phone or father's name; whoever added them can save edits
+- [x] Family: no separate page — profile Family card lists near relatives, header "Family tree" + "Add" popup (relation first, stays open to add more); tree canvas shows every generation with drag and zoom

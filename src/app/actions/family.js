@@ -13,7 +13,6 @@ const FORBIDDEN = { error: 'common.forbidden' };
 function refresh(...ids) {
     for (const i of ids) {
         revalidatePath(`/members/${i}`);
-        revalidatePath(`/members/${i}/family`);
         revalidatePath(`/members/${i}/tree`);
     }
     revalidatePath('/members');

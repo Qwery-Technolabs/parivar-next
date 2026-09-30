@@ -86,7 +86,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   no rows → everyone; rows → only matching members, unless meta `audience_others = '1'` ("also everyone else,
   lower in their list"). Team, admins / sub-admins of its groups and app-level managers always see it. Applied
   to the feed, a group's Fundraises tab, the detail page and print. Matching rows still sort first (for_you).
-- **Family tree** (lib/family.js, actions/family.js, /members/[id]/family + /tree): relatives are ordinary
+- **Family tree** (lib/family.js, actions/family.js, profile Family card + /members/[id]/tree — no Family page): relatives are ordinary
   users_list rows (may have **no phone** → no login; with a phone → login, password = phone, must change);
   they show in the Members list (late = status 'deceased', label "Late"). Links in users_relations: child→father /
   mother, spouse (both ways), sibling (both ways, only without a shared parent). Slots: father, mother, spouse
@@ -99,6 +99,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Whoever added a relative who never signed in may edit them (`canEditUser` — the target row must carry
   created_by + last_login_at). Member edit → Basic has marital status; for a relative without a phone, phone and
   father's name are optional there.
+- **Matrimony** (lib/matrimony.js, actions/matrimony.js, /matrimony, /matrimony/[id], /[id]/edit): opt-in rows in
+  matrimony_profiles for **alive, unmarried (or unset), 18+ with a dob** members (`ELIGIBLE`); a listing drops off by
+  itself when that stops being true. List / edit / remove: the person, their family (tree) or member managers
+  (`canListFor`). **Browse rule = `canBrowseMatrimony` only** (for now: member managers + families with a listed
+  profile — the user will decide; change it there). Profile shows basics, education & work (users_listmeta
+  education / occupation), family names from the tree, preferences, about, and a family contact (default: father
+  with a phone, else the person). No photos yet (no upload storage).
 - **Anonymous gifts** ("Hide name publicly"): only fundraise managers see the donor (name + badge). Everyone
   else sees `fundraise.anonymousLabel` — "Anonymous" / "રામભરોસે" — via `maskAnonymous(rows, label)`, and
   by-contributor totals use `contributorTotals(id, { publicView: !manage })`. Copied text, the PDF list and

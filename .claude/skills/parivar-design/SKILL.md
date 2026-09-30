@@ -136,10 +136,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Group About tab → **Danger zone** card (`GroupDangerCard`): status now, Mark inactive/active, Archive/Restore,
   and "Delete permanently" once archived (app-level only), each with a one-line explanation. Buttons coloured by
   meaning — pause amber-700, archive slate-600, active/restore emerald-700, delete red — **icon-only on phones**.
-- **Family page** (/members/[id]/family): one card per slot — Father, Mother, Wife/Husband, Brothers, Sisters,
-  Sons, Daughters — each with "+ Add" in the header (icon-only on phones; father / mother only while empty).
-  Rows: name (→ that person's Family page), Late badge, "age · marital · phone", unlink icon. Add dialog: New person
-  (name parts + auto local script, optional phone, birth date, alive/late, marital) | Pick from members.
+- **Family card** on the member profile (no separate page): near relatives only — Father, Mother, Wife/Husband,
+  Brothers, Sisters, Sons, Daughters (slot name once per group; name → that person's profile; Late badge; age ·
+  marital; unlink icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation
+  first**, then New person | Pick from members; it **stays open** after each save (FormDialog `keepOpen`).
+- **Family tree canvas** (/members/[id]/tree): every generation, youngest descendant → oldest ancestor; drag to
+  pan, − / 100% / + zoom; cards link to profiles.
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
   `<span className="hidden sm:inline">`), icon + text from `sm`: Edit group / Edit fundraise on the navy
   header, meetings' Schedule / Edit / Cancel. Apply the same to new row/card action buttons.

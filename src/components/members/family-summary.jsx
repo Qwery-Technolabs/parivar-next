@@ -1,49 +1,90 @@
-import { Users } from 'lucide-react';
+import { GitFork, Link2Off } from 'lucide-react';
 import Link from 'next/link';
+import { removeRelative } from '@/app/actions/family';
+import ActionButton from '@/components/fundraise/action-button';
+import AddRelativeDialog from '@/components/members/add-relative-dialog';
 import { Card, LinkButton } from '@/components/shell/page-header';
+import Badge from '@/components/ui/badge';
 import { RELATIVE_KINDS } from '@/lib/family';
+import { age } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 
 /**
- * The Family card on a member's profile (server component): their relatives by slot, each a
- * link, and "Family" → the Family page where relatives are added. People outside the family
- * see only a note — the family is private to it.
+ * The Family card on a member's profile (server component). Header: "Family tree" (the whole tree
+ * canvas) and "+ Add" (popup: pick the relation, then add — stays open for more). Body: the near
+ * relatives by slot — Father, Mother, Wife / Husband, Brothers, Sisters, Sons, Daughters — each
+ * name opening that person's profile (to add to their family in turn). People outside the family
+ * see only a note: the family is private to it.
  */
-export default function FamilySummary({ person, relatives, canSee, t, locale }) {
-    const label = (kind) => (kind === 'spouse' ? (person.gender === 'female' ? 'husband' : person.gender === 'male' ? 'wife' : 'spouse') : kind);
-    const rows = canSee
-        ? RELATIVE_KINDS.flatMap((kind) => {
-              const list = kind === 'father' || kind === 'mother' ? [relatives[kind]].filter(Boolean) : relatives[kind];
-              return list.map((p) => ({ kind, p }));
-          })
+export default function FamilySummary({ person, relatives, canSee, canEdit, t, locale }) {
+    const spouseKey = person.gender === 'female' ? 'husband' : person.gender === 'male' ? 'wife' : 'spouse';
+    const groups = canSee
+        ? RELATIVE_KINDS.map((kind) => ({
+              kind,
+              title: t(`family.kinds.${kind === 'spouse' ? spouseKey : kind}`),
+              list: kind === 'father' || kind === 'mother' ? [relatives[kind]].filter(Boolean) : relatives[kind],
+          })).filter((g) => g.list.length)
         : [];
+    const detail = (p) => [p.dob && age(p.dob) != null && `${age(p.dob)}`, p.marital_status && t(`family.marital.${p.marital_status}`)].filter(Boolean).join(' · ');
+
     return (
         <Card
             title={t('members.family')}
             bodyClass=""
             actions={
                 canSee && (
-                    <LinkButton href={`/members/${person.id}/family`} icon={Users} variant="secondary" className="h-8 gap-1.5 px-2.5 text-xs">
-                        {t('family.manage')}
-                    </LinkButton>
+                    <div className="flex items-center gap-1.5">
+                        <LinkButton
+                            href={`/members/${person.id}/tree`}
+                            icon={GitFork}
+                            variant="outline"
+                            className="h-8 gap-1.5 px-2.5 text-xs max-sm:size-8 max-sm:px-0"
+                        >
+                            <span className="max-sm:sr-only">{t('members.familyTree')}</span>
+                        </LinkButton>
+                        {canEdit && <AddRelativeDialog person={person} filled={{ father: Boolean(relatives.father), mother: Boolean(relatives.mother) }} />}
+                    </div>
                 )
             }
         >
             {!canSee ? (
                 <p className="px-4 py-5 text-sm text-ink-gray">{t('family.privateNote')}</p>
-            ) : rows.length === 0 ? (
+            ) : groups.length === 0 ? (
                 <p className="px-4 py-5 text-sm text-ink-gray">{t('relations.empty')}</p>
             ) : (
                 <ul className="divide-y divide-surface-border">
-                    {rows.map(({ kind, p }) => (
-                        <li key={`${kind}-${p.id}`} className="flex items-center gap-3 px-4 py-2.5">
-                            <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray">{t(`family.one.${label(kind)}`)}</span>
-                            <Link href={`/members/${p.id}`} className="min-w-0 flex-1 break-words font-medium text-primary hover:underline">
-                                {localized(p, 'full_name', locale)}
-                            </Link>
-                            {p.status === 'deceased' && <span className="text-xs text-ink-gray">{t('family.late')}</span>}
-                        </li>
-                    ))}
+                    {groups.map((g) =>
+                        g.list.map((p, i) => {
+                            const name = localized(p, 'full_name', locale);
+                            return (
+                                <li key={`${g.kind}-${p.id}`} className="flex items-center gap-3 px-4 py-2">
+                                    {/* The slot name once per group; later rows of the same group leave it blank. */}
+                                    <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray">{i === 0 ? g.title : ''}</span>
+                                    <div className="min-w-0 flex-1">
+                                        <Link href={`/members/${p.id}`} className="break-words font-medium text-primary hover:underline">
+                                            {name}
+                                        </Link>
+                                        {p.status === 'deceased' && (
+                                            <Badge tone="gray" className="ml-2">
+                                                {t('family.late')}
+                                            </Badge>
+                                        )}
+                                        {detail(p) && <p className="text-xs text-ink-gray tabular-nums">{detail(p)}</p>}
+                                    </div>
+                                    {canEdit && (
+                                        <ActionButton
+                                            action={removeRelative.bind(null, person.id, p.id)}
+                                            confirm={t('family.removeConfirm', { name })}
+                                            icon={<Link2Off className="size-4" />}
+                                            label={t('family.remove')}
+                                            plain
+                                            className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
+                                        />
+                                    )}
+                                </li>
+                            );
+                        }),
+                    )}
                 </ul>
             )}
         </Card>
