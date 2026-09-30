@@ -108,6 +108,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   profile — the user will decide; change it there). Profile shows basics, education & work (users_listmeta
   education / occupation), family names from the tree, preferences, about, and a family contact (default: father
   with a phone, else the person). No photos yet (no upload storage).
+- **Kinship** (lib/kinship.js, pure): steps father | mother | son | daughter | husband | wife | brother | sister;
+  `KIN_TERMS` maps a path ('father.sister.husband' → 'fuva') to `kin.terms.*`. lib/family.js `relationPath(from, to)`
+  (shortest chain, BFS over parents / children / spouses / siblings incl. shared-parent siblings) and
+  `relationStepsFrom(root)` (labels for the tree). Add new names to KIN_TERMS + both dictionaries.
 - **Anonymous gifts** ("Hide name publicly"): only fundraise managers see the donor (name + badge). Everyone
   else sees `fundraise.anonymousLabel` — "Anonymous" / "રામભરોસે" — via `maskAnonymous(rows, label)`, and
   by-contributor totals use `contributorTotals(id, { publicView: !manage })`. Copied text, the PDF list and

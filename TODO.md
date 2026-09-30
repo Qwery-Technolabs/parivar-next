@@ -230,3 +230,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree cards: first name only (no father's name / surname) and age or Late only (no marital status); narrower cards
 - [x] Family tree redesign: couples as one joined card (husband left, wife right, heart between), round initial avatars, roomier generations
 - [ ] Family tree: real photos on the avatars (needs upload storage)
+- [x] Family tree like the reference: boxless round avatars with first name + relation (Father, Kaka …), couples joined by a line, children from its middle, compact
+- [x] "How you're related" on profiles: chain from you to the person with each step and the kinship word (Kaka, Foi, Fuva, Mama, Bhabhi, Jamai …)

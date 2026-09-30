@@ -1,5 +1,5 @@
 'use client';
-import { Flower2, Heart, Minus, Plus } from 'lucide-react';
+import { Flower2, Minus, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import Switch from '@/components/ui/switch';
@@ -19,9 +19,10 @@ function initialOf(name) {
 }
 
 /**
- * One person in the tree: a round "photo" (their initial, navy for men, rose for women, grey when
- * late), the first name only — father's name and surname would repeat on every card — and one
- * detail line (age, or Late). The person whose tree it is gets an orange ring.
+ * One person: a square rounded "photo" tile (their initial on a navy / rose gradient; grey with a
+ * flower when late) and the first name under it. How they are related to the tree's person
+ * (Father, Kaka …) and their age are in the hover / long-press text; with Details on, the age
+ * shows under the name. The tree's person has an orange ring.
  */
 function PersonTile({ p, isRoot, showDetails }) {
     const { t, locale } = useT();
@@ -30,28 +31,28 @@ function PersonTile({ p, isRoot, showDetails }) {
     const fullName = (local && p.full_name_local) || p.full_name;
     const a = age(p.dob);
     const late = p.status === 'deceased';
-    // Gradient "photos": navy for men, rose for women, grey for the late (with a flower).
     const face = late
-        ? 'bg-linear-to-br from-gray-300 to-gray-500 text-white ring-white'
+        ? 'from-gray-300 to-gray-500'
         : p.gender === 'female'
-          ? 'bg-linear-to-br from-rose-400 to-rose-600 text-white ring-white'
+          ? 'from-rose-300 to-rose-500'
           : p.gender === 'male'
-            ? 'bg-linear-to-br from-[#30466a] to-brand-navy text-white ring-white'
-            : 'bg-linear-to-br from-slate-300 to-slate-500 text-white ring-white';
+            ? 'from-[#4a6390] to-brand-navy'
+            : 'from-slate-300 to-slate-500';
+    const hover = [fullName, p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? `${a} ${t('matrimony.years')}` : null].filter(Boolean).join(' · ');
     return (
         <Link
             href={`/members/${p.id}`}
             draggable={false}
             aria-current={isRoot ? 'true' : undefined}
-            title={fullName}
-            aria-label={fullName}
-            className="flex w-[4.25rem] shrink-0 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-center transition-colors hover:bg-accent/70"
+            title={hover}
+            aria-label={hover}
+            className="group flex w-[4.5rem] shrink-0 flex-col items-center text-center"
         >
             <span className="relative">
                 <span
                     aria-hidden
-                    className={`flex size-9 items-center justify-center rounded-full text-sm font-bold shadow ring-2 ${face} ${
-                        isRoot ? 'outline-2 outline-offset-1 outline-brand-orange' : ''
+                    className={`flex size-16 items-center justify-center rounded-xl bg-linear-to-br text-xl font-bold text-white/95 shadow-sm transition-transform group-hover:scale-[1.04] ${face} ${
+                        isRoot ? 'ring-[3px] ring-brand-orange ring-offset-1' : ''
                     }`}
                 >
                     {initialOf(name)}
@@ -62,38 +63,28 @@ function PersonTile({ p, isRoot, showDetails }) {
                     </span>
                 )}
             </span>
-            <span className={`block max-w-full truncate text-xs font-semibold leading-tight ${late ? 'text-ink-gray' : 'text-primary'}`}>{name}</span>
-            {/* Age or Late — nothing at all when the birth date is not known. */}
-            {showDetails && (late || a != null) && (
-                <span className="block text-[10px] leading-none text-ink-gray tabular-nums">{late ? t('family.late') : `${a} ${t('matrimony.years')}`}</span>
+            <span className={`mt-1 line-clamp-1 max-w-full text-[11px] font-medium leading-tight ${late ? 'text-ink-gray' : 'text-ink'}`}>{name}</span>
+            {showDetails && (late || a != null || p.kin) && (
+                <span className="line-clamp-1 max-w-full text-[10px] leading-tight text-ink-gray">
+                    {[p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? a : null].filter(Boolean).join(' · ')}
+                </span>
             )}
         </Link>
     );
 }
 
 /**
- * A couple as ONE card — husband always on the left, wife on the right (whoever is the blood
- * relative), joined by a heart — or a single person's card. Children hang below, recursively.
+ * A couple in one light card — husband always left, wife right — or a single person's card.
+ * Children hang below from the middle of the card (lines in globals.css .ftree).
  */
 function Branch({ node, rootId, showDetails }) {
-    const { t } = useT();
     const people = [node, ...node.spouses];
-    // Men first (left), then women; order otherwise kept (e.g. a husband with two wives).
     const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
         <li>
-            <div className="flex items-stretch rounded-xl border border-white bg-linear-to-b from-white to-accent/70 shadow-[0_3px_10px_-4px_rgb(23_47_86/0.25)] ring-1 ring-surface-border/70 transition-transform hover:-translate-y-0.5">
-                {ordered.map((p, i) => (
-                    <div key={p.id} className="flex items-stretch">
-                        {i > 0 && (
-                            <span aria-hidden className="relative w-px bg-surface-border">
-                                <span className="absolute top-[1.15rem] left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow ring-1 ring-rose-200">
-                                    <Heart className="size-2.5 fill-rose-500 text-rose-500" aria-label={t('relations.spouse')} />
-                                </span>
-                            </span>
-                        )}
-                        <PersonTile p={p} isRoot={p.id === rootId} showDetails={showDetails} />
-                    </div>
+            <div className="flex items-start gap-1.5 rounded-2xl bg-white p-1.5 shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
+                {ordered.map((p) => (
+                    <PersonTile key={p.id} p={p} isRoot={p.id === rootId} showDetails={showDetails} />
                 ))}
             </div>
             {node.children.length > 0 && (
@@ -107,6 +98,14 @@ function Branch({ node, rootId, showDetails }) {
     );
 }
 
+// A faint network of dots and lines behind the tree (tiles every 240px).
+const NETWORK = `url("data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" fill="none" stroke="#cbd5e1" stroke-width="0.8">' +
+        '<path d="M20 30L90 70L60 150L20 30M90 70L170 40L210 110L140 130L90 70M140 130L60 150L110 220L140 130M210 110L200 200L110 220"/>' +
+        '<g fill="#e2e8f0" stroke="none"><circle cx="20" cy="30" r="5"/><circle cx="90" cy="70" r="4"/><circle cx="60" cy="150" r="4"/><circle cx="170" cy="40" r="3"/><circle cx="210" cy="110" r="6"/><circle cx="140" cy="130" r="3"/><circle cx="110" cy="220" r="4"/><circle cx="200" cy="200" r="3"/></g>' +
+        '</svg>',
+)}")`;
+
 const ZOOMS = [0.4, 0.5, 0.6, 0.75, 0.9, 1, 1.15, 1.3];
 
 /**
@@ -117,7 +116,7 @@ const ZOOMS = [0.4, 0.5, 0.6, 0.75, 0.9, 1, 1.15, 1.3];
  */
 export default function FamilyTree({ tree }) {
     const { t } = useT();
-    const [showDetails, setShowDetails] = useState(true);
+    const [showDetails, setShowDetails] = useState(false);
     const [zi, setZi] = useState(ZOOMS.indexOf(1));
     const box = useRef(null);
     const drag = useRef(null);
@@ -199,7 +198,8 @@ export default function FamilyTree({ tree }) {
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={() => (drag.current = null)}
-                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-pan-x touch-pan-y overflow-auto rounded-xl border border-surface-border bg-[radial-gradient(circle,rgb(4_21_39/0.08)_1px,transparent_1px),radial-gradient(ellipse_at_top,rgb(247_152_18/0.10),transparent_60%),linear-gradient(to_bottom,#fbfaf7,#f4f5f9)] bg-size-[20px_20px,100%_100%,100%_100%] shadow-inner select-none active:cursor-grabbing"
+                style={{ backgroundImage: NETWORK, backgroundSize: '240px 240px' }}
+                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-pan-x touch-pan-y overflow-auto rounded-xl border border-surface-border bg-white shadow-inner select-none active:cursor-grabbing"
             >
                 <div className="ftree inline-block min-w-full p-6" style={{ zoom: ZOOMS[zi] }}>
                     <ul>

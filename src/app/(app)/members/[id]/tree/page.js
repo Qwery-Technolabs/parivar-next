@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import FamilyTreeLoader from '@/components/members/family-tree-loader';
 import PageHeader from '@/components/shell/page-header';
 import { requireUser } from '@/lib/auth';
-import { canSeeFamily, getLineageTree, getPerson } from '@/lib/family';
+import { canSeeFamily, getLineageTree, getPerson, relationStepsFrom } from '@/lib/family';
+import { kinTerm } from '@/lib/kinship';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 
@@ -22,7 +23,14 @@ export default async function FamilyTreePage({ params }) {
     const person = await getPerson(Number(id) || 0);
     if (!person) notFound();
     if (!(await canSeeFamily(user, person))) notFound();
-    const [tree, { t, locale }] = await Promise.all([getLineageTree(person.id), getT()]);
+    const [tree, steps, { t, locale }] = await Promise.all([getLineageTree(person.id), relationStepsFrom(person.id), getT()]);
+    // Each card says how that person is related to the tree's person (Father, Kaka, Bhabhi …).
+    const label = (p) => {
+        p.kin = p.id === person.id ? null : kinTerm(steps.get(p.id));
+        p.spouses?.forEach(label);
+        p.children?.forEach(label);
+    };
+    label(tree.top);
     const name = localized(person, 'full_name', locale);
     const alone = tree.top.id === person.id && tree.top.spouses.length === 0 && tree.top.children.length === 0;
 

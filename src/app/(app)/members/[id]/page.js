@@ -10,7 +10,8 @@ import { age, date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
-import { canSeeFamily, getRelatives } from '@/lib/family';
+import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
+import RelationChain from '@/components/members/relation-chain';
 import { formatPhone } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword } from '@/lib/roles';
 
@@ -37,11 +38,13 @@ export default async function MemberPage({ params }) {
     const member = await getMember(Number(id) || 0);
     if (!member) notFound();
     const { t, locale } = await getT();
-    const [relatives, seeFamily, groups, donations] = await Promise.all([
+    const [relatives, seeFamily, groups, donations, relation] = await Promise.all([
         getRelatives(member.id),
         canSeeFamily(user, member),
         memberGroups(member.id),
         memberDonations(member.id, user.id === member.id || canManageAllFundraises(user.role)),
+        // How this person is related to the viewer (any chain through the family tree).
+        user.id === member.id ? null : relationPath(user.id, member.id),
     ]);
     const canEdit = canEditUser(user, member);
     // The Edit page also opens for a password-only reset (it then shows just that tab).
@@ -139,6 +142,7 @@ export default async function MemberPage({ params }) {
                 </Card>
 
                 <div className="space-y-4">
+                    {relation && <RelationChain path={relation} t={t} locale={locale} />}
                     <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} t={t} locale={locale} />
                     <Card title={t('members.groups')} bodyClass="">
                         {groups.length === 0 ? (

@@ -151,6 +151,13 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   **Cards show the first name only** (local first name when not English; full name as title / aria-label) and one
   detail line — age, or "Late". No father's name, surname or marital status in the tree (user's call). Dotted
   canvas, drag to pan, − / 100% / + zoom; cards link to profiles.
+- **Tree looks like the Parivar reference**: each couple in ONE light rounded card (white, ring-slate-200, soft
+  shadow) with two square rounded "photo" tiles side by side — husband left, wife right — first name under each; a
+  single person gets a one-tile card. Dark-grey square-cornered connectors (--ft-line #6b7280) drop from the card's
+  middle to a bar and down to each child. Relation (Kaka …) + age live in the hover text; Details shows them.
+- **"How you're related"** card on a profile (`RelationChain`): the chain from the viewer to the person — person
+  rows (avatar, full name, gender · village) joined by a wavy link with the step ("’s father" / "ના પિતા"), and a
+  summary with the kinship word when there is one ("… is your Uncle (Fuva)").
 - Add-relative popup asks only the **first name**: father's name and surname follow from the person
   (`defaultsFor` in add-relative-dialog.jsx), previewed as "Full name: …" with "Change surname / father's name".
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in

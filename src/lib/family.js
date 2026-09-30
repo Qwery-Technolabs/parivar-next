@@ -71,7 +71,7 @@ export const canEditFamily = canSeeFamily;
 
 const COLS = `u.id, u.full_name, u.full_name_local, u.first_name, u.middle_name, u.surname,
     u.first_name_local, u.middle_name_local, u.surname_local, u.gender, u.dob, u.marital_status,
-    u.status, u.phone, u.created_by, u.last_login_at`;
+    u.status, u.phone, u.village, u.created_by, u.last_login_at`;
 
 /** One person with the columns the family pages need. */
 export async function getPerson(id) {
@@ -296,4 +296,89 @@ export async function getLineageTree(rootId, maxDepth = 20) {
         level = next;
     }
     return { rootId: root.id, top };
+}
+
+// ── relation paths ("how are we related?") ────────────────────────────────────
+
+/**
+ * Everyone connected to `startId` and how they link: parents, children, spouses and siblings
+ * (explicit links plus children of the same parent). Two queries for the whole family.
+ */
+async function familyGraph(startId) {
+    const ids = [...(await familyIds(startId))];
+    const l = inList(ids, 'k');
+    const [people, rows] = await Promise.all([
+        query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params),
+        query(`SELECT user_id, relative_id, relation FROM users_relations WHERE user_id IN (${l.sql})`, l.params),
+    ]);
+    const byId = new Map(people.map((p) => [p.id, p]));
+    const parents = new Map();
+    const children = new Map();
+    const spouses = new Map();
+    const sibs = new Map();
+    const push = (m, k, v) => m.set(k, [...(m.get(k) ?? []), v]);
+    for (const r of rows) {
+        if (r.relation === 'father' || r.relation === 'mother') {
+            push(parents, r.user_id, { id: r.relative_id, relation: r.relation });
+            push(children, r.relative_id, r.user_id);
+        } else if (r.relation === 'spouse') push(spouses, r.user_id, r.relative_id);
+        else if (r.relation === 'sibling') push(sibs, r.user_id, r.relative_id);
+    }
+    const g = (id) => byId.get(id)?.gender;
+    /** Neighbours of one person as [id, step] — step = how that neighbour relates to them. */
+    const next = (id) => {
+        const out = [];
+        for (const s of spouses.get(id) ?? []) out.push([s, g(s) === 'female' ? 'wife' : 'husband']);
+        for (const p of parents.get(id) ?? []) out.push([p.id, p.relation]);
+        const siblingIds = new Set(sibs.get(id) ?? []);
+        for (const p of parents.get(id) ?? []) for (const c of children.get(p.id) ?? []) if (c !== id) siblingIds.add(c);
+        for (const s of siblingIds) out.push([s, g(s) === 'female' ? 'sister' : 'brother']);
+        for (const c of children.get(id) ?? []) out.push([c, g(c) === 'female' ? 'daughter' : 'son']);
+        return out;
+    };
+    return { byId, next };
+}
+
+/** Breadth-first from `startId`: for every reachable person, the steps from start to them. */
+function pathsFrom(graph, startId) {
+    const steps = new Map([[startId, []]]);
+    const via = new Map([[startId, null]]);
+    let level = [startId];
+    while (level.length) {
+        const nextLevel = [];
+        for (const id of level) {
+            for (const [n, step] of graph.next(id)) {
+                if (steps.has(n)) continue;
+                steps.set(n, [...steps.get(id), step]);
+                via.set(n, id);
+                nextLevel.push(n);
+            }
+        }
+        level = nextLevel;
+    }
+    return { steps, via };
+}
+
+/**
+ * How `toId` is related to `fromId`: the chain of people from one to the other, each with the
+ * step from the previous person ('father', 'sister', 'husband' …), and the path's steps.
+ * null when they are not connected (or are the same person).
+ * @returns {Promise<null | { chain: Array<{ person: object, step: string|null }>, steps: string[] }>}
+ */
+export async function relationPath(fromId, toId) {
+    if (!fromId || !toId || fromId === toId) return null;
+    const graph = await familyGraph(fromId);
+    if (!graph.byId.has(toId)) return null;
+    const { steps, via } = pathsFrom(graph, fromId);
+    if (!steps.has(toId)) return null;
+    const ids = [];
+    for (let cur = toId; cur != null; cur = via.get(cur)) ids.unshift(cur);
+    const path = steps.get(toId);
+    return { chain: ids.map((id, i) => ({ person: graph.byId.get(id), step: i === 0 ? null : path[i - 1] })), steps: path };
+}
+
+/** For each person reachable from `rootId`: the steps from root to them (for tree labels). */
+export async function relationStepsFrom(rootId) {
+    const graph = await familyGraph(rootId);
+    return pathsFrom(graph, rootId).steps;
 }
