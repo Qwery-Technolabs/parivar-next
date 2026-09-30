@@ -42,7 +42,13 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, t, l
                         >
                             <span className="max-sm:sr-only">{t('members.familyTree')}</span>
                         </LinkButton>
-                        {canEdit && <AddRelativeDialog person={person} filled={{ father: Boolean(relatives.father), mother: Boolean(relatives.mother) }} />}
+                        {canEdit && (
+                            <AddRelativeDialog
+                                person={person}
+                                spouse={relatives.spouse[0] ?? null}
+                                filled={{ father: Boolean(relatives.father), mother: Boolean(relatives.mother) }}
+                            />
+                        )}
                     </div>
                 )
             }

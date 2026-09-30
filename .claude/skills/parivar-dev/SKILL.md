@@ -98,7 +98,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   (father / brother / son) searches the person's surname only (`/api/members/search?surname=…&family=1`).
   Whoever added a relative who never signed in may edit them (`canEditUser` — the target row must carry
   created_by + last_login_at). Member edit → Basic has marital status; for a relative without a phone, phone and
-  father's name are optional there.
+  father's name are optional there. Adding a number to someone with no login (Basic tab) turns the login on
+  (password = number, must change) — `members.loginEnabled`; the profile shows "Cannot sign in yet" to editors.
 - **Matrimony** (lib/matrimony.js, actions/matrimony.js, /matrimony, /matrimony/[id], /[id]/edit): opt-in rows in
   matrimony_profiles for **alive, unmarried (or unset), 18+ with a dob** members (`ELIGIBLE`); a listing drops off by
   itself when that stops being true. List / edit / remove (`canListFor`): the person, their **father or mother**,

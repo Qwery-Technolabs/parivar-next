@@ -134,7 +134,10 @@ export async function updateMemberSection(prev, fd) {
     const targetId = id(fd, 'id');
     const target =
         targetId &&
-        (await queryOne('SELECT id, role, phone, status, caste_id, subcaste_id, created_by, last_login_at FROM users_list WHERE id = :targetId', { targetId }));
+        (await queryOne(
+            'SELECT id, role, phone, status, caste_id, subcaste_id, created_by, last_login_at, (password_hash IS NOT NULL) AS can_login FROM users_list WHERE id = :targetId',
+            { targetId },
+        ));
     const section = oneOf(fd, 'section', ['basic', 'community', 'details', 'access', 'password']);
     if (!actor || !target) return FORBIDDEN;
     // The password tab has its own, wider right; every other tab needs full edit rights.
@@ -156,6 +159,14 @@ export async function updateMemberSection(prev, fd) {
                     dob = :dob, marital_status = :marital_status, village = :village, city = :city WHERE id = :id`,
             { ...m, id: target.id },
         );
+        // Someone without a login (a family-tree relative added with no number): giving them a number
+        // turns the login on — the number is their first password, changed at first sign-in.
+        if (m.phone && !target.can_login && target.status !== 'deceased') {
+            await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(m.phone), id: target.id });
+            await setMeta('users_list', target.id, { must_change_password: '1', invited_by: String(actor.id) });
+            await audit(actor.id, 'user.login_enabled', 'user', target.id, {});
+            message = 'members.loginEnabled';
+        }
     } else if (section === 'community') {
         const casteErr = await casteProblem(m, target);
         if (casteErr) return { fieldErrors: casteErr };

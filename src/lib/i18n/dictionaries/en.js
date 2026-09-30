@@ -140,6 +140,9 @@ const en = {
         viewAll: 'View all',
     },
     members: {
+        loginEnabled: 'Saved. They can now sign in with this number — it is also their first password.',
+        noLogin: 'Cannot sign in yet — add a mobile number to give them a login.',
+        phoneGivesLogin: 'Optional. Adding a number gives them a login (the number is their first password).',
         firstName: 'First name',
         middleName: "Father's name",
         surname: 'Surname',
@@ -281,6 +284,8 @@ const en = {
         },
     },
     family: {
+        fullName: 'Full name',
+        changeName: 'Change surname / father’s name',
         title: 'Family',
         addKind: 'Add {kind}',
         newPerson: 'New person',

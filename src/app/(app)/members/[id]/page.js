@@ -88,6 +88,15 @@ export default async function MemberPage({ params }) {
                 )}
             </div>
 
+            {/* No login yet (e.g. added from a family tree without a number): tell those who can fix it. */}
+            {!member.can_login && member.status !== 'deceased' && canEdit && (
+                <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {t('members.noLogin')}{' '}
+                    <Link href={`/members/${member.id}/edit`} className="font-medium underline">
+                        {t('common.edit')}
+                    </Link>
+                </p>
+            )}
             <div className="grid gap-4 xl:grid-cols-2">
                 <Card title={t('members.details')}>
                     <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">

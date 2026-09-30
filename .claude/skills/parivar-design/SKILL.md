@@ -140,8 +140,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   Brothers, Sisters, Sons, Daughters (slot name once per group; name → that person's profile; Late badge; age ·
   marital; unlink icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation
   first**, then New person | Pick from members; it **stays open** after each save (FormDialog `keepOpen`).
-- **Family tree canvas** (/members/[id]/tree): every generation, youngest descendant → oldest ancestor; drag to
-  pan, − / 100% / + zoom; cards link to profiles.
+- **Family tree** (/members/[id]/tree): a real tree (`.ftree` CSS connectors in globals.css) from the oldest
+  ancestor up the father's line down to the youngest descendant — couples boxed side by side (heart), children
+  hanging below; the person has an orange ring; navy / rose top stripe = male / female; late = muted. Dotted
+  canvas, drag to pan, − / 100% / + zoom; cards link to profiles.
+- Add-relative popup asks only the **first name**: father's name and surname follow from the person
+  (`defaultsFor` in add-relative-dialog.jsx), previewed as "Full name: …" with "Change surname / father's name".
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
   `<span className="hidden sm:inline">`), icon + text from `sm`: Edit group / Edit fundraise on the navy
   header, meetings' Schedule / Edit / Cancel. Apply the same to new row/card action buttons.

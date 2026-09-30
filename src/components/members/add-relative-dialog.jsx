@@ -5,26 +5,90 @@ import { addRelative } from '@/app/actions/family';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
-import NameFields from '@/components/members/name-fields';
+import GujaratiField from '@/components/ui/gujarati-field';
+import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
 import { useT } from '@/lib/i18n/client';
+import { LOCAL_LANGUAGES } from '@/lib/local-language';
 
 const KINDS = ['father', 'mother', 'spouse', 'brother', 'sister', 'son', 'daughter'];
 const MARITAL = ['unmarried', 'married', 'engaged', 'widowed', 'divorced'];
 const MALE_LINE = ['father', 'brother', 'son'];
 
-/** Starting values for a new relative, from what we know about the person. */
-function defaultsFor(kind, p) {
-    const fromFather = kind === 'brother' || kind === 'sister';
-    const child = kind === 'son' || kind === 'daughter';
-    const ownSurname = !(kind === 'mother' || kind === 'spouse');
+/**
+ * A new relative's name, worked out from the person so only the first name is typed:
+ *   surname      — the person's (the family name; a husband's is typed)
+ *   father's / husband's name (middle) —
+ *     father: unknown (optional) · mother: her husband = the person's father (person's middle name)
+ *     wife: the person · husband: typed · brother / sister: the person's father
+ *     son / daughter: the person if a man, else her husband (the person's spouse)
+ *   first name   — only a father's is known (the person's middle name)
+ */
+function defaultsFor(kind, p, spouse) {
+    const husbandOfPerson = p.gender === 'female' ? spouse : null;
+    const middle = {
+        father: ['', ''],
+        mother: [p.middle_name, p.middle_name_local],
+        spouse: p.gender === 'female' ? ['', ''] : [p.first_name, p.first_name_local],
+        brother: [p.middle_name, p.middle_name_local],
+        sister: [p.middle_name, p.middle_name_local],
+        son: p.gender === 'female' ? [husbandOfPerson?.first_name, husbandOfPerson?.first_name_local] : [p.first_name, p.first_name_local],
+        daughter: p.gender === 'female' ? [husbandOfPerson?.first_name, husbandOfPerson?.first_name_local] : [p.first_name, p.first_name_local],
+    }[kind] ?? ['', ''];
+    const ownSurname = !(kind === 'spouse' && p.gender === 'female');
     return {
         first_name: kind === 'father' ? p.middle_name ?? '' : '',
         first_name_local: kind === 'father' ? p.middle_name_local ?? '' : '',
-        middle_name: child ? p.first_name ?? '' : fromFather ? p.middle_name ?? '' : '',
-        middle_name_local: child ? p.first_name_local ?? '' : fromFather ? p.middle_name_local ?? '' : '',
+        middle_name: middle[0] ?? '',
+        middle_name_local: middle[1] ?? '',
         surname: ownSurname ? p.surname ?? '' : '',
         surname_local: ownSurname ? p.surname_local ?? '' : '',
     };
+}
+
+/**
+ * Name for a new relative: just the first name (its local spelling fills in), with the full
+ * name previewed. Father's name and surname come from defaultsFor and post as hidden fields;
+ * "Change surname / father's name" shows them. Shown straight away when the surname is unknown.
+ */
+function QuickName({ defaults, fe }) {
+    const { t, localLang } = useT();
+    const first = useAutoGujarati(defaults.first_name, defaults.first_name_local);
+    const middle = useAutoGujarati(defaults.middle_name, defaults.middle_name_local);
+    const surname = useAutoGujarati(defaults.surname, defaults.surname_local);
+    const [firstEn, setFirstEn] = useState(defaults.first_name);
+    const [full, setFull] = useState(!defaults.surname || Boolean(fe('surname') || fe('middle_name')));
+    const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';
+    const firstProps = { ...first.enProps, onChange: (e) => (first.enProps.onChange(e), setFirstEn(e.target.value)) };
+    const en = (name, label, auto, props = {}) => (
+        <Field label={t(label)} error={fe(name)} required={props.required}>
+            <input name={name} maxLength={60} autoComplete="off" {...(props.enProps ?? auto.enProps)} required={props.required} className={`${textInput(!!fe(name))} w-full`} />
+        </Field>
+    );
+    return (
+        <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+                {en('first_name', 'members.firstName', first, { required: true, enProps: firstProps })}
+                <GujaratiField label={`${t('members.firstName')} (${lang})`} name="first_name_local" auto={first} maxLength={60} />
+            </div>
+            {/* The rest of the name: hidden but posted, or shown to change. */}
+            <div className={full ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
+                {en('middle_name', 'members.middleName', middle)}
+                {en('surname', 'members.surname', surname, { required: full })}
+                <GujaratiField label={`${t('members.middleName')} (${lang})`} name="middle_name_local" auto={middle} maxLength={60} />
+                <GujaratiField label={`${t('members.surname')} (${lang})`} name="surname_local" auto={surname} maxLength={60} />
+            </div>
+            {!full && (
+                <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-gray">
+                    <span>
+                        {t('family.fullName')}: <b className="text-primary">{[firstEn || '…', defaults.middle_name, defaults.surname].filter(Boolean).join(' ')}</b>
+                    </span>
+                    <button type="button" onClick={() => setFull(true)} className="font-medium text-primary underline">
+                        {t('family.changeName')}
+                    </button>
+                </p>
+            )}
+        </div>
+    );
 }
 
 /**
@@ -35,7 +99,7 @@ function defaultsFor(kind, p) {
  * The popup stays open after each save, so a whole family can be added in one go.
  * `person`: { id, first_name, middle_name, surname, *_local, gender }; `filled`: { father, mother }.
  */
-export default function AddRelativeDialog({ person, filled = {} }) {
+export default function AddRelativeDialog({ person, filled = {}, spouse = null }) {
     const { t } = useT();
     const [kind, setKind] = useState('');
     const [mode, setMode] = useState('new');
@@ -126,9 +190,7 @@ export default function AddRelativeDialog({ person, filled = {} }) {
                             ) : (
                                 // key: switching the relation refills the suggested names.
                                 <div key={kind} className="space-y-3">
-                                    <div className="grid gap-3 sm:grid-cols-3">
-                                        <NameFields member={defaultsFor(kind, person)} fe={fieldError} optional={['middle_name']} />
-                                    </div>
+                                    <QuickName defaults={defaultsFor(kind, person, spouse)} fe={fieldError} />
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <Field label={t('family.phoneOptional')} hint={t('family.phoneHint')} error={fieldError('phone')}>
                                             <input

@@ -222,3 +222,78 @@ export async function linkRelative(q, person, kind, relativeId) {
         if (!has) await q('INSERT INTO users_relations (user_id, relative_id, relation) VALUES (:c, :p, :r)', { c: rel, p: spouses[0].relative_id, r: otherRel });
     }
 }
+
+/**
+ * The family line as a real tree: start from the oldest recorded ancestor up the father's line
+ * (the mother's when no father is recorded), then every descendant below, generation by
+ * generation — each person with their spouse(s), children under the couple. One query per
+ * generation (never per person); a visited set stops loops.
+ * @returns {Promise<null | { rootId: number, top: object }>}  top = { ...person, spouses: [], children: [node] }
+ */
+export async function getLineageTree(rootId, maxDepth = 20) {
+    const root = await getPerson(rootId);
+    if (!root) return null;
+    // Up to the oldest ancestor.
+    let topId = root.id;
+    const upSeen = new Set([topId]);
+    for (let i = 0; i < maxDepth; i++) {
+        const parents = await query(`SELECT relative_id, relation FROM users_relations WHERE user_id = :id AND relation IN ('father', 'mother')`, { id: topId });
+        const next = (parents.find((p) => p.relation === 'father') ?? parents.find((p) => p.relation === 'mother'))?.relative_id;
+        if (!next || upSeen.has(next)) break;
+        upSeen.add(next);
+        topId = next;
+    }
+
+    const people = new Map();
+    const loadPeople = async (ids) => {
+        const missing = ids.filter((x) => !people.has(x));
+        if (!missing.length) return;
+        const l = inList(missing, 'p');
+        for (const r of await query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params)) people.set(r.id, r);
+    };
+    const placed = new Set(); // a person appears once (as a node or as a spouse)
+    const nodes = new Map(); // id → node
+    const makeNode = (id) => ({ ...people.get(id), spouses: [], children: [] });
+
+    await loadPeople([topId]);
+    const top = makeNode(topId);
+    nodes.set(topId, top);
+    placed.add(topId);
+    let level = [topId];
+    for (let depth = 0; depth < maxDepth && level.length; depth++) {
+        const l = inList(level, 'g');
+        // Spouses of this generation.
+        const sp = await query(`SELECT user_id AS a, relative_id AS b FROM users_relations WHERE relation = 'spouse' AND user_id IN (${l.sql})`, l.params);
+        await loadPeople(sp.map((r) => r.b));
+        const coupleOf = new Map(); // spouse id → the node they sit beside
+        for (const { a, b } of sp) {
+            if (placed.has(b)) continue;
+            placed.add(b);
+            nodes.get(a).spouses.push(people.get(b));
+            coupleOf.set(b, a);
+        }
+        // Children of anyone in a couple on this level go under that couple.
+        const parentIds = [...level, ...coupleOf.keys()];
+        const pl = inList(parentIds, 'c');
+        const kids = await query(
+            `SELECT r.user_id AS child, r.relative_id AS parent FROM users_relations r JOIN users_list u ON u.id = r.user_id
+              WHERE r.relation IN ('father', 'mother') AND r.relative_id IN (${pl.sql})
+              ORDER BY u.dob IS NULL, u.dob, u.full_name`,
+            pl.params,
+        );
+        await loadPeople(kids.map((k) => k.child));
+        const next = [];
+        for (const { child, parent } of kids) {
+            if (placed.has(child)) continue;
+            placed.add(child);
+            const owner = nodes.get(parent) ?? nodes.get(coupleOf.get(parent));
+            if (!owner) continue;
+            const node = makeNode(child);
+            nodes.set(child, node);
+            owner.children.push(node);
+            next.push(child);
+        }
+        level = next;
+    }
+    return { rootId: root.id, top };
+}

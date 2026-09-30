@@ -224,3 +224,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family: no separate page — profile Family card lists near relatives, header "Family tree" + "Add" popup (relation first, stays open to add more); tree canvas shows every generation with drag and zoom
 - [x] Matrimony: who may list — the person, their father / mother, admins; anyone in the family once the father has passed away
 - [x] Member picker (Combobox): the list closes after picking someone and no longer pops back open (focus returning to the input inside a popup)
+- [x] Relatives without a phone: adding a number later (member edit) gives them a login (number = first password); profile tells editors when someone cannot sign in yet
+- [x] Add relative: only the first name is typed — father's / husband's name and surname filled from the person (with a preview and "change" link)
+- [x] Family tree: real tree view from the oldest ancestor to the youngest descendant, with connector lines and couples side by side

@@ -25,7 +25,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
         <div className={FIELD_GRID}>
             {/* A family-tree relative without a number (member exists, no phone): phone and father's name optional. */}
             <NameFields member={member} fe={fe} optional={relativeOnly ? ['middle_name'] : []} />
-            <Field label={t('members.phone')} hint={t('auth.phoneHint')} error={fe('phone')} required={!relativeOnly}>
+            <Field label={t('members.phone')} hint={relativeOnly ? t('members.phoneGivesLogin') : t('auth.phoneHint')} error={fe('phone')} required={!relativeOnly}>
                 <input
                     name="phone"
                     type="tel"
