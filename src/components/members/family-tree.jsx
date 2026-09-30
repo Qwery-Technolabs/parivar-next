@@ -50,16 +50,16 @@ function PersonTile({ p, isRoot, showDetails, leaf = false }) {
             aria-current={isRoot ? 'true' : undefined}
             title={hover}
             aria-label={hover}
-            className="group flex w-[3.75rem] shrink-0 flex-col items-center text-center"
+            className="group flex w-14 shrink-0 flex-col items-center gap-1 text-center"
         >
             <span className="relative">
                 <span
                     aria-hidden
-                    className={`flex size-12 items-end justify-center overflow-hidden rounded-lg bg-linear-to-br text-white/90 shadow-sm transition-transform group-hover:scale-[1.04] ${face} ${
+                    className={`flex size-9 items-end justify-center overflow-hidden rounded-lg bg-linear-to-br text-white/90 shadow-sm transition-transform group-hover:scale-[1.04] ${face} ${
                         isRoot ? 'ring-[1.5px] ring-brand-orange' : ''
                     }`}
                 >
-                    <Figure className="size-10" />
+                    <Figure className="size-8" />
                 </span>
                 {late && (
                     <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border border-surface-border bg-white" title={t('family.late')}>
@@ -67,7 +67,7 @@ function PersonTile({ p, isRoot, showDetails, leaf = false }) {
                     </span>
                 )}
             </span>
-            <span className={`mt-1 line-clamp-1 max-w-full text-[11px] font-medium leading-tight ${late ? 'text-ink-gray' : 'text-ink'}`}>{name}</span>
+            <span className={`line-clamp-1 max-w-full text-[11px] font-medium leading-tight ${late ? 'text-ink-gray' : 'text-ink'}`}>{name}</span>
             {showDetails && (late || a != null || p.kin) && (
                 <span className="line-clamp-1 max-w-full text-[10px] leading-tight text-ink-gray">
                     {[p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? a : null].filter(Boolean).join(' · ')}
@@ -90,7 +90,7 @@ function Branch({ node, rootId, showDetails }) {
     const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
         <li>
-            <div className="flex items-start gap-1.5 rounded-2xl bg-white p-1.5 shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
+            <div className="flex items-start gap-1 rounded-xl bg-white px-1.5 py-2 shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
                 {ordered.map((p) => (
                     <PersonTile
                         key={p.id}

@@ -239,3 +239,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] "How you're related" moved into the Family card (Family | Relation switch in the header); other generations indented; long chains fold behind "Show N more"
 - [x] Phones: no whole-page pinch zoom or sideways drift (touch-action, overscroll, viewport); table swipes stay in the table
 - [x] Family tree: smaller avatar tiles; light grey canvas
+- [x] Family tree: smaller avatars, longer connecting lines, tidier spacing

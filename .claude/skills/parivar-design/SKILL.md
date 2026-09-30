@@ -153,7 +153,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   canvas, drag to pan, − / 100% / + zoom; cards link to profiles.
 - **Tree looks like the Parivar reference**: each couple in ONE light rounded card (white, ring-slate-200, soft
   shadow) with two square rounded "photo" tiles side by side — husband left, wife right — first name under each. Tiles show
-  a **man / woman silhouette (ManIcon / WomanIcon), same navy tile for both** (size-12 tile; grey + flower = late); the
+  a **man / woman silhouette (ManIcon / WomanIcon), same navy tile for both** (size-9 tile in a w-14 column, card px-1.5 py-2; grey + flower = late; connector step --ft-gap 1.75rem, sibling gap 0.625rem); the
   tree's person has a slim 1.5px orange ring; light grey canvas (bg-gray-100, no pattern) so the white cards stand out. With Details on, the **end of a line** (no spouse, no
   children) also shows marital status (orange, small) — nobody else. A
   single person gets a one-tile card. Dark-grey square-cornered connectors (--ft-line #6b7280) drop from the card's

@@ -178,7 +178,7 @@ body {
 
 /* Family tree (components/members/family-tree.jsx): nested lists drawn as a tree — each child
    hangs from a horizontal bar under its parents' card. --ft-gap = the vertical step. */
-.ftree { --ft-gap: 1.25rem; --ft-line: #6b7280; }
+.ftree { --ft-gap: 1.75rem; --ft-line: #6b7280; }
 .ftree ul {
   display: flex;
   justify-content: center;
@@ -191,7 +191,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--ft-gap) 0.5rem 0;
+  padding: var(--ft-gap) 0.625rem 0;
 }
 .ftree li::before,
 .ftree li::after {
