@@ -130,11 +130,15 @@ html {
   font-size: 93.75%;
 }
 
-/* §5 — a backstop, not a licence: wide content scrolls inside its own container. */
+/* §5 — a backstop, not a licence: wide content scrolls inside its own container.
+   An app, not a document: no page pinch-zoom (touch-action; the family tree handles its own pinch)
+   and no rubber-band / sideways drift of the whole page on phones (overscroll-behavior). */
 html,
 body {
   overflow-x: hidden;
   max-width: 100%;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
 }
 
 body {

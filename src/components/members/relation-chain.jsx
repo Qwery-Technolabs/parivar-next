@@ -1,6 +1,8 @@
+'use client';
+import { ChevronsDown } from 'lucide-react';
 import Link from 'next/link';
-import { Card } from '@/components/shell/page-header';
-import { localized } from '@/lib/i18n/config';
+import { useState } from 'react';
+import { useT } from '@/lib/i18n/client';
 import { kinTerm } from '@/lib/kinship';
 
 /** First visible letter (whole grapheme, so Gujarati vowel signs stay attached). */
@@ -14,75 +16,100 @@ function initialOf(name) {
     }
 }
 
-function Face({ p, name }) {
-    const tone = p.status === 'deceased' ? 'from-gray-300 to-gray-500' : p.gender === 'female' ? 'from-rose-400 to-rose-600' : 'from-[#30466a] to-brand-navy';
+/** The small wavy link between two people, with the step beside it ("'s father" / "ના પિતા"). */
+function Step({ label, indent }) {
     return (
-        <span aria-hidden className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-sm font-bold text-white shadow ${tone}`}>
-            {initialOf(name)}
-        </span>
-    );
-}
-
-/** The little wavy link between two people, with the step written beside it ("'s father"). */
-function Link2({ label }) {
-    return (
-        <div className="flex items-center gap-1.5 py-0.5 pl-5">
-            <svg aria-hidden width="18" height="26" viewBox="0 0 18 26" className="shrink-0 text-slate-400">
+        <div className={`flex items-center gap-1.5 py-0.5 ${indent ? 'pl-9' : 'pl-4'}`}>
+            <svg aria-hidden width="18" height="24" viewBox="0 0 18 24" className="shrink-0 text-slate-400">
                 <circle cx="4" cy="3" r="2.5" fill="currentColor" />
-                <path d="M4 5 C 4 14, 14 10, 14 19 L 14 26" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <path d="M4 5 C 4 13, 14 9, 14 17 L 14 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
             <span className="text-xs text-ink-gray">{label}</span>
         </div>
     );
 }
 
+const COLLAPSE_OVER = 6;
+
 /**
- * "How you're related" on a profile (server component): the chain of people from the viewer
- * to this person — You → 's father Devjibhai → 's sister Divyaben → 's husband Vishalbhai — and,
- * when there is a common word for it, what they are to you (Fuva / ફુવા).
- * `path` is relationPath(viewer, person).
+ * How the person is related to the viewer, as a chain: You → 's father X → 's sister Y → …
+ * People in another generation than the viewer are indented (a "tab"); the same generation stays
+ * aligned and is tagged. A long chain folds its middle behind "Show N more". A summary names the
+ * relation when there is a word for it (Fuva / ફુવા).
+ * `path`: { chain: [{ person: {id, full_name, full_name_local, gender, status, village}, step }], steps }.
  */
-export default function RelationChain({ path, t, locale }) {
+export default function RelationChain({ path }) {
+    const { t, locale } = useT();
+    const [open, setOpen] = useState(false);
+    const name = (p) => (locale !== 'en' && p.full_name_local) || p.full_name;
     const term = kinTerm(path.steps);
     const target = path.chain.at(-1).person;
-    const targetName = localized(target, 'full_name', locale);
+
+    // Generation of each person relative to the viewer: parents +1, children −1, the rest level.
+    const delta = (step) => (step === 'father' || step === 'mother' ? 1 : step === 'son' || step === 'daughter' ? -1 : 0);
+    const rows = path.chain.reduce((acc, { person, step }, i) => {
+        const gen = i === 0 ? 0 : acc[i - 1].gen + delta(step);
+        return [...acc, { person, step, gen, i }];
+    }, []);
+    const collapsed = !open && rows.length > COLLAPSE_OVER;
+    const shown = collapsed ? [...rows.slice(0, 2), null, ...rows.slice(-2)] : rows;
+    const hidden = rows.length - 4;
+
     return (
-        <Card title={t('kin.title')} bodyClass="p-3">
+        <div className="p-3">
             {term && (
-                <p className="mb-3 rounded-md bg-accent px-3 py-2 text-sm text-primary">
-                    {t('kin.summary', { name: targetName, term: t(`kin.terms.${term}`) })}
-                </p>
+                <p className="mb-3 rounded-md bg-accent px-3 py-2 text-sm text-primary">{t('kin.summary', { name: name(target), term: t(`kin.terms.${term}`) })}</p>
             )}
             <ol>
-                {path.chain.map(({ person, step }, i) => {
-                    const name = localized(person, 'full_name', locale);
-                    const first = i === 0;
-                    return (
-                        <li key={person.id}>
-                            {step && <Link2 label={t(`kin.step.${step}`)} />}
+                {shown.map((r) =>
+                    r === null ? (
+                        <li key="more" className="py-1 pl-4">
+                            <button
+                                type="button"
+                                onClick={() => setOpen(true)}
+                                className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-xs font-medium text-primary hover:bg-accent"
+                            >
+                                <ChevronsDown className="size-3.5" /> {t('kin.showMore', { count: hidden })}
+                            </button>
+                        </li>
+                    ) : (
+                        <li key={r.person.id}>
+                            {r.step && <Step label={t(`kin.step.${r.step}`)} indent={r.gen !== 0} />}
                             <Link
-                                href={`/members/${person.id}`}
-                                className={`flex items-center gap-3 rounded-lg border px-3 py-2 shadow-sm hover:bg-accent/60 ${
-                                    first || i === path.chain.length - 1 ? 'border-surface-border bg-white' : 'ml-5 border-surface-border/70 bg-white/80'
+                                href={`/members/${r.person.id}`}
+                                className={`flex items-center gap-3 rounded-lg border border-surface-border bg-white px-3 py-2 shadow-sm hover:bg-accent/60 ${
+                                    r.gen !== 0 ? 'ml-6' : ''
                                 }`}
                             >
-                                <Face p={person} name={name} />
+                                <span
+                                    aria-hidden
+                                    className={`flex size-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-sm font-bold text-white shadow ${
+                                        r.person.status === 'deceased' ? 'from-gray-300 to-gray-500' : 'from-[#4a6390] to-brand-navy'
+                                    }`}
+                                >
+                                    {initialOf(name(r.person))}
+                                </span>
                                 <span className="min-w-0">
                                     <span className="block truncate text-sm font-semibold text-primary">
-                                        {name}
-                                        {first && <span className="ml-1.5 text-xs font-medium text-brand-orange-strong">({t('kin.you')})</span>}
+                                        {name(r.person)}
+                                        {r.i === 0 && <span className="ml-1.5 text-xs font-medium text-brand-orange-strong">({t('kin.you')})</span>}
                                     </span>
                                     <span className="block truncate text-xs text-ink-gray">
-                                        {[person.gender && t(`gender.${person.gender}`), person.status === 'deceased' && t('family.late'), person.village]
+                                        {[
+                                            r.person.gender && t(`gender.${r.person.gender}`),
+                                            r.i > 0 && r.gen === 0 && t('kin.sameGen'),
+                                            r.person.status === 'deceased' && t('family.late'),
+                                            r.person.village,
+                                        ]
                                             .filter(Boolean)
                                             .join(' · ')}
                                     </span>
                                 </span>
                             </Link>
                         </li>
-                    );
-                })}
+                    ),
+                )}
             </ol>
-        </Card>
+        </div>
     );
 }

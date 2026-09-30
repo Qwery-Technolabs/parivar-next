@@ -50,16 +50,16 @@ function PersonTile({ p, isRoot, showDetails, leaf = false }) {
             aria-current={isRoot ? 'true' : undefined}
             title={hover}
             aria-label={hover}
-            className="group flex w-[4.5rem] shrink-0 flex-col items-center text-center"
+            className="group flex w-[3.75rem] shrink-0 flex-col items-center text-center"
         >
             <span className="relative">
                 <span
                     aria-hidden
-                    className={`flex size-16 items-end justify-center overflow-hidden rounded-xl bg-linear-to-br text-white/90 shadow-sm transition-transform group-hover:scale-[1.04] ${face} ${
+                    className={`flex size-12 items-end justify-center overflow-hidden rounded-lg bg-linear-to-br text-white/90 shadow-sm transition-transform group-hover:scale-[1.04] ${face} ${
                         isRoot ? 'ring-[1.5px] ring-brand-orange' : ''
                     }`}
                 >
-                    <Figure className="size-14" />
+                    <Figure className="size-10" />
                 </span>
                 {late && (
                     <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border border-surface-border bg-white" title={t('family.late')}>
@@ -238,7 +238,7 @@ export default function FamilyTree({ tree }) {
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerEnd}
                 onPointerCancel={onPointerEnd}
-                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-white shadow-inner select-none active:cursor-grabbing"
+                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-gray-100 shadow-inner select-none active:cursor-grabbing"
             >
                 <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
                     <ul>

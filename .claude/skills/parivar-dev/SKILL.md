@@ -32,6 +32,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   crons only** (`vercel.json`: `0 3 * * *`; a more frequent schedule fails the deploy). Reminders also run via
   `kickReminders()` in the (app) layout — `after()` a signed-in page, once a minute per instance; an external
   scheduler may hit `/api/cron/reminders?key=…`. DB pool 3 on Vercel.
+- **No page zoom / drift on phones**: html/body have `touch-action: pan-x pan-y` + `overscroll-behavior: none`, the viewport
+  sets maximumScale 1 / userScalable false. Anything wide must scroll in its own box (TableShell: overflow-x-auto +
+  overscroll-x-contain). A widget needing pinch (family tree) sets `touch-none` and handles gestures itself.
 - **Before-JS (lazy load)**: what a phone user taps first should work before hydration where cheap —
   the mobile drawer is a CSS checkbox (`#nav-drawer`; labels open/close it). Links are plain `<Link>`s.
   Popovers and dialogs need JS; do not add pre-hydration hacks for them.

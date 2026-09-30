@@ -287,6 +287,10 @@ const gu = {
         },
     },
     kin: {
+        tabFamily: 'પરિવાર',
+        tabRelation: 'સંબંધ',
+        sameGen: 'સમાન પેઢી',
+        showMore: 'વધુ {count} બતાવો',
         title: 'તમારો સંબંધ',
         summary: '{name} તમારા {term} છે.',
         you: 'તમે',

@@ -153,16 +153,18 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   canvas, drag to pan, − / 100% / + zoom; cards link to profiles.
 - **Tree looks like the Parivar reference**: each couple in ONE light rounded card (white, ring-slate-200, soft
   shadow) with two square rounded "photo" tiles side by side — husband left, wife right — first name under each. Tiles show
-  a **man / woman silhouette (ManIcon / WomanIcon), same navy tile for both** (grey + flower = late); the tree's person
-  has a slim 1.5px orange ring; plain white canvas (no pattern). With Details on, the **end of a line** (no spouse, no
+  a **man / woman silhouette (ManIcon / WomanIcon), same navy tile for both** (size-12 tile; grey + flower = late); the
+  tree's person has a slim 1.5px orange ring; light grey canvas (bg-gray-100, no pattern) so the white cards stand out. With Details on, the **end of a line** (no spouse, no
   children) also shows marital status (orange, small) — nobody else. A
   single person gets a one-tile card. Dark-grey square-cornered connectors (--ft-line #6b7280) drop from the card's
   middle to a bar and down to each child. Relation (Kaka …) + age live in the hover text; Details shows them.
   **No zoom buttons**: inside the box drag to pan, pinch to zoom (trackpad pinch / Ctrl + wheel on desktop), centred on the
   fingers; box is `touch-none` so the page does not scroll or zoom instead.
-- **"How you're related"** card on a profile (`RelationChain`): the chain from the viewer to the person — person
-  rows (avatar, full name, gender · village) joined by a wavy link with the step ("’s father" / "ના પિતા"), and a
-  summary with the kinship word when there is one ("… is your Uncle (Fuva)").
+- **"How you're related" lives in the Family card**: a Family | Relation switch in its header (only when the profile is
+  someone else connected to the viewer; icon-only on phones). Relation view = the chain from the viewer (`RelationChain`,
+  client): rows (avatar, full name, gender · Same generation · village) joined by a wavy step link ("’s father"); people in
+  another generation than the viewer are **indented**, the same generation stays aligned; chains over 6 people fold the
+  middle behind "Show N more"; summary with the kinship word when known.
 - Add-relative popup asks only the **first name**: father's name and surname follow from the person
   (`defaultsFor` in add-relative-dialog.jsx), previewed as "Full name: …" with "Change surname / father's name".
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in

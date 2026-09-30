@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { removeRelative } from '@/app/actions/family';
 import ActionButton from '@/components/fundraise/action-button';
 import AddRelativeDialog from '@/components/members/add-relative-dialog';
-import { Card, LinkButton } from '@/components/shell/page-header';
+import { LinkButton } from '@/components/shell/page-header';
+import FamilyCardShell from '@/components/members/family-card-shell';
+import RelationChain from '@/components/members/relation-chain';
 import Badge from '@/components/ui/badge';
 import { RELATIVE_KINDS } from '@/lib/family';
 import { age } from '@/lib/format';
@@ -16,7 +18,7 @@ import { localized } from '@/lib/i18n/config';
  * name opening that person's profile (to add to their family in turn). People outside the family
  * see only a note: the family is private to it.
  */
-export default function FamilySummary({ person, relatives, canSee, canEdit, t, locale }) {
+export default function FamilySummary({ person, relatives, canSee, canEdit, relation = null, t, locale }) {
     const spouseKey = person.gender === 'female' ? 'husband' : person.gender === 'male' ? 'wife' : 'spouse';
     const groups = canSee
         ? RELATIVE_KINDS.map((kind) => ({
@@ -27,10 +29,23 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, t, l
         : [];
     const detail = (p) => [p.dob && age(p.dob) != null && `${age(p.dob)}`, p.marital_status && t(`family.marital.${p.marital_status}`)].filter(Boolean).join(' · ');
 
+    // Only what the chain shows goes to the browser (no phone numbers).
+    const relationView = relation && (
+        <RelationChain
+            path={{
+                steps: relation.steps,
+                chain: relation.chain.map(({ person: p, step }) => ({
+                    step,
+                    person: { id: p.id, full_name: p.full_name, full_name_local: p.full_name_local, gender: p.gender, status: p.status, village: p.village },
+                })),
+            }}
+        />
+    );
+
     return (
-        <Card
+        <FamilyCardShell
             title={t('members.family')}
-            bodyClass=""
+            relation={relationView}
             actions={
                 canSee && (
                     <div className="flex items-center gap-1.5">
@@ -52,8 +67,8 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, t, l
                     </div>
                 )
             }
-        >
-            {!canSee ? (
+            family={
+            !canSee ? (
                 <p className="px-4 py-5 text-sm text-ink-gray">{t('family.privateNote')}</p>
             ) : groups.length === 0 ? (
                 <p className="px-4 py-5 text-sm text-ink-gray">{t('relations.empty')}</p>
@@ -92,7 +107,8 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, t, l
                         }),
                     )}
                 </ul>
-            )}
-        </Card>
+            )
+            }
+        />
     );
 }

@@ -11,7 +11,6 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
-import RelationChain from '@/components/members/relation-chain';
 import { formatPhone } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword } from '@/lib/roles';
 
@@ -142,8 +141,7 @@ export default async function MemberPage({ params }) {
                 </Card>
 
                 <div className="space-y-4">
-                    {relation && <RelationChain path={relation} t={t} locale={locale} />}
-                    <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} t={t} locale={locale} />
+                    <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} relation={relation} t={t} locale={locale} />
                     <Card title={t('members.groups')} bodyClass="">
                         {groups.length === 0 ? (
                             <p className="px-4 py-5 text-sm text-ink-gray">{t('common.none')}</p>

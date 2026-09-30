@@ -286,6 +286,10 @@ const en = {
         },
     },
     kin: {
+        tabFamily: 'Family',
+        tabRelation: 'Relation',
+        sameGen: 'Same generation',
+        showMore: 'Show {count} more',
         title: 'How you’re related',
         summary: '{name} is your {term}.',
         you: 'You',

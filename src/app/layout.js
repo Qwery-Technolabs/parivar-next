@@ -51,7 +51,8 @@ export async function generateMetadata() {
 
 // Theme colour (browser bar on phones, installed app's title bar) = brand navy, like the header.
 export async function generateViewport() {
-    return { themeColor: await themeColor(), width: 'device-width', initialScale: 1 };
+    // maximumScale / userScalable: no page zoom on phones (Android honours it; iOS relies on touch-action in globals.css).
+    return { themeColor: await themeColor(), width: 'device-width', initialScale: 1, maximumScale: 1, userScalable: false };
 }
 
 export default async function RootLayout({ children }) {

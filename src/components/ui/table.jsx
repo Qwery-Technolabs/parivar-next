@@ -4,7 +4,8 @@
 export function TableShell({ children, className = '' }) {
     return (
         <div className={`overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm ${className}`}>
-            <div className="overflow-x-auto">
+            {/* Scrolls sideways on its own; the swipe never drags the page (overscroll contained). */}
+            <div className="overflow-x-auto overscroll-x-contain touch-pan-x touch-pan-y">
                 <table className="w-full text-sm">{children}</table>
             </div>
         </div>

@@ -236,3 +236,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree Details: marital status shown only for the last person in a line (no spouse, no children)
 - [x] Members list: unregistered people (never signed in) hidden by default; Registration filter shows them
 - [x] Family tree: pinch to zoom and drag to pan inside the box (trackpad pinch / Ctrl + scroll on desktop); zoom buttons removed
+- [x] "How you're related" moved into the Family card (Family | Relation switch in the header); other generations indented; long chains fold behind "Show N more"
+- [x] Phones: no whole-page pinch zoom or sideways drift (touch-action, overscroll, viewport); table swipes stay in the table
+- [x] Family tree: smaller avatar tiles; light grey canvas
