@@ -43,6 +43,7 @@ function PersonTile({ p, isRoot, showDetails, leaf = false }) {
     const face = late ? 'from-gray-300 to-gray-500' : 'from-[#4a6390] to-brand-navy';
     const Figure = p.gender === 'female' ? WomanIcon : ManIcon;
     const hover = [fullName, p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? `${a} ${t('matrimony.years')}` : null].filter(Boolean).join(' · ');
+    // One coloured tile: the figure fills it (2–4px edge) and the name sits inside it in white.
     return (
         <Link
             href={`/members/${p.id}`}
@@ -50,32 +51,25 @@ function PersonTile({ p, isRoot, showDetails, leaf = false }) {
             aria-current={isRoot ? 'true' : undefined}
             title={hover}
             aria-label={hover}
-            className="group flex w-14 shrink-0 flex-col items-center gap-1 text-center"
+            className={`group relative flex w-14 shrink-0 flex-col items-center overflow-hidden rounded-lg bg-linear-to-br p-[3px] text-center text-white shadow-sm transition-transform hover:scale-[1.04] ${face} ${
+                isRoot ? 'ring-[1.5px] ring-brand-orange ring-offset-1' : ''
+            }`}
         >
-            <span className="relative">
-                <span
-                    aria-hidden
-                    className={`flex size-9 items-end justify-center overflow-hidden rounded-lg bg-linear-to-br text-white/90 shadow-sm transition-transform group-hover:scale-[1.04] ${face} ${
-                        isRoot ? 'ring-[1.5px] ring-brand-orange' : ''
-                    }`}
-                >
-                    <Figure className="size-8" />
-                </span>
-                {late && (
-                    <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border border-surface-border bg-white" title={t('family.late')}>
-                        <Flower2 aria-hidden className="size-2.5 text-gray-500" />
-                    </span>
-                )}
-            </span>
-            <span className={`line-clamp-1 max-w-full text-[11px] font-medium leading-tight ${late ? 'text-ink-gray' : 'text-ink'}`}>{name}</span>
+            <Figure className="size-12 text-white/90" />
+            <span className="-mt-0.5 block w-full truncate px-0.5 text-[10px] font-semibold leading-tight text-white">{name}</span>
             {showDetails && (late || a != null || p.kin) && (
-                <span className="line-clamp-1 max-w-full text-[10px] leading-tight text-ink-gray">
+                <span className="block w-full truncate px-0.5 text-[9px] leading-tight text-white/80">
                     {[p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? a : null].filter(Boolean).join(' · ')}
                 </span>
             )}
             {/* The end of a line (no spouse, no children): Details also says whether they are married yet. */}
             {showDetails && leaf && !late && p.marital_status && (
-                <span className="line-clamp-1 max-w-full text-[10px] font-medium leading-tight text-brand-orange-strong">{t(`family.marital.${p.marital_status}`)}</span>
+                <span className="block w-full truncate px-0.5 text-[9px] font-semibold leading-tight text-orange-200">{t(`family.marital.${p.marital_status}`)}</span>
+            )}
+            {late && (
+                <span className="absolute top-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-white/90" title={t('family.late')}>
+                    <Flower2 aria-hidden className="size-2.5 text-gray-500" />
+                </span>
             )}
         </Link>
     );
@@ -90,7 +84,7 @@ function Branch({ node, rootId, showDetails }) {
     const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
         <li>
-            <div className="flex items-start gap-1 rounded-xl bg-white px-1.5 py-2 shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
+            <div className="flex items-stretch gap-[3px] rounded-xl bg-white p-[3px] shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
                 {ordered.map((p) => (
                     <PersonTile
                         key={p.id}

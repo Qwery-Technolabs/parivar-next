@@ -240,3 +240,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Phones: no whole-page pinch zoom or sideways drift (touch-action, overscroll, viewport); table swipes stay in the table
 - [x] Family tree: smaller avatar tiles; light grey canvas
 - [x] Family tree: smaller avatars, longer connecting lines, tidier spacing
+- [x] Family tree tiles: figure fills the tile (3px edge), name written inside in white; couple card 3px padding/gap
