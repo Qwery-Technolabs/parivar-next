@@ -227,3 +227,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Relatives without a phone: adding a number later (member edit) gives them a login (number = first password); profile tells editors when someone cannot sign in yet
 - [x] Add relative: only the first name is typed — father's / husband's name and surname filled from the person (with a preview and "change" link)
 - [x] Family tree: real tree view from the oldest ancestor to the youngest descendant, with connector lines and couples side by side
+- [x] Family tree cards: first name only (no father's name / surname) and age or Late only (no marital status); narrower cards
+- [x] Family tree redesign: couples as one joined card (husband left, wife right, heart between), round initial avatars, roomier generations
+- [ ] Family tree: real photos on the avatars (needs upload storage)

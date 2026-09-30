@@ -142,7 +142,13 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   first**, then New person | Pick from members; it **stays open** after each save (FormDialog `keepOpen`).
 - **Family tree** (/members/[id]/tree): a real tree (`.ftree` CSS connectors in globals.css) from the oldest
   ancestor up the father's line down to the youngest descendant — couples boxed side by side (heart), children
-  hanging below; the person has an orange ring; navy / rose top stripe = male / female; late = muted. Dotted
+  hanging below; the person has an orange ring; navy / rose top stripe = male / female; late = muted.
+  **Couples are ONE joined card — husband always left, wife right** (heart on the divider); each person a tile with a
+  round gradient initial "photo" (navy men, rose women, grey + flower badge = late); the tree's person has an orange
+  outline + glow and a "This person" tag. Couple cards: soft white→accent gradient, rounded-2xl, lift on hover.
+  Canvas: warm glow + dot grid.
+  **Cards show the first name only** (local first name when not English; full name as title / aria-label) and one
+  detail line — age, or "Late". No father's name, surname or marital status in the tree (user's call). Dotted
   canvas, drag to pan, − / 100% / + zoom; cards link to profiles.
 - Add-relative popup asks only the **first name**: father's name and surname follow from the person
   (`defaultsFor` in add-relative-dialog.jsx), previewed as "Full name: …" with "Change surname / father's name".

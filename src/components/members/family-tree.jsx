@@ -1,50 +1,102 @@
 'use client';
-import { Heart, Minus, Plus } from 'lucide-react';
+import { Flower2, Heart, Minus, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import Switch from '@/components/ui/switch';
 import { age } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 
-function PersonCard({ p, isRoot, showDetails }) {
+/** First visible letter of a name (a whole grapheme — Gujarati vowel signs stay attached). */
+function initialOf(name) {
+    const text = String(name ?? '').trim();
+    if (!text) return '?';
+    try {
+        const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+        return seg.segment(text)[Symbol.iterator]().next().value?.segment?.toUpperCase() ?? text[0];
+    } catch {
+        return Array.from(text)[0].toUpperCase();
+    }
+}
+
+/**
+ * One person in the tree: a round "photo" (their initial, navy for men, rose for women, grey when
+ * late), the first name only — father's name and surname would repeat on every card — and one
+ * detail line (age, or Late). The person whose tree it is gets an orange ring.
+ */
+function PersonTile({ p, isRoot, showDetails }) {
     const { t, locale } = useT();
-    const name = (locale !== 'en' && p.full_name_local) || p.full_name;
+    const local = locale !== 'en';
+    const name = (local && (p.first_name_local || p.full_name_local)) || p.first_name || p.full_name;
+    const fullName = (local && p.full_name_local) || p.full_name;
     const a = age(p.dob);
     const late = p.status === 'deceased';
-    // A thin top stripe says male / female at a glance (navy / rose); late relatives are muted.
-    const tone = p.gender === 'female' ? 'border-t-rose-600' : p.gender === 'male' ? 'border-t-brand-navy' : 'border-t-surface-border';
+    // Gradient "photos": navy for men, rose for women, grey for the late (with a flower).
+    const face = late
+        ? 'bg-linear-to-br from-gray-300 to-gray-500 text-white ring-white'
+        : p.gender === 'female'
+          ? 'bg-linear-to-br from-rose-400 to-rose-600 text-white ring-white'
+          : p.gender === 'male'
+            ? 'bg-linear-to-br from-[#30466a] to-brand-navy text-white ring-white'
+            : 'bg-linear-to-br from-slate-300 to-slate-500 text-white ring-white';
     return (
         <Link
             href={`/members/${p.id}`}
             draggable={false}
             aria-current={isRoot ? 'true' : undefined}
-            className={`block w-32 shrink-0 rounded-md border border-t-[3px] border-surface-border bg-white px-2 py-1.5 text-center shadow-sm transition-colors hover:bg-accent ${tone} ${
-                isRoot ? 'ring-2 ring-brand-orange ring-offset-1' : ''
-            } ${late ? 'bg-surface-login text-ink-gray' : ''}`}
+            title={fullName}
+            aria-label={fullName}
+            className="flex w-[5.5rem] shrink-0 flex-col items-center gap-1 rounded-lg px-1.5 py-2 text-center transition-colors hover:bg-accent/70"
         >
-            <span className={`block break-words text-[13px] font-semibold leading-snug ${late ? 'text-ink-gray' : 'text-primary'}`}>{name}</span>
+            <span className="relative">
+                <span
+                    aria-hidden
+                    className={`flex size-12 items-center justify-center rounded-full text-lg font-bold shadow-md ring-2 ${face} ${
+                        isRoot ? 'outline-[3px] outline-offset-2 outline-brand-orange shadow-[0_0_0_7px_rgb(247_152_18/0.18)]' : ''
+                    }`}
+                >
+                    {initialOf(name)}
+                </span>
+                {late && (
+                    <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border border-surface-border bg-white" title={t('family.late')}>
+                        <Flower2 aria-hidden className="size-3 text-gray-500" />
+                    </span>
+                )}
+            </span>
+            {isRoot && (
+                <span className="rounded-full bg-brand-orange px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-white">{t('relations.you')}</span>
+            )}
+            <span className={`block max-w-full break-words text-[13px] font-semibold leading-tight ${late ? 'text-ink-gray' : 'text-primary'}`}>{name}</span>
             {showDetails && (
-                <span className="mt-0.5 block text-[11px] leading-tight text-ink-gray">
-                    {[late ? t('family.late') : a != null && `${a} ${t('matrimony.years')}`, p.marital_status && !late && t(`family.marital.${p.marital_status}`)]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
+                <span className="block text-[11px] leading-none text-ink-gray tabular-nums">
+                    {late ? t('family.late') : a != null ? `${a} ${t('matrimony.years')}` : '—'}
                 </span>
             )}
         </Link>
     );
 }
 
-/** One couple (person + spouse(s)) and, below them, their children — recursively. */
+/**
+ * A couple as ONE card — husband always on the left, wife on the right (whoever is the blood
+ * relative), joined by a heart — or a single person's card. Children hang below, recursively.
+ */
 function Branch({ node, rootId, showDetails }) {
     const { t } = useT();
+    const people = [node, ...node.spouses];
+    // Men first (left), then women; order otherwise kept (e.g. a husband with two wives).
+    const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
         <li>
-            <div className={`flex items-center gap-1 rounded-lg p-1 ${node.spouses.length ? 'border border-surface-border bg-white/70' : ''}`}>
-                <PersonCard p={node} isRoot={node.id === rootId} showDetails={showDetails} />
-                {node.spouses.map((s) => (
-                    <div key={s.id} className="flex items-center gap-1">
-                        <Heart aria-label={t('relations.spouse')} className="size-3.5 shrink-0 fill-rose-600 text-rose-600" />
-                        <PersonCard p={s} isRoot={s.id === rootId} showDetails={showDetails} />
+            <div className="flex items-stretch rounded-2xl border border-white bg-linear-to-b from-white to-accent/70 shadow-[0_4px_14px_-4px_rgb(23_47_86/0.25)] ring-1 ring-surface-border/70 transition-transform hover:-translate-y-0.5">
+                {ordered.map((p, i) => (
+                    <div key={p.id} className="flex items-stretch">
+                        {i > 0 && (
+                            <span aria-hidden className="relative w-px bg-surface-border">
+                                <span className="absolute top-[1.85rem] left-1/2 flex size-6 -translate-x-1/2 items-center justify-center rounded-full bg-white shadow ring-1 ring-rose-200">
+                                    <Heart className="size-3.5 fill-rose-500 text-rose-500" aria-label={t('relations.spouse')} />
+                                </span>
+                            </span>
+                        )}
+                        <PersonTile p={p} isRoot={p.id === rootId} showDetails={showDetails} />
                     </div>
                 ))}
             </div>
@@ -111,10 +163,10 @@ export default function FamilyTree({ tree }) {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="flex items-center gap-3 text-xs text-ink-gray">
                     <span className="inline-flex items-center gap-1">
-                        <span className="h-2 w-4 rounded-sm bg-brand-navy" /> {t('gender.male')}
+                        <span className="size-3 rounded-full bg-linear-to-br from-[#30466a] to-brand-navy" /> {t('gender.male')}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                        <span className="h-2 w-4 rounded-sm bg-rose-600" /> {t('gender.female')}
+                        <span className="size-3 rounded-full bg-linear-to-br from-rose-400 to-rose-600" /> {t('gender.female')}
                     </span>
                     <span className="hidden sm:inline">· {t('family.dragHint')}</span>
                 </p>
@@ -151,7 +203,7 @@ export default function FamilyTree({ tree }) {
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
                 onPointerCancel={() => (drag.current = null)}
-                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-pan-x touch-pan-y overflow-auto rounded-lg border border-surface-border bg-[radial-gradient(circle,rgb(4_21_39/0.07)_1px,transparent_1px)] bg-size-[18px_18px] shadow-inner select-none active:cursor-grabbing"
+                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-pan-x touch-pan-y overflow-auto rounded-xl border border-surface-border bg-[radial-gradient(circle,rgb(4_21_39/0.08)_1px,transparent_1px),radial-gradient(ellipse_at_top,rgb(247_152_18/0.10),transparent_60%),linear-gradient(to_bottom,#fbfaf7,#f4f5f9)] bg-size-[20px_20px,100%_100%,100%_100%] shadow-inner select-none active:cursor-grabbing"
             >
                 <div className="ftree inline-block min-w-full p-6" style={{ zoom: ZOOMS[zi] }}>
                     <ul>

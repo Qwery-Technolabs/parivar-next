@@ -173,12 +173,13 @@ body {
 }
 
 /* Family tree (components/members/family-tree.jsx): nested lists drawn as a tree — each child
-   hangs from a horizontal bar under its parents; lines are the ink-gray border at 40%. */
+   hangs from a horizontal bar under its parents' card. --ft-gap = the vertical step. */
+.ftree { --ft-gap: 1.75rem; --ft-line: color-mix(in srgb, var(--color-ink-gray) 35%, transparent); }
 .ftree ul {
   display: flex;
   justify-content: center;
   position: relative;
-  padding-top: 1.25rem;
+  padding-top: var(--ft-gap);
 }
 .ftree li {
   list-style: none;
@@ -186,7 +187,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.25rem 0.375rem 0;
+  padding: var(--ft-gap) 0.625rem 0;
 }
 .ftree li::before,
 .ftree li::after {
@@ -195,13 +196,13 @@ body {
   top: 0;
   right: 50%;
   width: 50%;
-  height: 1.25rem;
-  border-top: 1.5px solid color-mix(in srgb, var(--color-ink-gray) 45%, transparent);
+  height: var(--ft-gap);
+  border-top: 2px solid var(--ft-line);
 }
 .ftree li::after {
   right: auto;
   left: 50%;
-  border-left: 1.5px solid color-mix(in srgb, var(--color-ink-gray) 45%, transparent);
+  border-left: 2px solid var(--ft-line);
 }
 .ftree li:only-child::before,
 .ftree li:only-child::after { display: none; }
@@ -209,16 +210,16 @@ body {
 .ftree li:first-child::before,
 .ftree li:last-child::after { border: 0 none; }
 .ftree li:last-child::before {
-  border-right: 1.5px solid color-mix(in srgb, var(--color-ink-gray) 45%, transparent);
-  border-radius: 0 0.5rem 0 0;
+  border-right: 2px solid var(--ft-line);
+  border-radius: 0 0.75rem 0 0;
 }
-.ftree li:first-child::after { border-radius: 0.5rem 0 0 0; }
+.ftree li:first-child::after { border-radius: 0.75rem 0 0 0; }
 .ftree ul ul::before {
   content: '';
   position: absolute;
   top: 0;
   left: 50%;
-  height: 1.25rem;
-  border-left: 1.5px solid color-mix(in srgb, var(--color-ink-gray) 45%, transparent);
+  height: var(--ft-gap);
+  border-left: 2px solid var(--ft-line);
 }
 .ftree > ul { padding-top: 0; }
