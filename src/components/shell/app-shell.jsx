@@ -11,6 +11,7 @@ import {
     Home,
     LogOut,
     Menu,
+    Network,
     Settings,
     UserCircle,
     Users,
@@ -31,6 +32,7 @@ import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
 const ICONS = {
     home: Home,
     users: Users,
+    tree: Network,
     group: UsersRound,
     blood: Droplet,
     fund: HandCoins,
@@ -44,9 +46,14 @@ function isActive(pathname, href) {
     return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/** Active for this item — unless a more specific item (item.exclude, e.g. My family tree inside /members) is. */
+function itemActive(pathname, item) {
+    return isActive(pathname, item.href) && !(item.exclude ?? []).some((h) => isActive(pathname, h));
+}
+
 function NavItem({ item, pathname, collapsed, onNavigate, child = false }) {
     const Icon = ICONS[item.icon];
-    const active = isActive(pathname, item.href);
+    const active = itemActive(pathname, item);
     return (
         <Link
             href={item.href}
@@ -83,7 +90,7 @@ function BottomNav({ sections, pathname }) {
         <nav className="flex shrink-0 border-t border-surface-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
             {tabs.map((item) => {
                 const Icon = ICONS[item.icon];
-                const active = isActive(pathname, item.href);
+                const active = itemActive(pathname, item);
                 return (
                     <Link
                         key={item.href}

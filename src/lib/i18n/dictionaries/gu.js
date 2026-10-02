@@ -69,6 +69,7 @@ const gu = {
         expand: 'સાઇડબાર ખોલો',
         sections: { overview: 'ઝાંખી', community: 'સમુદાય', services: 'સેવાઓ', admin: 'અન્ય' },
         dashboard: 'ડેશબોર્ડ',
+        myTree: 'મારું વંશવૃક્ષ',
         members: 'પરિવારજનો',
         groups: 'જૂથો',
         blood: 'રક્ત',

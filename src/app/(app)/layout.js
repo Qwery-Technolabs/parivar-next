@@ -37,7 +37,11 @@ export default async function AppLayout({ children }) {
         {
             title: t('nav.sections.admin'),
             // The activity log lives in Settings (admins), not here.
-            items: [{ href: '/members', icon: 'users', label: t('nav.members') }],
+            // My own family tree first, then everyone.
+            items: [
+                { href: `/members/${user.id}/tree`, icon: 'tree', label: t('nav.myTree') },
+                { href: '/members', icon: 'users', label: t('nav.members'), exclude: [`/members/${user.id}/tree`] },
+            ],
         },
     ];
     // Pinned to the bottom of the sidebar. Everyone has Settings (language, phone,

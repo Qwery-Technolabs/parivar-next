@@ -262,3 +262,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal form: no Target, no Amount per meeting; Place plain text (not a suggestion); Schedules card on the right under Sharing — add / edit / archive / delete, saved with the form
 - [x] Mandal: no Place on the form; same tabs as a fundraise with the Mandal part (members, schedules + money sheet, who has the money) in About; payments in history; pinned on top of its group's list while running
 - [x] Mandal shown on /fundraise too (with Mandal badge), only to its group's members, its members and team
+- [x] Sidebar: My family tree (own tree) before Members

@@ -32,7 +32,8 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
 ## Layout shell
 
 - Sidebar sections: **Overview** (Dashboard) · **Community** (Groups) · **Services** (Fundraise, Blood)
-  · **Miscellaneous** (Members). Settings pinned at the bottom. Collapse arrow straddles the sidebar edge.
+  · **Miscellaneous** (My family tree → /members/<me>/tree, then Members; Members is not highlighted on my own tree —
+  nav item `exclude`). Settings pinned at the bottom. Collapse arrow straddles the sidebar edge.
 - The sidebar logo row has the same faint bottom line as the header (`border-b border-white/10`), in the
   desktop sidebar and the phone drawer, so the two edges line up.
 - Sidebar section titles (Overview, Community, …): small uppercase `text-white/60` with `pt-[5px]` above.

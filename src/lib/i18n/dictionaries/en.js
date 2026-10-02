@@ -68,6 +68,7 @@ const en = {
         expand: 'Expand sidebar',
         sections: { overview: 'Overview', community: 'Community', services: 'Services', admin: 'Miscellaneous' },
         dashboard: 'Dashboard',
+        myTree: 'My family tree',
         members: 'Members',
         groups: 'Groups',
         blood: 'Blood',
