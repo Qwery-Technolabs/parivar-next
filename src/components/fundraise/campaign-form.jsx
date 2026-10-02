@@ -118,14 +118,12 @@ export default function CampaignForm({
                                     />
                                 </Field>
                                 )}
-                                <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
-                                    {/* A Mandal's place is just text (a home, an office, anywhere) — no suggestions. */}
-                                    {mandal ? (
-                                        <input name="location" maxLength={100} defaultValue={c.location ?? ''} className={`${textInput()} w-full`} />
-                                    ) : (
+                                {/* A Mandal has no place of its own: each schedule has one. */}
+                                {!mandal && (
+                                    <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
                                         <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
-                                    )}
-                                </Field>
+                                    </Field>
+                                )}
                                 <Field label={t('fundraise.startDate')} error={fe('start_date')}>
                                     <input
                                         type="date"

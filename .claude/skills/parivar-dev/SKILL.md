@@ -142,9 +142,14 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
   A Mandal is its group's own: the form shows its home group only (no other groups, no "Add to group") and no audience (server forces both);
   the public link works as for any fundraise;
-  seen only by its group's members, its members and team (AUDIENCE_OK); never in the /fundraise feed. Its pending
+  seen only by its group's members, its members and team (AUDIENCE_OK) — in its group's list and in the /fundraise
+  feed, both with a "Mandal" badge. Its pending
   (summary) = members' dues.
-  lib/mandal.js + actions/mandal.js + components/mandal/*, tab "Mandal" on the fundraise page. Members =
+  lib/mandal.js + actions/mandal.js + components/mandal/*. Same tabs as a fundraise (Discussion, Money, Meetings,
+  About — team roles + history included); the Mandal part (members, Schedules with the money sheet, who has the money)
+  sits at the top of About (?tab=mandal → About). No place of its own (per schedule). On its group's Fundraises list an
+  active Mandal (not archived/closed, not past end date) is pinned on top (groupFundraises `pinned`). Sheet payments
+  write fundraise_history (add / edit / delete) like ledger entries. Members =
   fundraise_subscribers, chosen on the form like a meeting's attendees (PeopleChoice: meta members_mode 'all' = whole
   group, kept in sync by syncMandalMembers; 'selected' = chosen people) and/or added on the tab (added by admins / sub-admins / its treasurer / collector — `canRunMandal`; pick or invite by phone).
   Meetings = the fundraise's own meetings, inviting its members — everyone or chosen ones (FUNDRAISE_PEOPLE in

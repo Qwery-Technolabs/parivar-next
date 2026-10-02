@@ -35,12 +35,14 @@ export async function groupFundraises(groupId, user) {
     // Audience: someone outside a fundraise's audience does not see it here either.
     const aud = user ? audienceFilter(user) : { sql: '1 = 1', params: {} };
     const rows = await query(
-        `SELECT c.id, c.title, c.title_local, c.status, c.start_date, c.end_date, c.target_amount,
+        `SELECT c.id, c.kind, c.title, c.title_local, c.status, c.start_date, c.end_date, c.target_amount,
+                -- A Mandal is pinned on top while it runs: active, not archived, not past its end date.
+                (c.kind = 'mandal' AND c.status = 'active' AND (c.end_date IS NULL OR c.end_date >= CURDATE())) AS pinned,
                 (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions WHERE campaign_id = c.id AND deleted_at IS NULL AND mode <> 'unpaid') AS collected,
                 (SELECT COALESCE(SUM(amount), 0) FROM fundraise_expenses WHERE campaign_id = c.id AND deleted_at IS NULL) AS spent
            FROM fundraise_campaigns c
           WHERE c.id IN (SELECT campaign_id FROM fundraise_groups WHERE group_id = :groupId) AND c.archived_at IS NULL AND ${aud.sql}
-          ORDER BY c.status = 'active' DESC, c.start_date DESC LIMIT 50`,
+          ORDER BY pinned DESC, c.status = 'active' DESC, c.start_date DESC LIMIT 50`,
         { groupId, ...aud.params },
     );
     const pics = await getMetaMany('fundraise_campaigns', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);

@@ -260,3 +260,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree + Family card: children (and siblings) eldest first by birth date, left to right; people without a birth date keep their place
 - [x] Mandal: "Who is in this Mandal" in its own right-side card on the form; Mandal tab Schedules card (+ New schedule; date - Mandal, place, amount per person, money kept by; kebab Edit / Archive when money received / Delete when none / Restore); Who has the money + common expenses + balance
 - [x] Mandal form: no Target, no Amount per meeting; Place plain text (not a suggestion); Schedules card on the right under Sharing — add / edit / archive / delete, saved with the form
+- [x] Mandal: no Place on the form; same tabs as a fundraise with the Mandal part (members, schedules + money sheet, who has the money) in About; payments in history; pinned on top of its group's list while running
+- [x] Mandal shown on /fundraise too (with Mandal badge), only to its group's members, its members and team

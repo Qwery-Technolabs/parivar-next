@@ -11,6 +11,21 @@ import { syncEveryoneMeetings } from '@/lib/meetings';
 import { normalizePhone } from '@/lib/phone';
 
 const FORBIDDEN = { error: 'common.forbidden' };
+
+/** A Mandal payment in the fundraise history (same rows the ledger writes: entity 'contribution'). */
+async function payHistory(q, campaignId, contributionId, action, actorId, before = null) {
+    const [row] = await q(
+        'SELECT id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at FROM fundraise_contributions WHERE id = :contributionId',
+        { contributionId },
+    );
+    if (!row) return;
+    const snap = { ...row, amount: Number(row.amount), is_anonymous: Number(row.is_anonymous) };
+    await q(
+        `INSERT INTO fundraise_history (campaign_id, entity, entity_id, action, actor_id, snapshot)
+         VALUES (:campaignId, 'contribution', :contributionId, :action, :actorId, :snapshot)`,
+        { campaignId, contributionId, action, actorId, snapshot: JSON.stringify(before ? { ...snap, before } : snap) },
+    );
+}
 const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
 
 async function loadMandal(campaignId) {
@@ -101,12 +116,19 @@ export async function saveMandalMeeting(prev, fd) {
             let contributionId = existing.get(r.user_id) ?? null;
             if (r.paid) {
                 if (contributionId) {
+                    const [old] = await q(
+                        'SELECT donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at FROM fundraise_contributions WHERE id = :id',
+                        { id: contributionId },
+                    );
                     await q('UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, deleted_at = NULL, deleted_by = NULL WHERE id = :id', {
                         amount: r.paid,
                         mode: r.mode,
                         day: meeting.start_date,
                         id: contributionId,
                     });
+                    if (old?.deleted_at) await payHistory(q, campaign.id, contributionId, 'add', actor.id);
+                    else if (old && (Number(old.amount) !== r.paid || old.mode !== r.mode || String(old.paid_on) !== String(meeting.start_date)))
+                        await payHistory(q, campaign.id, contributionId, 'edit', actor.id, { ...old, amount: Number(old.amount), is_anonymous: Number(old.is_anonymous) });
                 } else {
                     const ins = await q(
                         `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by)
@@ -114,9 +136,12 @@ export async function saveMandalMeeting(prev, fd) {
                         { c: campaign.id, u: r.user_id, name: r.full_name, amount: r.paid, mode: r.mode, day: meeting.start_date, ref: `Mandal ${meeting.start_date}`.slice(0, 100), by: actor.id },
                     );
                     contributionId = ins.insertId;
+                    await payHistory(q, campaign.id, contributionId, 'add', actor.id);
                 }
             } else if (contributionId) {
+                const [was] = await q('SELECT deleted_at FROM fundraise_contributions WHERE id = :id', { id: contributionId });
                 await q('UPDATE fundraise_contributions SET deleted_at = NOW(), deleted_by = :by WHERE id = :id', { by: actor.id, id: contributionId });
+                if (was && !was.deleted_at) await payHistory(q, campaign.id, contributionId, 'delete', actor.id);
                 contributionId = null;
             }
             await q(

@@ -193,6 +193,11 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                     <Link href={`/fundraise/${c.id}`} className="font-medium text-primary hover:underline">
                                         {localized(c, 'title', locale)}
                                     </Link>
+                                    {c.kind === 'mandal' && (
+                                        <Badge tone="orange" className="ml-1.5 align-middle">
+                                            {t('mandal.badge')}
+                                        </Badge>
+                                    )}
                                     {/* Location repeats here for phones, where its column is hidden. */}
                                     <span className="block text-xs text-ink-gray">{[groupName, c.location].filter(Boolean).join(' · ')}</span>
                                     {pct != null && (

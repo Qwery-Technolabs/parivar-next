@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown, PiggyBank } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown } from 'lucide-react';
 import { setCampaignArchived } from '@/app/actions/fundraise';
 import SubmitButton from '@/components/ui/submit-button';
 import { cookies } from 'next/headers';
@@ -53,7 +53,9 @@ const LEGACY = {
 
 function resolveTab(sp) {
     const raw = sp1(sp.tab);
-    if (raw === 'money' || raw === 'details' || raw === 'meetings' || raw === 'mandal') return { tab: raw, view: sp1(sp.view) };
+    if (raw === 'money' || raw === 'details' || raw === 'meetings') return { tab: raw, view: sp1(sp.view) };
+    // The old Mandal tab now lives in About.
+    if (raw === 'mandal') return { tab: 'details', view: '' };
     if (LEGACY[raw]) return { tab: LEGACY[raw][0], view: LEGACY[raw][1] ?? '' };
     return { tab: 'discussion', view: '' };
 }
@@ -100,8 +102,6 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
         { key: 'meetings', label: t('fundraise.tabs.meetings'), href: `${base}?tab=meetings`, icon: CalendarClock },
         { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details`, icon: Info },
     ];
-    // A Mandal (savings circle) gets its own tab: members, dues, attendance & money per meeting.
-    if (campaign.kind === 'mandal') tabs.splice(1, 0, { key: 'mandal', label: t('mandal.tab'), href: `${base}?tab=mandal`, icon: PiggyBank });
 
     let body;
     if (tab === 'money') {
@@ -136,8 +136,6 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 locale={locale}
             />
         );
-    } else if (tab === 'mandal' && campaign.kind === 'mandal') {
-        body = <MandalTab campaign={campaign} user={user} today={today} t={t} locale={locale} />;
     } else if (tab === 'meetings') {
         // Minutes are updates tied to a meeting; they show under that meeting.
         const updates = await listUpdates(campaign.id);
@@ -161,18 +159,22 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             listHistory(campaign.id, { limit: 50 }),
         ]);
         body = (
-            <DetailsTab
-                campaign={campaign}
-                audience={audience}
-                team={team}
-                updates={updates}
-                history={history}
-                perms={perms}
-                userId={user.id}
-                today={today}
-                t={t}
-                locale={locale}
-            />
+            <>
+                {/* A Mandal: its members, schedules (with the money sheet) and who has the money, above the usual About. */}
+                {campaign.kind === 'mandal' && <MandalTab campaign={campaign} user={user} today={today} t={t} locale={locale} />}
+                <DetailsTab
+                    campaign={campaign}
+                    audience={audience}
+                    team={team}
+                    updates={updates}
+                    history={history}
+                    perms={perms}
+                    userId={user.id}
+                    today={today}
+                    t={t}
+                    locale={locale}
+                />
+            </>
         );
     } else {
         // ChatPanel resolves who may read and post (team, group members) itself.
@@ -197,7 +199,10 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             {/* Header strip: title, group, one-line totals; then three equal tabs. */}
             <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
                 <div className="px-3 pt-3 sm:px-4">
-                    <HeaderBack href={campaign.group_id ? `/groups/${campaign.group_id}` : '/fundraise'} label={campaign.group_id ? groupName : t('fundraise.title')} />
+                    <HeaderBack
+                        href={campaign.group_id ? `/groups/${campaign.group_id}` : '/fundraise'}
+                        label={campaign.group_id ? groupName : t('fundraise.title')}
+                    />
                     {/* Also shown in other groups: one chip each (the header's back link is the home group). */}
                     {(campaign.groups ?? []).some((g) => g.id !== campaign.group_id) && (
                         <span className="mb-1 flex flex-wrap gap-1">
