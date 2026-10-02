@@ -12,6 +12,8 @@ backfill rules) get recorded here when applied.
 **Connection pool** (lib/db.js): 5 per instance (DB_POOL_SIZE overrides), waitForConnections, queueLimit 0, idle kept
 15 min, keep-alive. Hostinger: 500 new connections/hour per user + a cap on open connections — never raise the pool
 far (100 would take the app down). Slow statements (>800 ms, incl. waiting for a connection) log `[db slow]`.
+Settings (getSettings) are memoised per instance for 60 s (+ React cache per request); saveSettings clears them —
+always write settings through saveSettings, never raw SQL, or readers stay stale for up to a minute.
 ## The database
 
 - The app runs against the **live remote MariaDB 11.8** from `.env` (no `.env.local`). Never commit `.env`;

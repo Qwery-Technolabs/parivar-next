@@ -27,6 +27,22 @@ export default function AppError({ error, retry }) {
             }
         }
         console.error(error);
+        // Tell the server what broke (Vercel logs: "[client error]") — otherwise a crash on someone's phone is invisible.
+        try {
+            fetch('/api/client-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                keepalive: true,
+                body: JSON.stringify({
+                    path: window.location.pathname + window.location.search,
+                    digest: error?.digest ?? '',
+                    message: error?.message ?? String(error),
+                    stack: String(error?.stack ?? '').split('\n').slice(0, 6).join(' | '),
+                }),
+            }).catch(() => {});
+        } catch {
+            // Reporting is best effort.
+        }
     }, [error, stale]);
 
     return (
@@ -34,7 +50,10 @@ export default function AppError({ error, retry }) {
             <TriangleAlert className="mx-auto size-6 text-destructive" />
             <h1 className="mt-2 text-base font-semibold text-primary">{t('errors.title')}</h1>
             <p className="mt-1 text-sm text-ink-gray">{t('common.error')}</p>
-            {error?.digest && <p className="mt-2 font-mono text-[11px] text-ink-gray">{error.digest}</p>}
+            {/* What broke, in short: the server's digest, else the browser's message — quote it when reporting. */}
+            {(error?.digest || error?.message) && (
+                <p className="mt-2 break-words font-mono text-[11px] text-ink-gray">{error.digest || String(error.message).slice(0, 160)}</p>
+            )}
             <button
                 type="button"
                 onClick={() => retry()}

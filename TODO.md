@@ -298,3 +298,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree opens centred on the active person
 - [x] Fix: tapping a menu item / button on a page left open across a deploy showed 'Something went wrong' (stale server action) — now reloads once by itself
 - [x] Fix: fundraise discussion clear only for app admins / sub-admins and the fundraise's own team admins (not group sub-admins)
+- [x] Settings memoised 60 s per instance (cleared on save) — most requests skip the settings query
+- [x] Error screen shows the short error and reports it to the server log ([client error]) for diagnosis

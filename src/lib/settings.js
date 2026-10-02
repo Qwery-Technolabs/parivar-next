@@ -67,16 +67,29 @@ function decode(def, raw) {
     }
 }
 
-/** All settings of one mod, defaults filled in. Cached per request. */
+// Settings are read on almost every request (layout, titles, theme colour, manifest, loader colour) and
+// change rarely: keep them in memory per server instance for a minute, so most requests skip the query
+// (on a fresh instance it also paid for opening the DB connection — logged as [db slow] ~1.5 s).
+// saveSettings forgets them at once on this instance; other instances catch up within SETTINGS_TTL.
+const SETTINGS_TTL = 60 * 1000;
+const memo = (globalThis.__parivarSettings ??= new Map()); // mod → { at, values }
+
+/** All settings of one mod, defaults filled in. Cached per request, and in memory for SETTINGS_TTL. */
 export const getSettings = cache(async (mod) => {
     const spec = SETTINGS[mod];
     if (!spec) throw new Error(`Unknown settings module ${mod}`);
+    const hit = memo.get(mod);
+    if (hit && Date.now() - hit.at < SETTINGS_TTL) {
+        if (mod === 'admin') setAppTimeZone(hit.values.timezone);
+        return hit.values;
+    }
     // app_icon_* rows (the favicon PNGs, lib/app-icons.js) are large and read only by /api/app-icon.
     const rows = await query(`SELECT setting_key, setting_value FROM ${spec.table} WHERE setting_key NOT LIKE 'app_icon_%'`);
     const stored = Object.fromEntries(rows.map((r) => [r.setting_key, r.setting_value]));
     const values = Object.fromEntries(Object.entries(spec.keys).map(([k, def]) => [k, decode(def, stored[k])]));
     // Keep the process-wide timezone in step with what the admin chose.
     if (mod === 'admin') setAppTimeZone(values.timezone);
+    memo.set(mod, { at: Date.now(), values });
     return values;
 });
 
@@ -115,6 +128,7 @@ export async function saveSettings(mod, values, q = query) {
             { key, value: JSON.stringify(value) },
         );
     }
+    memo.delete(mod); // the next read sees the new values (this instance at once; others within SETTINGS_TTL)
 }
 
 /**

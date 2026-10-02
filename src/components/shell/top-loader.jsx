@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // Requests that run while someone types (debounced live search, local-script suggestions):
 // no loader for these, it would flicker on every keystroke.
-const QUIET = ['/api/transliterate', '/api/members/search'];
+const QUIET = ['/api/transliterate', '/api/members/search', '/api/client-error'];
 const SHOW_AFTER = 150; // ms — quick requests never show the line
 
 /** A Next.js request worth showing: page data (RSC) and server actions — never prefetches. */
