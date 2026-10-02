@@ -27,7 +27,7 @@ async function authorize(campaignId, perm = 'manage') {
     const user = await getCurrentUser();
     if (!user || !campaignId) return { user: null, campaign: null };
     const campaign = await queryOne(
-        'SELECT id, group_id, title, title_local, is_public, public_token FROM fundraise_campaigns WHERE id = :campaignId',
+        'SELECT id, group_id, kind, title, title_local, is_public, public_token FROM fundraise_campaigns WHERE id = :campaignId',
         { campaignId },
     );
     if (!campaign) return { user: null, campaign: null };
@@ -161,7 +161,7 @@ export async function saveCampaign(prev, fd) {
     const campaignId = id(fd, 'id');
     const groupId = id(fd, 'group_id');
     // Also shown in these groups (besides the home group).
-    const extraGroupIds = [...new Set(fd.getAll('extra_group_ids').map(Number))].filter((n) => n > 0 && n !== groupId).slice(0, 50);
+    let extraGroupIds = [...new Set(fd.getAll('extra_group_ids').map(Number))].filter((n) => n > 0 && n !== groupId).slice(0, 50);
     const title = str(fd, 'title', 200);
     const rawTarget = str(fd, 'target_amount', 20);
     const target = rawTarget ? money(fd, 'target_amount') : null;
@@ -177,7 +177,7 @@ export async function saveCampaign(prev, fd) {
     if (rawEnd && !end) fieldErrors.end_date = 'fundraise.errors.date';
     if (start && end && end < start) fieldErrors.end_date = 'fundraise.errors.dates';
     // No group = a standalone fundraise; only fundraise managers may start or keep one (checked below).
-    const audience = await parseAudience(fd);
+    let audience = await parseAudience(fd);
     if (!audience) fieldErrors.audience = 'fundraise.errors.audience';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
@@ -190,6 +190,11 @@ export async function saveCampaign(prev, fd) {
     const existingKind = campaignId ? (await queryOne('SELECT kind FROM fundraise_campaigns WHERE id = :campaignId', { campaignId }))?.kind : null;
     const kind = existingKind ?? oneOf(fd, 'kind', ['fundraise', 'mandal'], 'fundraise');
     if (kind === 'mandal' && !groupId) return { fieldErrors: { group_id: 'mandal.errors.group' } };
+    // A Mandal is its group's own: not shown in other groups, no audience rules, never public.
+    if (kind === 'mandal') {
+        extraGroupIds = [];
+        audience = [];
+    }
     const rawInstallment = str(fd, 'installment', 12);
     const installment = rawInstallment ? Number(rawInstallment) : null;
     if (kind === 'mandal' && (!installment || !Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
@@ -210,7 +215,7 @@ export async function saveCampaign(prev, fd) {
     const meta = {
         description: str(fd, 'description', 20000),
         // Audience rows = only those people see it; '1' = also everyone else, lower in their list.
-        audience_others: bool(fd, 'audience_others') ? '1' : '',
+        audience_others: kind !== 'mandal' && bool(fd, 'audience_others') ? '1' : '',
         // Picture: icon / emoji / ≤2 letters on a colour, like a group's (lib/group-avatar).
         ...sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10)),
         // No local-language description on the form any more; an older one is left as it is.
@@ -220,6 +225,7 @@ export async function saveCampaign(prev, fd) {
     if (campaignId) {
         const { campaign } = await authorize(campaignId);
         if (!campaign) return FORBIDDEN;
+        if (kind === 'mandal' && groupId !== campaign.group_id) return { fieldErrors: { group_id: 'mandal.errors.group' } };
         // Moving a fundraise into another group needs the right to create there too.
         if (groupId !== campaign.group_id && !(await canCreateFundraiseIn(user, groupId)))
             return { fieldErrors: { group_id: 'fundraise.errors.group' } };
@@ -247,7 +253,7 @@ export async function saveCampaign(prev, fd) {
     const plan = await planCampaignGroups(user, null, groupId, extraGroupIds);
     if (plan.error) return { fieldErrors: { extra_group_ids: plan.error } };
     // The public switch on the create form defaults to the fundraise_settings.default_public value.
-    const isPublic = bool(fd, 'is_public');
+    const isPublic = kind !== 'mandal' && bool(fd, 'is_public');
     const newId = await withTransaction(async (q) => {
         const r = await q(
             `INSERT INTO fundraise_campaigns (group_id, kind, title, title_local, location, target_amount, start_date, end_date, status, is_public, public_token, created_by)
@@ -307,6 +313,7 @@ export async function deleteCampaign(campaignId) {
 export async function setPublic(campaignId, makePublic) {
     const { user, campaign } = await authorize(campaignId);
     if (!campaign) return FORBIDDEN;
+    if (makePublic && campaign.kind === 'mandal') return FORBIDDEN; // a Mandal stays inside its group
     const token = campaign.public_token || newToken();
     await query('UPDATE fundraise_campaigns SET is_public = :pub, public_token = :token WHERE id = :campaignId', {
         pub: makePublic ? 1 : 0,
@@ -784,7 +791,7 @@ export async function deleteUpdate(campaignId, updateId) {
 export async function addCampaignToGroups(prev, fd) {
     const campaignId = id(fd, 'campaign_id');
     const { user, campaign } = await authorize(campaignId);
-    if (!campaign) return FORBIDDEN;
+    if (!campaign || campaign.kind === 'mandal') return FORBIDDEN;
     const groupIds = [...new Set(fd.getAll('group_ids').map(Number))].filter((n) => n > 0 && n !== campaign.group_id).slice(0, 50);
     if (!groupIds.length) return { fieldErrors: { group_ids: 'fundraise.addToGroupChoose' } };
     const linked = new Set((await query('SELECT group_id FROM fundraise_groups WHERE campaign_id = :campaignId', { campaignId })).map((r) => r.group_id));

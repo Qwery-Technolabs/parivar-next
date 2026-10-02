@@ -33,6 +33,7 @@ export default function CampaignForm({
     audience = [],
     castes,
     suggestions,
+    kind: newKind = 'fundraise',
 }) {
     const { t, locale } = useT();
     const [state, action, pending] = useActionState(saveCampaign, null);
@@ -41,11 +42,11 @@ export default function CampaignForm({
     const meta = c.meta ?? {};
     // Only on create — an existing fundraise's link is switched from its detail page.
     const [isPublic, setIsPublic] = useState(defaultPublic);
-    // Type: a Mandal (savings circle) can only be started inside a group, and stays one.
-    const initialGroup = c.id ? (c.group_id ?? '') : (defaultGroupId ?? (allowNoGroup ? '' : (groups[0]?.id ?? '')));
-    const [groupSel, setGroupSel] = useState(String(initialGroup ?? ''));
-    const [kind, setKind] = useState(c.kind ?? 'fundraise');
+    // Type comes from the "+ New ▾" menu on the group page (an existing one keeps its own). A Mandal
+    // (savings circle) belongs to that one group only: no group choice, other groups, public link or audience.
+    const kind = c.kind ?? newKind;
     const mandal = kind === 'mandal';
+    const homeGroup = c.id ? (c.group_id ?? '') : (defaultGroupId ?? (allowNoGroup ? '' : (groups[0]?.id ?? '')));
     const [othersToo, setOthersToo] = useState(meta.audience_others === '1');
 
     // onSubmit + startTransition rather than <form action>: React resets uncontrolled
@@ -64,7 +65,7 @@ export default function CampaignForm({
             {c.id && <input type="hidden" name="id" value={c.id} />}
 
             {/* Wide screens: the fundraise itself on the left, where it shows and to whom on the right. */}
-            <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className={`grid items-start gap-3 ${mandal ? '' : 'lg:grid-cols-[minmax(0,1fr)_24rem]'}`}>
                 <Panel title={t('fundraise.sections.details')}>
                     {/* Two columns: the picture alone on the left, every other field to its right. */}
                     <div className="flex items-start gap-4">
@@ -72,28 +73,8 @@ export default function CampaignForm({
                             <AvatarPicker name={c.title} initial={meta} />
                         </div>
                         <div className="min-w-0 flex-1 space-y-3">
-                            {/* New, inside a group: Fundraise or Mandal (savings circle). An existing one keeps its type. */}
-                            {!c.id && groupSel ? (
-                                <div>
-                                    <input type="hidden" name="kind" value={kind} />
-                                    <p className="mb-1 text-xs font-medium text-ink">{t('mandal.type')}</p>
-                                    <div role="radiogroup" className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
-                                        {['fundraise', 'mandal'].map((k) => (
-                                            <button
-                                                key={k}
-                                                type="button"
-                                                role="radio"
-                                                aria-checked={kind === k}
-                                                onClick={() => setKind(k)}
-                                                className={`h-8 rounded px-3 text-xs font-medium ${kind === k ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-primary'}`}
-                                            >
-                                                {t(`mandal.kinds.${k}`)}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {mandal && <p className="mt-1 text-xs text-ink-gray">{t('mandal.typeHint')}</p>}
-                                </div>
-                            ) : null}
+                            <input type="hidden" name="kind" value={kind} />
+                            {mandal && <p className="rounded-md bg-surface-bggray/60 px-3 py-2 text-xs text-ink-gray">{t('mandal.typeHint')}</p>}
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <BilingualName
                                     enLabel={t('fundraise.name')}
@@ -141,7 +122,12 @@ export default function CampaignForm({
                                     <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
                                 </Field>
                                 <Field label={t('fundraise.startDate')} error={fe('start_date')}>
-                                    <input type="date" name="start_date" defaultValue={c.start_date ?? ''} className={`${textInput(!!fe('start_date'))} w-full`} />
+                                    <input
+                                        type="date"
+                                        name="start_date"
+                                        defaultValue={c.start_date ?? ''}
+                                        className={`${textInput(!!fe('start_date'))} w-full`}
+                                    />
                                 </Field>
                                 <Field label={t('fundraise.endDate')} error={fe('end_date')}>
                                     <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
@@ -149,59 +135,61 @@ export default function CampaignForm({
                             </div>
                             {/* One description; no separate local-language copy. */}
                             <Field label={t('fundraise.description')}>
-                                <textarea name="description" rows={4} maxLength={5000} defaultValue={meta.description ?? ''} className={`${textArea()} w-full`} />
+                                <textarea
+                                    name="description"
+                                    rows={4}
+                                    maxLength={5000}
+                                    defaultValue={meta.description ?? ''}
+                                    className={`${textArea()} w-full`}
+                                />
                             </Field>
                         </div>
                     </div>
                 </Panel>
 
-                <div className="space-y-3">
-                    <Panel title={t('fundraise.sections.groups')}>
-                        <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
-                            <select
-                                name="group_id"
-                                value={groupSel}
-                                onChange={(e) => {
-                                    setGroupSel(e.target.value);
-                                    if (!e.target.value) setKind('fundraise'); // a Mandal needs a group
-                                }}
-                                className={`${selectInput(!!fe('group_id'))} w-full`}
-                            >
-                                {allowNoGroup && <option value="">{t('fundraise.noHomeGroup')}</option>}
-                                {groups.map((g) => (
-                                    <option key={g.id} value={g.id}>
-                                        {groupName(g)}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        {otherGroups.length > 0 && (
-                            <GroupChecklist
-                                name="extra_group_ids"
-                                label={t('fundraise.alsoInGroups')}
-                                hint={t('fundraise.alsoInGroupsHint')}
-                                error={fe('extra_group_ids')}
-                                groups={otherGroups.map((g) => ({ value: String(g.id), label: groupName(g) }))}
-                                defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
-                                lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
-                            />
-                        )}
-                    </Panel>
-                    {/* An existing fundraise's public link is switched from its detail page. */}
-                    {!c.id && (
-                        <Panel title={t('fundraise.sections.sharing')}>
-                            <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />
+                {mandal ? (
+                    <input type="hidden" name="group_id" value={homeGroup} />
+                ) : (
+                    <div className="space-y-3">
+                        <Panel title={t('fundraise.sections.groups')}>
+                            <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
+                                <select name="group_id" defaultValue={homeGroup} className={`${selectInput(!!fe('group_id'))} w-full`}>
+                                    {allowNoGroup && <option value="">{t('fundraise.noHomeGroup')}</option>}
+                                    {groups.map((g) => (
+                                        <option key={g.id} value={g.id}>
+                                            {groupName(g)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            {otherGroups.length > 0 && (
+                                <GroupChecklist
+                                    name="extra_group_ids"
+                                    label={t('fundraise.alsoInGroups')}
+                                    hint={t('fundraise.alsoInGroupsHint')}
+                                    error={fe('extra_group_ids')}
+                                    groups={otherGroups.map((g) => ({ value: String(g.id), label: groupName(g) }))}
+                                    defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
+                                    lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
+                                />
+                            )}
                         </Panel>
-                    )}
-                    <Panel title={t('fundraise.audience.title')}>
-                        <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} bare />
-                        {/* Off: only the people above see it. On: everyone else too, below their own fundraises. */}
-                        <div className="mt-3 border-t border-surface-border pt-3">
-                            <Switch checked={othersToo} onChange={setOthersToo} name="audience_others" label={t('fundraise.audience.othersToo')} />
-                            <p className="mt-1 text-xs text-ink-gray">{t('fundraise.audience.othersTooHint')}</p>
-                        </div>
-                    </Panel>
-                </div>
+                        {/* An existing fundraise's public link is switched from its detail page. */}
+                        {!c.id && (
+                            <Panel title={t('fundraise.sections.sharing')}>
+                                <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />
+                            </Panel>
+                        )}
+                        <Panel title={t('fundraise.audience.title')}>
+                            <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} bare />
+                            {/* Off: only the people above see it. On: everyone else too, below their own fundraises. */}
+                            <div className="mt-3 border-t border-surface-border pt-3">
+                                <Switch checked={othersToo} onChange={setOthersToo} name="audience_others" label={t('fundraise.audience.othersToo')} />
+                                <p className="mt-1 text-xs text-ink-gray">{t('fundraise.audience.othersTooHint')}</p>
+                            </div>
+                        </Panel>
+                    </div>
+                )}
             </div>
 
             {state?.error && (

@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarDays, Globe, HandCoins, Info, Lock, MessageCircle, Plus, Users } from 'lucide-react';
+import { CalendarClock, CalendarDays, Globe, HandCoins, Info, Lock, MessageCircle, Users } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
@@ -10,7 +10,8 @@ import GroupFormDialog from '@/components/groups/group-form-dialog';
 import GroupDangerCard from '@/components/groups/group-danger-card';
 import { DOT_SIZE } from '@/lib/status-dot';
 import GroupMembers from '@/components/groups/group-members';
-import { Card, LinkButton } from '@/components/shell/page-header';
+import NewFundraiseMenu from '@/components/fundraise/new-fundraise-menu';
+import { Card } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import WaTabs from '@/components/ui/wa-tabs';
 import { canCreateFundraiseIn, groupStanding } from '@/lib/access';
@@ -130,10 +131,8 @@ export default async function GroupPage({ params, searchParams }) {
                 <div className="theme-fundraise space-y-3">
                     {canFundraise && (
                         <div className="flex justify-end">
-                            {/* A fundraise is always started from its group. */}
-                            <LinkButton href={`/fundraise/new?group=${group.id}`} icon={Plus} variant="secondary">
-                                {t('fundraise.add')}
-                            </LinkButton>
+                            {/* Started from its group: a Fundraise, or a Mandal (savings circle) of this group. */}
+                            <NewFundraiseMenu groupId={group.id} />
                         </div>
                     )}
                     {fundraises.length === 0 ? (

@@ -7,7 +7,7 @@ import MandalSheet from '@/components/mandal/mandal-sheet';
 import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
-import { allMarks, canRunMandal, mandalMeetings, mandalMembers, pendingBefore } from '@/lib/mandal';
+import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore } from '@/lib/mandal';
 
 /**
  * The Mandal tab (server component): a summary, the members — with what each still owes and how
@@ -82,6 +82,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                         <ul className="divide-y divide-surface-border">
                             {meetings.map((e) => {
                                 const sheet = marks[e.id] ?? {};
+                                const forThem = plain.filter((m) => isFor(e, m.id) || sheet[m.id]);
                                 const came = Object.values(sheet).filter((x) => x.present).length;
                                 const got = Object.values(sheet).reduce((s, x) => s + Number(x.paid || 0), 0);
                                 return (
@@ -94,16 +95,16 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                                                     .join(' · ')}
                                             </p>
                                             {Object.keys(sheet).length > 0 && (
-                                                <p className="text-xs text-ink-gray tabular-nums">{t('mandal.sheetSummary', { came, total: members.length, amount: money(got) })}</p>
+                                                <p className="text-xs text-ink-gray tabular-nums">{t('mandal.sheetSummary', { came, total: forThem.length, amount: money(got) })}</p>
                                             )}
                                         </div>
                                         {canRun && (
                                             <MandalSheet
                                                 campaignId={campaign.id}
                                                 meeting={e}
-                                                members={plain}
+                                                members={forThem}
                                                 marks={sheet}
-                                                pending={pendingBefore(plain, meetings, marks, e.id)}
+                                                pending={pendingBefore(forThem, meetings, marks, e.id)}
                                             />
                                         )}
                                     </li>

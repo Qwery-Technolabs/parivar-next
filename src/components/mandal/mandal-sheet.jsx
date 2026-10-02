@@ -2,17 +2,20 @@
 import { ClipboardCheck, Save } from 'lucide-react';
 import { useState } from 'react';
 import { saveMandalMeeting } from '@/app/actions/mandal';
-import { Field, textInput } from '@/components/ui/field';
+import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 import { money } from '@/lib/format';
+
+// How a member paid — the contribution modes, minus "Not paid" (what is not paid stays pending).
+const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
 
 /**
  * "Attendance & money" for one Mandal meeting: collect money this time (yes / no) and the amount,
  * then per member — came? and paid. Each member shows what they still owed from earlier
  * meetings, so a returning member's pending amount is collected too.
  * `members`: [{ id, full_name, full_name_local }]; `marks`: userId → { present, paid };
- * `pending`: userId → amount owed before this meeting.
+ * `pending`: userId → amount owed before this meeting. Each payment has a mode (cash, UPI, …).
  */
 export default function MandalSheet({ campaignId, meeting, members, marks, pending }) {
     const { t, locale } = useT();
@@ -24,7 +27,9 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
     return (
         <FormDialog
             title={t('mandal.sheetTitle')}
-            description={[meeting.title_local && locale !== 'en' ? meeting.title_local : meeting.title, meeting.start_date, meeting.location].filter(Boolean).join(' · ')}
+            description={[meeting.title_local && locale !== 'en' ? meeting.title_local : meeting.title, meeting.start_date, meeting.location]
+                .filter(Boolean)
+                .join(' · ')}
             action={saveMandalMeeting}
             hidden={{ campaign_id: campaignId, event_id: meeting.id }}
             submitIcon={Save}
@@ -82,11 +87,18 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                                 const owed = pending[m.id] ?? 0;
                                 const expected = (collect ? each : 0) + owed;
                                 return (
-                                    <li key={m.id} className="grid items-center gap-2 px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto_8rem]">
-                                        <div className="min-w-0">
+                                    <li
+                                        key={m.id}
+                                        className="grid items-center gap-2 px-3 py-2 grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_auto_7rem_7rem]"
+                                    >
+                                        <div className="col-span-3 min-w-0 sm:col-span-1">
                                             <p className="truncate text-sm font-medium text-primary">{name(m)}</p>
                                             <p className="text-xs text-ink-gray tabular-nums">
-                                                {owed > 0 ? <span className="font-medium text-destructive">{t('mandal.pendingFrom', { amount: money(owed) })}</span> : t('mandal.noPending')}
+                                                {owed > 0 ? (
+                                                    <span className="font-medium text-destructive">{t('mandal.pendingFrom', { amount: money(owed) })}</span>
+                                                ) : (
+                                                    t('mandal.noPending')
+                                                )}
                                                 {expected > 0 && <> · {t('mandal.expected', { amount: money(expected) })}</>}
                                             </p>
                                         </div>
@@ -108,6 +120,18 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                                             defaultValue={marks[m.id]?.paid ?? ''}
                                             className={`${textInput(!!fieldError(`paid_${m.id}`))} w-full tabular-nums`}
                                         />
+                                        <select
+                                            name={`mode_${m.id}`}
+                                            aria-label={`${t('fundraise.mode')} — ${name(m)}`}
+                                            defaultValue={marks[m.id]?.mode && MODES.includes(marks[m.id].mode) ? marks[m.id].mode : 'cash'}
+                                            className={`${selectInput()} w-full`}
+                                        >
+                                            {MODES.map((x) => (
+                                                <option key={x} value={x}>
+                                                    {t(`fundraise.modes.${x}`)}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </li>
                                 );
                             })}

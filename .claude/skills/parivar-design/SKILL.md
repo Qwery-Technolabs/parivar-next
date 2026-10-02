@@ -194,6 +194,10 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Public pages: navy header, Samaj logo + name, language toggle on navy.
 - PDF/print is an **icon-only** button (`FileDown`) wherever it appears; print CSS keeps background
   colours (`print-color-adjust: exact`).
+- Fundraise print pages (/fundraise/[id]/print, /p/[token]/print): a no-print "Include in print" chip row under
+  the toolbar — By contributor / Contributions / Expenses, toggled by links to `?show=a,b` (default Contributions only;
+  the last one on can't be switched off). Totals always print.
+- Never `overflow-x: hidden` on html/body — it makes body a scroll box and long pages stop scrolling; use `clip`.
 
 ## i18n in UI
 - Name fields say which script they take: English ones "First name (English)" (`lang.en`), local ones "First name (ગુજરાતી)".

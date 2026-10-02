@@ -27,6 +27,8 @@ export default async function NewFundraisePage({ searchParams }) {
     const parsed = Number.parseInt(sp1(sp.group), 10);
     const groupId = Number.isInteger(parsed) && parsed > 0 ? parsed : null;
     if (!(await canCreateFundraiseIn(user, groupId))) redirect(groupId ? '/groups' : '/fundraise');
+    // ?kind=mandal: a Mandal (savings circle) — always of the group it is started from.
+    const kind = groupId && sp1(sp.kind) === 'mandal' ? 'mandal' : 'fundraise';
 
     const { t, locale } = await getT();
     const all = canManageAllFundraises(user.role);
@@ -47,12 +49,13 @@ export default async function NewFundraisePage({ searchParams }) {
     return (
         <div className="theme-fundraise">
             <PageHeader
-                title={t('fundraise.add')}
+                title={kind === 'mandal' ? t('mandal.new') : t('fundraise.add')}
                 subtitle={group ? localized(group, 'name', locale) : t('fundraise.standalone')}
                 back={back}
                 actions={<StatusSelect t={t} />}
             />
             <CampaignForm
+                    kind={kind}
                     groups={allowed}
                     defaultGroupId={groupId}
                     // Other groups it may also be shown in: the ones this user may create in.

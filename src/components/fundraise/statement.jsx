@@ -1,12 +1,23 @@
 import { date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 
+/** The statement's tables, in order; the print pages let the reader pick which to include. */
+export const STATEMENT_SECTIONS = ['contributors', 'contributions', 'expenses'];
+
+/** `?show=contributors,expenses` → the chosen sections (default: contributions only). */
+export function statementSections(raw) {
+    const picked = String(raw ?? '')
+        .split(',')
+        .filter((s) => STATEMENT_SECTIONS.includes(s));
+    return picked.length ? STATEMENT_SECTIONS.filter((s) => picked.includes(s)) : ['contributions'];
+}
+
 /**
  * The full statement: totals, contributors, contributions, expenses. Used by the
  * public page and both print pages. `publicView` hides names of anonymous gifts
  * and every internal field (references, recorded-by, ids).
  */
-export default function Statement({ campaign, contributors, contributions, expenses, t, locale, publicView = false }) {
+export default function Statement({ campaign, contributors, contributions, expenses, t, locale, publicView = false, sections = STATEMENT_SECTIONS }) {
     const collected = Number(campaign.collected);
     const spent = Number(campaign.spent);
     const name = (row) => (publicView && row.is_anonymous ? t('fundraise.anonymousLabel') : row.donor_name);
@@ -16,43 +27,44 @@ export default function Statement({ campaign, contributors, contributions, expen
         <div className="space-y-6 print:space-y-4">
             {description && <p className="whitespace-pre-line text-sm text-ink break-words">{description}</p>}
 
-            <Section title={t('fundraise.byContributor')} note={t('fundraise.contributorCount', { count: contributors.length })}>
-                <Table
-                    head={[t('fundraise.donor'), t('fundraise.entries'), t('fundraise.amount')]}
-                    numeric={[false, true, true]}
-                    empty={t('fundraise.noContributions')}
-                    rows={contributors.map((c) => [name(c), c.entries, money(c.total)])}
-                    foot={[t('common.total'), contributions.length, money(collected)]}
-                    footTone="text-income"
-                />
-            </Section>
+            {sections.includes('contributors') && (
+                <Section title={t('fundraise.byContributor')} note={t('fundraise.contributorCount', { count: contributors.length })}>
+                    <Table
+                        head={[t('fundraise.donor'), t('fundraise.entries'), t('fundraise.amount')]}
+                        numeric={[false, true, true]}
+                        empty={t('fundraise.noContributions')}
+                        rows={contributors.map((c) => [name(c), c.entries, money(c.total)])}
+                        foot={[t('common.total'), contributions.length, money(collected)]}
+                        footTone="text-income"
+                    />
+                </Section>
+            )}
 
-            <Section title={t('fundraise.contributions')} note={t('fundraise.count', { count: contributions.length })}>
-                <Table
-                    head={[t('common.date'), t('fundraise.donor'), t('fundraise.mode'), t('fundraise.amount')]}
-                    numeric={[false, false, false, true]}
-                    empty={t('fundraise.noContributions')}
-                    rows={contributions.map((c) => [
-                        date(c.paid_on, locale),
-                        name(c),
-                        t(`fundraise.modes.${c.mode}`),
-                        money(c.amount),
-                    ])}
-                    foot={[t('common.total'), '', '', money(collected)]}
-                    footTone="text-income"
-                />
-            </Section>
+            {sections.includes('contributions') && (
+                <Section title={t('fundraise.contributions')} note={t('fundraise.count', { count: contributions.length })}>
+                    <Table
+                        head={[t('common.date'), t('fundraise.donor'), t('fundraise.mode'), t('fundraise.amount')]}
+                        numeric={[false, false, false, true]}
+                        empty={t('fundraise.noContributions')}
+                        rows={contributions.map((c) => [date(c.paid_on, locale), name(c), t(`fundraise.modes.${c.mode}`), money(c.amount)])}
+                        foot={[t('common.total'), '', '', money(collected)]}
+                        footTone="text-income"
+                    />
+                </Section>
+            )}
 
-            <Section title={t('fundraise.expenses')} note={t('fundraise.count', { count: expenses.length })}>
-                <Table
-                    head={[t('common.date'), t('fundraise.expenseWhat'), t('fundraise.expenseWhere'), t('fundraise.amount')]}
-                    numeric={[false, false, false, true]}
-                    empty={t('fundraise.noExpenses')}
-                    rows={expenses.map((e) => [date(e.spent_on, locale), e.title, e.place || '—', money(e.amount)])}
-                    foot={[t('common.total'), '', '', money(spent)]}
-                    footTone="text-expense"
-                />
-            </Section>
+            {sections.includes('expenses') && (
+                <Section title={t('fundraise.expenses')} note={t('fundraise.count', { count: expenses.length })}>
+                    <Table
+                        head={[t('common.date'), t('fundraise.expenseWhat'), t('fundraise.expenseWhere'), t('fundraise.amount')]}
+                        numeric={[false, false, false, true]}
+                        empty={t('fundraise.noExpenses')}
+                        rows={expenses.map((e) => [date(e.spent_on, locale), e.title, e.place || '—', money(e.amount)])}
+                        foot={[t('common.total'), '', '', money(spent)]}
+                        footTone="text-expense"
+                    />
+                </Section>
+            )}
 
             <div className="flex flex-wrap justify-end gap-x-6 gap-y-1 border-t border-surface-border pt-3 text-sm">
                 <span className="text-ink-gray">

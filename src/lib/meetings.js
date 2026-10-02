@@ -32,14 +32,9 @@ export async function meetingScope(user, scope, scopeId) {
         };
     }
     if (scope === 'fundraise') {
-        const c = await queryOne('SELECT id, group_id, title, title_local FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
+        const c = await queryOne('SELECT id, group_id, kind, title, title_local FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
         if (!c) return null;
-        const people = await query(
-            `SELECT user_id FROM fundraise_members WHERE campaign_id = :scopeId
-             UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id
-              WHERE fg.campaign_id = :scopeId`,
-            { scopeId },
-        );
+        const people = await query(FUNDRAISE_PEOPLE, { scopeId });
         return {
             scope,
             scopeId,
@@ -179,17 +174,25 @@ export async function scopeBirthdays(scope, scopeId) {
     return rows.map((r) => ({ id: r.id, name: r.full_name, nameLocal: r.full_name_local, month: r.m, day: r.d, born: r.born, role: r.role }));
 }
 
+/**
+ * Who a fundraise's meeting can invite: its team + the members of its groups; for a Mandal, its
+ * own members (fundraise_subscribers).
+ */
+const FUNDRAISE_PEOPLE = `
+    SELECT s.user_id FROM fundraise_subscribers s JOIN fundraise_campaigns c ON c.id = s.campaign_id AND c.kind = 'mandal'
+     WHERE s.campaign_id = :scopeId
+    UNION SELECT fm.user_id FROM fundraise_members fm JOIN fundraise_campaigns c ON c.id = fm.campaign_id AND c.kind <> 'mandal'
+     WHERE fm.campaign_id = :scopeId
+    UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id
+      JOIN fundraise_campaigns c ON c.id = fg.campaign_id AND c.kind <> 'mandal'
+     WHERE fg.campaign_id = :scopeId`;
+
 /** Everyone a group / fundraise meeting can invite right now (same as meetingScope's candidates). */
 async function scopeCandidateIds(scope, scopeId) {
     const rows =
         scope === 'group'
             ? await query('SELECT user_id FROM admin_group_members WHERE group_id = :scopeId', { scopeId })
-            : await query(
-                  `SELECT user_id FROM fundraise_members WHERE campaign_id = :scopeId
-                   UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id
-                    WHERE fg.campaign_id = :scopeId`,
-                  { scopeId },
-              );
+            : await query(FUNDRAISE_PEOPLE, { scopeId });
     return rows.map((r) => r.user_id);
 }
 

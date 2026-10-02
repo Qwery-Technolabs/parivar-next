@@ -252,6 +252,8 @@ const gu = {
     mandal: {
         tab: 'મંડળ',
         badge: 'મંડળ',
+        new: 'નવું મંડળ',
+        newMenu: 'નવું',
         type: 'પ્રકાર',
         kinds: { fundraise: 'ફંડ ફાળો', mandal: 'મંડળ (બચત)' },
         typeHint: 'દરેક મંડળ મીટિંગમાં સભ્યો નક્કી રકમ ભરે; ચૂકી જાય તો આગળની મીટિંગમાં ભરવાની.',
@@ -652,6 +654,7 @@ const gu = {
         regenerate: 'નવી લિંક',
         regenerateConfirm: 'જૂની લિંક બંધ થઈ જશે. આગળ વધવું છે?',
         byContributor: 'દાતા મુજબ',
+        printInclude: 'પ્રિન્ટમાં સામેલ:',
         progress: 'લક્ષ્યના {pct}%',
         created: 'ફંડ ફાળો બન્યો.',
         publicTitle: 'ફંડ ફાળાનો હિસાબ',

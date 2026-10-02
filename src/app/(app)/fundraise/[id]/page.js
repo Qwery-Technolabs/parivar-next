@@ -12,6 +12,7 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import MandalTab from '@/components/mandal/mandal-tab';
+import { mandalMeetings, mandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
@@ -83,6 +84,11 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     const base = `/fundraise/${campaign.id}`;
     const today = todayLocal();
     const upNext = await nextMeeting(campaign.id, today);
+    // A Mandal's pending money = what its members still owe (missed / short payments).
+    if (campaign.kind === 'mandal') {
+        const members = await mandalMembers(campaign.id, await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0), today);
+        campaign.pending = Number(campaign.pending || 0) + members.reduce((s, m) => s + m.due, 0);
+    }
 
     const groupName = localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale);
     const collected = Number(campaign.collected);
@@ -175,7 +181,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     // "Add to group": groups this person may start a fundraise in (all, for fundraise managers)
     // that it is not shown in yet.
     let addableGroups = [];
-    if (perms.manage) {
+    if (perms.manage && campaign.kind !== 'mandal') {
         const all = canManageAllFundraises(user.role);
         const [groups, mine] = await Promise.all([listGroupsForSelect(), all ? [] : fundraiseGroupIds(user.id)]);
         const linked = new Set([campaign.group_id, ...(campaign.groups ?? []).map((g) => g.id)]);

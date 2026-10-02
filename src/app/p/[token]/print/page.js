@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 import PrintSheet from '@/components/fundraise/print-sheet';
+import { statementSections } from '@/components/fundraise/statement';
 import { contributorTotals, getCampaignByToken, listContributions, listExpenses } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
+import { sp1 } from '@/lib/url';
 
 export async function generateMetadata({ params }) {
     const { token } = await params;
@@ -14,8 +16,9 @@ export async function generateMetadata({ params }) {
     };
 }
 
-export default async function PublicFundraisePrintPage({ params }) {
+export default async function PublicFundraisePrintPage({ params, searchParams }) {
     const { token } = await params;
+    const sections = statementSections(sp1((await searchParams).show));
     const campaign = await getCampaignByToken(token);
     if (!campaign) notFound();
 
@@ -35,6 +38,8 @@ export default async function PublicFundraisePrintPage({ params }) {
             t={t}
             locale={locale}
             backHref={`/p/${token}`}
+            basePath={`/p/${token}/print`}
+            sections={sections}
             publicView
         />
     );

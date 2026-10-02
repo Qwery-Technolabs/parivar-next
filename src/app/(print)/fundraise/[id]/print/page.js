@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import LedgerSheet from '@/components/fundraise/ledger-sheet';
 import PrintSheet from '@/components/fundraise/print-sheet';
+import { statementSections } from '@/components/fundraise/statement';
 import { canManageFundraise } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { canSeeCampaign, contributorTotals, getCampaign, listContributions, listExpenses } from '@/lib/fundraise';
@@ -57,6 +58,8 @@ export default async function FundraisePrintPage({ params, searchParams }) {
             t={t}
             locale={locale}
             backHref={`/fundraise/${campaign.id}`}
+            basePath={`/fundraise/${campaign.id}/print`}
+            sections={statementSections(sp1(sp.show))}
             // Anonymous gifts show the donor's name to managers only.
             publicView={!manage}
         />

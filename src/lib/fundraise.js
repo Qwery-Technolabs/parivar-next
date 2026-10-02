@@ -32,14 +32,22 @@ const FOR_YOU = `EXISTS (
  * Audience = WHO SEES IT. No rows → everyone. With rows → only matching members, unless the
  * "also show everyone else, lower down" switch is on (meta audience_others = '1'). Its team and
  * the admins / sub-admins of its groups always see it; app-level managers skip this check.
+ * A Mandal (kind 'mandal') ignores all that: only its group's members, its own members and its team.
  */
 const AUDIENCE_OK = `(
+    (c.kind = 'mandal' AND (
+        EXISTS (SELECT 1 FROM admin_group_members mgx WHERE mgx.group_id = c.group_id AND mgx.user_id = :viewerId)
+        OR EXISTS (SELECT 1 FROM fundraise_subscribers msx WHERE msx.campaign_id = c.id AND msx.user_id = :viewerId)
+        OR EXISTS (SELECT 1 FROM fundraise_members mtx WHERE mtx.campaign_id = c.id AND mtx.user_id = :viewerId)
+    ))
+    OR (c.kind <> 'mandal' AND (
     NOT EXISTS (SELECT 1 FROM fundraise_audience ax WHERE ax.campaign_id = c.id)
     OR EXISTS (SELECT 1 FROM fundraise_campaignsmeta mx WHERE mx.campaign_id = c.id AND mx.meta_key = 'audience_others' AND mx.meta_value = '1')
     OR ${FOR_YOU}
     OR EXISTS (SELECT 1 FROM fundraise_members tx WHERE tx.campaign_id = c.id AND tx.user_id = :viewerId)
     OR EXISTS (SELECT 1 FROM fundraise_groups gx JOIN admin_group_members gmx ON gmx.group_id = gx.group_id AND gmx.user_id = :viewerId
                 AND gmx.member_role IN ('admin', 'sub_admin') WHERE gx.campaign_id = c.id)
+    ))
 )`;
 
 /** The audience filter for one viewer, as { sql, params } over alias `c` (app-level managers: none). */
@@ -100,6 +108,8 @@ export async function listCampaigns(user, { status, groupId, q = '', archived = 
     if (groupId) {
         where.push('EXISTS (SELECT 1 FROM fundraise_groups fg WHERE fg.campaign_id = c.id AND fg.group_id = :groupId)');
         params.groupId = groupId;
+    } else {
+        where.push("c.kind <> 'mandal'"); // a Mandal lives in its group only, not in the Fundraise feed
     }
     if (q) {
         where.push('(c.title LIKE :q OR c.title_local LIKE :q)');

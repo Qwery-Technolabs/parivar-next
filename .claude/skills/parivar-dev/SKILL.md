@@ -138,11 +138,15 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Meeting audience**: saved as events_listmeta `audience` = 'all' | 'selected'. 'all' = everyone, **including people who
   join later**: `syncEveryoneMeetings` (lib/meetings.js) adds current group / fundraise members to upcoming 'all' meetings when a
   meeting list opens and before reminders are sent. 'selected' stays a fixed list.
-- **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (chosen on create, inside a group only; fixed after).
+- **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
+  A Mandal is its group's own: the form hides group / other groups / public link / audience (server forces them off);
+  seen only by its group's members, its members and team (AUDIENCE_OK); never in the /fundraise feed. Its pending
+  (summary) = members' dues.
   lib/mandal.js + actions/mandal.js + components/mandal/*, tab "Mandal" on the fundraise page. Members =
   fundraise_subscribers (added by admins / sub-admins / its treasurer / collector — `canRunMandal`; pick or invite by phone).
-  Meetings = the fundraise's own meetings; per meeting meta collect ('1'/'0') + installment (default = campaign meta
-  installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a cash contribution per payment (so the
+  Meetings = the fundraise's own meetings, inviting its members — everyone or chosen ones (FUNDRAISE_PEOPLE in
+  lib/meetings; dues and the sheet count only the members a meeting is for, `isFor`); per meeting meta collect ('1'/'0') + installment (default = campaign meta
+  installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a contribution per payment in the chosen mode (cash / UPI / bank / cheque / other) (so the
   ledger / totals include it). Dues = installments of collecting meetings held since joining − paid; missed = absent marks
   since last present (+ days away). Opening balance = one "Opening balance" contribution (meta opening_contribution_id).
 - **Discussion moderation** (`chatAccess`): delete others' messages = admins + sub-admins (group standing; fundraise

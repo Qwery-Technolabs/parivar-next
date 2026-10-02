@@ -100,7 +100,9 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
                     </Card>
                 </section>
                 {/* Draws its own card, with the public switch in the header. */}
-                <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
+                {campaign.kind !== 'mandal' && (
+                    <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
+                )}
             </div>
         </div>
     );

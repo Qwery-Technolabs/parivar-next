@@ -5,10 +5,12 @@ import { getCurrentUser } from '@/lib/auth';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { id, str } from '@/lib/forms';
 import { ensureInvitedUser } from '@/lib/invite';
-import { canRunMandal } from '@/lib/mandal';
+import { canRunMandal, isFor, mandalMeetings } from '@/lib/mandal';
+import { syncEveryoneMeetings } from '@/lib/meetings';
 import { normalizePhone } from '@/lib/phone';
 
 const FORBIDDEN = { error: 'common.forbidden' };
+const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
 
 async function loadMandal(campaignId) {
     return queryOne("SELECT id, group_id, title, kind FROM fundraise_campaigns WHERE id = :campaignId AND kind = 'mandal'", { campaignId });
@@ -35,6 +37,8 @@ export async function addMandalMember(prev, fd) {
         if (!userId || !(await queryOne('SELECT id FROM users_list WHERE id = :userId', { userId }))) return { fieldErrors: { user_id: 'common.required' } };
     }
     await query('INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by) VALUES (:c, :u, :by)', { c: campaign.id, u: userId, by: actor.id });
+    // Upcoming "everyone" meetings of the Mandal invite the new member too.
+    await syncEveryoneMeetings({ scope: 'fundraise', scopeId: campaign.id });
     await audit(actor.id, 'mandal.member.add', 'fundraise', campaign.id, { userId });
     refresh(campaign.id);
     return { ok: true, message: 'mandal.memberAdded' };
@@ -53,8 +57,9 @@ export async function removeMandalMember(campaignId, userId) {
 
 /**
  * One Mandal meeting's sheet: collect money this time (yes / no), the amount, and per member
- * whether they came and what they paid (present_<id> = '1', paid_<id> = amount). A payment is a
- * contribution row (cash, on the meeting's date) so it shows in the ledger and totals; clearing
+ * whether they came, what they paid and how (present_<id> = '1', paid_<id> = amount, mode_<id> =
+ * cash | upi | bank | cheque | other). Only the members this meeting is for. A payment is a
+ * contribution row (that mode, on the meeting's date) so it shows in the ledger and totals; clearing
  * it removes that row again.
  */
 export async function saveMandalMeeting(prev, fd) {
@@ -71,19 +76,20 @@ export async function saveMandalMeeting(prev, fd) {
     const rawAmount = str(fd, 'installment', 12);
     const installment = rawAmount ? Number(rawAmount) : 0;
     if (collect && (!Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
-    const members = await query(
-        `SELECT s.user_id, u.full_name FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id WHERE s.campaign_id = :c`,
-        { c: campaign.id },
-    );
     const existing = new Map(
         (await query('SELECT user_id, contribution_id FROM fundraise_mandal_marks WHERE event_id = :eventId', { eventId })).map((r) => [r.user_id, r.contribution_id]),
     );
+    const target = (await mandalMeetings(campaign.id, 0)).find((e) => e.id === eventId);
+    const members = (
+        await query(`SELECT s.user_id, u.full_name FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id WHERE s.campaign_id = :c`, { c: campaign.id })
+    ).filter((m) => !target || isFor(target, m.user_id) || existing.has(m.user_id));
     const fieldErrors = {};
     const rows = members.map((m) => {
         const raw = str(fd, `paid_${m.user_id}`, 12);
         const paid = raw ? Number(raw) : null;
         if (raw && (!Number.isFinite(paid) || paid < 0)) fieldErrors[`paid_${m.user_id}`] = 'mandal.errors.amount';
-        return { ...m, present: fd.get(`present_${m.user_id}`) === '1', paid: paid && paid > 0 ? Math.round(paid * 100) / 100 : null };
+        const mode = MODES.includes(String(fd.get(`mode_${m.user_id}`))) ? String(fd.get(`mode_${m.user_id}`)) : 'cash';
+        return { ...m, present: fd.get(`present_${m.user_id}`) === '1', paid: paid && paid > 0 ? Math.round(paid * 100) / 100 : null, mode };
     });
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
@@ -93,16 +99,17 @@ export async function saveMandalMeeting(prev, fd) {
             let contributionId = existing.get(r.user_id) ?? null;
             if (r.paid) {
                 if (contributionId) {
-                    await q('UPDATE fundraise_contributions SET amount = :amount, paid_on = :day, deleted_at = NULL, deleted_by = NULL WHERE id = :id', {
+                    await q('UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, deleted_at = NULL, deleted_by = NULL WHERE id = :id', {
                         amount: r.paid,
+                        mode: r.mode,
                         day: meeting.start_date,
                         id: contributionId,
                     });
                 } else {
                     const ins = await q(
                         `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by)
-                         VALUES (:c, :u, :name, :amount, :day, 'cash', :ref, :by)`,
-                        { c: campaign.id, u: r.user_id, name: r.full_name, amount: r.paid, day: meeting.start_date, ref: `Mandal ${meeting.start_date}`.slice(0, 100), by: actor.id },
+                         VALUES (:c, :u, :name, :amount, :day, :mode, :ref, :by)`,
+                        { c: campaign.id, u: r.user_id, name: r.full_name, amount: r.paid, mode: r.mode, day: meeting.start_date, ref: `Mandal ${meeting.start_date}`.slice(0, 100), by: actor.id },
                     );
                     contributionId = ins.insertId;
                 }

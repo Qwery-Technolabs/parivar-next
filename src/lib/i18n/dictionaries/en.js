@@ -251,6 +251,8 @@ const en = {
     mandal: {
         tab: 'Mandal',
         badge: 'Mandal',
+        new: 'New Mandal',
+        newMenu: 'New',
         type: 'Type',
         kinds: { fundraise: 'Fundraise', mandal: 'Mandal (savings circle)' },
         typeHint: 'Members pay a fixed amount at each Mandal meeting; a missed payment is carried to the next one.',
@@ -651,6 +653,7 @@ const en = {
         regenerate: 'New link',
         regenerateConfirm: 'The old link will stop working. Continue?',
         byContributor: 'By contributor',
+        printInclude: 'Include in print:',
         progress: '{pct}% of target',
         created: 'Fundraise created.',
         publicTitle: 'Fundraise statement',

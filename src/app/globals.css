@@ -135,7 +135,7 @@ html {
    and no rubber-band / sideways drift of the whole page on phones (overscroll-behavior). */
 html,
 body {
-  overflow-x: hidden;
+  overflow-x: clip; /* not hidden: hidden on both html and body makes body a scroll box and the page stops scrolling */
   max-width: 100%;
   overscroll-behavior: none;
   touch-action: pan-x pan-y;
