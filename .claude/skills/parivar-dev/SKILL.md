@@ -123,6 +123,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   card daughter / sister rows, tree hover when she is a blood node, relation chain reached via 'daughter' / 'sister').
   `fillFatherNames` fills her maiden_* from her father and an empty husband part from her husband — never her main middle
   from her father. Live backfilled 2026-10-02.
+- **"Everyone" meetings** (events_listmeta audience 'all'): people who join are invited AT ONCE — `syncGroupJoin(groupId)`
+  after any group add (pick, phone invite, bulk add; also fills "everyone" Mandals of that group), `syncEveryoneMeetings`
+  after a fundraise team add or a Mandal member add — plus the lazy sync on meeting lists and reminders.
+  `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
 - **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮): list = every surname in use

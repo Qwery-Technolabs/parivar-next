@@ -15,6 +15,7 @@ import { canManageAllFundraises } from '@/lib/roles';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { normalizePhone } from '@/lib/phone';
 import { getSettings } from '@/lib/settings';
+import { syncEveryoneMeetings } from '@/lib/meetings';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -823,6 +824,7 @@ export async function saveTeamMember(prev, fd) {
          ON DUPLICATE KEY UPDATE member_role = VALUES(member_role)`,
         { campaignId, userId, role, by: user.id },
     );
+    if (!before) await syncEveryoneMeetings({ scope: 'fundraise', scopeId: campaignId }); // its upcoming "Everyone" meetings
     await audit(user.id, before ? 'fundraise.team.role' : 'fundraise.team.add', 'fundraise', campaignId, {
         user: userId,
         role,

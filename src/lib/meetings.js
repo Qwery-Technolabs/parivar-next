@@ -199,10 +199,30 @@ async function scopeCandidateIds(scope, scopeId) {
 }
 
 /**
+ * Someone joined a group: right away, (1) Mandals of that group set to "everyone in the group" take
+ * them as members, and (2) upcoming "Everyone" meetings of the group — and of every fundraise / Mandal
+ * shown in it — invite them. Call after adding group members (any way: pick, phone, bulk).
+ */
+export async function syncGroupJoin(groupId) {
+    if (!groupId) return;
+    await query(
+        `INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by)
+         SELECT c.id, gm.user_id, NULL FROM fundraise_campaigns c
+           JOIN fundraise_campaignsmeta m ON m.campaign_id = c.id AND m.meta_key = 'members_mode' AND m.meta_value = 'all'
+           JOIN admin_group_members gm ON gm.group_id = c.group_id
+          WHERE c.kind = 'mandal' AND c.group_id = :groupId`,
+        { groupId },
+    );
+    await syncEveryoneMeetings({ scope: 'group', scopeId: groupId });
+    const campaigns = await query('SELECT campaign_id FROM fundraise_groups WHERE group_id = :groupId', { groupId });
+    for (const c of campaigns) await syncEveryoneMeetings({ scope: 'fundraise', scopeId: c.campaign_id });
+}
+
+/**
  * "Everyone" means everyone — also people who join later: for upcoming meetings saved with
  * audience = 'all' (events_listmeta), invite anyone now in the group / fundraise who is not on
- * the list yet. Runs when a meeting list opens and before reminders go out. Past meetings and
- * "chosen people" meetings are left as they are.
+ * the list yet. Runs when people join (syncGroupJoin, team / Mandal adds), when a meeting list opens
+ * and before reminders go out. Past meetings and "chosen people" meetings are left as they are.
  * @param {{ scope?: 'group'|'fundraise', scopeId?: number, eventIds?: number[] }} where
  */
 export async function syncEveryoneMeetings({ scope, scopeId, eventIds } = {}) {

@@ -88,7 +88,7 @@ export async function saveMandalMeeting(prev, fd) {
         { eventId, c: campaign.id },
     );
     if (!meeting) return FORBIDDEN;
-    if ((await getMeta('events_list', eventId, 'archived')) === '1') return { error: 'mandal.errors.archived' };
+    if ((await getMeta('events_list', eventId)).archived === '1') return { error: 'mandal.errors.archived' };
     const collect = fd.get('collect') === '1';
     const rawAmount = str(fd, 'installment', 12);
     const installment = rawAmount ? Number(rawAmount) : 0;
@@ -182,7 +182,7 @@ export async function saveMandalSchedule(prev, fd) {
     if (eventId) {
         const ev = await queryOne("SELECT id FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", { eventId, c: campaign.id });
         if (!ev) return FORBIDDEN;
-        if ((await getMeta('events_list', eventId, 'archived')) === '1') return { error: 'mandal.errors.archived' };
+        if ((await getMeta('events_list', eventId)).archived === '1') return { error: 'mandal.errors.archived' };
     }
     const title = `${formatDate(day, 'en')} - Mandal`;
     const titleLocal = `${formatDate(day, 'gu')} - મંડળ`;

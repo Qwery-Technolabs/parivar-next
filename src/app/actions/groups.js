@@ -13,6 +13,7 @@ import { id, oneOf, str, strOrNull } from '@/lib/forms';
 import { normalizePhone } from '@/lib/phone';
 import { notify } from '@/lib/notifications';
 import { canManageGroups } from '@/lib/roles';
+import { syncGroupJoin } from '@/lib/meetings';
 
 async function notifyGroupRole(userId, groupId, memberRole, actorId) {
     const g = await queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId });
@@ -106,6 +107,7 @@ export async function addGroupMember(prev, fd) {
     await audit(actor.id, memberRole === 'admin' ? 'group.admin' : 'group.member.add', 'group', groupId, { userId });
     await notifyGroupRole(userId, groupId, memberRole, actor.id);
     if (!already) await postMemberNote(groupId, actor.id, 'added', [userId]);
+    await syncGroupJoin(groupId); // upcoming "Everyone" meetings + "everyone" Mandals take them now
     revalidatePath(`/groups/${groupId}`);
     return { ok: true, message: 'common.saved' };
 }
@@ -146,6 +148,7 @@ export async function inviteGroupMember(prev, fd) {
     await audit(actor.id, 'group.member.add', 'group', groupId, { userId: user.id, invited: created });
     if (!created) await notifyGroupRole(user.id, groupId, memberRole, actor.id);
     if (!already) await postMemberNote(groupId, actor.id, 'added', [user.id]);
+    await syncGroupJoin(groupId); // upcoming "Everyone" meetings + "everyone" Mandals take them now
     revalidatePath(`/groups/${groupId}`);
     revalidatePath('/members');
     return { ok: true, message: created ? 'groups.invite.created' : 'common.saved', vars: { phone } };

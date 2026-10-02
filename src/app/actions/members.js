@@ -15,6 +15,7 @@ import { notify, notifyMany } from '@/lib/notifications';
 import { ensureInvitedUser } from '@/lib/invite';
 import { normalizePhone } from '@/lib/phone';
 import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword } from '@/lib/roles';
+import { syncGroupJoin } from '@/lib/meetings';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -270,6 +271,7 @@ async function applyGroupMembership(actor, userIds, groupIds, memberRole) {
         });
         out.added += added.length;
         out.promoted += promoted.length;
+        if (added.length) await syncGroupJoin(groupId); // upcoming "Everyone" meetings + "everyone" Mandals
         const data = { group: group.name, group_local: group.name_local };
         const link = `/groups/${groupId}`;
         const becameAdmin = memberRole === 'admin' ? [...added, ...promoted] : [];

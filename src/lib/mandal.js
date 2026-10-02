@@ -157,7 +157,7 @@ export async function allMarks(campaignId) {
  */
 export async function syncMandalMembers(campaign) {
     if (campaign?.kind !== 'mandal' || !campaign.group_id) return;
-    const mode = campaign.meta?.members_mode ?? (await getMeta('fundraise_campaigns', campaign.id, 'members_mode'));
+    const mode = campaign.meta?.members_mode ?? (await getMeta('fundraise_campaigns', campaign.id)).members_mode;
     if (mode !== 'all') return;
     await query(
         `INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by)
