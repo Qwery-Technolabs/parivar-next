@@ -98,7 +98,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   spouses → married). **Who sees / edits**: `canSeeFamily` = self, member managers, whoever added the person, or
   anyone connected in the tree (`familyIds`: all links read in ONE query per request (`allLinks`, React cache), walked in
   memory — never one query per generation; that queued requests with 4+ users). Children (tree, Family card) and siblings are
-  ordered by `byAge`: eldest first, left to right, among those with a birth date; people without one keep their added order. Tree-added people (meta added_via='family')
+  ordered by `byAge`: eldest first, left to right, among those with a birth date; people without one keep their added order.
+  Tree page switches: "Married daughters" (on by default; off hides every married daughter — married/widowed/divorced or
+  with a husband — and her branch, in every chain, except the person whose tree it is) and "Details". Tree-added people (meta added_via='family')
   hide phone / dob / marital status from others (profile, Members list, member search). Male-line picker
   (father / brother / son) searches the person's surname only (`/api/members/search?surname=…&family=1`).
   Whoever added a relative who never signed in may edit them (`canEditUser` — the target row must carry

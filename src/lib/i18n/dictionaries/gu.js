@@ -427,6 +427,7 @@ const gu = {
     family: {
         change: 'બદલો',
         gestureHint: 'ખેંચીને ફરો · બે આંગળીથી (કે Ctrl + સ્ક્રોલ) નાનું-મોટું કરો.',
+        marriedDaughters: 'પરિણીત દીકરીઓ',
         fullName: 'પૂરું નામ',
         changeName: 'અટક / પિતાનું નામ બદલો',
         title: 'પરિવાર',

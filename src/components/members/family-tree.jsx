@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import Switch from '@/components/ui/switch';
 import { age } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
-import { birthName } from '@/lib/names';
+import { birthName, MARRIED_LIKE } from '@/lib/names';
 
 /** Avatar silhouettes: a man, and a woman (longer hair). White on the tile. */
 function ManIcon({ className = '' }) {
@@ -84,7 +84,12 @@ function PersonTile({ p, isRoot, showDetails, leaf = false, birth = false }) {
  * A couple in one light card — husband always left, wife right — or a single person's card.
  * Children hang below from the middle of the card (lines in globals.css .ftree).
  */
-function Branch({ node, rootId, showDetails }) {
+/** A daughter who has married (status married / widowed / divorced, or a recorded husband). */
+const marriedDaughter = (n) => n.gender === 'female' && (MARRIED_LIKE.includes(n.marital_status) || n.spouses.length > 0);
+
+function Branch({ node, rootId, showDetails, hideMarried }) {
+    // "Married daughters" off: married daughters (and their branch) leave every chain — but never the person whose tree it is.
+    const kids = hideMarried ? node.children.filter((c) => c.id === rootId || !marriedDaughter(c)) : node.children;
     const people = [node, ...node.spouses];
     const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
@@ -96,15 +101,15 @@ function Branch({ node, rootId, showDetails }) {
                         p={p}
                         isRoot={p.id === rootId}
                         showDetails={showDetails}
-                        leaf={p.id === node.id && node.spouses.length === 0 && node.children.length === 0}
+                        leaf={p.id === node.id && node.spouses.length === 0 && kids.length === 0}
                         birth={p.id === node.id}
                     />
                 ))}
             </div>
-            {node.children.length > 0 && (
+            {kids.length > 0 && (
                 <ul>
-                    {node.children.map((c) => (
-                        <Branch key={c.id} node={c} rootId={rootId} showDetails={showDetails} />
+                    {kids.map((c) => (
+                        <Branch key={c.id} node={c} rootId={rootId} showDetails={showDetails} hideMarried={hideMarried} />
                     ))}
                 </ul>
             )}
@@ -124,6 +129,7 @@ const MAX_ZOOM = 1.8;
 export default function FamilyTree({ tree }) {
     const { t } = useT();
     const [showDetails, setShowDetails] = useState(false);
+    const [showMarried, setShowMarried] = useState(true);
     const [zoom, setZoom] = useState(1);
     const zoomRef = useRef(1);
     const box = useRef(null);
@@ -230,7 +236,10 @@ export default function FamilyTree({ tree }) {
                     </span>
                     <span className="hidden sm:inline">· {t('family.gestureHint')}</span>
                 </p>
-                <Switch checked={showDetails} onChange={setShowDetails} label={t('members.details')} />
+                <div className="flex flex-wrap items-center gap-4">
+                    <Switch checked={showMarried} onChange={setShowMarried} label={t('family.marriedDaughters')} />
+                    <Switch checked={showDetails} onChange={setShowDetails} label={t('members.details')} />
+                </div>
             </div>
             <div
                 ref={box}
@@ -242,7 +251,7 @@ export default function FamilyTree({ tree }) {
             >
                 <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
                     <ul>
-                        <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} />
+                        <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} hideMarried={!showMarried} />
                     </ul>
                 </div>
             </div>

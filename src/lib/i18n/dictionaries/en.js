@@ -426,6 +426,7 @@ const en = {
     family: {
         change: 'Change',
         gestureHint: 'Drag to move · pinch (or Ctrl + scroll) to zoom.',
+        marriedDaughters: 'Married daughters',
         fullName: 'Full name',
         changeName: 'Change surname / father’s name',
         title: 'Family',
