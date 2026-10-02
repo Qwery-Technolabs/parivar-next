@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Field, textInput } from '@/components/ui/field';
 import MemberPicker from '@/components/ui/member-picker';
 import { useT } from '@/lib/i18n/client';
+import { examplePlaceholders } from '@/lib/examples';
 
 /**
  * Pick a registered member, or type a mobile number (registered or not — the server invites
@@ -49,8 +50,15 @@ export default function PersonOrPhone({ fieldError, pickerName, exclude = [], al
                     <Field label={t('members.phone')} hint={t('groups.invite.phoneHint')} error={fieldError('phone')} required>
                         <input name="phone" type="tel" inputMode="numeric" required className={`${textInput(!!fieldError('phone'))} w-full tabular-nums`} />
                     </Field>
-                    <Field label={t('groups.invite.nameOptional')}>
-                        <input name="full_name" maxLength={150} autoComplete="off" className={`${textInput()} w-full`} />
+                    {/* In English, in the order the server splits it: first name, father's name, surname. */}
+                    <Field label={t('groups.invite.nameOptional')} hint={t('common.fullNameOrder')}>
+                        <input
+                            name="full_name"
+                            maxLength={150}
+                            autoComplete="off"
+                            placeholder={examplePlaceholders('fullName').en}
+                            className={`${textInput()} w-full`}
+                        />
                     </Field>
                     <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">{t('groups.invite.passwordNote')}</p>
                 </>

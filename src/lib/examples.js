@@ -4,6 +4,7 @@
 const PREFIX = { en: 'e.g.', gu: 'ઉદા.', hi: 'उदा.' };
 
 const EXAMPLES = {
+    fullName: { en: 'Ramesh Mahesh Patel', gu: 'રમેશ મહેશ પટેલ', hi: 'रमेश महेश पटेल' },
     firstName: { en: 'Ramesh', gu: 'રમેશ', hi: 'रमेश' },
     fatherName: { en: 'Mahesh', gu: 'મહેશ', hi: 'महेश' },
     husbandName: { en: 'Suresh', gu: 'સુરેશ', hi: 'सुरेश' },

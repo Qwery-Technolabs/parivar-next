@@ -7,6 +7,7 @@ import FormDialog from '@/components/ui/form-dialog';
 import GroupChecklist from '@/components/ui/group-checklist';
 import { useT } from '@/lib/i18n/client';
 import { MenuOpener } from '@/components/shell/page-menu';
+import { examplePlaceholders } from '@/lib/examples';
 
 const MAX_ROWS = 50;
 
@@ -111,6 +112,8 @@ function InviteRows({ groups }) {
         <>
             <div className="space-y-2">
                 <p className="rounded-md bg-accent px-3 py-2 text-xs text-primary">{t('members.invite.pasteHint')}</p>
+                {/* Names in English, as first name, father's name, surname — the server splits them at the spaces. */}
+                <p className="text-xs text-ink-gray">{t('common.fullNameOrder')}</p>
                 <div className="hidden grid-cols-[1fr_1.4fr_2rem] gap-2 text-xs font-medium text-ink-gray sm:grid">
                     <span>
                         {t('members.invite.phone')} <span className="font-normal tabular-nums">({rows.length})</span>
@@ -145,7 +148,7 @@ function InviteRows({ groups }) {
                             maxLength={150}
                             value={row.name}
                             onChange={(e) => set(row.id, { name: e.target.value })}
-                            placeholder={t('members.invite.name')}
+                            placeholder={examplePlaceholders('fullName').en}
                             aria-label={`${t('members.invite.name')} ${i + 1}`}
                             className={`${textInput()} col-span-2 w-full min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1`}
                         />

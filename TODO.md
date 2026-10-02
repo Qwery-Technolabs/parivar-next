@@ -276,3 +276,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fundraise/Mandal form: picture-left (top) / parts-right Details; Target / Opening balance on a separate Finance card
 - [x] Settings → General / Fundraise: fields grouped with icons (Samaj, Sign-up, Language & time / Sharing, Expenses)
 - [x] Lighter placeholder colour (#b3b8c2) app-wide
+- [x] Invite by phone: "Full name in English", note "your name, father's name, surname — separated by spaces", example placeholder

@@ -57,6 +57,9 @@ change. See "Maintaining the skills" at the end.
   Focusing a local box (also a saved name) loads the list without changing the value — every local field uses
   GujaratiField / BilingualName, incl. each row of the surname manager (editable local spelling). Never add a raw
   local-language input: always go through useAutoGujarati so the Google list is there.
+- A single "full name" box (invite by phone, group Add member, bulk invite): label says "in English", hint
+  `common.fullNameOrder` (your name, father's name, surname — separated by spaces; splitName splits it so) and
+  placeholder from examples `fullName` ("e.g. Ramesh Mahesh Patel").
 - Placeholders: `useAutoGujarati(en, local, exampleKey)` / `<BilingualName example="…">` → "e.g. Ramesh" in the English box,
   "ઉદા. રમેશ" (hi: "उदा. रमेश") in the local one; examples live in lib/examples.js (firstName, fatherName, husbandName,
   surname, groupName, fundraise, mandal, caste, meeting) — add a key there for a new pair. Components:
