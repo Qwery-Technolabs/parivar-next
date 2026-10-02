@@ -1,14 +1,33 @@
 'use client';
 import { RotateCcw, TriangleAlert } from 'lucide-react';
+import { unstable_isUnrecognizedActionError as isStaleAction } from 'next/navigation';
 import { useEffect } from 'react';
 import { useT } from '@/lib/i18n/client';
 
 // Next 16 error boundaries receive `retry` (re-fetch + re-render), not `reset`.
+// A page left open across a deploy still holds the OLD server-action ids; using a menu item or button
+// then fails with "Server Action … was not found on the server". That is not a real error: load the
+// new version once (a page reload), and the person can simply tap again. Guarded so it never loops.
+const RELOAD_KEY = 'pv-stale-reload';
 export default function AppError({ error, retry }) {
     const { t } = useT();
+    const stale = isStaleAction(error);
     useEffect(() => {
+        if (stale) {
+            let last = 0;
+            try {
+                last = Number(sessionStorage.getItem(RELOAD_KEY)) || 0;
+                if (Date.now() - last > 30000) sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+            } catch {
+                // Storage blocked: still reload once.
+            }
+            if (Date.now() - last > 30000) {
+                window.location.reload();
+                return;
+            }
+        }
         console.error(error);
-    }, [error]);
+    }, [error, stale]);
 
     return (
         <div className="mx-auto mt-10 max-w-md rounded-lg border border-surface-border bg-white p-6 text-center shadow-sm">

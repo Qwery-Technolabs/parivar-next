@@ -16,7 +16,7 @@ import { mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
-import { fundraiseGroupIds, fundraisePermissions, isLeaderOfFundraiseGroup } from '@/lib/access';
+import { fundraiseGroupIds, fundraisePermissions } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money, time } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
@@ -178,8 +178,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     t={t}
                     locale={locale}
                     messageCount={messageCount}
-                    // Clear the discussion: app admins / sub-admins, its admins, and admins / sub-admins of its groups.
-                    canClearChat={canClearChats(user.role) || perms.manage || (await isLeaderOfFundraiseGroup(user.id, campaign.id))}
+                    // Clear the discussion: app admins / sub-admins and the fundraise's own team admins only.
+                    canClearChat={canClearChats(user.role) || perms.teamRole === 'admin'}
                     // Edit history: deleted only by app admins / sub-admins (canClearHistory).
                     historyCount={canClearHistory(user.role) ? editCount : 0}
                 />

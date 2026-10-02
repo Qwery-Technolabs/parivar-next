@@ -158,6 +158,18 @@ export default function FamilyTree({ tree }) {
     };
 
     // Trackpad pinch (and Ctrl + wheel) arrive as wheel events with ctrlKey; plain scrolling stays native.
+    // Open on the person whose tree this is: scroll their tile (aria-current) to the middle of the box,
+    // instead of starting at the top-left with the oldest ancestor.
+    useEffect(() => {
+        const el = box.current;
+        const tile = el?.querySelector('[aria-current="true"]');
+        if (!el || !tile) return;
+        const b = el.getBoundingClientRect();
+        const r = tile.getBoundingClientRect();
+        el.scrollLeft += r.left + r.width / 2 - (b.left + b.width / 2);
+        el.scrollTop += r.top + r.height / 2 - (b.top + b.height / 2);
+    }, [tree.rootId]);
+
     useEffect(() => {
         const el = box.current;
         if (!el) return undefined;

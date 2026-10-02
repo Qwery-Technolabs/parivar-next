@@ -295,3 +295,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Top loading line (Samaj logo colour) for every page load / save / action over 150 ms
 - [x] Delete member (super admin / administrator only) in the Members row ⋮ and the profile ⋮, with confirmation
 - [x] Phone bottom bar: Family tree (own) instead of Blood
+- [x] Family tree opens centred on the active person
+- [x] Fix: tapping a menu item / button on a page left open across a deploy showed 'Something went wrong' (stale server action) — now reloads once by itself
+- [x] Fix: fundraise discussion clear only for app admins / sub-admins and the fundraise's own team admins (not group sub-admins)

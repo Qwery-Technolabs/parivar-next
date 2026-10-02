@@ -99,6 +99,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   anyone connected in the tree (`familyIds`: all links read in ONE query per request (`allLinks`, React cache), walked in
   memory — never one query per generation; that queued requests with 4+ users). Children (tree, Family card) and siblings are
   ordered by `byAge`: eldest first, left to right, among those with a birth date; people without one keep their added order.
+  The tree opens centred on the person whose tree it is (their tile, aria-current, scrolled to the middle).
   Tree page switches: "Married daughters" (on by default; off hides every married daughter — married/widowed/divorced or
   with a husband — and her branch, in every chain, except the person whose tree it is) and "Details". Tree-added people (meta added_via='family')
   hide phone / dob / marital status from others (profile, Members list, member search). Male-line picker
@@ -125,13 +126,17 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   from her father. Live backfilled 2026-10-02.
 - **Family tree page** (/members/[id]/tree) is open to every signed-in member (links on profile, Family card, row menu).
   Without `canSeeFamily` the nodes lose dob, phone and marital_status (privacy); editing / adding relatives still needs it.
+- **Stale server actions after a deploy**: a page open across a deploy calls OLD action ids → Next throws
+  UnrecognizedActionError. app/(app)/error.js detects it (`unstable_isUnrecognizedActionError`) and reloads the page once
+  (sessionStorage guard, 30 s) instead of showing "Something went wrong".
 - **Debounce**: every search / suggestion field that reacts to typing goes through `useDebouncedCallback`
   (components/ui/use-debounce.js, DEBOUNCE_MS = 300): list search boxes (search as you type; Enter still immediate),
   Combobox / member pickers, Google local-script suggestions. Never a hand-made setTimeout for this.
 - **Clear fundraise edit history** (fundraise_history): same rule — `canClearHistory(role)`, action `clearCampaignHistory`,
   a row in the fundraise Danger zone; the ledger stays.
 - **Clear discussion history** (chatAccess.canClear): app admins / sub-admins (`canClearChats`) + a group's admins and
-  sub-admins / a fundraise's admins (manage) and the admins / sub-admins of its groups (leaders). A sub-admin sees the
+  sub-admins / for a fundraise or Mandal ONLY its own team admins (teamRole admin) — a group admin / sub-admin of its
+  group gets nothing on the fundraise unless on its team. A group sub-admin sees the
   Danger zone card with only that row; pause / archive / status rows stay admin-only (`canManage`).
 - **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
   pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore

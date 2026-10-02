@@ -58,8 +58,9 @@ export async function chatAccess(user, scope, scopeId) {
     ]);
     const allowed = perms.post || member;
     // perms.manage = app-level, a group admin, or the fundraise's own admin; plus group sub-admins.
-    // Delete others' messages and clear the whole discussion: its admins and the admins / sub-admins of its groups.
-    return { allowed, canPost: allowed && !paused, canAlert: !paused && (perms.manage || leader), moderate: perms.manage || leader, canClear: perms.manage || leader, paused };
+    // Delete others' messages: its admins and the admins / sub-admins of its groups. Clear the WHOLE discussion: only
+    // its own team admins (app admins / sub-admins are handled above) — never a group admin / sub-admin as such.
+    return { allowed, canPost: allowed && !paused, canAlert: !paused && (perms.manage || leader), moderate: perms.manage || leader, canClear: perms.teamRole === 'admin', paused };
 }
 
 /**
