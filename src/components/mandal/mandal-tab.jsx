@@ -11,7 +11,8 @@ import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
 import { query } from '@/lib/db';
 import { localized } from '@/lib/i18n/config';
-import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers } from '@/lib/mandal';
+import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
+import PendingList from '@/components/mandal/pending-list';
 
 /**
  * The Mandal tab (server component): a summary, the members — with what each still owes and how
@@ -56,9 +57,42 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
     const holders = [...byHolder.values()].sort((x, y) => (x.key === 0) - (y.key === 0) || y.amount - x.amount);
     const collected = Number(campaign.collected) || 0;
     const spent = Number(campaign.spent) || 0;
+    // The schedule money is entered for: the most recent one not archived (the "last made Mandal").
+    const current = rows.find((r) => !r.e.archived) ?? null;
+    // Each member's unpaid schedules (held so far), for "pending since …" under their name.
+    const unpaid = Object.fromEntries(members.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { upTo: today })]));
+    const sheetFor = (r) => (
+        <MandalSheet
+            campaignId={campaign.id}
+            meeting={r.e}
+            members={r.forThem}
+            marks={r.sheet}
+            pending={pendingBefore(r.forThem, meetings, marks, r.e.id)}
+            pendingList={Object.fromEntries(r.forThem.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { before: r.e.start_date })]))}
+        />
+    );
 
     return (
         <div className="space-y-4">
+            {/* Latest Mandal: money is entered here, straight away. */}
+            {current && (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-4 py-2.5 shadow-sm">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-gray">{t('mandal.latest')}</p>
+                        <p className="font-semibold text-primary">
+                            {date(current.e.start_date, locale)} - {t('mandal.word')}
+                            <span className="ml-2 text-sm font-normal text-ink-gray tabular-nums">
+                                {[current.e.location, t('mandal.perPersonAmount', { amount: money(current.e.installment) }), t('mandal.cameCount', { came: current.came, total: current.forThem.length })]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                            </span>
+                        </p>
+                    </div>
+                    <span className="font-semibold text-income tabular-nums">{money(current.got)}/-</span>
+                    {canRun && sheetFor(current)}
+                </div>
+            )}
+
             <div className="grid grid-cols-3 gap-2">
                 {[
                     [t('mandal.members'), members.length],
@@ -93,6 +127,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                                                 </>
                                             )}
                                         </p>
+                                        <PendingList items={unpaid[m.id]} />
                                     </div>
                                     {canRun && !inGroup.has(m.id) && (
                                         <ActionButton
@@ -145,15 +180,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                                             )}
                                         </div>
                                         <span className="shrink-0 pt-0.5 font-semibold text-income tabular-nums">{money(got)}/-</span>
-                                        {canRun && !e.archived && (
-                                            <MandalSheet
-                                                campaignId={campaign.id}
-                                                meeting={e}
-                                                members={forThem}
-                                                marks={sheet}
-                                                pending={pendingBefore(forThem, meetings, marks, e.id)}
-                                            />
-                                        )}
+                                        {canRun && !e.archived && sheetFor({ e, sheet, forThem })}
                                         {canRun && (
                                             <ScheduleActions
                                                 campaignId={campaign.id}

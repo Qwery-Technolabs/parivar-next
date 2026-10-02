@@ -175,6 +175,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   installment, meta held_by = who keeps that day's money; audience 'all'). Kebab: Edit; Archive (meta archived '1',
   money in — sheet locked) or Delete (only while nothing received); archived → Restore. Income per schedule, expenses
   common (Money tab); "Who has the money" = schedule collections summed per held_by, minus common expenses = balance.
+  Income = the schedule's "Attendance & money" sheet → contributions (Money tab, print, history). A "Latest Mandal" strip
+  on top opens the sheet of the newest non-archived schedule. Pending per member: `unpaidBySchedule` (payments clear the
+  oldest dues first) → PendingList shows the last 3 unpaid schedules with dates (+N older), in the sheet and members list.
 - **Discussion moderation** (`chatAccess`): delete others' messages = admins + sub-admins (group standing; fundraise
   manage or sub-admin of its groups); **Clear history** (`clearChat`, `canClear`) = admins only (group admin / app-level;
   fundraise manage) — deletes all messages + read markers for good, audited.

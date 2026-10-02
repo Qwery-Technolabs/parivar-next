@@ -6,6 +6,7 @@ import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 import { money } from '@/lib/format';
+import PendingList from './pending-list';
 
 // How a member paid — the contribution modes, minus "Not paid" (what is not paid stays pending).
 const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
@@ -15,9 +16,9 @@ const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
  * then per member — came? and paid. Each member shows what they still owed from earlier
  * meetings, so a returning member's pending amount is collected too.
  * `members`: [{ id, full_name, full_name_local }]; `marks`: userId → { present, paid };
- * `pending`: userId → amount owed before this meeting. Each payment has a mode (cash, UPI, …).
+ * `pending`: userId → amount owed before this meeting; `pendingList`: userId → its schedules (last 3 shown). Each payment has a mode (cash, UPI, …).
  */
-export default function MandalSheet({ campaignId, meeting, members, marks, pending }) {
+export default function MandalSheet({ campaignId, meeting, members, marks, pending, pendingList = {} }) {
     const { t, locale } = useT();
     const [collect, setCollect] = useState(meeting.collect);
     const [amount, setAmount] = useState(String(meeting.installment || ''));
@@ -101,6 +102,7 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                                                 )}
                                                 {expected > 0 && <> · {t('mandal.expected', { amount: money(expected) })}</>}
                                             </p>
+                                            <PendingList items={pendingList[m.id]} />
                                         </div>
                                         <label className="inline-flex items-center gap-1.5 text-xs font-medium text-ink">
                                             <input type="hidden" name={`present_${m.id}`} value={present[m.id] ? '1' : '0'} />

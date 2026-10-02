@@ -136,6 +136,28 @@ export function pendingBefore(members, meetings, marksByMeeting, eventId) {
     return out;
 }
 
+/**
+ * What one member still owes, schedule by schedule, oldest first: everything they paid at these
+ * schedules clears the oldest dues first (a missed month paid later is no longer pending).
+ * `before` (a date): only schedules before it — the sheet of that meeting; else `upTo` (today): held ones.
+ * @returns {Array<{ id: number, date: string, amount: number }>}
+ */
+export function unpaidBySchedule(member, meetings, marksByMeeting, { before = null, upTo = null } = {}) {
+    const theirs = meetings
+        .filter((e) => (before ? e.start_date < before : !upTo || e.start_date <= upTo))
+        .filter((e) => e.collect && ((e.start_date >= member.joined && isFor(e, member.id)) || marksByMeeting[e.id]?.[member.id]))
+        .sort((a, b) => a.start_date.localeCompare(b.start_date));
+    let paid = theirs.reduce((s, e) => s + Number(marksByMeeting[e.id]?.[member.id]?.paid || 0), 0);
+    const out = [];
+    for (const e of theirs) {
+        const take = Math.min(paid, e.installment);
+        paid -= take;
+        const left = Math.round((e.installment - take) * 100) / 100;
+        if (left > 0) out.push({ id: e.id, date: e.start_date, amount: left });
+    }
+    return out;
+}
+
 /** All marks of a Mandal, by meeting: eventId → userId → { present, paid, mode } (mode of the payment's contribution). */
 export async function allMarks(campaignId) {
     const rows = await query(
