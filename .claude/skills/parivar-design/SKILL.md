@@ -15,6 +15,9 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
 ## Brand and colour
 
 - Navy `#172f56` (`bg-brand-navy`) = app header, sidebar, group/fundraise header cards, public header.
+- Loading: one thin line at the very top (TopLoader in the root layout), in the Samaj logo colour (admin logo_color),
+  shown for any app request > 150 ms (page data / server actions / own /api) — it watches window.fetch, so pages need
+  nothing; typing-time lookups (transliterate, member search) and prefetches are excluded. No per-page spinners for this.
 - Page area behind the cards (`main#content`) = `#f5f6fa` (`bg-surface-content`).
 - Secondary = deep orange `#b85d09` (`btn-secondary` / `seg-active` / `bg-brand-orange-strong`) with
   **white** text (4.56:1). Never white on the lighter `brand-orange`.
@@ -34,7 +37,9 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
 
 - Sidebar sections: **Overview** (Dashboard) · **Community** (Groups) · **Services** (Fundraise, Blood)
   · **Miscellaneous** (My family tree → /members/<me>/tree, then Members; Members is not highlighted on my own tree —
-  nav item `exclude`). Settings pinned at the bottom. Collapse arrow straddles the sidebar edge.
+  nav item `exclude`). Settings pinned at the bottom.
+  Phone bottom bar: Dashboard · Groups · Fundraise · Family tree (own, short label `bottomLabel`) · Members — Blood is
+  in the side menu only. Collapse arrow straddles the sidebar edge.
 - The sidebar logo row has the same faint bottom line as the header (`border-b border-white/10`), in the
   desktop sidebar and the phone drawer, so the two edges line up.
 - Sidebar section titles (Overview, Community, …): small uppercase `text-white/60` with `pt-[5px]` above.

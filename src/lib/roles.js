@@ -70,6 +70,15 @@ export function assignableRoles(actorRole) {
 }
 
 /** May `actor` edit `target` at all (profile, phone, password reset)? */
+/**
+ * Delete a member for good: super admins and administrators only (never sub-admins), never themselves.
+ * An administrator cannot delete another administrator or a super admin; a super admin can delete anyone else.
+ */
+export function canDeleteMember(actor, target) {
+    if (!actor || !target || actor.id === target.id || !atLeast(actor.role, 'administrator')) return false;
+    return actor.role === 'super_admin' || rank(target.role) > rank(actor.role);
+}
+
 export function canEditUser(actor, target) {
     if (!actor) return false;
     if (actor.id === target.id) return true;

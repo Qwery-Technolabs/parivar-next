@@ -76,7 +76,8 @@ function NavItem({ item, pathname, collapsed, onNavigate, child = false }) {
 }
 
 // Mobile bottom bar: the main sections, in this order (only those this person can see).
-const BOTTOM_TABS = ['/', '/groups', '/fundraise', '/blood', '/members'];
+// 'tree' = the person's own family tree (its href holds their id); Blood stays in the side menu.
+const BOTTOM_TABS = ['/', '/groups', '/fundraise', 'tree', '/members'];
 
 /**
  * Mobile only, and only on the section home pages themselves. Inside a group, a fundraise, a
@@ -84,8 +85,8 @@ const BOTTOM_TABS = ['/', '/groups', '/fundraise', '/blood', '/members'];
  */
 function BottomNav({ sections, pathname }) {
     const items = sections.flatMap((s) => s.items);
-    const tabs = BOTTOM_TABS.map((href) => items.find((i) => i.href === href)).filter(Boolean);
-    if (tabs.length < 2 || !BOTTOM_TABS.includes(pathname)) return null;
+    const tabs = BOTTOM_TABS.map((key) => items.find((i) => (key === 'tree' ? i.icon === 'tree' : i.href === key))).filter(Boolean);
+    if (tabs.length < 2 || !tabs.some((i) => i.href === pathname)) return null;
     return (
         <nav className="flex shrink-0 border-t border-surface-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
             {tabs.map((item) => {
@@ -110,7 +111,7 @@ function BottomNav({ sections, pathname }) {
                         >
                             <Icon className="size-5 shrink-0" />
                         </span>
-                        <span className="max-w-full truncate px-1">{item.label}</span>
+                        <span className="max-w-full truncate px-1">{item.bottomLabel ?? item.label}</span>
                     </Link>
                 );
             })}

@@ -14,8 +14,9 @@ import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
 import { ensureInvitedUser } from '@/lib/invite';
 import { normalizePhone } from '@/lib/phone';
-import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword } from '@/lib/roles';
+import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword, canDeleteMember } from '@/lib/roles';
 import { syncGroupJoin } from '@/lib/meetings';
+import { redirect } from 'next/navigation';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -406,4 +407,21 @@ export async function bulkResetPasswords(prev, fd) {
     if (!reset) return { error: 'members.bulk.resetNone' };
     revalidatePath('/members');
     return { ok: true, message: skipped ? 'members.bulk.resetDoneSkipped' : 'members.bulk.resetDone', vars: { reset, skipped } };
+}
+
+/**
+ * Delete a member for good (canDeleteMember: super admins / administrators, never themselves).
+ * Their memberships, family links, roles, sessions and notifications go with them; money they gave
+ * stays in the ledgers under their name and their chat messages stay without an author.
+ * `fromProfile`: called from their own page, which would no longer exist — go to Members.
+ */
+export async function deleteMember(userId, fromProfile = false) {
+    const actor = await getCurrentUser();
+    const target = await queryOne('SELECT id, role, full_name, phone FROM users_list WHERE id = :userId', { userId: Number(userId) });
+    if (!actor || !target || !canDeleteMember(actor, target)) return { error: 'common.forbidden' };
+    await query('DELETE FROM users_list WHERE id = :id', { id: target.id });
+    await audit(actor.id, 'user.delete', 'user', target.id, { name: target.full_name, phone: target.phone, role: target.role });
+    revalidatePath('/members');
+    if (fromProfile) redirect('/members');
+    return { ok: true, message: 'members.deleted' };
 }

@@ -18,7 +18,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES, canDeleteMember } from '@/lib/roles';
 import { familyIds } from '@/lib/family';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
@@ -195,6 +195,7 @@ export default async function MembersPage({ searchParams }) {
                                         canEdit={canEditUser(user, m) || canResetPassword(user, m)}
                                         groups={groupOptions}
                                         canAssignGroups={groupOptions.length > 0}
+                                        canDelete={canDeleteMember(user, m)}
                                     />
                                 </Td>
                             </Tr>

@@ -147,6 +147,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
+- **Delete member** (`deleteMember`, `canDeleteMember`): super admin / administrator only (never sub-admin), never
+  themselves; an administrator cannot delete an administrator / super admin. In the Members row ⋮ and the profile ⋮ (red,
+  last, confirm). Hard delete: FK cascades remove memberships, relations, roles, Mandal marks, sessions; contributions
+  keep donor_name (user_id → NULL), chat messages stay without author. Audited (user.delete).
 - **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮ — visible to EVERYONE;
   add / edit / tick-assign only for administrators, `canEdit`; each row has "Members" (→ /members?surname=…&status=all&reg=all,
   disabled when ≤ 1 member) before Edit; Members list filters by `surname`): list = every surname in use

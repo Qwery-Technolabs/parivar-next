@@ -74,6 +74,7 @@ const gu = {
         sections: { overview: 'ઝાંખી', community: 'સમુદાય', services: 'સેવાઓ', admin: 'અન્ય' },
         dashboard: 'ડેશબોર્ડ',
         myTree: 'મારું વંશવૃક્ષ',
+        familyTree: 'વંશવૃક્ષ',
         members: 'પરિવારજનો',
         groups: 'જૂથો',
         blood: 'રક્ત',
@@ -147,6 +148,9 @@ const gu = {
     },
     members: {
         manageSurnames: 'અટક',
+        delete: 'સભ્ય કાઢી નાખો',
+        deleteConfirm: '{name} ને કાયમ માટે કાઢી નાખવા છે? તેમના જૂથ, પરિવારની કડી અને ભૂમિકા પણ જશે; આપેલી રકમ હિસાબમાં રહેશે. પાછું નહીં આવે.',
+        deleted: 'સભ્ય કાઢી નાખ્યા.',
         husbandName: 'પતિનું નામ',
         inlawSurname: 'અટક (સાસરું)',
         maidenFather: 'પિતાનું નામ',

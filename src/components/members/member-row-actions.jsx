@@ -1,15 +1,27 @@
 'use client';
-import { Eye, GitFork, Pencil, ShieldCheck, UserPlus } from 'lucide-react';
-import { useState } from 'react';
-import { assignToGroup } from '@/app/actions/members';
+import { Eye, GitFork, Pencil, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { toast } from 'sonner';
+import { assignToGroup, deleteMember } from '@/app/actions/members';
 import { Field, selectInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 
-export default function MemberRowActions({ member, canEdit, groups, canAssignGroups }) {
+export default function MemberRowActions({ member, canEdit, groups, canAssignGroups, canDelete = false }) {
     const { t } = useT();
     const [memberRole, setMemberRole] = useState('admin');
+    const [deleting, startDelete] = useTransition();
+    // Delete (super admins / administrators): asks first, names the person, cannot be undone.
+    const remove = (close) => {
+        close();
+        if (!window.confirm(t('members.deleteConfirm', { name: member.name }))) return;
+        startDelete(async () => {
+            const res = await deleteMember(member.id);
+            if (res?.ok) toast.success(t(res.message));
+            else toast.error(t(res?.error ?? 'common.error'));
+        });
+    };
 
     return (
         <FormDialog
@@ -57,6 +69,14 @@ export default function MemberRowActions({ member, canEdit, groups, canAssignGro
                                         }}
                                     >
                                         {t('members.addToGroup')}
+                                    </MenuItem>
+                                </>
+                            )}
+                            {canDelete && (
+                                <>
+                                    <MenuSeparator />
+                                    <MenuItem icon={Trash2} danger disabled={deleting} onClick={() => remove(close)}>
+                                        {t('members.delete')}
                                     </MenuItem>
                                 </>
                             )}

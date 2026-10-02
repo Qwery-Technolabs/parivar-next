@@ -39,7 +39,7 @@ export default async function AppLayout({ children }) {
             // The activity log lives in Settings (admins), not here.
             // My own family tree first, then everyone.
             items: [
-                { href: `/members/${user.id}/tree`, icon: 'tree', label: t('nav.myTree') },
+                { href: `/members/${user.id}/tree`, icon: 'tree', label: t('nav.myTree'), bottomLabel: t('nav.familyTree') },
                 { href: '/members', icon: 'users', label: t('nav.members'), exclude: [`/members/${user.id}/tree`] },
             ],
         },

@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from 'next/font/google';
+import TopLoader from '@/components/shell/top-loader';
 import { Toaster } from '@/components/ui/sonner';
 import { I18nProvider } from '@/lib/i18n/client';
 import { getDictionary, getLocalLanguage, getLocale } from '@/lib/i18n/server';
@@ -61,10 +62,18 @@ export async function generateViewport() {
 
 export default async function RootLayout({ children }) {
     const [locale, localLang] = await Promise.all([getLocale(), getLocalLanguage()]);
+    // The loading line takes the Samaj logo's colour (Settings → General).
+    let loaderColor = '#b85d09';
+    try {
+        loaderColor = (await getSettings('admin')).logo_color || loaderColor;
+    } catch {
+        // No database (build time): the default orange.
+    }
     return (
         <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} ${gujarati.variable} ${devanagari.variable} h-full antialiased`}>
             <body className="min-h-full bg-white text-sm text-ink">
                 <I18nProvider locale={locale} dict={getDictionary(locale)} localLang={localLang}>
+                    <TopLoader color={loaderColor} />
                     {children}
                     <Toaster />
                 </I18nProvider>

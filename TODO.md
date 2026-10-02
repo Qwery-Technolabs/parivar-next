@@ -292,3 +292,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Filters button icon-only on phones (all pages)
 - [x] Fundraise Danger zone: "Clear edit history" — app super admin / administrator / sub-admin only
 - [x] Danger zone cards: solid red header; clear discussion = app admins / sub-admins + the group's / fundraise's admins and sub-admins (sub-admins see only that row); edit history = app admins / sub-admins only
+- [x] Top loading line (Samaj logo colour) for every page load / save / action over 150 ms
+- [x] Delete member (super admin / administrator only) in the Members row ⋮ and the profile ⋮, with confirmation
+- [x] Phone bottom bar: Family tree (own) instead of Blood

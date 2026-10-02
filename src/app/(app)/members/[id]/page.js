@@ -1,4 +1,4 @@
-import { GitFork, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { GitFork, Pencil, Phone, ShieldCheck, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
@@ -13,7 +13,8 @@ import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { birthName, isMarriedWoman } from '@/lib/names';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember } from '@/lib/roles';
+import { deleteMember } from '@/app/actions/members';
 
 export async function generateMetadata({ params }) {
     const { id } = await params;
@@ -77,6 +78,15 @@ export default async function MemberPage({ params }) {
                         items={[
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: <Pencil />, href: `/members/${member.id}/edit` },
                             { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
+                            // Delete for good: super admins / administrators only (last, red, asks first).
+                            canDeleteMember(user, member) && {
+                                key: 'delete',
+                                label: t('members.delete'),
+                                icon: <Trash2 />,
+                                action: deleteMember.bind(null, member.id, true),
+                                confirm: t('members.deleteConfirm', { name }),
+                                danger: true,
+                            },
                         ]}
                     />
                 }

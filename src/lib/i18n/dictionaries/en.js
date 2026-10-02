@@ -73,6 +73,7 @@ const en = {
         sections: { overview: 'Overview', community: 'Community', services: 'Services', admin: 'Miscellaneous' },
         dashboard: 'Dashboard',
         myTree: 'My family tree',
+        familyTree: 'Family tree',
         members: 'Members',
         groups: 'Groups',
         blood: 'Blood',
@@ -146,6 +147,9 @@ const en = {
     },
     members: {
         manageSurnames: 'Surnames',
+        delete: 'Delete member',
+        deleteConfirm: 'Delete {name} for good? Their groups, family links and roles go with them; money they gave stays in the ledgers. This cannot be undone.',
+        deleted: 'Member deleted.',
         husbandName: 'Husband’s name',
         inlawSurname: 'Surname (in-laws)',
         maidenFather: 'Father’s name',
