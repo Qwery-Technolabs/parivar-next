@@ -1,5 +1,4 @@
 'use client';
-import { X } from 'lucide-react';
 import { useState } from 'react';
 import { FilterPopover, FilterSection, SearchBox, ToolbarRow, useUrlFilters } from '@/components/ui/filter-bar';
 import { Field, selectInput, textInput } from '@/components/ui/field';
@@ -7,8 +6,8 @@ import Switch from '@/components/ui/switch';
 import CasteSelect from './caste-select';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
+import { useDebouncedCallback } from '@/components/ui/use-debounce';
 
-const FILTER_KEYS = ['role', 'blood', 'compat', 'donor', 'village', 'city', 'gender', 'caste', 'subcaste', 'age_min', 'age_max', 'status'];
 
 /**
  * design-system.md §5 "combining several controls" + §6 draft panel: one <form> so the search
@@ -18,6 +17,10 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
     const { t } = useT();
     const { navigate, pending } = useUrlFilters();
     const [q, setQ] = useState(filters.q);
+    // Search as you type: 300 ms after typing stops (Enter / the button still search at once).
+    const searchLater = useDebouncedCallback((v) => {
+        if (v.trim() !== filters.q) navigate({ q: v.trim() });
+    });
 
     // Follow an externally changed ?q (back button, clear) — render-time, not an effect.
     const [seenQ, setSeenQ] = useState(filters.q);
@@ -28,27 +31,25 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
 
     return (
         <ToolbarRow
-            left={
-                (filters.q || activeCount > 0) && (
-                    <button
-                        type="button"
-                        onClick={() => navigate(Object.fromEntries([...FILTER_KEYS, 'q'].map((k) => [k, null])))}
-                        className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-ink-gray hover:bg-accent hover:text-primary"
-                    >
-                        <X className="size-3.5" /> {t('common.clear')}
-                    </button>
-                )
-            }
+            // Clear lives only inside the filter popup (its footer), never as a loose button in the toolbar.
             className=""
         >
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
+                    searchLater.cancel();
                     if (q.trim() !== filters.q) navigate({ q: q.trim() });
                 }}
                 className={`flex w-full items-center gap-2 sm:w-auto ${pending ? 'cursor-wait opacity-70' : ''}`}
             >
-                <SearchBox value={q} onChange={setQ} disabled={pending} />
+                <SearchBox
+                    value={q}
+                    onChange={(v) => {
+                        setQ(v);
+                        searchLater(v);
+                    }}
+                    disabled={pending}
+                />
                 <FiltersPanel
                     filters={filters}
                     activeCount={activeCount}
@@ -91,6 +92,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     donor: false,
                     village: '',
                     city: '',
+                    surname: '',
                     gender: '',
                     caste: '',
                     subcaste: '',
@@ -108,6 +110,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     donor: draft.donor,
                     village: draft.village,
                     city: draft.city,
+                    surname: (draft.surname ?? '').trim(),
                     gender: draft.gender,
                     caste: draft.caste,
                     subcaste: draft.caste ? draft.subcaste : null,
@@ -215,7 +218,10 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     ))}
                 </select>
             </Field>
-            {castes.castes.length > 0 && <FilterSection title={t('members.filterSections.community')} />}
+            <FilterSection title={t('members.filterSections.community')} />
+            <Field label={t('members.surname')}>
+                <input value={draft.surname ?? ''} onChange={(e) => set('surname', e.target.value)} className={`${textInput()} w-full`} />
+            </Field>
             {castes.castes.length > 0 && (
                 <CasteSelect
                     options={castes}

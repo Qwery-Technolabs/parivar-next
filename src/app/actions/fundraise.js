@@ -413,16 +413,30 @@ export async function saveCampaign(prev, fd) {
  * Archive / restore a fundraise (project admins). Archived: out of every list, the group tabs
  * and its public link, kept intact — and only then deletable.
  */
+/** Archive ⇄ restore — its admins (app-level, its own admins, admins of its groups): About → Danger zone. */
 export async function setCampaignArchived(campaignId, archived) {
-    const user = await getCurrentUser();
-    if (!user || !canManageAllFundraises(user.role)) return FORBIDDEN;
-    const c = await queryOne('SELECT id, title FROM fundraise_campaigns WHERE id = :campaignId', { campaignId });
+    const { user, campaign: c } = await authorize(Number(campaignId));
     if (!c) return FORBIDDEN;
     await query(`UPDATE fundraise_campaigns SET archived_at = ${archived ? 'NOW()' : 'NULL'} WHERE id = :campaignId`, { campaignId });
     await audit(user.id, archived ? 'fundraise.archive' : 'fundraise.restore', 'fundraise', campaignId, { title: c.title });
     revalidatePath('/fundraise');
     refreshCampaign(campaignId);
     return { ok: true, message: archived ? 'fundraise.archived' : 'fundraise.restored' };
+}
+
+/**
+ * Pause ⇄ resume (status 'closed' ⇄ 'active') — its admins: About → Danger zone. A paused fundraise
+ * stays readable; its discussion takes no new posts (chatAccess).
+ */
+export async function setCampaignStatus(campaignId, status) {
+    if (status !== 'active' && status !== 'closed') return FORBIDDEN;
+    const { user, campaign } = await authorize(Number(campaignId));
+    if (!campaign) return FORBIDDEN;
+    await query('UPDATE fundraise_campaigns SET status = :status WHERE id = :campaignId', { status, campaignId: campaign.id });
+    await audit(user.id, status === 'closed' ? 'fundraise.pause' : 'fundraise.resume', 'fundraise', campaign.id, { title: campaign.title });
+    revalidatePath('/fundraise');
+    refreshCampaign(campaign.id);
+    return { ok: true, message: status === 'closed' ? 'fundraise.danger.paused' : 'fundraise.danger.resumed' };
 }
 
 export async function deleteCampaign(campaignId) {

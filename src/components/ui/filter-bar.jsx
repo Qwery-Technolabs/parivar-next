@@ -6,6 +6,7 @@ import { Field, selectInput, textInput } from '@/components/ui/field';
 import { Popover } from '@/components/ui/popover';
 import Switch from '@/components/ui/switch';
 import { useT } from '@/lib/i18n/client';
+import { useDebouncedCallback } from './use-debounce';
 
 /*
  * The one table toolbar: whatever the page puts on the left (a count, a heading, action
@@ -191,6 +192,10 @@ export default function FilterBar({ search, filters = [], fixed = {}, left, clas
 
     const appliedQ = searchParams.get(qParam) ?? '';
     const [q, setQ] = useState(appliedQ);
+    // Search as you type: 300 ms after typing stops (Enter / the button still search at once).
+    const searchLater = useDebouncedCallback((v) => {
+        if (v.trim() !== appliedQ) navigate({ [qParam]: v.trim() });
+    });
     // Follow an externally changed ?q (back button, clear) — render-time, not an effect.
     const [seenQ, setSeenQ] = useState(appliedQ);
     if (seenQ !== appliedQ) {
@@ -222,29 +227,28 @@ export default function FilterBar({ search, filters = [], fixed = {}, left, clas
     return (
         <ToolbarRow
             className={className}
-            left={
-                <>
-                    {left}
-                    {(appliedQ || activeCount > 0) && (
-                        <button
-                            type="button"
-                            onClick={() => navigate({ ...toParams(cleared()), [qParam]: null })}
-                            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-ink-gray hover:bg-accent hover:text-primary"
-                        >
-                            <X className="size-3.5" /> {t('common.clear')}
-                        </button>
-                    )}
-                </>
-            }
+            // Clear lives only inside the filter popup (its footer), never as a loose button in the toolbar.
+            left={left}
         >
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
+                    searchLater.cancel();
                     if (q.trim() !== appliedQ) navigate({ [qParam]: q.trim() });
                 }}
                 className={`flex w-full items-center gap-2 sm:w-auto ${pending ? 'cursor-wait opacity-70' : ''}`}
             >
-                {search && <SearchBox value={q} onChange={setQ} placeholder={search.placeholder} disabled={pending} />}
+                {search && (
+                    <SearchBox
+                        value={q}
+                        onChange={(v) => {
+                            setQ(v);
+                            searchLater(v);
+                        }}
+                        placeholder={search.placeholder}
+                        disabled={pending}
+                    />
+                )}
                 {filters.length > 0 && (
                     <FilterPopover
                         activeCount={activeCount}

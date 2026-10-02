@@ -61,7 +61,8 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
             title={t('members.family')}
             relation={relationView}
             actions={
-                canSee && (
+                // The tree is open to every member; adding relatives stays with those who may edit this family.
+                (
                     <div className="flex items-center gap-1.5">
                         <LinkButton
                             href={`/members/${person.id}/tree`}

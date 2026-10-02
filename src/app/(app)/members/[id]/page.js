@@ -76,7 +76,7 @@ export default async function MemberPage({ params }) {
                     <PageMenu
                         items={[
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: <Pencil />, href: `/members/${member.id}/edit` },
-                            seeFamily && { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
+                            { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
                         ]}
                     />
                 }

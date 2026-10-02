@@ -70,7 +70,8 @@ export default async function MembersPage({ searchParams }) {
                             manage && { key: 'add', label: t('members.add'), icon: <UserPlus />, href: '/members/new' },
                             canInviteMembers(user.role) && { key: 'invite', label: t('members.invite.button'), icon: <Smartphone /> },
                             canManageSettings(user.role) && { key: 'castes', label: t('members.manageCastes'), icon: <Network />, href: '/members/castes' },
-                            canManageSettings(user.role) && { key: 'surnames', label: t('members.manageSurnames'), icon: <Tags />, href: '/members/surnames' },
+                            // Surnames: everyone may look; editing stays with administrators (on that page).
+                            { key: 'surnames', label: t('members.manageSurnames'), icon: <Tags />, href: '/members/surnames' },
                         ]}
                     >
                         {canInviteMembers(user.role) && <InviteMembersDialog groups={groupOptions} menuKey="invite" />}

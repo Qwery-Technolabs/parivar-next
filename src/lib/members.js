@@ -23,6 +23,8 @@ export function resolveMemberFilters(sp = {}) {
         compat: sp1(sp.compat) === '1',
         donor: sp1(sp.donor) === '1',
         village: sp1(sp.village).trim().slice(0, 100),
+        // Everyone with this surname (English or local spelling) — from Members ⋮ → Surnames.
+        surname: sp1(sp.surname).trim().slice(0, 60),
         city: sp1(sp.city).trim().slice(0, 100),
         gender: pick(sp.gender, GENDERS),
         caste: posInt(sp.caste),
@@ -46,7 +48,7 @@ function ageRange(minRaw, maxRaw) {
 }
 
 export function activeFilterCount(f) {
-    return [f.role, f.blood, f.donor, f.village, f.city, f.gender, f.caste, f.ageMin != null || f.ageMax != null, f.status !== 'active', f.reg !== 'registered']
+    return [f.role, f.blood, f.donor, f.village, f.city, f.surname, f.gender, f.caste, f.ageMin != null || f.ageMax != null, f.status !== 'active', f.reg !== 'registered']
         .filter(Boolean).length;
 }
 
@@ -85,6 +87,10 @@ function whereFor(f) {
     if (f.village) {
         where.push('u.village = :village');
         params.village = f.village;
+    }
+    if (f.surname) {
+        where.push('(u.surname = :surname OR u.surname_local = :surname)');
+        params.surname = f.surname;
     }
     if (f.city) {
         where.push('u.city = :city');

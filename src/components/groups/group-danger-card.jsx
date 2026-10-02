@@ -1,15 +1,16 @@
 import { Archive, ArchiveRestore, CirclePause, CirclePlay, Trash2 } from 'lucide-react';
 import { deleteGroup, setGroupStatus } from '@/app/actions/groups';
+import ClearChatRow from '@/components/chat/clear-chat-row';
 import ActionButton from '@/components/fundraise/action-button';
 import { Card } from '@/components/shell/page-header';
 import { GROUP_STATUS_DOT } from '@/lib/group-roles';
 
 /**
- * About tab → Danger zone (server component): the group's status and what each step does.
+ * About tab → Danger zone (server component): clear the discussion, the group's status and what each step does.
  * active ⇄ inactive (read-only discussion); archive (hidden from members) ⇄ restore; an archived
  * group can be deleted for good (app-level group managers only).
  */
-export default function GroupDangerCard({ group, canDelete, t }) {
+export default function GroupDangerCard({ group, canDelete, canClearChat = false, messageCount = 0, t }) {
     const s = group.status;
     // Colour by meaning (white text ≥4.5:1): pause amber, archive slate, back to active green, delete red.
     // Phones: icon only (label → aria-label + title); icon + text from sm.
@@ -28,6 +29,7 @@ export default function GroupDangerCard({ group, canDelete, t }) {
                 {t('groups.danger.statusNow', { status: t(`groups.status.${s}`) })}
             </p>
             <ul className="space-y-3 text-xs text-ink-gray">
+                {canClearChat && messageCount > 0 && <ClearChatRow scope="group" scopeId={group.id} count={messageCount} t={t} />}
                 {s !== 'archived' && (
                     <li className="flex flex-wrap items-center justify-between gap-2">
                         <span className="min-w-0 flex-1">{t('groups.danger.inactiveHint')}</span>

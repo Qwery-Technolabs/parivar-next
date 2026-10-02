@@ -1,6 +1,4 @@
-import { Eraser, Lock } from 'lucide-react';
-import { clearChat } from '@/app/actions/chat';
-import ActionButton from '@/components/fundraise/action-button';
+import { Lock } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { chatAccess, listMessages, markRead } from '@/lib/chat';
 import { getT } from '@/lib/i18n/server';
@@ -36,19 +34,7 @@ export default async function ChatPanel({ scope, scopeId }) {
     await markRead(user.id, scope, scopeId, messages.at(-1)?.id);
     return (
         <div>
-            {access.canClear && messages.length > 0 && (
-                <div className="mb-2 flex justify-end">
-                    <ActionButton
-                        action={clearChat.bind(null, scope, scopeId)}
-                        confirm={t('chat.clearConfirm')}
-                        icon={<Eraser className="size-3.5" />}
-                        danger
-                        className="h-8"
-                    >
-                        {t('chat.clear')}
-                    </ActionButton>
-                </div>
-            )}
+            {/* Clearing the history is a danger-zone action: About tab → Danger zone, not here. */}
         <ChatThread
             scope={scope}
             scopeId={scopeId}

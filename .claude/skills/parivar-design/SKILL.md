@@ -225,7 +225,7 @@ Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`.
 
 ## Changelog of decisions (append when the user sets a new "everywhere" rule)
 
-- Filters → 2 columns, header/footer fixed, body scrolls; Clear/Apply in footer.
+- Filters → 2 columns, header/footer fixed, body scrolls; Clear/Apply in footer. Clear ONLY in that popup footer — never a loose "× Clear" in the toolbar.
 - Kebab: white bg, darker border, grey dots; page kebab at the right of the title row.
 - Single create actions stay buttons; kebab only for several/non-create actions.
 - Back link lives in the top header; history-back on phones.
@@ -235,6 +235,8 @@ Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`.
 - Card-level "add" buttons (e.g. Add to team) go in the card header's `actions`, compact `btn-secondary h-8 text-xs`.
 - Active sidebar item: navy-soft background, orange bar, **orange-400 icon**.
 - Sidebar logo row: same `border-white/10` bottom line as the header.
+- Destructive actions (clear discussion history, status, archive, delete) live ONLY in the About tab's red Danger zone
+  card — a sentence saying what it does + a confirm — never as a button in the Discussion or other working tabs.
 - Long forms grouped into FormPart sections; row lists compact with popup edit; example placeholders on name fields.
 
 ## Maintaining the skills

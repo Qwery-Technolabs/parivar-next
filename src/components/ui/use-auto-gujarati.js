@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/lib/i18n/client';
 import { examplePlaceholders } from '@/lib/examples';
 import { toLocalScript } from '@/lib/local-language';
+import { useDebouncedCallback } from './use-debounce';
 
 // Google Input Tools suggestions (via /api/transliterate), cached for the session.
 const cache = new Map(); // `${lang}:${text}` → string[]
@@ -54,14 +55,12 @@ export function useAutoGujarati(initialEn = '', initialGu = '', example = null) 
     const enRef = useRef(initialEn || '');
     const manualRef = useRef(Boolean(initialGu));
     const focusRef = useRef(false);
-    const timer = useRef(null);
     const closer = useRef(null);
     const ctrl = useRef(null);
     const presses = useRef(0);
 
     useEffect(
         () => () => {
-            clearTimeout(timer.current);
             clearTimeout(closer.current);
             ctrl.current?.abort();
         },
@@ -92,6 +91,16 @@ export function useAutoGujarati(initialEn = '', initialGu = '', example = null) 
         focusRef.current = false;
         closer.current = setTimeout(() => setOpen(false), 150);
     };
+
+    const suggestLater = useDebouncedCallback((v) => {
+        lookup(v)
+            .then((list) => {
+                if (enRef.current !== v || manualRef.current) return;
+                show(list, 0);
+                if (focusRef.current) setOpen(true);
+            })
+            .catch(() => {}); // offline / blocked: the rule-based spelling stays
+    });
 
     return {
         manual,
@@ -127,22 +136,14 @@ export function useAutoGujarati(initialEn = '', initialGu = '', example = null) 
                 setEn(v);
                 enRef.current = v;
                 presses.current = 0;
-                clearTimeout(timer.current);
+                suggestLater.cancel();
                 if (manualRef.current) return;
                 setGu(local(v));
                 setChoices([]);
                 setActive(-1);
                 if (!/[A-Za-z]/.test(v)) return;
-                // A short pause after typing, then Google's 1st suggestion replaces the rule-based one.
-                timer.current = setTimeout(() => {
-                    lookup(v)
-                        .then((list) => {
-                            if (enRef.current !== v || manualRef.current) return;
-                            show(list, 0);
-                            if (focusRef.current) setOpen(true);
-                        })
-                        .catch(() => {}); // offline / blocked: the rule-based spelling stays
-                }, 300);
+                // 300 ms after typing stops, Google's 1st suggestion replaces the rule-based one.
+                suggestLater(v);
             },
         },
         guProps: {

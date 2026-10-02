@@ -123,6 +123,16 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   card daughter / sister rows, tree hover when she is a blood node, relation chain reached via 'daughter' / 'sister').
   `fillFatherNames` fills her maiden_* from her father and an empty husband part from her husband — never her main middle
   from her father. Live backfilled 2026-10-02.
+- **Family tree page** (/members/[id]/tree) is open to every signed-in member (links on profile, Family card, row menu).
+  Without `canSeeFamily` the nodes lose dob, phone and marital_status (privacy); editing / adding relatives still needs it.
+- **Debounce**: every search / suggestion field that reacts to typing goes through `useDebouncedCallback`
+  (components/ui/use-debounce.js, DEBOUNCE_MS = 300): list search boxes (search as you type; Enter still immediate),
+  Combobox / member pickers, Google local-script suggestions. Never a hand-made setTimeout for this.
+- **Clear discussion history**: ONLY app-level super admin / administrator / sub-admin (`canClearChats(role)`) — never a
+  group's or fundraise's own admins. chatAccess.canClear uses it; the Danger zone row shows only for them.
+- **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
+  pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore
+  (`setCampaignArchived`, no longer app-level only). Group: GroupDangerCard also holds "Clear history".
 - **App name = the Samaj name** (Settings → General): `samajName(general, locale)` (lib/settings) everywhere the app names
   itself — browser tab titles (root generateMetadata), sidebar, login / public / print headers, push titles, manifest.
   `t('app.name')` ("Parivar") is only the fallback when no Samaj name is set; never hard-code "Parivar" in UI text.
@@ -134,7 +144,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
-- **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮): list = every surname in use
+- **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮ — visible to EVERYONE;
+  add / edit / tick-assign only for administrators, `canEdit`; each row has "Members" (→ /members?surname=…&status=all&reg=all,
+  disabled when ≤ 1 member) before Edit; Members list filters by `surname`): list = every surname in use
   + saved ones, shown COMPACT (name · local · members · caste → sub-caste, Edit button); add / edit happen in a small
   popup (SurnameDialog: local spelling with Google's list + caste); one or many (tick boxes) mapped to caste → sub-caste. `applySurnameCastes(ids?, q?)` fills members WITHOUT a
   caste — called on admin create, invite (ensureInvitedUser), register, family link (after fillCastes) and surname edit.

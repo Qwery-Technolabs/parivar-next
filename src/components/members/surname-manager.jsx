@@ -1,5 +1,6 @@
 'use client';
-import { Pencil, Plus, Save } from 'lucide-react';
+import { Pencil, Plus, Save, Users } from 'lucide-react';
+import Link from 'next/link';
 import { startTransition, useActionState, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { saveSurname, saveSurnamesBulk } from '@/app/actions/surnames';
@@ -82,7 +83,10 @@ function BulkAssign({ rows, options, onDone }) {
         startTransition(() => action(fd));
     };
     return (
-        <form onSubmit={onSubmit} className="grid items-end gap-3 border-b border-surface-border bg-accent/50 px-4 py-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto]">
+        <form
+            onSubmit={onSubmit}
+            className="grid items-end gap-3 border-b border-surface-border bg-accent/50 px-4 py-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto]"
+        >
             <input type="hidden" name="rows" value={JSON.stringify(rows.map((r) => ({ name: r.name, name_local: r.name_local })))} />
             <p className="self-center text-sm font-semibold text-primary">{t('surnames.selected', { count: rows.length })}</p>
             <CasteSelect
@@ -107,7 +111,7 @@ function BulkAssign({ rows, options, onDone }) {
  * surname who have none, and new members (added, invited, registered, from a family tree) get it.
  * Tick several to give them one caste → sub-caste at once.
  */
-export default function SurnameManager({ surnames, options }) {
+export default function SurnameManager({ surnames, options, canEdit = false }) {
     const { t, locale } = useT();
     const [picked, setPicked] = useState(() => new Set());
     const toggle = (name) =>
@@ -142,7 +146,7 @@ export default function SurnameManager({ surnames, options }) {
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-lg border-b border-surface-border bg-card-head px-4 py-2">
                 <h2 className="text-sm font-semibold text-primary">{t('surnames.title')}</h2>
                 <div className="flex items-center gap-3">
-                    {surnames.length > 0 && (
+                    {canEdit && surnames.length > 0 && (
                         <label className="inline-flex items-center gap-2 text-xs font-medium text-primary">
                             <input
                                 type="checkbox"
@@ -153,17 +157,23 @@ export default function SurnameManager({ surnames, options }) {
                             {t('surnames.selectAll')}
                         </label>
                     )}
-                    <SurnameDialog
-                        options={options}
-                        trigger={({ open }) => (
-                            <button type="button" onClick={open} className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium">
-                                <Plus className="size-3.5" /> {t('surnames.add')}
-                            </button>
-                        )}
-                    />
+                    {canEdit && (
+                        <SurnameDialog
+                            options={options}
+                            trigger={({ open }) => (
+                                <button
+                                    type="button"
+                                    onClick={open}
+                                    className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
+                                >
+                                    <Plus className="size-3.5" /> {t('surnames.add')}
+                                </button>
+                            )}
+                        />
+                    )}
                 </div>
             </div>
-            {selectedRows.length > 0 && <BulkAssign rows={selectedRows} options={options} onDone={() => setPicked(new Set())} />}
+            {canEdit && selectedRows.length > 0 && <BulkAssign rows={selectedRows} options={options} onDone={() => setPicked(new Set())} />}
             {surnames.length === 0 ? (
                 <p className="px-4 py-6 text-sm text-ink-gray">{t('surnames.empty')}</p>
             ) : (
@@ -174,13 +184,15 @@ export default function SurnameManager({ surnames, options }) {
                         const caste = casteLabel(r);
                         return (
                             <li key={r.name} className="flex items-center gap-3 px-4 py-2">
-                                <input
-                                    type="checkbox"
-                                    checked={picked.has(r.name)}
-                                    onChange={() => toggle(r.name)}
-                                    aria-label={t('surnames.select', { name: shown })}
-                                    className="size-4 shrink-0 accent-brand-orange-strong"
-                                />
+                                {canEdit && (
+                                    <input
+                                        type="checkbox"
+                                        checked={picked.has(r.name)}
+                                        onChange={() => toggle(r.name)}
+                                        aria-label={t('surnames.select', { name: shown })}
+                                        className="size-4 shrink-0 accent-brand-orange-strong"
+                                    />
+                                )}
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-semibold text-primary">
                                         {shown}
@@ -192,7 +204,26 @@ export default function SurnameManager({ surnames, options }) {
                                         {caste ? <span className="text-ink">{caste}</span> : <span className="italic">{t('surnames.noCaste')}</span>}
                                     </p>
                                 </div>
-                                <SurnameDialog row={r} options={options} trigger={editButton} />
+                                {/* Everyone with this surname (all statuses) — only worth it with more than one. */}
+                                {(r.members ?? 0) > 1 ? (
+                                    <Link
+                                        href={`/members?surname=${encodeURIComponent(r.name)}&status=all&reg=all`}
+                                        aria-label={t('surnames.viewMembers')}
+                                        title={t('surnames.viewMembers')}
+                                        className="btn-secondary inline-flex size-8 shrink-0 items-center justify-center gap-1.5 rounded-md text-xs font-medium sm:w-auto sm:px-2.5"
+                                    >
+                                        <Users className="size-3.5" /> <span className="hidden sm:inline">{t('surnames.viewMembers')}</span>
+                                    </Link>
+                                ) : (
+                                    <span
+                                        aria-disabled="true"
+                                        title={t('surnames.viewMembers')}
+                                        className="inline-flex size-8 shrink-0 cursor-not-allowed items-center justify-center gap-1.5 rounded-md border border-surface-border text-xs font-medium text-ink-gray/50 sm:w-auto sm:px-2.5"
+                                    >
+                                        <Users className="size-3.5" /> <span className="hidden sm:inline">{t('surnames.viewMembers')}</span>
+                                    </span>
+                                )}
+                                {canEdit && <SurnameDialog row={r} options={options} trigger={editButton} />}
                             </li>
                         );
                     })}

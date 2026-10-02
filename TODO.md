@@ -280,3 +280,10 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fix: new group members were left out of "Everyone" meetings until someone opened the Meetings tab — now invited at once (group add / invite / bulk / team / Mandal); fixed getMeta misuse in Mandal (everyone-sync, archived lock)
 - [x] Mandal: "Latest Mandal" strip with Record money for the newest schedule; per-member unpaid schedules (last 3 with dates, +N older) in the sheet and members list
 - [x] Samaj name (Settings → General) as the app name everywhere: tab titles, print header, push titles (Parivar only as fallback)
+- [x] Any member can view anyone's family tree (no more 404); birth date, phone and marital status only for the family
+- [x] Filters: no loose Clear button in toolbars; Clear only in the filter popup
+- [x] Clear discussion history moved from the Discussion tab to the About tab's Danger zone (group + fundraise/Mandal), with a sentence and confirmation; Mandal public-link card shown again
+- [x] Fundraise / Mandal Danger zone on About (admins): clear discussion, pause ⇄ resume (read-only discussion), archive ⇄ restore
+- [x] Clear history: only app super admin / administrator / sub-admin, in the Danger zone (not group / fundraise admins)
+- [x] Shared 300 ms debounce hook for search / suggestion fields (list search-as-you-type, member pickers, Gujarati suggestions)
+- [x] Surnames page visible to everyone (edit only administrators); "Members" button per surname (disabled when ≤ 1); Members list ?surname= filter

@@ -2,6 +2,7 @@
 import { ChevronDown, Loader2, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { textInput } from './field';
+import { useDebouncedCallback } from './use-debounce';
 
 /**
  * design-system.md §6 Combobox — async searchable single select.
@@ -32,7 +33,6 @@ export default function Combobox({
     const [loading, setLoading] = useState(false);
     const [active, setActive] = useState(0);
     const seq = useRef(0);
-    const timer = useRef(null);
     // Right after a choice the list unmounts and focus lands back on the input (a dialog's focus
     // trap, a tap on a phone) — which must not reopen the list. Ignore opens for a moment.
     const chosenAt = useRef(0);
@@ -58,6 +58,9 @@ export default function Combobox({
         }
     }
 
+    // Typing searches 300 ms after the last key (useDebouncedCallback).
+    const loadLater = useDebouncedCallback((v) => load(v));
+
     function openList() {
         if (open || Date.now() - chosenAt.current < 400) return;
         setInDialog(Boolean(wrap.current?.closest('[data-slot="dialog-content"]')));
@@ -82,8 +85,7 @@ export default function Combobox({
         const v = e.target.value;
         setQ(v);
         if (!open) setOpen(true);
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => load(v), 200);
+        loadLater(v);
     }
 
     function onKeyDown(e) {

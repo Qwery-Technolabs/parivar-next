@@ -25,6 +25,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getGroup, groupFundraises, groupMembers } from '@/lib/groups';
 import { sp1 } from '@/lib/url';
+import { canClearChats } from '@/lib/roles';
 
 export async function generateMetadata({ params }) {
     const { id } = await params;
@@ -187,7 +188,16 @@ export default async function GroupPage({ params, searchParams }) {
                         <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
                     </Card>
                     {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
-                    {canAdminister(standing) && <GroupDangerCard group={group} canDelete={standing === 'app'} t={t} />}
+                    {canAdminister(standing) && (
+                        <GroupDangerCard
+                            group={group}
+                            canDelete={standing === 'app'}
+                            // Clearing the discussion: app-level admins / sub-admins only (canClearChats).
+                            canClearChat={canClearChats(user.role)}
+                            messageCount={messages}
+                            t={t}
+                        />
+                    )}
                 </div>
             )}
         </div>

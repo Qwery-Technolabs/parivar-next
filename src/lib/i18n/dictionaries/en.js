@@ -614,6 +614,15 @@ const en = {
         errors: { units: 'Enter 1 to 20 units.', date: 'Enter a valid date.' },
     },
     fundraise: {
+        danger: {
+            pause: 'Pause',
+            resume: 'Resume',
+            pauseHint: 'Pause: everyone can still read it and its money, but nobody can post in its discussion. Resume any time.',
+            pauseConfirm: 'Pause this fundraise? Its discussion becomes read-only until it is resumed.',
+            archiveHint: 'Archive: hide it from members and lists. Admins can still open and restore it.',
+            paused: 'Paused.',
+            resumed: 'Resumed.',
+        },
         markPaid: 'Mark as paid',
         markedPaid: 'Marked as paid.',
         publicSwitch: 'Public',
@@ -1019,6 +1028,7 @@ const en = {
         assignSelected: 'Assign to selected',
         pickSome: 'Tick at least one surname.',
         noCaste: 'No caste yet',
+        viewMembers: 'Members',
     },
     castes: {
         title: 'Castes',
@@ -1044,6 +1054,7 @@ const en = {
     chat: {
         clear: 'Clear history',
         clearConfirm: 'Delete the whole discussion for everyone? This cannot be undone.',
+        clearHint: { one: 'Clear history: delete the {count} message of this discussion for everyone. Cannot be undone.', other: 'Clear history: delete all {count} messages of this discussion for everyone. Cannot be undone.' },
         cleared: 'Discussion cleared.',
         alertToggle: 'Alert everyone',
         alertOn: 'Alert on: everyone will be notified',

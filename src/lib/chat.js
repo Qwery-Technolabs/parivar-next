@@ -3,7 +3,7 @@ import { fundraisePermissions, groupStanding, isInFundraiseGroup, isLeaderOfFund
 import { canPostIn, chatRolesFrom } from './group-roles';
 import { fundraiseAudienceIds } from './notifications';
 import { query, queryOne, setMeta } from './db';
-import { canManageAllFundraises, canManageGroups } from './roles';
+import { canManageAllFundraises, canManageGroups, canClearChats } from './roles';
 
 export const CHAT_SCOPES = ['group', 'fundraise'];
 export const CHAT_PAGE = 60;
@@ -40,15 +40,17 @@ export async function chatAccess(user, scope, scopeId) {
         if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') return none;
         const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
         // An inactive or archived group's discussion is read-only for everyone.
-        // Clear the whole discussion: the group's admins and app-level group managers (not sub-admins).
-        const canClear = standing === 'app' || standing === 'admin';
+        // Clear the whole discussion: app-level admins / sub-admins only (canClearChats) — not the group's own admins.
+        const canClear = canClearChats(user.role);
         if (group.status !== 'active') return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), canClear, postRoles, paused: true };
         const canPost = canPostIn(postRoles, standing, myRole);
         return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), canClear, postRoles };
     }
-    const campaign = await queryOne('SELECT id, group_id FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
+    const campaign = await queryOne('SELECT id, group_id, status, archived_at FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;
-    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, canAlert: true, moderate: true, canClear: true };
+    // Paused (closed) or archived: everyone may still read, nobody posts — like an inactive group.
+    const paused = campaign.status === 'closed' || Boolean(campaign.archived_at);
+    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: !paused, canAlert: !paused, moderate: true, canClear: canClearChats(user.role), paused };
     const [perms, member, leader] = await Promise.all([
         fundraisePermissions(user, campaign),
         isInFundraiseGroup(user.id, campaign.id),
@@ -57,7 +59,7 @@ export async function chatAccess(user, scope, scopeId) {
     const allowed = perms.post || member;
     // perms.manage = app-level, a group admin, or the fundraise's own admin; plus group sub-admins.
     // Delete others' messages: admins and sub-admins (incl. sub-admins of its groups); clear all: admins (manage).
-    return { allowed, canPost: allowed, canAlert: perms.manage || leader, moderate: perms.manage || leader, canClear: perms.manage };
+    return { allowed, canPost: allowed && !paused, canAlert: !paused && (perms.manage || leader), moderate: perms.manage || leader, canClear: canClearChats(user.role), paused };
 }
 
 /**

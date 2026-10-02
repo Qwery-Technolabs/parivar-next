@@ -22,11 +22,18 @@ export default async function FamilyTreePage({ params }) {
     const user = await requireUser();
     const person = await getPerson(Number(id) || 0);
     if (!person) notFound();
-    if (!(await canSeeFamily(user, person))) notFound();
+    // Anyone signed in may view a family tree. Phone, birth date (age) and marital status stay for those
+    // who may see this family (themselves, member managers, whoever added them, relatives).
+    const family = await canSeeFamily(user, person);
     const [tree, steps, { t, locale }] = await Promise.all([getLineageTree(person.id), relationStepsFrom(person.id), getT()]);
     // Each card says how that person is related to the tree's person (Father, Kaka, Bhabhi …).
     const label = (p) => {
         p.kin = p.id === person.id ? null : kinTerm(steps.get(p.id));
+        if (!family) {
+            p.dob = null;
+            p.phone = null;
+            p.marital_status = null; // "married" still shows from a recorded spouse
+        }
         p.spouses?.forEach(label);
         p.children?.forEach(label);
     };

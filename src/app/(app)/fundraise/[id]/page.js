@@ -36,10 +36,11 @@ import {
 } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { canManageAllFundraises } from '@/lib/roles';
+import { canManageAllFundraises, canClearChats } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref, sp1 } from '@/lib/url';
+import { messageCount as countMessages } from '@/lib/chat';
 
 // Three tabs; the default (Discussion) is the absence of ?tab. Old tab values from
 // notifications and bookmarks map onto the tab that now holds them.
@@ -152,11 +153,12 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             />
         );
     } else if (tab === 'details') {
-        const [audience, team, updates, history] = await Promise.all([
+        const [audience, team, updates, history, messageCount] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
             listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
+            countMessages('fundraise', campaign.id),
         ]);
         body = (
             <>
@@ -173,6 +175,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     today={today}
                     t={t}
                     locale={locale}
+                    messageCount={messageCount}
+                    canClearChat={canClearChats(user.role)}
                 />
             </>
         );
@@ -326,7 +330,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-surface-border bg-surface-bggray/60 px-3 py-2.5">
                     <Archive className="size-4 shrink-0 text-ink-gray" />
                     <p className="min-w-0 flex-1 text-sm text-ink">{t('fundraise.archivedNotice')}</p>
-                    {canManageAllFundraises(user.role) && (
+                    {perms.manage && (
                         <form action={setCampaignArchived.bind(null, campaign.id, false)}>
                             <SubmitButton icon={<ArchiveRestore className="size-4" />} variant="secondary">
                                 {t('fundraise.restore')}
