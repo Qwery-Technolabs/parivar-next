@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/lib/i18n/client';
+import { examplePlaceholders } from '@/lib/examples';
 import { toLocalScript } from '@/lib/local-language';
 
 // Google Input Tools suggestions (via /api/transliterate), cached for the session.
@@ -23,7 +24,8 @@ async function googleSuggestions(text, lang, signal) {
  * local field fills in — at once with the built-in spelling rules, then with Google's 1st
  * suggestion — with a numbered list under it of Google's suggestions plus the English text itself
  * as the last choice. Click one, or ↑ / ↓ in the English field, to take it. Once the person types
- * in the local field themselves, their spelling is kept.
+ * in the local field themselves, their spelling is kept. Focusing the local field of a saved name
+ * also shows the list (its value stays until one is picked), so a wrong spelling is fixed in a click.
  *
  * The ↻ button (GujaratiField) walks the suggestions: the 1st press shows the 1st, the next the
  * 2nd, then the 3rd … and round again. Typing English or editing the local field by hand starts
@@ -32,11 +34,15 @@ async function googleSuggestions(text, lang, signal) {
  * A record that already has a local value starts as "manual", so editing the English
  * spelling of an existing name never overwrites a local name someone typed carefully.
  *
+ * `example` (lib/examples key, e.g. 'firstName') puts "e.g. Ramesh" / "ઉદા. રમેશ" in the two boxes.
+ *
  * @param {string} [initialEn]
  * @param {string} [initialGu]
+ * @param {string} [example]
  */
-export function useAutoGujarati(initialEn = '', initialGu = '') {
+export function useAutoGujarati(initialEn = '', initialGu = '', example = null) {
     const { localLang } = useT();
+    const ph = examplePlaceholders(example, localLang);
     const local = (text) => toLocalScript(text, localLang);
     const [gu, setGu] = useState(initialGu || '');
     const [manual, setManual] = useState(Boolean(initialGu));
@@ -93,9 +99,9 @@ export function useAutoGujarati(initialEn = '', initialGu = '') {
         position: manual || active < 0 ? null : { n: active + 1, total: choices.length },
         /** The numbered list under the local field: { choices, active, open, pick(i) }. */
         list: {
-            choices: manual ? [] : choices,
+            choices,
             active,
-            open: open && !manual && choices.length > 1,
+            open: open && choices.length > 1,
             pick: (i) => {
                 show(choices, i);
                 presses.current = i + 1;
@@ -104,6 +110,7 @@ export function useAutoGujarati(initialEn = '', initialGu = '') {
         },
         enProps: {
             defaultValue: initialEn || '',
+            placeholder: ph.en,
             onFocus: focus,
             onBlur: blur,
             onKeyDown: (e) => {
@@ -141,9 +148,24 @@ export function useAutoGujarati(initialEn = '', initialGu = '') {
         guProps: {
             value: gu,
             lang: localLang,
-            onFocus: focus,
+            placeholder: ph.local,
+            onFocus: (e) => {
+                focus();
+                // A saved name (or a fresh page): fetch Google's list for the English text, without changing the value.
+                const text = enRef.current;
+                if (choices.length || !/[A-Za-z]/.test(text)) return;
+                const current = e.currentTarget.value;
+                lookup(text)
+                    .then((list) => {
+                        if (enRef.current !== text) return;
+                        setChoices(list);
+                        setActive(list.indexOf(current));
+                    })
+                    .catch(() => {});
+            },
             onBlur: blur,
             onChange: (e) => {
+                setOpen(false); // typing their own spelling: the list steps aside until the next focus
                 setGu(e.target.value);
                 const m = e.target.value.trim() !== '';
                 setManual(m);

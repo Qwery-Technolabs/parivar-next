@@ -176,6 +176,16 @@ const en = {
         },
         welcomeFill: 'Welcome! Your password is set. Please fill in your details below — each tab saves on its own.',
         tabs: { basic: 'Basic info', community: 'Community', details: 'Details', access: 'Role & status', password: 'Password' },
+        parts: {
+            name: 'Name',
+            personal: 'About them',
+            contact: 'Contact & place',
+            caste: 'Caste',
+            blood: 'Blood',
+            work: 'Work & education',
+            reach: 'Other contact',
+            about: 'About',
+        },
         bulk: {
             reset: 'Reset password to phone',
             resetTitle: 'Reset passwords to phone number',
@@ -615,7 +625,7 @@ const en = {
         publicPage: 'Public page',
         standalone: 'Standalone fundraise (no group)',
         noHomeGroup: 'No group — standalone',
-        sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing' },
+        sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing', moneyPlace: 'Target & place', money: 'Money', dates: 'Dates' },
         homeGroup: 'Home group',
         alsoInGroups: 'Also show in these groups',
         addToGroup: 'Add to group',
@@ -1003,6 +1013,7 @@ const en = {
         selected: '{count} selected',
         assignSelected: 'Assign to selected',
         pickSome: 'Tick at least one surname.',
+        noCaste: 'No caste yet',
     },
     castes: {
         title: 'Castes',

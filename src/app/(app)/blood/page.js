@@ -170,7 +170,7 @@ async function Donors({ f, t, locale }) {
                 filters={[
                     { param: 'group', label: t('members.bloodGroup'), type: 'select', allLabel: t('common.any'), options: BLOOD_GROUPS.map((g) => ({ value: g, label: g })) },
                     { param: 'compatible', label: t('members.compatible'), hint: t('members.compatibleHint'), type: 'switch', showIf: { param: 'group' } },
-                    { param: 'village', label: t('members.village'), type: 'text' },
+                    { param: 'city', label: t('members.city'), type: 'text' },
                 ]}
                 left={
                     <span className="text-xs text-ink-gray tabular-nums">
@@ -183,7 +183,7 @@ async function Donors({ f, t, locale }) {
                 <THead>
                     <Th>{t('members.fullName')}</Th>
                     <Th>{t('members.bloodGroup')}</Th>
-                    <Th>{t('members.village')}</Th>
+                    <Th>{t('members.city')}</Th>
                     <Th>{t('members.phone')}</Th>
                 </THead>
                 <tbody>
@@ -198,7 +198,7 @@ async function Donors({ f, t, locale }) {
                             <Td>
                                 <BloodBadge group={d.blood_group} />
                             </Td>
-                            <Td>{d.village || null}</Td>
+                            <Td>{d.city || null}</Td>
                             <Td className="whitespace-nowrap">
                                 {d.phone ? (
                                     <a

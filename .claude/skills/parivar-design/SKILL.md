@@ -97,6 +97,13 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   action bar (`sticky bottom-0 … bg-white/95 backdrop-blur`).
 - Edit pages with many fields: iconed tabs (`MemberEditTabs` pattern) — **each tab saves on its own**,
   tab kept in `?tab=`.
+- Inside a card, group fields with `FormPart` (components/ui/form-part.jsx): a thin rule + small-caps title per
+  part (first part has no rule). Member form: Name · About them · Contact & place / Caste · Blood / Work & education ·
+  Other contact · About; fundraise Details: name (picture + titles) · Target & place (Mandal: Money) · Dates · Description.
+  The member Add page = one titled card per group (Basic, Community | Role + Password, Details).
+- Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
+  never inline edit forms per row.
+- Name / title fields carry example placeholders ("e.g. Ramesh" / "ઉદા. રમેશ") — lib/examples.js.
 - Names: three required parts (first / father's / surname) each with an auto-transliterated local twin
   (`NameFields`); Gujarati labels તમારું નામ / તમારા પિતાનું નામ / અટક.
 - **No `<datalist>` anywhere.** Single free-text-with-suggestions → `PickOrType` (text box + dropdown,
@@ -221,6 +228,7 @@ Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`.
 - Card-level "add" buttons (e.g. Add to team) go in the card header's `actions`, compact `btn-secondary h-8 text-xs`.
 - Active sidebar item: navy-soft background, orange bar, **orange-400 icon**.
 - Sidebar logo row: same `border-white/10` bottom line as the header.
+- Long forms grouped into FormPart sections; row lists compact with popup edit; example placeholders on name fields.
 
 ## Maintaining the skills
 

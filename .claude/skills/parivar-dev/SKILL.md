@@ -123,8 +123,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   card daughter / sister rows, tree hover when she is a blood node, relation chain reached via 'daughter' / 'sister').
   `fillFatherNames` fills her maiden_* from her father and an empty husband part from her husband — never her main middle
   from her father. Live backfilled 2026-10-02.
+- **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
+  village — donors are needed where people live now.
 - **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮): list = every surname in use
-  + saved ones; one or many (tick boxes) mapped to caste → sub-caste. `applySurnameCastes(ids?, q?)` fills members WITHOUT a
+  + saved ones, shown COMPACT (name · local · members · caste → sub-caste, Edit button); add / edit happen in a small
+  popup (SurnameDialog: local spelling with Google's list + caste); one or many (tick boxes) mapped to caste → sub-caste. `applySurnameCastes(ids?, q?)` fills members WITHOUT a
   caste — called on admin create, invite (ensureInvitedUser), register, family link (after fillCastes) and surname edit.
 - **Caste follows the family**: `fillCastes(q)` (lib/family.js) after every family link — anyone without a caste takes caste +
   sub-caste from father → husband (married woman) → spouse → mother → brother / sister → son / daughter, repeated until stable;

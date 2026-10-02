@@ -8,6 +8,16 @@ import SubmitButton from '@/components/ui/submit-button';
 import { AccessFields, BasicFields, CommunityFields, DetailFields, PasswordField } from './member-fields';
 import { useT } from '@/lib/i18n/client';
 
+/** One card per group, titled like the Edit page's tabs. */
+function Card({ title, children }) {
+    return (
+        <section className="min-w-0 rounded-lg border border-surface-border bg-white shadow-sm">
+            <h2 className="rounded-t-lg border-b border-surface-border bg-card-head px-3.5 py-2 text-sm font-semibold text-primary">{title}</h2>
+            <div className="p-3.5">{children}</div>
+        </section>
+    );
+}
+
 /**
  * Add-member form: every field group on one page, one save. Editing an existing member
  * uses MemberEditTabs instead (a tab and a save per group).
@@ -27,7 +37,6 @@ export default function MemberForm({ roles, villages, cities = [], casteOptions 
     }, null);
     const fe = (k) => (state?.fieldErrors?.[k] ? t(state.fieldErrors[k]) : null);
 
-    const section = 'rounded-lg border border-surface-border bg-white p-3.5 shadow-sm';
 
     // onSubmit + startTransition rather than <form action>: React resets uncontrolled
     // fields after a form action, which would wipe the input on a validation error.
@@ -39,21 +48,25 @@ export default function MemberForm({ roles, villages, cities = [], casteOptions 
 
     return (
         <form onSubmit={onSubmit} className="space-y-3">
-            <section className={`${section} space-y-3`}>
+            <Card title={t('members.tabs.basic')}>
                 <BasicFields fe={fe} villages={villages} cities={cities} />
-                <CommunityFields fe={fe} casteOptions={casteOptions} />
-                <AccessFields roles={roles} />
-            </section>
-
-            <section className={section}>
-                <h2 className="mb-3 text-sm font-semibold text-primary">{t('members.details')}</h2>
+            </Card>
+            <div className="grid items-start gap-3 lg:grid-cols-2">
+                <Card title={t('members.tabs.community')}>
+                    <CommunityFields fe={fe} casteOptions={casteOptions} />
+                </Card>
+                <div className="space-y-3">
+                    <Card title={t('members.tabs.access')}>
+                        <AccessFields roles={roles} />
+                    </Card>
+                    <Card title={t('members.setPassword')}>
+                        <PasswordField fe={fe} />
+                    </Card>
+                </div>
+            </div>
+            <Card title={t('members.tabs.details')}>
                 <DetailFields />
-            </section>
-
-            <section className={section}>
-                <h2 className="mb-3 text-sm font-semibold text-primary">{t('members.setPassword')}</h2>
-                <PasswordField fe={fe} />
-            </section>
+            </Card>
 
             {state?.error && (
                 <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">

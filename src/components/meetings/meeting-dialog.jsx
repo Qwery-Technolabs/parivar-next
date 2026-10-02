@@ -57,6 +57,7 @@ export default function MeetingDialog({ scope, scopeId, people, meeting = null, 
                     <div className="grid gap-3 sm:grid-cols-2">
                         <BilingualName
                             enLabel={t('meetings.title')}
+                            example="meeting"
                             guLabel={t('meetings.titleLocal')}
                             enName="title"
                             guName="title_local"

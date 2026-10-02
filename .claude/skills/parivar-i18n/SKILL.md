@@ -53,7 +53,13 @@ change. See "Maintaining the skills" at the end.
 - UI: `useAutoGujarati(en, local)` pairs an English input with its local twin, like the Google keyboard: typing
   English fills the local box (rules at once, then Google's 1st) and shows a numbered list under it — Google's
   suggestions + the English spelling last; click or ↑/↓ in the English input picks. Typing in the local box =
-  "Your spelling is kept". ↻ steps 1st → 2nd → 3rd … (round again); typing English or a manual edit restarts at 1st. Components:
+  "Your spelling is kept". ↻ steps 1st → 2nd → 3rd … (round again); typing English or a manual edit restarts at 1st.
+  Focusing a local box (also a saved name) loads the list without changing the value — every local field uses
+  GujaratiField / BilingualName, incl. each row of the surname manager (editable local spelling). Never add a raw
+  local-language input: always go through useAutoGujarati so the Google list is there.
+- Placeholders: `useAutoGujarati(en, local, exampleKey)` / `<BilingualName example="…">` → "e.g. Ramesh" in the English box,
+  "ઉદા. રમેશ" (hi: "उदा. रमेश") in the local one; examples live in lib/examples.js (firstName, fatherName, husbandName,
+  surname, groupName, fundraise, mandal, caste, meeting) — add a key there for a new pair. Components:
   `BilingualName` (one English + one local field), `GujaratiField`, `NameFields` (three name parts, each
   with its own local twin; the server joins each set).
 - Labels with a `{lang}` slot (`members.fullNameLocal`) get the local language's own name

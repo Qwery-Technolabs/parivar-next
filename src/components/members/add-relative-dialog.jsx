@@ -77,11 +77,11 @@ function MarriedName({ defaults, fe }) {
     const { t, localLang } = useT();
     const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';
     const parts = {
-        first_name: useAutoGujarati(defaults.first_name ?? '', defaults.first_name_local ?? ''),
-        middle_name: useAutoGujarati(defaults.middle_name ?? '', defaults.middle_name_local ?? ''),
-        surname: useAutoGujarati(defaults.surname ?? '', defaults.surname_local ?? ''),
-        maiden_middle_name: useAutoGujarati(defaults.maiden_middle_name ?? '', defaults.maiden_middle_name_local ?? ''),
-        maiden_surname: useAutoGujarati(defaults.maiden_surname ?? '', defaults.maiden_surname_local ?? ''),
+        first_name: useAutoGujarati(defaults.first_name ?? '', defaults.first_name_local ?? '', 'firstName'),
+        middle_name: useAutoGujarati(defaults.middle_name ?? '', defaults.middle_name_local ?? '', 'fatherName'),
+        surname: useAutoGujarati(defaults.surname ?? '', defaults.surname_local ?? '', 'surname'),
+        maiden_middle_name: useAutoGujarati(defaults.maiden_middle_name ?? '', defaults.maiden_middle_name_local ?? '', 'fatherName'),
+        maiden_surname: useAutoGujarati(defaults.maiden_surname ?? '', defaults.maiden_surname_local ?? '', 'surname'),
     };
     const labels = {
         first_name: 'members.firstName',
@@ -139,9 +139,9 @@ function MarriedName({ defaults, fe }) {
  */
 function QuickName({ defaults, fe }) {
     const { t, localLang } = useT();
-    const first = useAutoGujarati(defaults.first_name, defaults.first_name_local);
-    const middle = useAutoGujarati(defaults.middle_name, defaults.middle_name_local);
-    const surname = useAutoGujarati(defaults.surname, defaults.surname_local);
+    const first = useAutoGujarati(defaults.first_name, defaults.first_name_local, 'firstName');
+    const middle = useAutoGujarati(defaults.middle_name, defaults.middle_name_local, 'fatherName');
+    const surname = useAutoGujarati(defaults.surname, defaults.surname_local, 'surname');
     const [firstEn, setFirstEn] = useState(defaults.first_name);
     const [full, setFull] = useState(!defaults.surname || Boolean(fe('surname') || fe('middle_name')));
     const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';

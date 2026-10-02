@@ -20,11 +20,11 @@ import { LOCAL_LANGUAGES } from '@/lib/local-language';
  */
 export default function NameFields({ member, fe, optional = [], married = false, spacerClass = 'hidden xl:block' }) {
     const { t, localLang } = useT();
-    const first = useAutoGujarati(member?.first_name ?? '', member?.first_name_local ?? '');
-    const middle = useAutoGujarati(member?.middle_name ?? '', member?.middle_name_local ?? '');
-    const surname = useAutoGujarati(member?.surname ?? '', member?.surname_local ?? '');
-    const maidenMiddle = useAutoGujarati(member?.maiden_middle_name ?? '', member?.maiden_middle_name_local ?? '');
-    const maidenSurname = useAutoGujarati(member?.maiden_surname ?? '', member?.maiden_surname_local ?? '');
+    const first = useAutoGujarati(member?.first_name ?? '', member?.first_name_local ?? '', 'firstName');
+    const middle = useAutoGujarati(member?.middle_name ?? '', member?.middle_name_local ?? '', married ? 'husbandName' : 'fatherName');
+    const surname = useAutoGujarati(member?.surname ?? '', member?.surname_local ?? '', 'surname');
+    const maidenMiddle = useAutoGujarati(member?.maiden_middle_name ?? '', member?.maiden_middle_name_local ?? '', 'fatherName');
+    const maidenSurname = useAutoGujarati(member?.maiden_surname ?? '', member?.maiden_surname_local ?? '', 'surname');
     const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';
 
     const english = (name, labelKey, auto) => (

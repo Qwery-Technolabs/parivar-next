@@ -12,9 +12,10 @@ export function resolveBloodFilters(sp = {}) {
     const status = rawStatus === 'all' || REQUEST_STATUSES.includes(rawStatus) ? rawStatus : 'open';
     const group = BLOOD_GROUPS.includes(one(sp.group)) ? one(sp.group) : '';
     const compatible = one(sp.compatible) === '1';
-    const village = String(one(sp.village)).trim().slice(0, 100);
+    // Donors are found where they live now (current city), not by native village.
+    const city = String(one(sp.city)).trim().slice(0, 100);
     const q = String(one(sp.q)).trim().slice(0, 100);
-    return { tab, status, group, compatible, village, q };
+    return { tab, status, group, compatible, city, q };
 }
 
 export async function listRequests({ status, q = '', page, perPage }) {
@@ -49,7 +50,7 @@ export async function getRequest(id) {
  * Active donors. With `group`: those who can give to it (or exactly it when compatible is
  * off); without: every donor. `q` matches name, local name, village, city or phone.
  */
-export async function listDonors({ group, compatible, village, q = '' }) {
+export async function listDonors({ group, compatible, city, q = '' }) {
     const params = {};
     let where = `status = 'active' AND is_blood_donor = 1`;
     if (group) {
@@ -61,12 +62,12 @@ export async function listDonors({ group, compatible, village, q = '' }) {
         where += ' AND (full_name LIKE :q OR full_name_local LIKE :q OR village LIKE :q OR city LIKE :q OR phone LIKE :q)';
         params.q = `%${q}%`;
     }
-    if (village) {
-        where += ' AND village LIKE :village';
-        params.village = `%${village}%`;
+    if (city) {
+        where += ' AND city LIKE :city';
+        params.city = `%${city}%`;
     }
     return query(
-        `SELECT id, full_name, full_name_local, phone, village, blood_group
+        `SELECT id, full_name, full_name_local, phone, city, blood_group
            FROM users_list WHERE ${where}
           ORDER BY blood_group = :exact DESC, full_name LIMIT 200`,
         { ...params, exact: group || '' },

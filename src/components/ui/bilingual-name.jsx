@@ -23,8 +23,9 @@ export default function BilingualName({
     multiline = false,
     rows = 4,
     className = '',
+    example = null,
 }) {
-    const auto = useAutoGujarati(defaultEn, defaultGu);
+    const auto = useAutoGujarati(defaultEn, defaultGu, example);
     const { localLang } = useT();
     // Labels carry a {lang} slot: "Full name ({lang})" → "Full name (हिन्दी)" for a Hindi writer.
     const localLabel = guLabel.replace('{lang}', LOCAL_LANGUAGES[localLang]?.label ?? '');

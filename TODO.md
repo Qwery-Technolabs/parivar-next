@@ -265,3 +265,9 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Sidebar: My family tree (own tree) before Members
 - [x] Family tree: "Married daughters" switch beside Details — off hides married daughters in every chain
 - [x] Name fields: Google Input Tools suggestions (numbered list under the local box, ↑/↓, ↻ cycles 1st→2nd→3rd, resets after a manual edit); built-in rules as instant fill + fallback
+- [x] Google suggestions everywhere: list also on focus of a saved local name; surname manager rows get an editable local spelling with the list
+- [x] Surnames page compact: one line per surname with Edit popup (local spelling with Google list, caste); + Add surname popup
+- [x] Surnames page compact: one line per surname, Edit / Add in a small popup (local spelling with Google list, caste)
+- [x] Fundraise create/edit Details card grouped (name · target & place · dates · description); member add/edit grouped into parts (Name, About them, Contact & place, Caste, Blood, Work & education, Other contact, About)
+- [x] Example placeholders on name/title fields ("e.g. Ramesh" / "ઉદા. રમેશ")
+- [x] Blood → Donors: current city (column + filter) instead of native village

@@ -54,6 +54,7 @@ export default function GroupFormDialog({ group, onNavy = false, menuKey }) {
                         <div className="min-w-0 flex-1 space-y-3">
                             <BilingualName
                                 enLabel={t('groups.name')}
+                                example="groupName"
                                 guLabel={t('groups.nameLocal')}
                                 enName="name"
                                 guName="name_local"

@@ -28,6 +28,7 @@ function CasteDialog({ caste, parent, trigger }) {
                 <>
                     <BilingualName
                         enLabel={t('castes.name')}
+                        example="caste"
                         guLabel={t('castes.nameLocal')}
                         enName="name"
                         guName="name_local"
