@@ -47,8 +47,13 @@ change. See "Maintaining the skills" at the end.
   the rules get wrong (add words there when the user corrects one).
 - `toLocalScript(text, lang)` (lib/local-language.js) shifts Gujarati to Devanagari for hi.
 - Marathi was removed on purpose (not offered anywhere); don't reintroduce it unless asked.
-- UI: `useAutoGujarati(en, local)` pairs an English input with its local twin — auto-fills until the
-  person types in the local box (then "Your spelling is kept"), ↻ regenerates. Components:
+- **Google Input Tools** is the main source: `/api/transliterate?text=&lang=gu|hi` (signed-in only) calls
+  inputtools.google.com (itc gu-t-i0-und / hi-t-i0-und, free, no key) word by word, cached; suggestion k = each
+  word's k-th candidate. The rules above are the instant first fill and the fallback when Google fails.
+- UI: `useAutoGujarati(en, local)` pairs an English input with its local twin, like the Google keyboard: typing
+  English fills the local box (rules at once, then Google's 1st) and shows a numbered list under it — Google's
+  suggestions + the English spelling last; click or ↑/↓ in the English input picks. Typing in the local box =
+  "Your spelling is kept". ↻ steps 1st → 2nd → 3rd … (round again); typing English or a manual edit restarts at 1st. Components:
   `BilingualName` (one English + one local field), `GujaratiField`, `NameFields` (three name parts, each
   with its own local twin; the server joins each set).
 - Labels with a `{lang}` slot (`members.fullNameLocal`) get the local language's own name

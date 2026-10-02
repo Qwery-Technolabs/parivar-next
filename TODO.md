@@ -264,3 +264,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal shown on /fundraise too (with Mandal badge), only to its group's members, its members and team
 - [x] Sidebar: My family tree (own tree) before Members
 - [x] Family tree: "Married daughters" switch beside Details — off hides married daughters in every chain
+- [x] Name fields: Google Input Tools suggestions (numbered list under the local box, ↑/↓, ↻ cycles 1st→2nd→3rd, resets after a manual edit); built-in rules as instant fill + fallback
