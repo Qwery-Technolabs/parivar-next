@@ -8,6 +8,10 @@ description: Database rules for the Parivar app — the live MariaDB, table nami
 **Keep this file current.** New conventions the user sets for data (naming, where things are stored,
 backfill rules) get recorded here when applied.
 
+
+**Connection pool** (lib/db.js): 5 per instance (DB_POOL_SIZE overrides), waitForConnections, queueLimit 0, idle kept
+15 min, keep-alive. Hostinger: 500 new connections/hour per user + a cap on open connections — never raise the pool
+far (100 would take the app down). Slow statements (>800 ms, incl. waiting for a connection) log `[db slow]`.
 ## The database
 
 - The app runs against the **live remote MariaDB 11.8** from `.env` (no `.env.local`). Never commit `.env`;

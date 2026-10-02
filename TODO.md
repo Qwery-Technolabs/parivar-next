@@ -287,3 +287,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Clear history: only app super admin / administrator / sub-admin, in the Danger zone (not group / fundraise admins)
 - [x] Shared 300 ms debounce hook for search / suggestion fields (list search-as-you-type, member pickers, Gujarati suggestions)
 - [x] Surnames page visible to everyone (edit only administrators); "Members" button per surname (disabled when ≤ 1); Members list ?surname= filter
+- [x] DB pool 2 → 5 per instance (parallel page queries no longer queue), explicit waitForConnections / queueLimit 0, slow-query log; not 100 (host limits)

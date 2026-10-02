@@ -4,11 +4,16 @@ import { offsetOf } from './timezone';
 
 // design-system.md §9 — one cached pool, named placeholders, bounded prepared-statement cache.
 
-// Few connections, kept open. The host (Hostinger shared) allows only 500 NEW connections per
-// hour per database user (max_connections_per_hour), and every serverless instance / build
-// worker has its own pool. A ~20-person app needs little parallelism: 2 per Vercel instance (not 1:
-// a helper calling the pool inside a transaction would wait forever), 3 elsewhere. DB_POOL_SIZE overrides.
-const POOL_SIZE = Number(process.env.DB_POOL_SIZE || (process.env.VERCEL ? 2 : 3));
+// A small pool, kept open. The host (Hostinger shared) allows only 500 NEW connections per hour
+// per database user (max_connections_per_hour) and caps open connections per user; every
+// serverless instance / build worker has its own pool. So never a big pool (100 would blow both).
+// 5 per instance: a page's parallel queries (Promise.all of 5–8) run together instead of queueing
+// behind 2, which made pages slow; connections open only when needed and stay 15 min. For ~15
+// people at once that is ≈15–25 open connections in all. Never 1 (a helper calling the pool inside
+// a transaction would wait forever). DB_POOL_SIZE overrides.
+const POOL_SIZE = Number(process.env.DB_POOL_SIZE || 5);
+// A statement slower than this is logged (Vercel logs) with its first words — to find slow pages.
+const SLOW_MS = 800;
 // MySQL's server-wide max_prepared_stmt_count defaults to 16382 and is shared with every
 // other app on the server. Budget half of it, split across our connections, floor 32 —
 // the driver default (16000 per connection) never evicts and exhausts the server.
@@ -23,6 +28,10 @@ function createPool(offset) {
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'parivar',
         connectionLimit: POOL_SIZE,
+        // Busy pool: wait for a free connection (no error), with no cap on the wait queue.
+        waitForConnections: true,
+        queueLimit: 0,
+        connectTimeout: 10 * 1000,
         // Keep idle connections instead of closing them after 60 s (mysql2's default) — each
         // reconnect counts against the hourly limit. TCP keep-alive stops routers dropping them.
         maxIdle: POOL_SIZE,
@@ -85,7 +94,11 @@ function isReadOnly(sql) {
 export async function query(sql, params = {}) {
     for (let attempt = 0; ; attempt++) {
         try {
+            const started = Date.now();
             const [rows] = await currentPool().execute(sql, params);
+            const ms = Date.now() - started;
+            // Includes the wait for a free connection — a long one means the pool is too small or a query is heavy.
+            if (ms > SLOW_MS) console.warn(`[db slow] ${ms} ms: ${sql.replace(/\s+/g, ' ').trim().slice(0, 120)}`);
             return rows;
         } catch (err) {
             const retryable =
