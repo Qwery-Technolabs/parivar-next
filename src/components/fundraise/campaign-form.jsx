@@ -6,6 +6,7 @@ import { saveCampaign } from '@/app/actions/fundraise';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import AvatarPicker from '@/components/groups/avatar-picker';
 import GroupChecklist from '@/components/ui/group-checklist';
+import PeopleChoice from '@/components/ui/people-choice';
 import PickOrType from '@/components/ui/pick-or-type';
 import { CAMPAIGN_FORM_ID } from './status-select';
 import SubmitButton from '@/components/ui/submit-button';
@@ -34,6 +35,8 @@ export default function CampaignForm({
     castes,
     suggestions,
     kind: newKind = 'fundraise',
+    mandalPeople = [],
+    mandalMemberIds = null,
 }) {
     const { t, locale } = useT();
     const [state, action, pending] = useActionState(saveCampaign, null);
@@ -65,7 +68,7 @@ export default function CampaignForm({
             {c.id && <input type="hidden" name="id" value={c.id} />}
 
             {/* Wide screens: the fundraise itself on the left, where it shows and to whom on the right. */}
-            <div className={`grid items-start gap-3 ${mandal ? '' : 'lg:grid-cols-[minmax(0,1fr)_24rem]'}`}>
+            <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_24rem]">
                 <Panel title={t('fundraise.sections.details')}>
                     {/* Two columns: the picture alone on the left, every other field to its right. */}
                     <div className="flex items-start gap-4">
@@ -109,6 +112,17 @@ export default function CampaignForm({
                                     </Field>
                                 </div>
                             )}
+                            {mandal && (
+                                <PeopleChoice
+                                    people={mandalPeople}
+                                    initialIds={mandalMemberIds ?? mandalPeople.map((p) => p.id)}
+                                    audience={meta.members_mode ?? (c.id ? 'selected' : 'all')}
+                                    label={t('mandal.whoIn')}
+                                    modeName="members_mode"
+                                    idsName="member_ids"
+                                    error={fe('member_ids')}
+                                />
+                            )}
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                 <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
                                     <input
@@ -147,39 +161,39 @@ export default function CampaignForm({
                     </div>
                 </Panel>
 
-                {mandal ? (
-                    <input type="hidden" name="group_id" value={homeGroup} />
-                ) : (
-                    <div className="space-y-3">
-                        <Panel title={t('fundraise.sections.groups')}>
-                            <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
-                                <select name="group_id" defaultValue={homeGroup} className={`${selectInput(!!fe('group_id'))} w-full`}>
-                                    {allowNoGroup && <option value="">{t('fundraise.noHomeGroup')}</option>}
-                                    {groups.map((g) => (
-                                        <option key={g.id} value={g.id}>
-                                            {groupName(g)}
-                                        </option>
-                                    ))}
-                                </select>
-                            </Field>
-                            {otherGroups.length > 0 && (
-                                <GroupChecklist
-                                    name="extra_group_ids"
-                                    label={t('fundraise.alsoInGroups')}
-                                    hint={t('fundraise.alsoInGroupsHint')}
-                                    error={fe('extra_group_ids')}
-                                    groups={otherGroups.map((g) => ({ value: String(g.id), label: groupName(g) }))}
-                                    defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
-                                    lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
-                                />
-                            )}
-                        </Panel>
-                        {/* An existing fundraise's public link is switched from its detail page. */}
-                        {!c.id && (
-                            <Panel title={t('fundraise.sections.sharing')}>
-                                <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />
-                            </Panel>
+                <div className="space-y-3">
+                    <Panel title={t('fundraise.sections.groups')}>
+                        <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
+                            <select name="group_id" defaultValue={homeGroup} className={`${selectInput(!!fe('group_id'))} w-full`}>
+                                {allowNoGroup && !mandal && <option value="">{t('fundraise.noHomeGroup')}</option>}
+                                {/* A Mandal stays in the group it was started in: that one group only. */}
+                                {(mandal ? groups.filter((g) => String(g.id) === String(homeGroup)) : groups).map((g) => (
+                                    <option key={g.id} value={g.id}>
+                                        {groupName(g)}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
+                        {!mandal && otherGroups.length > 0 && (
+                            <GroupChecklist
+                                name="extra_group_ids"
+                                label={t('fundraise.alsoInGroups')}
+                                hint={t('fundraise.alsoInGroupsHint')}
+                                error={fe('extra_group_ids')}
+                                groups={otherGroups.map((g) => ({ value: String(g.id), label: groupName(g) }))}
+                                defaultValues={otherGroups.filter((g) => g.linked).map((g) => String(g.id))}
+                                lockedValues={otherGroups.filter((g) => g.locked).map((g) => String(g.id))}
+                            />
                         )}
+                    </Panel>
+                    {/* An existing fundraise's public link is switched from its detail page. */}
+                    {!c.id && (
+                        <Panel title={t('fundraise.sections.sharing')}>
+                            <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />
+                        </Panel>
+                    )}
+                    {/* A Mandal: its group's people only — no audience rules. */}
+                    {!mandal && (
                         <Panel title={t('fundraise.audience.title')}>
                             <AudienceEditor defaultRows={audience} castes={castes} suggestions={suggestions} error={fe('audience')} bare />
                             {/* Off: only the people above see it. On: everyone else too, below their own fundraises. */}
@@ -188,8 +202,8 @@ export default function CampaignForm({
                                 <p className="mt-1 text-xs text-ink-gray">{t('fundraise.audience.othersTooHint')}</p>
                             </div>
                         </Panel>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {state?.error && (

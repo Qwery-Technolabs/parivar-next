@@ -118,6 +118,34 @@ async function planCampaignGroups(user, campaignId, homeId, extraIds) {
 }
 
 /**
+ * A Mandal's members (fundraise_subscribers), inside the caller's transaction. 'all' = everyone in
+ * its group (people added by phone stay); 'selected' = exactly the chosen ones (group members or
+ * people already in it). Their past payments stay either way.
+ */
+async function writeMandalMembers(q, campaignId, groupId, mode, chosen, userId) {
+    const people = new Set(
+        (
+            await q(
+                `SELECT user_id FROM admin_group_members WHERE group_id = :g UNION SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c`,
+                { g: groupId, c: campaignId },
+            )
+        ).map((r) => r.user_id),
+    );
+    if (mode === 'all') {
+        await q(
+            `INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by)
+             SELECT :c, user_id, :by FROM admin_group_members WHERE group_id = :g`,
+            { c: campaignId, g: groupId, by: userId },
+        );
+        return;
+    }
+    const keep = chosen.filter((u) => people.has(u));
+    for (const u of keep) await q('INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by) VALUES (:c, :u, :by)', { c: campaignId, u, by: userId });
+    const now = (await q('SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c', { c: campaignId })).map((r) => r.user_id);
+    for (const u of now) if (!keep.includes(u)) await q('DELETE FROM fundraise_subscribers WHERE campaign_id = :c AND user_id = :u', { c: campaignId, u });
+}
+
+/**
  * A Mandal's opening balance (money it already had): one contribution row "Opening balance",
  * so it is part of the total and the ledger. Changing it updates that row; 0 / empty removes it.
  */
@@ -190,11 +218,15 @@ export async function saveCampaign(prev, fd) {
     const existingKind = campaignId ? (await queryOne('SELECT kind FROM fundraise_campaigns WHERE id = :campaignId', { campaignId }))?.kind : null;
     const kind = existingKind ?? oneOf(fd, 'kind', ['fundraise', 'mandal'], 'fundraise');
     if (kind === 'mandal' && !groupId) return { fieldErrors: { group_id: 'mandal.errors.group' } };
-    // A Mandal is its group's own: not shown in other groups, no audience rules, never public.
+    // A Mandal is its group's own: home group only (no other groups), no audience rules. A public link is allowed.
     if (kind === 'mandal') {
         extraGroupIds = [];
         audience = [];
     }
+    // Who is in a Mandal: everyone in its group (kept in sync), or the chosen people.
+    const membersMode = fd.get('members_mode') === 'selected' ? 'selected' : 'all';
+    const memberIds = [...new Set(fd.getAll('member_ids').map(Number))].filter((n) => n > 0);
+    if (kind === 'mandal' && membersMode === 'selected' && !memberIds.length) return { fieldErrors: { member_ids: 'mandal.errors.members' } };
     const rawInstallment = str(fd, 'installment', 12);
     const installment = rawInstallment ? Number(rawInstallment) : null;
     if (kind === 'mandal' && (!installment || !Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
@@ -219,7 +251,7 @@ export async function saveCampaign(prev, fd) {
         // Picture: icon / emoji / ≤2 letters on a colour, like a group's (lib/group-avatar).
         ...sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10)),
         // No local-language description on the form any more; an older one is left as it is.
-        ...(kind === 'mandal' ? { installment: String(Math.round(installment * 100) / 100) } : {}),
+        ...(kind === 'mandal' ? { installment: String(Math.round(installment * 100) / 100), members_mode: membersMode } : {}),
     };
 
     if (campaignId) {
@@ -242,7 +274,10 @@ export async function saveCampaign(prev, fd) {
             await setMeta('fundraise_campaigns', campaignId, meta, q);
             await writeAudience(q, campaignId, audience);
             await writeCampaignGroups(q, campaignId, plan, user.id);
-            if (kind === 'mandal') await writeOpeningBalance(q, campaignId, opening, user.id);
+            if (kind === 'mandal') {
+                await writeOpeningBalance(q, campaignId, opening, user.id);
+                await writeMandalMembers(q, campaignId, groupId, membersMode, memberIds, user.id);
+            }
         });
         await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title, audience: audience.length });
         refreshCampaign(campaignId);
@@ -253,14 +288,17 @@ export async function saveCampaign(prev, fd) {
     const plan = await planCampaignGroups(user, null, groupId, extraGroupIds);
     if (plan.error) return { fieldErrors: { extra_group_ids: plan.error } };
     // The public switch on the create form defaults to the fundraise_settings.default_public value.
-    const isPublic = kind !== 'mandal' && bool(fd, 'is_public');
+    const isPublic = bool(fd, 'is_public');
     const newId = await withTransaction(async (q) => {
         const r = await q(
             `INSERT INTO fundraise_campaigns (group_id, kind, title, title_local, location, target_amount, start_date, end_date, status, is_public, public_token, created_by)
              VALUES (:groupId, :kind, :title, :titleLocal, :location, :target, :start, :end, :status, :isPublic, :token, :by)`,
             { ...row, kind, isPublic: isPublic ? 1 : 0, token: isPublic ? newToken() : null, by: user.id },
         );
-        if (kind === 'mandal') await writeOpeningBalance(q, r.insertId, opening, user.id);
+        if (kind === 'mandal') {
+            await writeOpeningBalance(q, r.insertId, opening, user.id);
+            await writeMandalMembers(q, r.insertId, groupId, membersMode, memberIds, user.id);
+        }
         await setMeta('fundraise_campaigns', r.insertId, meta, q);
         await writeAudience(q, r.insertId, audience);
         await writeCampaignGroups(q, r.insertId, plan, user.id);
@@ -313,7 +351,6 @@ export async function deleteCampaign(campaignId) {
 export async function setPublic(campaignId, makePublic) {
     const { user, campaign } = await authorize(campaignId);
     if (!campaign) return FORBIDDEN;
-    if (makePublic && campaign.kind === 'mandal') return FORBIDDEN; // a Mandal stays inside its group
     const token = campaign.public_token || newToken();
     await query('UPDATE fundraise_campaigns SET is_public = :pub, public_token = :token WHERE id = :campaignId', {
         pub: makePublic ? 1 : 0,

@@ -1,4 +1,5 @@
 import 'server-only';
+import { syncMandalMembers } from './mandal';
 import { canManageGroup, fundraisePermissions } from './access';
 import { getMetaMany, inList, query, queryOne } from './db';
 
@@ -34,6 +35,7 @@ export async function meetingScope(user, scope, scopeId) {
     if (scope === 'fundraise') {
         const c = await queryOne('SELECT id, group_id, kind, title, title_local FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
         if (!c) return null;
+        await syncMandalMembers(c);
         const people = await query(FUNDRAISE_PEOPLE, { scopeId });
         return {
             scope,

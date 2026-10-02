@@ -6,8 +6,9 @@ import MandalAddMember from '@/components/mandal/mandal-add-member';
 import MandalSheet from '@/components/mandal/mandal-sheet';
 import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
+import { query } from '@/lib/db';
 import { localized } from '@/lib/i18n/config';
-import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore } from '@/lib/mandal';
+import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers } from '@/lib/mandal';
 
 /**
  * The Mandal tab (server component): a summary, the members — with what each still owes and how
@@ -16,8 +17,14 @@ import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBe
  */
 export default async function MandalTab({ campaign, user, today, t, locale }) {
     const installment = Number(campaign.meta?.installment) || 0;
+    await syncMandalMembers(campaign);
     const [meetings, canRun, marks] = await Promise.all([mandalMeetings(campaign.id, installment), canRunMandal(user, campaign), allMarks(campaign.id)]);
     const members = await mandalMembers(campaign.id, meetings, today);
+    // "Everyone in the group": group members come back on their own, so only people added by phone can be removed here.
+    const inGroup =
+        campaign.meta?.members_mode === 'all'
+            ? new Set((await query('SELECT user_id FROM admin_group_members WHERE group_id = :g', { g: campaign.group_id })).map((r) => r.user_id))
+            : new Set();
     const totalPending = members.reduce((s, m) => s + m.due, 0);
     const name = (p) => localized(p, 'full_name', locale);
     const plain = members.map((m) => ({ id: m.id, full_name: m.full_name, full_name_local: m.full_name_local, joined: m.joined }));
@@ -59,7 +66,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                                             )}
                                         </p>
                                     </div>
-                                    {canRun && (
+                                    {canRun && !inGroup.has(m.id) && (
                                         <ActionButton
                                             action={removeMandalMember.bind(null, campaign.id, m.id)}
                                             confirm={t('mandal.removeConfirm', { name: name(m) })}

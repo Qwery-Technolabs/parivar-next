@@ -1,6 +1,6 @@
 import 'server-only';
 import { fundraisePermissions, isLeaderOfFundraiseGroup } from './access';
-import { getMetaMany, inList, query } from './db';
+import { getMeta, getMetaMany, inList, query } from './db';
 
 // Mandal (savings circle) — a fundraise of kind 'mandal' inside a group. Its members
 // (fundraise_subscribers) pay a fixed amount at its meetings (the fundraise's own meetings).
@@ -133,6 +133,35 @@ export async function allMarks(campaignId) {
     for (const r of rows)
         (out[r.event_id] ??= {})[r.user_id] = { present: Boolean(r.present), paid: r.paid == null ? null : Number(r.paid), mode: r.mode ?? null };
     return out;
+}
+
+/**
+ * Who a Mandal is for (meta members_mode): 'all' = everyone in its group — also people who join the
+ * group later — or 'selected' = the chosen people (the default for older Mandals).
+ * Adds group members who are not in yet; runs before the Mandal's members are read.
+ */
+export async function syncMandalMembers(campaign) {
+    if (campaign?.kind !== 'mandal' || !campaign.group_id) return;
+    const mode = campaign.meta?.members_mode ?? (await getMeta('fundraise_campaigns', campaign.id, 'members_mode'));
+    if (mode !== 'all') return;
+    await query(
+        `INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by)
+         SELECT :c, gm.user_id, NULL FROM admin_group_members gm WHERE gm.group_id = :g`,
+        { c: campaign.id, g: campaign.group_id },
+    );
+}
+
+/** For the Mandal form: the group's people (+ anyone already in it) and who is in it now. */
+export async function mandalChoice(groupId, campaignId = null) {
+    const rows = await query(
+        `SELECT u.id, u.full_name, u.full_name_local FROM users_list u
+          WHERE u.status = 'active' AND (u.id IN (SELECT user_id FROM admin_group_members WHERE group_id = :g)
+             OR u.id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c))
+          ORDER BY u.full_name`,
+        { g: groupId ?? 0, c: campaignId ?? 0 },
+    );
+    const memberIds = campaignId ? await subscriberIds(campaignId) : null;
+    return { people: rows, memberIds };
 }
 
 /** Ids of members, for pickers. */

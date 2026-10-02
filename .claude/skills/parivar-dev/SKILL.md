@@ -97,7 +97,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   consistent (father ⇄ mother spouses, siblings share parents, a child gets the only spouse as other parent,
   spouses → married). **Who sees / edits**: `canSeeFamily` = self, member managers, whoever added the person, or
   anyone connected in the tree (`familyIds`: all links read in ONE query per request (`allLinks`, React cache), walked in
-  memory — never one query per generation; that queued requests with 4+ users). Tree-added people (meta added_via='family')
+  memory — never one query per generation; that queued requests with 4+ users). Children (tree, Family card) and siblings are
+  ordered by `byAge`: eldest first, left to right, among those with a birth date; people without one keep their added order. Tree-added people (meta added_via='family')
   hide phone / dob / marital status from others (profile, Members list, member search). Male-line picker
   (father / brother / son) searches the person's surname only (`/api/members/search?surname=…&family=1`).
   Whoever added a relative who never signed in may edit them (`canEditUser` — the target row must carry
@@ -139,11 +140,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   join later**: `syncEveryoneMeetings` (lib/meetings.js) adds current group / fundraise members to upcoming 'all' meetings when a
   meeting list opens and before reminders are sent. 'selected' stays a fixed list.
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
-  A Mandal is its group's own: the form hides group / other groups / public link / audience (server forces them off);
+  A Mandal is its group's own: the form shows its home group only (no other groups, no "Add to group") and no audience (server forces both);
+  the public link works as for any fundraise;
   seen only by its group's members, its members and team (AUDIENCE_OK); never in the /fundraise feed. Its pending
   (summary) = members' dues.
   lib/mandal.js + actions/mandal.js + components/mandal/*, tab "Mandal" on the fundraise page. Members =
-  fundraise_subscribers (added by admins / sub-admins / its treasurer / collector — `canRunMandal`; pick or invite by phone).
+  fundraise_subscribers, chosen on the form like a meeting's attendees (PeopleChoice: meta members_mode 'all' = whole
+  group, kept in sync by syncMandalMembers; 'selected' = chosen people) and/or added on the tab (added by admins / sub-admins / its treasurer / collector — `canRunMandal`; pick or invite by phone).
   Meetings = the fundraise's own meetings, inviting its members — everyone or chosen ones (FUNDRAISE_PEOPLE in
   lib/meetings; dues and the sheet count only the members a meeting is for, `isFor`); per meeting meta collect ('1'/'0') + installment (default = campaign meta
   installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a contribution per payment in the chosen mode (cash / UPI / bank / cheque / other) (so the

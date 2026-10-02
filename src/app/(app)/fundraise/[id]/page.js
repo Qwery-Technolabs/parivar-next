@@ -12,7 +12,7 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import MandalTab from '@/components/mandal/mandal-tab';
-import { mandalMeetings, mandalMembers } from '@/lib/mandal';
+import { mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
@@ -86,6 +86,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     const upNext = await nextMeeting(campaign.id, today);
     // A Mandal's pending money = what its members still owe (missed / short payments).
     if (campaign.kind === 'mandal') {
+        await syncMandalMembers(campaign);
         const members = await mandalMembers(campaign.id, await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0), today);
         campaign.pending = Number(campaign.pending || 0) + members.reduce((s, m) => s + m.due, 0);
     }

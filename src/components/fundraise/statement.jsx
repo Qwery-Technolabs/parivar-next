@@ -1,6 +1,16 @@
 import { date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 
+// Payment mode: its own colour per mode; "Not paid" (pending pledge / Mandal due) in red, amount too.
+const MODE_TONE = {
+    cash: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    upi: 'bg-violet-50 text-violet-800 ring-violet-200',
+    bank: 'bg-sky-50 text-sky-800 ring-sky-200',
+    cheque: 'bg-amber-50 text-amber-800 ring-amber-200',
+    other: 'bg-slate-100 text-slate-700 ring-slate-200',
+    unpaid: 'bg-rose-50 text-rose-700 ring-rose-200',
+};
+
 /** The statement's tables, in order; the print pages let the reader pick which to include. */
 export const STATEMENT_SECTIONS = ['contributors', 'contributions', 'expenses'];
 
@@ -46,7 +56,16 @@ export default function Statement({ campaign, contributors, contributions, expen
                         head={[t('common.date'), t('fundraise.donor'), t('fundraise.mode'), t('fundraise.amount')]}
                         numeric={[false, false, false, true]}
                         empty={t('fundraise.noContributions')}
-                        rows={contributions.map((c) => [date(c.paid_on, locale), name(c), t(`fundraise.modes.${c.mode}`), money(c.amount)])}
+                        rows={contributions.map((c) => [
+                            date(c.paid_on, locale),
+                            name(c),
+                            <span key="m" className={`inline-block rounded-full px-2 py-px text-xs font-medium ring-1 ring-inset ${MODE_TONE[c.mode] ?? MODE_TONE.other}`}>
+                                {t(`fundraise.modes.${c.mode}`)}
+                            </span>,
+                            <span key="a" className={c.mode === 'unpaid' ? 'font-semibold text-rose-700' : ''}>
+                                {money(c.amount)}
+                            </span>,
+                        ])}
                         foot={[t('common.total'), '', '', money(collected)]}
                         footTone="text-income"
                     />
@@ -70,6 +89,11 @@ export default function Statement({ campaign, contributors, contributions, expen
                 <span className="text-ink-gray">
                     {t('fundraise.collected')}: <b className="tabular-nums text-income">{money(collected)}</b>
                 </span>
+                {Number(campaign.pending) > 0 && (
+                    <span className="text-ink-gray">
+                        {t('fundraise.pendingTotal')}: <b className="tabular-nums text-rose-700">{money(campaign.pending)}</b>
+                    </span>
+                )}
                 <span className="text-ink-gray">
                     {t('fundraise.spent')}: <b className="tabular-nums text-expense">{money(spent)}</b>
                 </span>

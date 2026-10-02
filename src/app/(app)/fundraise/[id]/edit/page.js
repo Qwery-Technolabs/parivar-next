@@ -12,6 +12,7 @@ import { audienceSuggestions, getAudience, getCampaign, knownLocations, listGrou
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { queryOne } from '@/lib/db';
+import { mandalChoice } from '@/lib/mandal';
 import { canManageAllFundraises } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -51,6 +52,7 @@ export default async function EditFundraisePage({ params }) {
     const groupName = localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale);
     // A Mandal's opening balance is its "Opening balance" contribution row.
     const openingId = Number(campaign.meta?.opening_contribution_id) || null;
+    const mandal = campaign.kind === 'mandal' ? await mandalChoice(campaign.group_id, campaign.id) : null;
     const openingBalance = openingId
         ? ((await queryOne('SELECT amount FROM fundraise_contributions WHERE id = :openingId AND deleted_at IS NULL', { openingId }))?.amount ?? '')
         : '';
@@ -106,6 +108,8 @@ export default async function EditFundraisePage({ params }) {
                     audience={audience.map((a) => ({ kind: a.kind, value: a.value }))}
                     castes={castes}
                     suggestions={suggestions}
+                    mandalPeople={mandal?.people}
+                    mandalMemberIds={mandal?.memberIds}
                 />
             </div>
         </div>

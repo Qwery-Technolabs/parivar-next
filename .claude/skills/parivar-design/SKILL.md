@@ -197,6 +197,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Fundraise print pages (/fundraise/[id]/print, /p/[token]/print): a no-print "Include in print" chip row under
   the toolbar — By contributor / Contributions / Expenses, toggled by links to `?show=a,b` (default Contributions only;
   the last one on can't be switched off). Totals always print.
+- Statement (print / public): payment mode = a coloured pill per mode (cash emerald, UPI violet, bank sky, cheque amber,
+  other slate, Not paid rose); a Not paid amount and the Pending total are rose-700.
 - Never `overflow-x: hidden` on html/body — it makes body a scroll box and long pages stop scrolling; use `clip`.
 
 ## i18n in UI

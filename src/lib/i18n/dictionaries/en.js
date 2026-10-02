@@ -253,6 +253,7 @@ const en = {
         badge: 'Mandal',
         new: 'New Mandal',
         newMenu: 'New',
+        whoIn: 'Who is in this Mandal',
         type: 'Type',
         kinds: { fundraise: 'Fundraise', mandal: 'Mandal (savings circle)' },
         typeHint: 'Members pay a fixed amount at each Mandal meeting; a missed payment is carried to the next one.',
@@ -288,7 +289,7 @@ const en = {
         memberAdded: 'Added to the Mandal.',
         memberRemoved: 'Removed from the Mandal.',
         sheetSaved: 'Attendance and payments saved.',
-        errors: { amount: 'Enter a valid amount.', group: 'A Mandal belongs to a group — choose one.' },
+        errors: { amount: 'Enter a valid amount.', group: 'A Mandal belongs to a group — choose one.', members: 'Choose at least one person.' },
     },
     matrimony: {
         title: 'Matrimony',

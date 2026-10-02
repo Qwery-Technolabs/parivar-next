@@ -103,7 +103,7 @@ export async function getRelatives(id) {
         ),
         query(
             `SELECT DISTINCT ${COLS} FROM users_relations r JOIN users_list u ON u.id = r.user_id
-              WHERE r.relative_id = :id AND r.relation IN ('father', 'mother') ORDER BY u.dob IS NULL, u.dob, u.full_name`,
+              WHERE r.relative_id = :id AND r.relation IN ('father', 'mother') ORDER BY u.id`,
             { id },
         ),
         query(
@@ -119,17 +119,15 @@ export async function getRelatives(id) {
             { id },
         ),
     ]);
-    const siblings = [...new Map([...viaParents, ...explicit].map((p) => [p.id, p])).values()].sort(
-        (a, b) => (a.dob ?? '9999').localeCompare(b.dob ?? '9999') || a.full_name.localeCompare(b.full_name),
-    );
+    const siblings = byAge([...new Map([...viaParents, ...explicit].map((p) => [p.id, p])).values()].sort((a, b) => a.id - b.id));
     return {
         father: parents.find((p) => p.relation === 'father') ?? null,
         mother: parents.find((p) => p.relation === 'mother') ?? null,
         spouse: spouses,
         brother: siblings.filter((p) => p.gender !== 'female'),
         sister: siblings.filter((p) => p.gender === 'female'),
-        son: children.filter((p) => p.gender !== 'female'),
-        daughter: children.filter((p) => p.gender === 'female'),
+        son: byAge(children).filter((p) => p.gender !== 'female'),
+        daughter: byAge(children).filter((p) => p.gender === 'female'),
     };
 }
 
@@ -285,7 +283,7 @@ export async function getLineageTree(rootId, maxDepth = 20) {
         const kids = await query(
             `SELECT r.user_id AS child, r.relative_id AS parent FROM users_relations r JOIN users_list u ON u.id = r.user_id
               WHERE r.relation IN ('father', 'mother') AND r.relative_id IN (${pl.sql})
-              ORDER BY u.dob IS NULL, u.dob, u.full_name`,
+              ORDER BY r.id`,
             pl.params,
         );
         await loadPeople(kids.map((k) => k.child));
@@ -302,7 +300,19 @@ export async function getLineageTree(rootId, maxDepth = 20) {
         }
         level = next;
     }
+    // Children left to right, eldest first — among those with a birth date; the rest keep their place.
+    for (const n of nodes.values()) n.children = byAge(n.children);
     return { rootId: root.id, top };
+}
+
+/**
+ * Eldest first among people with a birth date (dob); people without one keep their place (the
+ * order they were added in), so a missing date never moves anyone around.
+ */
+export function byAge(list) {
+    const dated = list.filter((p) => p.dob).sort((a, b) => String(a.dob).localeCompare(String(b.dob)));
+    let i = 0;
+    return list.map((p) => (p.dob ? dated[i++] : p));
 }
 
 // ── relation paths ("how are we related?") ────────────────────────────────────

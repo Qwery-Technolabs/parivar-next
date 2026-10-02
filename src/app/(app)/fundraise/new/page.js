@@ -11,6 +11,7 @@ import { getT } from '@/lib/i18n/server';
 import { canManageAllFundraises } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { sp1 } from '@/lib/url';
+import { mandalChoice } from '@/lib/mandal';
 
 export async function generateMetadata() {
     const { t } = await getT();
@@ -44,6 +45,7 @@ export default async function NewFundraisePage({ searchParams }) {
     const allowed = all ? groups : groups.filter((g) => mine.includes(g.id));
     const group = groupId ? groups.find((g) => g.id === groupId) : null;
     if (groupId && !group) redirect('/groups'); // archived group
+    const mandal = kind === 'mandal' ? await mandalChoice(groupId) : null;
     const back = group ? { href: `/groups/${groupId}`, label: localized(group, 'name', locale) } : { href: '/fundraise', label: t('fundraise.title') };
 
     return (
@@ -56,6 +58,7 @@ export default async function NewFundraisePage({ searchParams }) {
             />
             <CampaignForm
                     kind={kind}
+                    mandalPeople={mandal?.people}
                     groups={allowed}
                     defaultGroupId={groupId}
                     // Other groups it may also be shown in: the ones this user may create in.
