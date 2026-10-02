@@ -34,29 +34,7 @@ export default function MemberEditTabs({ member, roles, canEdit = true, canSetRo
 
     return (
         <div className="overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
-            <div role="tablist" aria-label={t('members.edit')} className="flex overflow-x-auto border-b border-surface-border bg-card-head">
-                {tabs.map(({ key, Icon }) => {
-                    const active = tab === key;
-                    return (
-                        <button
-                            key={key}
-                            type="button"
-                            role="tab"
-                            id={`tab-${key}`}
-                            aria-selected={active}
-                            aria-controls={`panel-${key}`}
-                            onClick={() => open(key)}
-                            className={`relative inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium transition-colors ${
-                                active ? 'text-primary' : 'text-ink-gray hover:text-primary'
-                            }`}
-                        >
-                            <Icon className="size-4" />
-                            {t(`members.tabs.${key}`)}
-                            {active && <span aria-hidden className="absolute inset-x-2 bottom-0 h-0.75 rounded-t bg-brand-orange-strong" />}
-                        </button>
-                    );
-                })}
-            </div>
+            <MemberTabStrip tabs={tabs} tab={tab} onOpen={open} label={t('members.edit')} />
             {/* key={tab}: each tab mounts fresh, so its fields show what was last saved. */}
             <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="p-3.5">
                 <SectionForm key={tab} section={tab} member={member}>
@@ -75,6 +53,36 @@ export default function MemberEditTabs({ member, roles, canEdit = true, canSetRo
                     }
                 </SectionForm>
             </div>
+        </div>
+    );
+}
+
+/** The member form's iconed tab strip — shared by the Edit page and the Add page. */
+export function MemberTabStrip({ tabs, tab, onOpen, label }) {
+    const { t } = useT();
+    return (
+        <div role="tablist" aria-label={label} className="flex overflow-x-auto border-b border-surface-border bg-card-head">
+            {tabs.map(({ key, Icon }) => {
+                const active = tab === key;
+                return (
+                    <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        id={`tab-${key}`}
+                        aria-selected={active}
+                        aria-controls={`panel-${key}`}
+                        onClick={() => onOpen(key)}
+                        className={`relative inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                            active ? 'text-primary' : 'text-ink-gray hover:text-primary'
+                        }`}
+                    >
+                        <Icon className="size-4" />
+                        {t(`members.tabs.${key}`)}
+                        {active && <span aria-hidden className="absolute inset-x-2 bottom-0 h-0.75 rounded-t bg-brand-orange-strong" />}
+                    </button>
+                );
+            })}
         </div>
     );
 }

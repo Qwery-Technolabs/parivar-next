@@ -15,6 +15,7 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
 ## Brand and colour
 
 - Navy `#172f56` (`bg-brand-navy`) = app header, sidebar, group/fundraise header cards, public header.
+- Page area behind the cards (`main#content`) = `#f5f6fa` (`bg-surface-content`).
 - Secondary = deep orange `#b85d09` (`btn-secondary` / `seg-active` / `bg-brand-orange-strong`) with
   **white** text (4.56:1). Never white on the lighter `brand-orange`.
 - Card headers are tinted: `bg-card-head` strip with `border-b`, title `text-sm font-semibold text-primary`.
@@ -98,11 +99,17 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Edit pages with many fields: iconed tabs (`MemberEditTabs` pattern) — **each tab saves on its own**,
   tab kept in `?tab=`.
 - Inside a card, group fields with `FormPart` (components/ui/form-part.jsx): a thin rule + small-caps title per
-  part (first part has no rule). Member form: Name · About them · Contact & place / Caste · Blood / Work & education ·
-  Other contact · About; fundraise Details: name (picture + titles) · Target & place (Mandal: Money) · Dates · Description.
-  The member Add page = one titled card per group (Basic, Community | Role + Password, Details).
+  part, ALWAYS with an icon before the title (`icon={…}`, orange-strong, size-3.5) (first part has no rule). Member form: Name · About them · Contact & place / Caste · Blood / Work & education ·
+  Other contact · About; fundraise Details: picture alone in the left column (top), parts on the right — Name · Place & dates
+  (a Mandal: Dates — no place) · Description; money fields on their own **Finance** card below (Target / Mandal: Opening
+  balance).
+  The member Add page looks like Edit: the same iconed tab strip (MemberTabStrip) but ONE form and one Save —
+  panels stay mounted (hidden), a required field / server error on another tab opens that tab.
+- Settings module forms: each setting has a `group` in lib/settings.js; SettingsForm draws every group as a FormPart
+  with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- Placeholder colour everywhere: light grey `#b3b8c2` (globals.css `::placeholder`), never a per-input class.
 - Name / title fields carry example placeholders ("e.g. Ramesh" / "ઉદા. રમેશ") — lib/examples.js.
 - Names: three required parts (first / father's / surname) each with an auto-transliterated local twin
   (`NameFields`); Gujarati labels તમારું નામ / તમારા પિતાનું નામ / અટક.

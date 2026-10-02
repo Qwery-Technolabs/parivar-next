@@ -1,5 +1,5 @@
 'use client';
-import { Save } from 'lucide-react';
+import { AlignLeft, CalendarDays, Save, Type } from 'lucide-react';
 import Link from 'next/link';
 import { startTransition, useActionState, useState } from 'react';
 import { saveCampaign } from '@/app/actions/fundraise';
@@ -73,32 +73,67 @@ export default function CampaignForm({
 
             {/* Wide screens: the fundraise itself on the left, where it shows and to whom on the right. */}
             <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_24rem]">
-                <Panel title={t('fundraise.sections.details')}>
-                    <input type="hidden" name="kind" value={kind} />
-                    {mandal && <p className="rounded-md bg-surface-bggray/60 px-3 py-2 text-xs text-ink-gray">{t('mandal.typeHint')}</p>}
-                    {/* Name: the picture beside the English and local titles. */}
-                    <div className="flex items-start gap-3 pb-1">
-                        <div className="shrink-0 pt-5">
-                            <AvatarPicker name={c.title} initial={meta} />
-                        </div>
-                        <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
-                            <BilingualName
-                                enLabel={t('fundraise.name')}
-                                guLabel={t('fundraise.nameLocal')}
-                                enName="title"
-                                guName="title_local"
-                                example={mandal ? 'mandal' : 'fundraise'}
-                                defaultEn={c.title}
-                                defaultGu={c.title_local}
-                                error={fe('title')}
-                                maxLength={200}
-                                required
-                            />
-                        </div>
-                    </div>
+                <div className="min-w-0 space-y-3">
+                    <Panel title={t('fundraise.sections.details')}>
+                        <input type="hidden" name="kind" value={kind} />
+                        {mandal && <p className="rounded-md bg-surface-bggray/60 px-3 py-2 text-xs text-ink-gray">{t('mandal.typeHint')}</p>}
+                        {/* Two columns: the picture alone on the left (top), every other field to its right, in parts. */}
+                        <div className="flex items-start gap-4">
+                            <div className="shrink-0">
+                                <AvatarPicker name={c.title} initial={meta} />
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-3">
+                                <FormPart title={t('fundraise.sections.name')} icon={Type}>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <BilingualName
+                                            enLabel={t('fundraise.name')}
+                                            guLabel={t('fundraise.nameLocal')}
+                                            enName="title"
+                                            guName="title_local"
+                                            example={mandal ? 'mandal' : 'fundraise'}
+                                            defaultEn={c.title}
+                                            defaultGu={c.title_local}
+                                            error={fe('title')}
+                                            maxLength={200}
+                                            required
+                                        />
+                                    </div>
+                                </FormPart>
 
-                    {/* Money & place — a Mandal: its opening balance (amount and place are per schedule). */}
-                    <FormPart title={mandal ? t('fundraise.sections.money') : t('fundraise.sections.moneyPlace')}>
+                                {/* Where and when — a Mandal has no place of its own (each schedule has one). */}
+                                <FormPart title={mandal ? t('fundraise.sections.dates') : t('fundraise.sections.placeDates')} icon={CalendarDays}>
+                                    <div className={`grid gap-3 ${mandal ? 'grid-cols-2 sm:max-w-md' : 'sm:grid-cols-3'}`}>
+                                        {!mandal && (
+                                            <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')} className="col-span-full sm:col-span-1">
+                                                <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
+                                            </Field>
+                                        )}
+                                        <Field label={t('fundraise.startDate')} error={fe('start_date')}>
+                                            <input type="date" name="start_date" defaultValue={c.start_date ?? ''} className={`${textInput(!!fe('start_date'))} w-full`} />
+                                        </Field>
+                                        <Field label={t('fundraise.endDate')} error={fe('end_date')}>
+                                            <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
+                                        </Field>
+                                    </div>
+                                </FormPart>
+
+                                {/* One description; no separate local-language copy. */}
+                                <FormPart title={t('fundraise.description')} icon={AlignLeft}>
+                                    <textarea
+                                        name="description"
+                                        rows={3}
+                                        maxLength={5000}
+                                        aria-label={t('fundraise.description')}
+                                        defaultValue={meta.description ?? ''}
+                                        className={`${textArea()} w-full`}
+                                    />
+                                </FormPart>
+                            </div>
+                        </div>
+                    </Panel>
+
+                    {/* Finance on its own card: a fundraise's target, a Mandal's opening balance (its amounts are per schedule). */}
+                    <Panel title={t('fundraise.sections.finance')}>
                         <div className="grid gap-3 sm:grid-cols-2">
                             {mandal ? (
                                 <Field label={t('mandal.opening')} hint={t('mandal.openingHint')} error={fe('opening_balance')}>
@@ -110,46 +145,18 @@ export default function CampaignForm({
                                     />
                                 </Field>
                             ) : (
-                                <>
-                                    <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
-                                        <input
-                                            name="target_amount"
-                                            inputMode="decimal"
-                                            defaultValue={c.target_amount ?? ''}
-                                            className={`${textInput(!!fe('target_amount'))} w-full tabular-nums`}
-                                        />
-                                    </Field>
-                                    <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
-                                        <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
-                                    </Field>
-                                </>
+                                <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
+                                    <input
+                                        name="target_amount"
+                                        inputMode="decimal"
+                                        defaultValue={c.target_amount ?? ''}
+                                        className={`${textInput(!!fe('target_amount'))} w-full tabular-nums`}
+                                    />
+                                </Field>
                             )}
                         </div>
-                    </FormPart>
-
-                    <FormPart title={t('fundraise.sections.dates')}>
-                        <div className="grid grid-cols-2 gap-3">
-                            <Field label={t('fundraise.startDate')} error={fe('start_date')}>
-                                <input type="date" name="start_date" defaultValue={c.start_date ?? ''} className={`${textInput(!!fe('start_date'))} w-full`} />
-                            </Field>
-                            <Field label={t('fundraise.endDate')} error={fe('end_date')}>
-                                <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
-                            </Field>
-                        </div>
-                    </FormPart>
-
-                    {/* One description; no separate local-language copy. */}
-                    <FormPart title={t('fundraise.description')}>
-                        <textarea
-                            name="description"
-                            rows={3}
-                            maxLength={5000}
-                            aria-label={t('fundraise.description')}
-                            defaultValue={meta.description ?? ''}
-                            className={`${textArea()} w-full`}
-                        />
-                    </FormPart>
-                </Panel>
+                    </Panel>
+                </div>
 
                 <div className="space-y-3">
                     <Panel title={t('fundraise.sections.groups')}>

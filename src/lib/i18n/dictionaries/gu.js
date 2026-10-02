@@ -626,7 +626,7 @@ const gu = {
         publicPage: 'જાહેર પાનું',
         standalone: 'સ્વતંત્ર ફંડ ફાળો (જૂથ વગર)',
         noHomeGroup: 'કોઈ જૂથ નહીં — સ્વતંત્ર',
-        sections: { details: 'વિગતો', groups: 'જૂથો', sharing: 'શેર', moneyPlace: 'લક્ષ્ય અને સ્થળ', money: 'રકમ', dates: 'તારીખો' },
+        sections: { details: 'વિગતો', groups: 'જૂથો', sharing: 'શેર', moneyPlace: 'લક્ષ્ય અને સ્થળ', money: 'રકમ', dates: 'તારીખો', name: 'નામ', finance: 'નાણાં', placeDates: 'સ્થળ અને તારીખો' },
         homeGroup: 'મુખ્ય જૂથ',
         alsoInGroups: 'આ જૂથોમાં પણ બતાવો',
         addToGroup: 'જૂથમાં ઉમેરો',
@@ -932,6 +932,7 @@ const gu = {
         },
     },
     settings: {
+        formGroups: { samaj: 'સમાજ', signup: 'નોંધણી', language: 'ભાષા અને સમય', sharing: 'શેર', expenses: 'ખર્ચ' },
         notify: {
             pushTitle: 'બ્રાઉઝર સૂચના (આ ઉપકરણ)',
             mineTitle: 'મને શેની સૂચના મળે',

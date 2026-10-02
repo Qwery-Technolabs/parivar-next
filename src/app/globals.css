@@ -31,6 +31,7 @@
   --color-surface-bggray: #e9eaf3;
   /* surface-bggray/50 composited over white — OPAQUE, for sticky table heads */
   --color-surface-login: #f4f5f9;
+  --color-surface-content: #f5f6fa; /* the page area behind cards (#content) */
 
   /* ── semantic, pointing at :root so a .theme-* scope can move them ── */
   --color-background: var(--background);
@@ -139,6 +140,12 @@ body {
   max-width: 100%;
   overscroll-behavior: none;
   touch-action: pan-x pan-y;
+}
+
+/* Placeholders ("e.g. Ramesh", search boxes): a light grey, clearly lighter than typed text. */
+::placeholder {
+  color: #b3b8c2;
+  opacity: 1;
 }
 
 body {

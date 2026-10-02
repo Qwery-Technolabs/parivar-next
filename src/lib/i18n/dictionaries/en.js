@@ -625,7 +625,7 @@ const en = {
         publicPage: 'Public page',
         standalone: 'Standalone fundraise (no group)',
         noHomeGroup: 'No group — standalone',
-        sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing', moneyPlace: 'Target & place', money: 'Money', dates: 'Dates' },
+        sections: { details: 'Details', groups: 'Groups', sharing: 'Sharing', moneyPlace: 'Target & place', money: 'Money', dates: 'Dates', name: 'Name', finance: 'Finance', placeDates: 'Place & dates' },
         homeGroup: 'Home group',
         alsoInGroups: 'Also show in these groups',
         addToGroup: 'Add to group',
@@ -931,6 +931,7 @@ const en = {
         },
     },
     settings: {
+        formGroups: { samaj: 'Samaj', signup: 'Sign-up', language: 'Language & time', sharing: 'Sharing', expenses: 'Expenses' },
         notify: {
             pushTitle: 'Browser notifications (this device)',
             mineTitle: 'What to notify me about',

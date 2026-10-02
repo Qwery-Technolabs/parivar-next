@@ -10,33 +10,34 @@ import { DEFAULT_TIMEZONE, setAppTimeZone, TIMEZONES } from './timezone';
  * reads a setting cannot drift apart.
  *
  * type: 'bool' | 'text' | 'number' | 'list' (list = array of strings, edited one per line)
+ * group: the part of the Settings form it sits in (settings.formGroups.<group>, with an icon in SettingsForm)
  */
 export const SETTINGS = {
     admin: {
         table: 'admin_settings',
         keys: {
-            samaj_name: { type: 'text', default: '' }, // shown beside the app name when set
-            samaj_name_local: { type: 'text', default: '' },
+            samaj_name: { type: 'text', default: '', group: 'samaj' }, // shown beside the app name when set
+            samaj_name_local: { type: 'text', default: '', group: 'samaj' },
             // Samaj logo (picker in Settings → General; hidden from the generic form).
             logo_kind: { type: 'text', default: '', hidden: true },
             logo_value: { type: 'text', default: '', hidden: true },
             logo_color: { type: 'text', default: '', hidden: true },
             logo_version: { type: 'text', default: '', hidden: true }, // bumps when the favicon / app icon is redrawn
-            contact_phone: { type: 'text', default: '' },
-            allow_registration: { type: 'bool', default: false }, // "Create an account" link on the login page
-            registration_approval: { type: 'bool', default: true }, // new sign-ups wait (inactive) until an admin activates them
-            default_language: { type: 'text', default: 'gu', options: ['gu', 'en'] },
-            local_language: { type: 'text', default: 'gu', options: ['gu', 'hi'] }, // script for names, per person overridable
+            contact_phone: { type: 'text', default: '', group: 'samaj' },
+            allow_registration: { type: 'bool', default: false, group: 'signup' }, // "Create an account" link on the login page
+            registration_approval: { type: 'bool', default: true, group: 'signup' }, // new sign-ups wait (inactive) until an admin activates them
+            default_language: { type: 'text', default: 'gu', options: ['gu', 'en'], group: 'language' },
+            local_language: { type: 'text', default: 'gu', options: ['gu', 'hi'], group: 'language' }, // script for names, per person overridable
             // One timezone for the whole project: "today", meeting reminders, DB clock (lib/timezone.js).
-            timezone: { type: 'text', default: DEFAULT_TIMEZONE, options: Object.keys(TIMEZONES), labels: TIMEZONES },
+            timezone: { type: 'text', default: DEFAULT_TIMEZONE, options: Object.keys(TIMEZONES), labels: TIMEZONES, group: 'language' },
         },
     },
     fundraise: {
         table: 'fundraise_settings',
         keys: {
-            default_public: { type: 'bool', default: false }, // new fundraises start with a public link
-            allow_anonymous: { type: 'bool', default: true }, // contributors may hide their name publicly
-            expense_categories: { type: 'list', default: ['Material', 'Labour', 'Food', 'Transport', 'Printing', 'Other'] },
+            default_public: { type: 'bool', default: false, group: 'sharing' }, // new fundraises start with a public link
+            allow_anonymous: { type: 'bool', default: true, group: 'sharing' }, // contributors may hide their name publicly
+            expense_categories: { type: 'list', default: ['Material', 'Labour', 'Food', 'Transport', 'Printing', 'Other'], group: 'expenses' },
         },
     },
     blood: {

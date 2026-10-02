@@ -1,4 +1,5 @@
 'use client';
+import { Droplet, FileText, GraduationCap, IdCard, Mail, MapPin, UserRound, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormPart from '@/components/ui/form-part';
@@ -33,7 +34,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
     const married = gender === 'female' && ['married', 'widowed', 'divorced'].includes(marital);
     return (
         <div className="space-y-3">
-            <FormPart title={t('members.parts.name')}>
+            <FormPart title={t('members.parts.name')} icon={IdCard}>
                 <div className={NAME_GRID}>
                     {/* A family-tree relative without a number (member exists, no phone): phone and father's name optional. */}
                     <NameFields
@@ -45,7 +46,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                     />
                 </div>
             </FormPart>
-            <FormPart title={t('members.parts.personal')}>
+            <FormPart title={t('members.parts.personal')} icon={UserRound}>
                 <div className={NAME_GRID}>
                     <Field label={t('members.gender')}>
                         <select name="gender" value={gender} onChange={(e) => setGender(e.target.value)} className={`${selectInput()} w-full`}>
@@ -70,7 +71,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                     </Field>
                 </div>
             </FormPart>
-            <FormPart title={t('members.parts.contact')}>
+            <FormPart title={t('members.parts.contact')} icon={MapPin}>
                 <div className={NAME_GRID}>
                     <Field
                         label={t('members.phone')}
@@ -109,7 +110,7 @@ export function CommunityFields({ member, fe, casteOptions }) {
     });
     return (
         <div className="space-y-3">
-            <FormPart title={t('members.parts.caste')}>
+            <FormPart title={t('members.parts.caste')} icon={UsersRound}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <CasteSelect
                         options={casteOptions}
@@ -125,7 +126,7 @@ export function CommunityFields({ member, fe, casteOptions }) {
                     />
                 </div>
             </FormPart>
-            <FormPart title={t('members.parts.blood')}>
+            <FormPart title={t('members.parts.blood')} icon={Droplet}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <Field label={t('members.bloodGroup')}>
                         <select name="blood_group" defaultValue={member?.blood_group ?? ''} className={`${selectInput()} w-full`}>
@@ -180,7 +181,7 @@ export function DetailFields({ member }) {
     const meta = member?.meta ?? {};
     return (
         <div className="space-y-3">
-            <FormPart title={t('members.parts.work')}>
+            <FormPart title={t('members.parts.work')} icon={GraduationCap}>
                 <div className={NAME_GRID}>
                     <Field label={t('members.position')} hint={t('members.positionHint')}>
                         <input name="position" defaultValue={meta.position ?? ''} maxLength={150} className={`${textInput()} w-full`} />
@@ -193,7 +194,7 @@ export function DetailFields({ member }) {
                     </Field>
                 </div>
             </FormPart>
-            <FormPart title={t('members.parts.reach')}>
+            <FormPart title={t('members.parts.reach')} icon={Mail}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <Field label={t('members.altPhone')}>
                         <input name="alt_phone" type="tel" defaultValue={meta.alt_phone ?? ''} className={`${textInput()} w-full tabular-nums`} />
@@ -206,7 +207,7 @@ export function DetailFields({ member }) {
                     </Field>
                 </div>
             </FormPart>
-            <FormPart title={t('members.parts.about')}>
+            <FormPart title={t('members.parts.about')} icon={FileText}>
                 <textarea name="bio" rows={3} aria-label={t('members.bio')} defaultValue={meta.bio ?? ''} className={`${textArea()} w-full`} />
             </FormPart>
         </div>
