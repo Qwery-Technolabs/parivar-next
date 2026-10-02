@@ -6,6 +6,7 @@ import { changePassword, changePhone } from '@/app/actions/profile';
 import { Field, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
+import PasswordInput from '@/components/ui/password-input';
 
 /**
  * Submits via onSubmit + startTransition, not <form action>: React resets uncontrolled
@@ -49,9 +50,8 @@ export function ChangePhoneForm({ currentPhone }) {
                 />
             </Field>
             <Field label={t('profile.currentPassword')} error={fe('current_password')} required>
-                <input
+                <PasswordInput
                     name="current_password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     className={`${textInput(!!fe('current_password'))} w-full`}
@@ -70,9 +70,8 @@ export function ChangePasswordForm() {
     return (
         <form ref={ref} onSubmit={onSubmit} className="space-y-3">
             <Field label={t('profile.currentPassword')} error={fe('current_password')} required>
-                <input
+                <PasswordInput
                     name="current_password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     className={`${textInput(!!fe('current_password'))} w-full`}
@@ -80,9 +79,8 @@ export function ChangePasswordForm() {
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={t('profile.newPassword')} error={fe('new_password')} required>
-                    <input
+                    <PasswordInput
                         name="new_password"
-                        type="password"
                         autoComplete="new-password"
                         minLength={6}
                         required
@@ -90,9 +88,8 @@ export function ChangePasswordForm() {
                     />
                 </Field>
                 <Field label={t('profile.confirmPassword')} error={fe('confirm_password')} required>
-                    <input
+                    <PasswordInput
                         name="confirm_password"
-                        type="password"
                         autoComplete="new-password"
                         minLength={6}
                         required

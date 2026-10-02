@@ -6,6 +6,7 @@ import NameFields from '@/components/members/name-fields';
 import { Field, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
+import PasswordInput from '@/components/ui/password-input';
 
 export default function RegisterForm() {
     const { t } = useT();
@@ -55,9 +56,8 @@ export default function RegisterForm() {
                 </Field>
             </div>
             <Field label={t('auth.password')} hint={t('members.passwordHint')} error={fe('password')} required>
-                <input
+                <PasswordInput
                     name="password"
-                    type="password"
                     autoComplete="new-password"
                     minLength={6}
                     required
@@ -65,9 +65,8 @@ export default function RegisterForm() {
                 />
             </Field>
             <Field label={t('auth.register.confirm')} error={fe('confirm')} required>
-                <input
+                <PasswordInput
                     name="confirm"
-                    type="password"
                     autoComplete="new-password"
                     required
                     className={`${textInput(!!fe('confirm'), 'h-10')} w-full`}

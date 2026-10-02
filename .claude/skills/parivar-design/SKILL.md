@@ -109,6 +109,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- Password fields: always `<PasswordInput>` (components/ui/password-input.jsx) — eye button to show / hide; never a raw
+  type="password" input.
 - Placeholder colour everywhere: light grey `#b3b8c2` (globals.css `::placeholder`), never a per-input class.
 - Name / title fields carry example placeholders ("e.g. Ramesh" / "ઉદા. રમેશ") — lib/examples.js.
 - Names: three required parts (first / father's / surname) each with an auto-transliterated local twin
@@ -225,7 +227,7 @@ Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`.
 
 ## Changelog of decisions (append when the user sets a new "everywhere" rule)
 
-- Filters → 2 columns, header/footer fixed, body scrolls; Clear/Apply in footer. Clear ONLY in that popup footer — never a loose "× Clear" in the toolbar.
+- Filters → 2 columns, header/footer fixed, body scrolls; Clear/Apply in footer. The Filters button is icon-only on phones (text from sm). Clear ONLY in that popup footer — never a loose "× Clear" in the toolbar.
 - Kebab: white bg, darker border, grey dots; page kebab at the right of the title row.
 - Single create actions stay buttons; kebab only for several/non-create actions.
 - Back link lives in the top header; history-back on phones.
@@ -235,8 +237,8 @@ Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`.
 - Card-level "add" buttons (e.g. Add to team) go in the card header's `actions`, compact `btn-secondary h-8 text-xs`.
 - Active sidebar item: navy-soft background, orange bar, **orange-400 icon**.
 - Sidebar logo row: same `border-white/10` bottom line as the header.
-- Destructive actions (clear discussion history, status, archive, delete) live ONLY in the About tab's red Danger zone
-  card — a sentence saying what it does + a confirm — never as a button in the Discussion or other working tabs.
+- Destructive actions (clear discussion history, status, archive, delete) live ONLY in the About tab's Danger zone
+  card (`<Card tone="danger">`: red border + solid red header, white title) — a sentence saying what it does + a confirm — never as a button in the Discussion or other working tabs.
 - Long forms grouped into FormPart sections; row lists compact with popup edit; example placeholders on name fields.
 
 ## Maintaining the skills

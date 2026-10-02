@@ -128,8 +128,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Debounce**: every search / suggestion field that reacts to typing goes through `useDebouncedCallback`
   (components/ui/use-debounce.js, DEBOUNCE_MS = 300): list search boxes (search as you type; Enter still immediate),
   Combobox / member pickers, Google local-script suggestions. Never a hand-made setTimeout for this.
-- **Clear discussion history**: ONLY app-level super admin / administrator / sub-admin (`canClearChats(role)`) — never a
-  group's or fundraise's own admins. chatAccess.canClear uses it; the Danger zone row shows only for them.
+- **Clear fundraise edit history** (fundraise_history): same rule — `canClearHistory(role)`, action `clearCampaignHistory`,
+  a row in the fundraise Danger zone; the ledger stays.
+- **Clear discussion history** (chatAccess.canClear): app admins / sub-admins (`canClearChats`) + a group's admins and
+  sub-admins / a fundraise's admins (manage) and the admins / sub-admins of its groups (leaders). A sub-admin sees the
+  Danger zone card with only that row; pause / archive / status rows stay admin-only (`canManage`).
 - **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
   pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore
   (`setCampaignArchived`, no longer app-level only). Group: GroupDangerCard also holds "Clear history".

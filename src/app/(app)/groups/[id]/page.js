@@ -188,12 +188,14 @@ export default async function GroupPage({ params, searchParams }) {
                         <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
                     </Card>
                     {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
-                    {canAdminister(standing) && (
+                    {(canAdminister(standing) || standing === 'sub_admin') && (
                         <GroupDangerCard
                             group={group}
                             canDelete={standing === 'app'}
-                            // Clearing the discussion: app-level admins / sub-admins only (canClearChats).
-                            canClearChat={canClearChats(user.role)}
+                            // Status / archive / delete: its admins (and app managers); a sub-admin sees only Clear history.
+                            canManage={canAdminister(standing)}
+                            // Clearing the discussion: app admins / sub-admins, and this group's admins and sub-admins.
+                            canClearChat={canClearChats(user.role) || canAdminister(standing) || standing === 'sub_admin'}
                             messageCount={messages}
                             t={t}
                         />

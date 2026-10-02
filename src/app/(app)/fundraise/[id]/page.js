@@ -16,7 +16,7 @@ import { mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
-import { fundraiseGroupIds, fundraisePermissions } from '@/lib/access';
+import { fundraiseGroupIds, fundraisePermissions, isLeaderOfFundraiseGroup } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money, time } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
@@ -33,10 +33,11 @@ import {
     maskAnonymous,
     listUpdates,
     nextMeeting,
+    historyCount,
 } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { canManageAllFundraises, canClearChats } from '@/lib/roles';
+import { canManageAllFundraises, canClearChats, canClearHistory } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { buildHref, sp1 } from '@/lib/url';
@@ -153,12 +154,13 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             />
         );
     } else if (tab === 'details') {
-        const [audience, team, updates, history, messageCount] = await Promise.all([
+        const [audience, team, updates, history, messageCount, editCount] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
             listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),
+            historyCount(campaign.id),
         ]);
         body = (
             <>
@@ -176,7 +178,10 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     t={t}
                     locale={locale}
                     messageCount={messageCount}
-                    canClearChat={canClearChats(user.role)}
+                    // Clear the discussion: app admins / sub-admins, its admins, and admins / sub-admins of its groups.
+                    canClearChat={canClearChats(user.role) || perms.manage || (await isLeaderOfFundraiseGroup(user.id, campaign.id))}
+                    // Edit history: deleted only by app admins / sub-admins (canClearHistory).
+                    historyCount={canClearHistory(user.role) ? editCount : 0}
                 />
             </>
         );

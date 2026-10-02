@@ -46,12 +46,18 @@ export function StatCard({ label, value, href, icon: Icon, tone = 'text-primary'
     );
 }
 
-export function Card({ title, actions, children, className = '', bodyClass = 'p-3.5' }) {
+/** `tone="danger"`: red border and a solid red header (Danger zone cards). */
+export function Card({ title, actions, children, className = '', bodyClass = 'p-3.5', tone = null }) {
+    const danger = tone === 'danger';
     return (
-        <section className={`min-w-0 rounded-lg border border-surface-border bg-white shadow-sm ${className}`}>
+        <section className={`min-w-0 rounded-lg border bg-white shadow-sm ${danger ? 'border-destructive/50' : 'border-surface-border'} ${className}`}>
             {(title || actions) && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-lg border-b border-surface-border bg-card-head px-3.5 py-2.5">
-                    <h2 className="text-sm font-semibold text-primary">{title}</h2>
+                <div
+                    className={`flex flex-wrap items-center justify-between gap-2 rounded-t-lg border-b px-3.5 py-2.5 ${
+                        danger ? 'border-destructive bg-destructive text-white' : 'border-surface-border bg-card-head'
+                    }`}
+                >
+                    <h2 className={`text-sm font-semibold ${danger ? 'text-white' : 'text-primary'}`}>{title}</h2>
                     {actions}
                 </div>
             )}

@@ -6,6 +6,7 @@ import { login } from '@/app/actions/session';
 import { Field, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
+import PasswordInput from '@/components/ui/password-input';
 
 export default function LoginForm({ next }) {
     const { t, locale } = useT();
@@ -27,9 +28,8 @@ export default function LoginForm({ next }) {
                 />
             </Field>
             <Field label={t('auth.password')} required>
-                <input
+                <PasswordInput
                     name="password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     className={`${textInput(false, 'h-10')} w-full`}

@@ -21,7 +21,7 @@ export function audienceLabel(rule, t, locale) {
  * link, history. Meetings have their own tab. Sections keep ids so old ?tab=team / updates
  * links can land on them.
  */
-export default function DetailsTab({ campaign, audience, team, updates, history, perms, userId, today, t, locale, messageCount = 0, canClearChat = false }) {
+export default function DetailsTab({ campaign, audience, team, updates, history, perms, userId, today, t, locale, messageCount = 0, canClearChat = false, historyCount = 0 }) {
     const description = localized(campaign.meta, 'description', locale);
     return (
         // Side column (team, public link): a little wider on desktop.
@@ -103,7 +103,15 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
                 {/* Draws its own card, with the public switch in the header. */}
                 <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
                 {/* Danger zone (its admins): clear the discussion, pause, archive — each with a sentence and a confirmation. */}
-                {perms.manage && <FundraiseDangerCard campaign={campaign} messageCount={canClearChat ? messageCount : 0} t={t} />}
+                {(perms.manage || (canClearChat && messageCount > 0) || historyCount > 0) && (
+                    <FundraiseDangerCard
+                        campaign={campaign}
+                        canManage={perms.manage}
+                        messageCount={canClearChat ? messageCount : 0}
+                        historyCount={historyCount}
+                        t={t}
+                    />
+                )}
             </div>
         </div>
     );

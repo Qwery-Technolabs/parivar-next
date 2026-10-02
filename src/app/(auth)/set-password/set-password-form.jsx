@@ -5,6 +5,7 @@ import { setInitialPassword } from '@/app/actions/session';
 import { Field, textInput } from '@/components/ui/field';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
+import PasswordInput from '@/components/ui/password-input';
 
 export default function SetPasswordForm() {
     const { t } = useT();
@@ -20,17 +21,10 @@ export default function SetPasswordForm() {
             className="mt-5 space-y-3"
         >
             <Field label={t('members.newPassword')} hint={t('members.passwordHint')} error={fe('password')} required>
-                <input
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={6}
-                    required
-                    className={`${textInput(!!fe('password'), 'h-10')} w-full`}
-                />
+                <PasswordInput name="password" autoComplete="new-password" minLength={6} required className={`${textInput(!!fe('password'), 'h-10')} w-full`} />
             </Field>
             <Field label={t('auth.register.confirm')} error={fe('confirm')} required>
-                <input name="confirm" type="password" autoComplete="new-password" required className={`${textInput(!!fe('confirm'), 'h-10')} w-full`} />
+                <PasswordInput name="confirm" autoComplete="new-password" required className={`${textInput(!!fe('confirm'), 'h-10')} w-full`} />
             </Field>
             <SubmitButton icon={KeyRound} pendingText={t('common.saving')} size="h-10" className="w-full" pending={pending}>
                 {t('auth.setPassword.submit')}

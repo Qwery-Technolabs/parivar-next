@@ -11,7 +11,7 @@ import { date as formatDate } from '@/lib/format';
 import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, listHistory, PAY_MODES } from '@/lib/fundraise';
 import { ensureInvitedUser } from '@/lib/invite';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
-import { canManageAllFundraises } from '@/lib/roles';
+import { canManageAllFundraises, canClearHistory } from '@/lib/roles';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { normalizePhone } from '@/lib/phone';
 import { getSettings } from '@/lib/settings';
@@ -437,6 +437,21 @@ export async function setCampaignStatus(campaignId, status) {
     revalidatePath('/fundraise');
     refreshCampaign(campaign.id);
     return { ok: true, message: status === 'closed' ? 'fundraise.danger.paused' : 'fundraise.danger.resumed' };
+}
+
+/**
+ * Delete a fundraise's whole edit history (fundraise_history) — app super admins, administrators and
+ * sub-admins only (canClearHistory), from About → Danger zone. The ledger itself is untouched.
+ */
+export async function clearCampaignHistory(campaignId) {
+    const user = await getCurrentUser();
+    if (!user || !canClearHistory(user.role)) return FORBIDDEN;
+    const c = await queryOne('SELECT id, title FROM fundraise_campaigns WHERE id = :campaignId', { campaignId: Number(campaignId) });
+    if (!c) return FORBIDDEN;
+    const r = await query('DELETE FROM fundraise_history WHERE campaign_id = :campaignId', { campaignId: c.id });
+    await audit(user.id, 'fundraise.history.clear', 'fundraise', c.id, { title: c.title, rows: r?.affectedRows ?? 0 });
+    refreshCampaign(c.id);
+    return { ok: true, message: 'fundraise.danger.historyCleared' };
 }
 
 export async function deleteCampaign(campaignId) {

@@ -40,8 +40,8 @@ export async function chatAccess(user, scope, scopeId) {
         if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') return none;
         const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
         // An inactive or archived group's discussion is read-only for everyone.
-        // Clear the whole discussion: app-level admins / sub-admins only (canClearChats) — not the group's own admins.
-        const canClear = canClearChats(user.role);
+        // Clear the whole discussion: app-level admins / sub-admins, and this group's admins and sub-admins.
+        const canClear = canClearChats(user.role) || standing === 'app' || standing === 'admin' || standing === 'sub_admin';
         if (group.status !== 'active') return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), canClear, postRoles, paused: true };
         const canPost = canPostIn(postRoles, standing, myRole);
         return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), canClear, postRoles };
@@ -58,8 +58,8 @@ export async function chatAccess(user, scope, scopeId) {
     ]);
     const allowed = perms.post || member;
     // perms.manage = app-level, a group admin, or the fundraise's own admin; plus group sub-admins.
-    // Delete others' messages: admins and sub-admins (incl. sub-admins of its groups); clear all: admins (manage).
-    return { allowed, canPost: allowed && !paused, canAlert: !paused && (perms.manage || leader), moderate: perms.manage || leader, canClear: canClearChats(user.role), paused };
+    // Delete others' messages and clear the whole discussion: its admins and the admins / sub-admins of its groups.
+    return { allowed, canPost: allowed && !paused, canAlert: !paused && (perms.manage || leader), moderate: perms.manage || leader, canClear: perms.manage || leader, paused };
 }
 
 /**

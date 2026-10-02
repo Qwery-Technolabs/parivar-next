@@ -10,7 +10,7 @@ import { GROUP_STATUS_DOT } from '@/lib/group-roles';
  * active ⇄ inactive (read-only discussion); archive (hidden from members) ⇄ restore; an archived
  * group can be deleted for good (app-level group managers only).
  */
-export default function GroupDangerCard({ group, canDelete, canClearChat = false, messageCount = 0, t }) {
+export default function GroupDangerCard({ group, canDelete, canManage = true, canClearChat = false, messageCount = 0, t }) {
     const s = group.status;
     // Colour by meaning (white text ≥4.5:1): pause amber, archive slate, back to active green, delete red.
     // Phones: icon only (label → aria-label + title); icon + text from sm.
@@ -23,47 +23,67 @@ export default function GroupDangerCard({ group, canDelete, canClearChat = false
     };
     const text = (key) => <span className="hidden sm:inline">{t(key)}</span>;
     return (
-        <Card title={t('groups.danger.title')} className="border-destructive/40">
+        <Card title={t('groups.danger.title')} tone="danger">
             <p className="mb-3 flex items-center gap-2 text-sm text-ink">
                 <span className={`size-2.5 rounded-full ${GROUP_STATUS_DOT[s] ?? GROUP_STATUS_DOT.active}`} />
                 {t('groups.danger.statusNow', { status: t(`groups.status.${s}`) })}
             </p>
             <ul className="space-y-3 text-xs text-ink-gray">
                 {canClearChat && messageCount > 0 && <ClearChatRow scope="group" scopeId={group.id} count={messageCount} t={t} />}
-                {s !== 'archived' && (
+                {canManage && s !== 'archived' && (
                     <li className="flex flex-wrap items-center justify-between gap-2">
                         <span className="min-w-0 flex-1">{t('groups.danger.inactiveHint')}</span>
                         {s === 'active' ? (
-                            <ActionButton action={setGroupStatus.bind(null, group.id, 'inactive')} icon={<CirclePause className="size-3.5" />} plain label={t('groups.danger.markInactive')} className={tone.pause}>
+                            <ActionButton
+                                action={setGroupStatus.bind(null, group.id, 'inactive')}
+                                icon={<CirclePause className="size-3.5" />}
+                                plain
+                                label={t('groups.danger.markInactive')}
+                                className={tone.pause}
+                            >
                                 {text('groups.danger.markInactive')}
                             </ActionButton>
                         ) : (
-                            <ActionButton action={setGroupStatus.bind(null, group.id, 'active')} icon={<CirclePlay className="size-3.5" />} plain label={t('groups.danger.markActive')} className={tone.active}>
+                            <ActionButton
+                                action={setGroupStatus.bind(null, group.id, 'active')}
+                                icon={<CirclePlay className="size-3.5" />}
+                                plain
+                                label={t('groups.danger.markActive')}
+                                className={tone.active}
+                            >
                                 {text('groups.danger.markActive')}
                             </ActionButton>
                         )}
                     </li>
                 )}
-                <li className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="min-w-0 flex-1">{t('groups.danger.archiveHint')}</span>
-                    {s === 'archived' ? (
-                        <ActionButton action={setGroupStatus.bind(null, group.id, 'active')} icon={<ArchiveRestore className="size-3.5" />} plain label={t('groups.danger.restore')} className={tone.active}>
-                            {text('groups.danger.restore')}
-                        </ActionButton>
-                    ) : (
-                        <ActionButton
-                            action={setGroupStatus.bind(null, group.id, 'archived')}
-                            confirm={t('groups.danger.archiveConfirm')}
-                            icon={<Archive className="size-3.5" />}
-                            plain
-                            label={t('groups.danger.archive')}
-                            className={tone.archive}
-                        >
-                            {text('groups.danger.archive')}
-                        </ActionButton>
-                    )}
-                </li>
-                {s === 'archived' && canDelete && (
+                {canManage && (
+                    <li className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0 flex-1">{t('groups.danger.archiveHint')}</span>
+                        {s === 'archived' ? (
+                            <ActionButton
+                                action={setGroupStatus.bind(null, group.id, 'active')}
+                                icon={<ArchiveRestore className="size-3.5" />}
+                                plain
+                                label={t('groups.danger.restore')}
+                                className={tone.active}
+                            >
+                                {text('groups.danger.restore')}
+                            </ActionButton>
+                        ) : (
+                            <ActionButton
+                                action={setGroupStatus.bind(null, group.id, 'archived')}
+                                confirm={t('groups.danger.archiveConfirm')}
+                                icon={<Archive className="size-3.5" />}
+                                plain
+                                label={t('groups.danger.archive')}
+                                className={tone.archive}
+                            >
+                                {text('groups.danger.archive')}
+                            </ActionButton>
+                        )}
+                    </li>
+                )}
+                {canManage && s === 'archived' && canDelete && (
                     <li className="flex flex-wrap items-center justify-between gap-2">
                         <span className="min-w-0 flex-1">{t('groups.danger.deleteHint')}</span>
                         <ActionButton

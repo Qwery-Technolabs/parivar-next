@@ -288,3 +288,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Shared 300 ms debounce hook for search / suggestion fields (list search-as-you-type, member pickers, Gujarati suggestions)
 - [x] Surnames page visible to everyone (edit only administrators); "Members" button per surname (disabled when ≤ 1); Members list ?surname= filter
 - [x] DB pool 2 → 5 per instance (parallel page queries no longer queue), explicit waitForConnections / queueLimit 0, slow-query log; not 100 (host limits)
+- [x] Eye button (show / hide) on every password field — login, register, set password, change password, member password
+- [x] Filters button icon-only on phones (all pages)
+- [x] Fundraise Danger zone: "Clear edit history" — app super admin / administrator / sub-admin only
+- [x] Danger zone cards: solid red header; clear discussion = app admins / sub-admins + the group's / fundraise's admins and sub-admins (sub-admins see only that row); edit history = app admins / sub-admins only

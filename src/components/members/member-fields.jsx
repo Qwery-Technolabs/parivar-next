@@ -9,6 +9,7 @@ import CasteSelect from './caste-select';
 import NameFields from './name-fields';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
+import PasswordInput from '@/components/ui/password-input';
 
 /*
  * The member form's field groups. The Add page shows them all in one form; the Edit page
@@ -218,9 +219,8 @@ export function PasswordField({ fe, required = false }) {
     const { t } = useT();
     return (
         <Field label={t('members.newPassword')} hint={t('members.passwordHint')} error={fe('password')} required={required} className="sm:max-w-sm">
-            <input
+            <PasswordInput
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 minLength={6}
                 required={required}

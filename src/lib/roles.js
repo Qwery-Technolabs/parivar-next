@@ -51,6 +51,8 @@ export const canManageEvents = (role) => atLeast(role, 'sub_admin');
 export const canViewAudit = (role) => atLeast(role, 'sub_admin');
 /** Clear a whole discussion (any group / fundraise): the app's super admins, administrators and sub-admins only — not group or fundraise admins. */
 export const canClearChats = (role) => atLeast(role, 'sub_admin');
+/** Delete a fundraise's edit history (fundraise_history): the same people only — app super admins, administrators, sub-admins. */
+export const canClearHistory = (role) => atLeast(role, 'sub_admin');
 
 /** Invite people by phone number from the Members page (first password = their number). */
 export const canInviteMembers = (role) => atLeast(role, 'sub_admin');

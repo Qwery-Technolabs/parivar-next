@@ -43,10 +43,12 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
                     aria-haspopup="dialog"
                     aria-expanded={open}
                     aria-label={activeCount ? `${t('common.filters')} (${activeCount})` : t('common.filters')}
-                    className="relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md btn-secondary px-3 text-sm font-medium"
+                    title={t('common.filters')}
+                    // Phones: icon only (a square like the search button); icon + "Filters" from sm up.
+                    className="relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md btn-secondary px-3 text-sm font-medium max-sm:w-9 max-sm:justify-center max-sm:px-0"
                 >
                     <SlidersHorizontal className="size-4" />
-                    {t('common.filters')}
+                    <span className="hidden sm:inline">{t('common.filters')}</span>
                     {activeCount > 0 && <span aria-hidden className="absolute -right-1 -top-1 size-2.5 rounded-full bg-destructive ring-2 ring-white" />}
                 </button>
             )}

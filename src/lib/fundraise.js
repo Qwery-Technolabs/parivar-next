@@ -399,6 +399,11 @@ function parseSnapshot(raw) {
     }
 }
 
+/** How many history rows a fundraise has (all of them, not just the latest 50 shown). */
+export async function historyCount(campaignId) {
+    return (await queryOne('SELECT COUNT(*) AS n FROM fundraise_history WHERE campaign_id = :campaignId', { campaignId }))?.n ?? 0;
+}
+
 /**
  * History rows, newest first, with the actor's name.
  * @param {number} campaignId
