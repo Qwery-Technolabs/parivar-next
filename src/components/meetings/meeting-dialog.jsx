@@ -10,10 +10,11 @@ import { useT } from '@/lib/i18n/client';
 const OFFSETS = [1440, 60, 15, 0];
 
 /** Who needs to come: everyone in the group/fundraise, or a hand-picked list (with search). */
-function Attendees({ people, initialIds, error }) {
+function Attendees({ people, initialIds, audience = null, error }) {
     const { t, locale } = useT();
     const all = people.map((p) => p.id);
-    const [mode, setMode] = useState(initialIds && initialIds.length < all.length ? 'selected' : 'all');
+    // The saved choice wins; older meetings (no choice saved) are read from the list size.
+    const [mode, setMode] = useState(audience ?? (initialIds && initialIds.length < all.length ? 'selected' : 'all'));
     const [picked, setPicked] = useState(new Set(initialIds ?? all));
     const [q, setQ] = useState('');
     const name = (p) => (locale !== 'en' && p.full_name_local) || p.full_name;
@@ -148,7 +149,12 @@ export default function MeetingDialog({ scope, scopeId, people, meeting = null, 
                             <textarea name="agenda" rows={3} defaultValue={meeting?.agenda ?? ''} className={`${textArea()} w-full`} />
                         </Field>
                     </div>
-                    <Attendees people={people} initialIds={meeting?.attendees?.map((a) => a.user_id)} error={fieldError('attendee_ids')} />
+                    <Attendees
+                        people={people}
+                        initialIds={meeting?.attendees?.map((a) => a.user_id)}
+                        audience={meeting?.audience ?? null}
+                        error={fieldError('attendee_ids')}
+                    />
                     <div>
                         <p className="mb-1 text-xs font-medium text-ink-gray">{t('meetings.remind')}</p>
                         <div className="flex flex-wrap gap-2">

@@ -64,7 +64,7 @@ const TOTALS = `
     (SELECT COALESCE(SUM(amount), 0) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS spent,
     (SELECT COUNT(*) FROM fundraise_expenses fe WHERE fe.campaign_id = c.id AND fe.deleted_at IS NULL) AS expense_count`;
 
-const COLS = `c.id, c.group_id, c.title, c.title_local, c.location, c.target_amount, c.start_date, c.end_date, c.status, c.archived_at,
+const COLS = `c.id, c.group_id, c.kind, c.title, c.title_local, c.location, c.target_amount, c.start_date, c.end_date, c.status, c.archived_at,
     c.is_public, c.public_token, c.created_at, c.created_by, g.name AS group_name, g.name_local AS group_name_local`;
 
 /**

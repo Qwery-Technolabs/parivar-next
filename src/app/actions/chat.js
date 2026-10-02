@@ -1,5 +1,6 @@
 'use server';
 import { refresh } from 'next/cache';
+import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { alertAudience, CHAT_MAX_LENGTH, chatAccess } from '@/lib/chat';
 import { notifyMany } from '@/lib/notifications';
@@ -55,4 +56,24 @@ export async function deleteMessage(messageId) {
     await query("DELETE FROM chat_messagesmeta WHERE message_id = :id AND meta_key = 'body'", { id: msg.id });
     refresh();
     return { ok: true };
+}
+
+/**
+ * Clear a discussion's whole history (group or fundraise) — admins only (chatAccess.canClear).
+ * Messages and their text are deleted for good; read markers go too. Logged.
+ */
+export async function clearChat(scope, scopeId) {
+    const user = await getCurrentUser();
+    const id = Number(scopeId) || 0;
+    if (!user || !['group', 'fundraise'].includes(scope) || !id) return { error: 'common.forbidden' };
+    const access = await chatAccess(user, scope, id);
+    if (!access.allowed || !access.canClear) return { error: 'common.forbidden' };
+    const removed = await withTransaction(async (q) => {
+        const r = await q('DELETE FROM chat_messages WHERE scope = :scope AND scope_id = :id', { scope, id }); // meta cascades
+        await q('DELETE FROM chat_reads WHERE scope = :scope AND scope_id = :id', { scope, id });
+        return r.affectedRows ?? 0;
+    });
+    await audit(user.id, 'chat.clear', scope, id, { removed });
+    refresh();
+    return { ok: true, message: 'chat.cleared' };
 }

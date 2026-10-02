@@ -464,3 +464,53 @@ export async function fillFatherNames(q, ids) {
         });
     }
 }
+
+/**
+ * Caste follows the family: anyone in it WITHOUT a caste takes it (with the sub-caste) from the
+ * nearest relative who has one — father, then husband (a married woman takes her husband's),
+ * spouse, mother, brother / sister, son / daughter. Repeats until nothing changes, so a caste
+ * set on one person spreads along the tree. A caste someone set is never changed. Inside the
+ * link's transaction (`q`); the whole family table is small.
+ */
+export async function fillCastes(q) {
+    const people = new Map((await q('SELECT id, gender, caste_id, subcaste_id FROM users_list')).map((p) => [p.id, p]));
+    const links = await q('SELECT user_id, relative_id, relation FROM users_relations');
+    const by = (rel) => {
+        const m = new Map();
+        for (const l of links) if (l.relation === rel) m.set(l.user_id, [...(m.get(l.user_id) ?? []), l.relative_id]);
+        return m;
+    };
+    const fathers = by('father');
+    const mothers = by('mother');
+    const spouses = by('spouse');
+    const sibs = by('sibling');
+    const children = new Map();
+    for (const l of links) if (l.relation === 'father' || l.relation === 'mother') children.set(l.relative_id, [...(children.get(l.relative_id) ?? []), l.user_id]);
+    const siblingsOf = (id) => {
+        const s = new Set(sibs.get(id) ?? []);
+        for (const p of [...(fathers.get(id) ?? []), ...(mothers.get(id) ?? [])]) for (const c of children.get(p) ?? []) if (c !== id) s.add(c);
+        return [...s];
+    };
+    const withCaste = (ids) => ids.map((i) => people.get(i)).find((p) => p?.caste_id);
+    for (let pass = 0; pass < 10; pass++) {
+        let changed = 0;
+        for (const p of people.values()) {
+            if (p.caste_id) continue;
+            const sp = spouses.get(p.id) ?? [];
+            const husbands = sp.filter((i) => people.get(i)?.gender === 'male');
+            const src =
+                withCaste(fathers.get(p.id) ?? []) ??
+                (p.gender === 'female' ? withCaste(husbands) : null) ??
+                withCaste(sp) ??
+                withCaste(mothers.get(p.id) ?? []) ??
+                withCaste(siblingsOf(p.id)) ??
+                withCaste(children.get(p.id) ?? []);
+            if (!src) continue;
+            p.caste_id = src.caste_id;
+            p.subcaste_id = src.subcaste_id;
+            await q('UPDATE users_list SET caste_id = :c, subcaste_id = :s WHERE id = :id AND caste_id IS NULL', { c: src.caste_id, s: src.subcaste_id, id: p.id });
+            changed++;
+        }
+        if (!changed) break;
+    }
+}

@@ -128,6 +128,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   there is a group they may start a fundraise in that it is not in yet; icon-only on phones.
 - **Every Cancel / Save bar** (dialogs, full-page forms like new fundraise, event, member, picture picker):
   **side by side on phones** — `flex flex-row gap-2 *:flex-1 sm:*:flex-none sm:justify-end`; never `flex-col-reverse`.
+- **Combobox inside a dialog opens in the flow** (the dialog scrolls and would clip a floating list); outside dialogs it floats.
+  Inside a dialog it closes on blur (no full-screen backdrop there); options keep focus on press.
 - **Dialogs (FormDialog)**: Cancel + Save side by side on phones too (each `flex-1`, own width from sm);
   **no field autofocus** — the dialog itself takes focus (`DialogContent focusPopup`) so no keyboard pops up.
 - **Status dot on pictures** (fundraise header + list, group header + list): small bottom-right dot with a
@@ -171,6 +173,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   bottom-right going further away, top-right → bottom-left coming back, straight when level — dots at both ends, the step
   ("’s father" / "ના પિતા") beside it. Chains over 6 people fold the middle behind "Show N more"; summary with the kinship
   word when known.
+- Married woman in the add popup (`MarriedName`): **ask only unknown parts** — known ones (a daughter's father, a sister's
+  father, a wife's / mother's husband) post hidden, previewed in one line with "Change". A woman's child's father = her
+  linked husband, else the husband named in her married name (her middle name + surname).
 - Add-relative popup asks only the **first name**: father's name and surname follow from the person
   (`defaultsFor` in add-relative-dialog.jsx), previewed as "Full name: …" with "Change surname / father's name".
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in

@@ -117,6 +117,34 @@ async function planCampaignGroups(user, campaignId, homeId, extraIds) {
     return { add, drop: dropAllowed };
 }
 
+/**
+ * A Mandal's opening balance (money it already had): one contribution row "Opening balance",
+ * so it is part of the total and the ledger. Changing it updates that row; 0 / empty removes it.
+ */
+async function writeOpeningBalance(q, campaignId, amount, userId) {
+    const [m] = await q("SELECT meta_value FROM fundraise_campaignsmeta WHERE campaign_id = :campaignId AND meta_key = 'opening_contribution_id'", { campaignId });
+    const rowId = Number(m?.meta_value) || null;
+    if (amount > 0) {
+        if (rowId) {
+            await q('UPDATE fundraise_contributions SET amount = :amount, deleted_at = NULL, deleted_by = NULL WHERE id = :rowId AND campaign_id = :campaignId', {
+                amount,
+                rowId,
+                campaignId,
+            });
+        } else {
+            const r = await q(
+                `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by)
+                 VALUES (:campaignId, NULL, 'Opening balance', :amount, CURDATE(), 'other', 'Mandal opening balance', :userId)`,
+                { campaignId, amount, userId },
+            );
+            await setMeta('fundraise_campaigns', campaignId, { opening_contribution_id: String(r.insertId) }, q);
+        }
+    } else if (rowId) {
+        await q('UPDATE fundraise_contributions SET deleted_at = NOW(), deleted_by = :userId WHERE id = :rowId', { userId, rowId });
+        await setMeta('fundraise_campaigns', campaignId, { opening_contribution_id: '' }, q);
+    }
+}
+
 async function writeCampaignGroups(q, campaignId, plan, userId) {
     for (const g of plan.add) {
         await q('INSERT IGNORE INTO fundraise_groups (campaign_id, group_id, added_by) VALUES (:campaignId, :g, :userId)', { campaignId, g, userId });
@@ -158,6 +186,17 @@ export async function saveCampaign(prev, fd) {
     }
     if (!groupId && !canManageAllFundraises(user.role)) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
 
+    // Mandal (savings circle): chosen when creating inside a group; fixed afterwards.
+    const existingKind = campaignId ? (await queryOne('SELECT kind FROM fundraise_campaigns WHERE id = :campaignId', { campaignId }))?.kind : null;
+    const kind = existingKind ?? oneOf(fd, 'kind', ['fundraise', 'mandal'], 'fundraise');
+    if (kind === 'mandal' && !groupId) return { fieldErrors: { group_id: 'mandal.errors.group' } };
+    const rawInstallment = str(fd, 'installment', 12);
+    const installment = rawInstallment ? Number(rawInstallment) : null;
+    if (kind === 'mandal' && (!installment || !Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
+    const rawOpening = str(fd, 'opening_balance', 14);
+    const opening = rawOpening ? Number(rawOpening) : 0;
+    if (kind === 'mandal' && rawOpening && (!Number.isFinite(opening) || opening < 0)) return { fieldErrors: { opening_balance: 'mandal.errors.amount' } };
+
     const row = {
         groupId,
         title,
@@ -175,6 +214,7 @@ export async function saveCampaign(prev, fd) {
         // Picture: icon / emoji / ≤2 letters on a colour, like a group's (lib/group-avatar).
         ...sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10)),
         // No local-language description on the form any more; an older one is left as it is.
+        ...(kind === 'mandal' ? { installment: String(Math.round(installment * 100) / 100) } : {}),
     };
 
     if (campaignId) {
@@ -196,6 +236,7 @@ export async function saveCampaign(prev, fd) {
             await setMeta('fundraise_campaigns', campaignId, meta, q);
             await writeAudience(q, campaignId, audience);
             await writeCampaignGroups(q, campaignId, plan, user.id);
+            if (kind === 'mandal') await writeOpeningBalance(q, campaignId, opening, user.id);
         });
         await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title, audience: audience.length });
         refreshCampaign(campaignId);
@@ -209,10 +250,11 @@ export async function saveCampaign(prev, fd) {
     const isPublic = bool(fd, 'is_public');
     const newId = await withTransaction(async (q) => {
         const r = await q(
-            `INSERT INTO fundraise_campaigns (group_id, title, title_local, location, target_amount, start_date, end_date, status, is_public, public_token, created_by)
-             VALUES (:groupId, :title, :titleLocal, :location, :target, :start, :end, :status, :isPublic, :token, :by)`,
-            { ...row, isPublic: isPublic ? 1 : 0, token: isPublic ? newToken() : null, by: user.id },
+            `INSERT INTO fundraise_campaigns (group_id, kind, title, title_local, location, target_amount, start_date, end_date, status, is_public, public_token, created_by)
+             VALUES (:groupId, :kind, :title, :titleLocal, :location, :target, :start, :end, :status, :isPublic, :token, :by)`,
+            { ...row, kind, isPublic: isPublic ? 1 : 0, token: isPublic ? newToken() : null, by: user.id },
         );
+        if (kind === 'mandal') await writeOpeningBalance(q, r.insertId, opening, user.id);
         await setMeta('fundraise_campaigns', r.insertId, meta, q);
         await writeAudience(q, r.insertId, audience);
         await writeCampaignGroups(q, r.insertId, plan, user.id);

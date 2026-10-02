@@ -41,6 +41,11 @@ export default function CampaignForm({
     const meta = c.meta ?? {};
     // Only on create — an existing fundraise's link is switched from its detail page.
     const [isPublic, setIsPublic] = useState(defaultPublic);
+    // Type: a Mandal (savings circle) can only be started inside a group, and stays one.
+    const initialGroup = c.id ? (c.group_id ?? '') : (defaultGroupId ?? (allowNoGroup ? '' : (groups[0]?.id ?? '')));
+    const [groupSel, setGroupSel] = useState(String(initialGroup ?? ''));
+    const [kind, setKind] = useState(c.kind ?? 'fundraise');
+    const mandal = kind === 'mandal';
     const [othersToo, setOthersToo] = useState(meta.audience_others === '1');
 
     // onSubmit + startTransition rather than <form action>: React resets uncontrolled
@@ -67,6 +72,28 @@ export default function CampaignForm({
                             <AvatarPicker name={c.title} initial={meta} />
                         </div>
                         <div className="min-w-0 flex-1 space-y-3">
+                            {/* New, inside a group: Fundraise or Mandal (savings circle). An existing one keeps its type. */}
+                            {!c.id && groupSel ? (
+                                <div>
+                                    <input type="hidden" name="kind" value={kind} />
+                                    <p className="mb-1 text-xs font-medium text-ink">{t('mandal.type')}</p>
+                                    <div role="radiogroup" className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
+                                        {['fundraise', 'mandal'].map((k) => (
+                                            <button
+                                                key={k}
+                                                type="button"
+                                                role="radio"
+                                                aria-checked={kind === k}
+                                                onClick={() => setKind(k)}
+                                                className={`h-8 rounded px-3 text-xs font-medium ${kind === k ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-primary'}`}
+                                            >
+                                                {t(`mandal.kinds.${k}`)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {mandal && <p className="mt-1 text-xs text-ink-gray">{t('mandal.typeHint')}</p>}
+                                </div>
+                            ) : null}
                             <div className="grid gap-3 sm:grid-cols-2">
                                 <BilingualName
                                     enLabel={t('fundraise.name')}
@@ -80,6 +107,27 @@ export default function CampaignForm({
                                     required
                                 />
                             </div>
+                            {mandal && (
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <Field label={t('mandal.installment')} hint={t('mandal.installmentHint')} error={fe('installment')} required>
+                                        <input
+                                            name="installment"
+                                            inputMode="decimal"
+                                            required
+                                            defaultValue={meta.installment ?? ''}
+                                            className={`${textInput(!!fe('installment'))} w-full tabular-nums`}
+                                        />
+                                    </Field>
+                                    <Field label={t('mandal.opening')} hint={t('mandal.openingHint')} error={fe('opening_balance')}>
+                                        <input
+                                            name="opening_balance"
+                                            inputMode="decimal"
+                                            defaultValue={c.openingBalance ?? ''}
+                                            className={`${textInput(!!fe('opening_balance'))} w-full tabular-nums`}
+                                        />
+                                    </Field>
+                                </div>
+                            )}
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                 <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
                                     <input
@@ -112,7 +160,11 @@ export default function CampaignForm({
                         <Field label={t('fundraise.homeGroup')} error={fe('group_id')}>
                             <select
                                 name="group_id"
-                                defaultValue={c.id ? (c.group_id ?? '') : (defaultGroupId ?? (allowNoGroup ? '' : (groups[0]?.id ?? '')))}
+                                value={groupSel}
+                                onChange={(e) => {
+                                    setGroupSel(e.target.value);
+                                    if (!e.target.value) setKind('fundraise'); // a Mandal needs a group
+                                }}
                                 className={`${selectInput(!!fe('group_id'))} w-full`}
                             >
                                 {allowNoGroup && <option value="">{t('fundraise.noHomeGroup')}</option>}

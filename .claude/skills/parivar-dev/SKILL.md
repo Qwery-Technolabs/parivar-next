@@ -120,6 +120,12 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   card daughter / sister rows, tree hover when she is a blood node, relation chain reached via 'daughter' / 'sister').
   `fillFatherNames` fills her maiden_* from her father and an empty husband part from her husband — never her main middle
   from her father. Live backfilled 2026-10-02.
+- **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮): list = every surname in use
+  + saved ones; one or many (tick boxes) mapped to caste → sub-caste. `applySurnameCastes(ids?, q?)` fills members WITHOUT a
+  caste — called on admin create, invite (ensureInvitedUser), register, family link (after fillCastes) and surname edit.
+- **Caste follows the family**: `fillCastes(q)` (lib/family.js) after every family link — anyone without a caste takes caste +
+  sub-caste from father → husband (married woman) → spouse → mother → brother / sister → son / daughter, repeated until stable;
+  never overwrites a set caste. Live backfilled 2026-10-02.
 - **Father's name follows the father**: `fillFatherNames(q, ids)` (lib/family.js) runs after every family link — an EMPTY
   middle_name (+ _local) of a child is filled from the linked father's first name and full_name(_local) rebuilt; typed
   middle names are never overwritten. Live data was backfilled once (2026-10-02).
@@ -129,6 +135,19 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `relationStepsFrom(root)` (labels for the tree). Add new names to KIN_TERMS + both dictionaries.
 - **Members list default = registered only** (`last_login_at IS NOT NULL`); the Filters panel's Registration
   select (`reg=unregistered|all`) shows the rest (invited / family-tree people). Counts as an active filter.
+- **Meeting audience**: saved as events_listmeta `audience` = 'all' | 'selected'. 'all' = everyone, **including people who
+  join later**: `syncEveryoneMeetings` (lib/meetings.js) adds current group / fundraise members to upcoming 'all' meetings when a
+  meeting list opens and before reminders are sent. 'selected' stays a fixed list.
+- **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (chosen on create, inside a group only; fixed after).
+  lib/mandal.js + actions/mandal.js + components/mandal/*, tab "Mandal" on the fundraise page. Members =
+  fundraise_subscribers (added by admins / sub-admins / its treasurer / collector — `canRunMandal`; pick or invite by phone).
+  Meetings = the fundraise's own meetings; per meeting meta collect ('1'/'0') + installment (default = campaign meta
+  installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a cash contribution per payment (so the
+  ledger / totals include it). Dues = installments of collecting meetings held since joining − paid; missed = absent marks
+  since last present (+ days away). Opening balance = one "Opening balance" contribution (meta opening_contribution_id).
+- **Discussion moderation** (`chatAccess`): delete others' messages = admins + sub-admins (group standing; fundraise
+  manage or sub-admin of its groups); **Clear history** (`clearChat`, `canClear`) = admins only (group admin / app-level;
+  fundraise manage) — deletes all messages + read markers for good, audited.
 - **Anonymous gifts** ("Hide name publicly"): only fundraise managers see the donor (name + badge). Everyone
   else sees `fundraise.anonymousLabel` — "Anonymous" / "રામભરોસે" — via `maskAnonymous(rows, label)`, and
   by-contributor totals use `contributorTotals(id, { publicView: !manage })`. Copied text, the PDF list and

@@ -3,6 +3,7 @@ import { audit } from './audit';
 import { hashPassword } from './auth';
 import { query, queryOne, setMeta } from './db';
 import { splitName } from './names';
+import { applySurnameCastes } from './surnames';
 import { canInviteMembers } from './roles';
 
 const nullParts = (p) => ({ first: p.first || null, middle: p.middle || null, surname: p.surname || null });
@@ -39,6 +40,7 @@ export async function ensureInvitedUser(actor, phone, fullName = '', fullNameLoc
         { phone, hash, fullName: fullName || phone, fullNameLocal: fullNameLocal || null, ...nullParts(splitName(fullName)), by: actor.id },
     );
     await setMeta('users_list', r.insertId, { must_change_password: '1', invited_by: String(actor.id) });
+    await applySurnameCastes([r.insertId]); // the surname's caste (Members ⋮ → Surnames)
     await audit(actor.id, 'user.create', 'user', r.insertId, { via: 'invite' });
     return { id: r.insertId, status: 'created' };
 }

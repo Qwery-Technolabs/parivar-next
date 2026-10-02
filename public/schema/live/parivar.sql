@@ -134,6 +134,23 @@ CREATE TABLE IF NOT EXISTS users_notifications (
 
 -- ─────────────────────────────────────────────────────────────── admin_
 
+-- Surname → caste / sub-caste (Members ⋮ → Surnames). Members with that surname and no caste get it
+-- (on create, invite, register, family link, surname change, and when the mapping is saved).
+CREATE TABLE IF NOT EXISTS admin_surnames (
+    id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name         VARCHAR(60)  NOT NULL,
+    name_local   VARCHAR(60)  NULL,
+    caste_id     INT UNSIGNED NULL,
+    subcaste_id  INT UNSIGNED NULL,
+    created_by   INT UNSIGNED NULL,
+    created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_admin_surnames_name (name),
+    CONSTRAINT fk_admin_surnames_caste    FOREIGN KEY (caste_id)    REFERENCES admin_castes (id) ON DELETE SET NULL,
+    CONSTRAINT fk_admin_surnames_subcaste FOREIGN KEY (subcaste_id) REFERENCES admin_castes (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS admin_groups (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
     name        VARCHAR(150) NOT NULL,
@@ -238,6 +255,7 @@ CREATE TABLE IF NOT EXISTS blood_settings (
 CREATE TABLE IF NOT EXISTS fundraise_campaigns (
     id             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     group_id       INT UNSIGNED  NULL,              -- home group; NULL = a standalone fundraise (Fundraise page)
+    kind           ENUM('fundraise','mandal') NOT NULL DEFAULT 'fundraise', -- mandal = savings circle: members pay a fixed amount at its meetings
     title          VARCHAR(200)  NOT NULL,
     title_local       VARCHAR(200)  NULL,
     location       VARCHAR(100)  NULL,               -- village/town; drives the "near me" feed
@@ -569,4 +587,35 @@ CREATE TABLE IF NOT EXISTS matrimony_profiles (
     CONSTRAINT fk_matrimony_user   FOREIGN KEY (user_id)       REFERENCES users_list (id)   ON DELETE CASCADE,
     CONSTRAINT fk_matrimony_lister FOREIGN KEY (listed_by)     REFERENCES users_list (id)   ON DELETE SET NULL,
     CONSTRAINT fk_matrimony_caste  FOREIGN KEY (pref_caste_id) REFERENCES admin_castes (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Mandal (savings circle): its members (added by admins / sub-admins / treasurer / collector)…
+CREATE TABLE IF NOT EXISTS fundraise_subscribers (
+    campaign_id  INT UNSIGNED NOT NULL,
+    user_id      INT UNSIGNED NOT NULL,
+    added_by     INT UNSIGNED NULL,
+    created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (campaign_id, user_id),
+    KEY idx_fundraise_subs_user (user_id),
+    CONSTRAINT fk_fundraise_subs_camp FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE,
+    CONSTRAINT fk_fundraise_subs_user FOREIGN KEY (user_id)     REFERENCES users_list (id)          ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- …and, per Mandal meeting and member, whether they came and what they paid (the payment is also a
+-- fundraise_contributions row, so totals and the ledger include it). Meeting meta: collect ('1'/'0'), installment.
+CREATE TABLE IF NOT EXISTS fundraise_mandal_marks (
+    event_id        INT UNSIGNED  NOT NULL,
+    user_id         INT UNSIGNED  NOT NULL,
+    campaign_id     INT UNSIGNED  NOT NULL,
+    present         TINYINT(1)    NOT NULL DEFAULT 0,
+    paid            DECIMAL(12,2) NULL,
+    contribution_id INT UNSIGNED  NULL,
+    marked_by       INT UNSIGNED  NULL,
+    updated_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (event_id, user_id),
+    KEY idx_mandal_marks_camp (campaign_id, user_id),
+    CONSTRAINT fk_mandal_marks_event FOREIGN KEY (event_id)        REFERENCES events_list (id)             ON DELETE CASCADE,
+    CONSTRAINT fk_mandal_marks_user  FOREIGN KEY (user_id)         REFERENCES users_list (id)              ON DELETE CASCADE,
+    CONSTRAINT fk_mandal_marks_camp  FOREIGN KEY (campaign_id)     REFERENCES fundraise_campaigns (id)     ON DELETE CASCADE,
+    CONSTRAINT fk_mandal_marks_contr FOREIGN KEY (contribution_id) REFERENCES fundraise_contributions (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

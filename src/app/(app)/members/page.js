@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Network, Phone, Smartphone, UserPlus } from 'lucide-react';
+import { Network, Phone, Smartphone, UserPlus, Tags } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import InviteMembersDialog from '@/components/members/invite-members-dialog';
 import MemberRowActions from '@/components/members/member-row-actions';
@@ -70,6 +70,7 @@ export default async function MembersPage({ searchParams }) {
                             manage && { key: 'add', label: t('members.add'), icon: <UserPlus />, href: '/members/new' },
                             canInviteMembers(user.role) && { key: 'invite', label: t('members.invite.button'), icon: <Smartphone /> },
                             canManageSettings(user.role) && { key: 'castes', label: t('members.manageCastes'), icon: <Network />, href: '/members/castes' },
+                            canManageSettings(user.role) && { key: 'surnames', label: t('members.manageSurnames'), icon: <Tags />, href: '/members/surnames' },
                         ]}
                     >
                         {canInviteMembers(user.role) && <InviteMembersDialog groups={groupOptions} menuKey="invite" />}

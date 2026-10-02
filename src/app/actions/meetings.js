@@ -80,7 +80,8 @@ export async function saveMeeting(prev, fd) {
             );
             id = r.insertId;
         }
-        await setMeta('events_list', id, { description: agenda }, q);
+        // 'all' keeps inviting people who join later (syncEveryoneMeetings); 'selected' is a fixed list.
+        await setMeta('events_list', id, { description: agenda, audience: invite }, q);
         // Keep the RSVPs of people who stay invited; add the new ones; drop the removed.
         for (const uid of chosen) {
             await q('INSERT IGNORE INTO events_attendees (event_id, user_id) VALUES (:id, :uid)', { id, uid });

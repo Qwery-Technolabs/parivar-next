@@ -1,6 +1,7 @@
 import 'server-only';
 import { query, withTransaction } from './db';
 import { after } from 'next/server';
+import { syncEveryoneMeetings } from './meetings';
 import { notifyMany } from './notifications';
 
 /** A reminder this late (server was down, meeting created at the last minute) is dropped, not sent. */
@@ -26,6 +27,9 @@ export async function processDueReminders() {
         for (const r of rows) await q('UPDATE events_reminders SET sent_at = NOW() WHERE id = :id', { id: r.id });
         return rows;
     });
+
+    // Anyone who joined the group since gets this reminder too (upcoming "Everyone" meetings).
+    if (claimed.length) await syncEveryoneMeetings({ eventIds: [...new Set(claimed.map((r) => r.event_id))] });
 
     let sent = 0;
     let skipped = 0;

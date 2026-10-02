@@ -8,6 +8,7 @@ import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { postMemberNote } from '@/lib/chat';
 import { MEMBER_META_KEYS } from '@/lib/members';
+import { applySurnameCastes } from '@/lib/surnames';
 import { composeName } from '@/lib/names';
 import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
@@ -118,6 +119,8 @@ export async function createMember(prev, fd) {
             { ...m, hash, role, language, by: actor.id },
         );
         await setMeta('users_list', r.insertId, m.meta, q);
+        // No caste chosen: the surname's caste (Members ⋮ → Surnames).
+        await applySurnameCastes([r.insertId], q);
         return r.insertId;
     });
     await audit(actor.id, 'user.create', 'user', newId, { role });
@@ -168,6 +171,8 @@ export async function updateMemberSection(prev, fd) {
                     maiden_middle_name_local = :maiden_middle_name_local, maiden_surname_local = :maiden_surname_local WHERE id = :id`,
             { ...m, id: target.id },
         );
+        // A new surname may carry a caste (Members ⋮ → Surnames) — only when they have none.
+        await applySurnameCastes([target.id]);
         // Someone without a login (a family-tree relative added with no number): giving them a number
         // turns the login on — the number is their first password, changed at first sign-in.
         if (m.phone && !target.can_login && target.status !== 'deceased') {

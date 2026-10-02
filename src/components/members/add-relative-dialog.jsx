@@ -6,7 +6,6 @@ import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
 import GujaratiField from '@/components/ui/gujarati-field';
-import NameFields from '@/components/members/name-fields';
 import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
 import { useT } from '@/lib/i18n/client';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
@@ -24,8 +23,14 @@ const MALE_LINE = ['father', 'brother', 'son'];
  *     son / daughter: the person if a man, else her husband (the person's spouse)
  *   first name   — only a father's is known (the person's middle name)
  */
+/** The father of the person's child: the person (a man), or a woman's husband — linked, else from her married name. */
+function childFather(p, spouse) {
+    if (p.gender !== 'female') return p;
+    return spouse ?? { first_name: p.middle_name, first_name_local: p.middle_name_local, surname: p.surname, surname_local: p.surname_local };
+}
+
 function defaultsFor(kind, p, spouse) {
-    const husbandOfPerson = p.gender === 'female' ? spouse : null;
+    const husbandOfPerson = p.gender === 'female' ? childFather(p, spouse) : null;
     const middle = {
         father: ['', ''],
         mother: [p.middle_name, p.middle_name_local],
@@ -48,12 +53,11 @@ function defaultsFor(kind, p, spouse) {
 
 /** A married woman's four name parts, worked out from the person: husband / in-laws, and her father's side. */
 function marriedDefaultsFor(kind, p, spouse) {
-    const husbandOfPerson = p.gender === 'female' ? spouse : null;
     const base = { first_name: '', first_name_local: '', middle_name: '', middle_name_local: '', surname: '', surname_local: '' };
     if (kind === 'spouse') return { ...base, middle_name: p.first_name ?? '', middle_name_local: p.first_name_local ?? '', surname: p.surname ?? '', surname_local: p.surname_local ?? '' };
     if (kind === 'mother') return { ...base, middle_name: p.middle_name ?? '', middle_name_local: p.middle_name_local ?? '', surname: p.surname ?? '', surname_local: p.surname_local ?? '' };
     // daughter / sister: her father's side is known, her husband's is typed
-    const father = kind === 'daughter' ? (p.gender === 'female' ? husbandOfPerson : p) : null;
+    const father = kind === 'daughter' ? childFather(p, spouse) : null;
     return {
         ...base,
         maiden_middle_name: kind === 'sister' ? p.middle_name ?? '' : father?.first_name ?? '',
@@ -61,6 +65,71 @@ function marriedDefaultsFor(kind, p, spouse) {
         maiden_surname: kind === 'sister' ? p.surname ?? '' : father?.surname ?? '',
         maiden_surname_local: kind === 'sister' ? p.surname_local ?? '' : father?.surname_local ?? '',
     };
+}
+
+/**
+ * A married woman's name in the popup: only what is NOT known is asked. Her first name always;
+ * husband's name / in-laws' surname / father's name / father's surname only when the person does
+ * not already tell us (e.g. a daughter's father is the person, a wife's husband is the person).
+ * Known parts post as hidden fields, previewed in one line with "Change" to show them all.
+ */
+function MarriedName({ defaults, fe }) {
+    const { t, localLang } = useT();
+    const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';
+    const parts = {
+        first_name: useAutoGujarati(defaults.first_name ?? '', defaults.first_name_local ?? ''),
+        middle_name: useAutoGujarati(defaults.middle_name ?? '', defaults.middle_name_local ?? ''),
+        surname: useAutoGujarati(defaults.surname ?? '', defaults.surname_local ?? ''),
+        maiden_middle_name: useAutoGujarati(defaults.maiden_middle_name ?? '', defaults.maiden_middle_name_local ?? ''),
+        maiden_surname: useAutoGujarati(defaults.maiden_surname ?? '', defaults.maiden_surname_local ?? ''),
+    };
+    const labels = {
+        first_name: 'members.firstName',
+        middle_name: 'members.husbandName',
+        surname: 'members.inlawSurname',
+        maiden_middle_name: 'members.maidenFather',
+        maiden_surname: 'members.maidenSurname',
+    };
+    const known = (name) => name !== 'first_name' && Boolean(defaults[name]);
+    const hasError = Object.keys(labels).some((n) => known(n) && fe(n));
+    const [full, setFull] = useState(hasError);
+    const field = (name) => {
+        const shown = full || !known(name);
+        return (
+            <div key={name} className={shown ? 'grid gap-1.5 sm:col-span-1' : 'hidden'}>
+                <Field label={`${t(labels[name])} (${t('lang.en')})`} error={fe(name)} required={name === 'first_name' || name === 'surname'}>
+                    <input
+                        name={name}
+                        maxLength={60}
+                        autoComplete="off"
+                        {...parts[name].enProps}
+                        required={shown && (name === 'first_name' || name === 'surname')}
+                        className={`${textInput(!!fe(name))} w-full`}
+                    />
+                </Field>
+                <GujaratiField label={`${t(labels[name])} (${lang})`} name={`${name}_local`} auto={parts[name]} maxLength={60} />
+            </div>
+        );
+    };
+    const preview = [
+        known('maiden_middle_name') || known('maiden_surname')
+            ? `${t('members.maidenFather')}: ${[defaults.maiden_middle_name, defaults.maiden_surname].filter(Boolean).join(' ')}`
+            : null,
+        known('middle_name') || known('surname') ? `${t('members.husbandName')}: ${[defaults.middle_name, defaults.surname].filter(Boolean).join(' ')}` : null,
+    ].filter(Boolean);
+    return (
+        <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">{Object.keys(labels).map(field)}</div>
+            {!full && preview.length > 0 && (
+                <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-gray">
+                    <span className="text-primary">{preview.join(' · ')}</span>
+                    <button type="button" onClick={() => setFull(true)} className="font-medium text-primary underline">
+                        {t('family.change')}
+                    </button>
+                </p>
+            )}
+        </div>
+    );
 }
 
 /**
@@ -217,15 +286,7 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
                                 // key: switching the relation refills the suggested names.
                                 <div key={kind} className="space-y-3">
                                     {marriedWoman ? (
-                                        <div key={`${kind}-married`} className="grid gap-3 sm:grid-cols-3">
-                                            <NameFields
-                                                member={marriedDefaultsFor(kind, person, spouse)}
-                                                fe={fieldError}
-                                                married
-                                                optional={['middle_name', 'maiden_middle_name', 'maiden_surname']}
-                                                spacerClass="hidden sm:block"
-                                            />
-                                        </div>
+                                        <MarriedName key={`${kind}-married`} defaults={marriedDefaultsFor(kind, person, spouse)} fe={fieldError} />
                                     ) : (
                                         <QuickName key={`${kind}-single`} defaults={defaultsFor(kind, person, spouse)} fe={fieldError} />
                                     )}

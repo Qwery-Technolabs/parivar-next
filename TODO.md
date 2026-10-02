@@ -247,3 +247,10 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Father's name filled automatically from the linked father (new links + one-time backfill on live); never overwrites a typed one
 - [x] Married women: married name (husband's name + in-laws' surname) as the main name, maiden name (father's name + surname) kept beside it; 4 name fields in add / edit for married women; maiden name shown in her father's family; live backfill (+ #45 first-name fix)
 - [x] Faster pages with several users: the family connection check reads all links in one query per request
+- [x] Caste follows the family: relatives without a caste take it from father → husband → spouse → mother → siblings → children (on every link + live backfill)
+- [x] Add relative: a married woman's known name parts are filled and hidden (only unknown ones asked); a woman's child gets the father from her married name when no husband is linked
+- [x] Member picker inside a popup: the list opens in the flow so it is never cut off by the popup
+- [x] Surnames (Members ⋮): every surname in use, mapped to caste → sub-caste one by one or several at once; members without a caste get it, also on create / invite / register / family link / surname change
+- [x] Discussion: "Clear history" for admins (groups + fundraises); admins and sub-admins delete any message (fundraise: also its groups' sub-admins)
+- [x] Meetings: "Everyone" includes people who join later (saved audience; new members added before listing and before reminders); edit reopens on the saved choice
+- [x] Mandal (savings circle): new fundraise type inside a group; members added by admins / sub-admins / treasurer / collector (pick or invite); fixed amount per meeting (changeable per meeting) with collect yes/no; attendance & money sheet per meeting; pending carried forward; missed meetings + days away; opening balance; expenses via the ledger

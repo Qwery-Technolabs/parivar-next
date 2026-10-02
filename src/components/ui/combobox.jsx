@@ -36,6 +36,10 @@ export default function Combobox({
     // Right after a choice the list unmounts and focus lands back on the input (a dialog's focus
     // trap, a tap on a phone) — which must not reopen the list. Ignore opens for a moment.
     const chosenAt = useRef(0);
+    // Inside a dialog the list must not float: the dialog scrolls and clips it, so half the list
+    // hides under its bottom edge. There it opens in the flow instead — the dialog grows to show it.
+    const wrap = useRef(null);
+    const [inDialog, setInDialog] = useState(false);
     const listId = useId();
 
     async function load(query) {
@@ -56,6 +60,7 @@ export default function Combobox({
 
     function openList() {
         if (open || Date.now() - chosenAt.current < 400) return;
+        setInDialog(Boolean(wrap.current?.closest('[data-slot="dialog-content"]')));
         setOpen(true);
         setQ('');
         if (options === null) load('');
@@ -99,7 +104,7 @@ export default function Combobox({
     }
 
     return (
-        <div className="relative min-w-0">
+        <div ref={wrap} className="relative min-w-0">
             {name && <input type="hidden" name={name} value={value ?? ''} />}
             <input
                 role="combobox"
@@ -112,6 +117,8 @@ export default function Combobox({
                 onClick={openList}
                 onChange={onType}
                 onKeyDown={onKeyDown}
+                // In a dialog there is no backdrop to click: leaving the field closes the list (options keep focus on press).
+                onBlur={() => inDialog && open && close()}
                 className={`${textInput(hasError, size)} w-full pr-14`}
             />
             <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1 text-ink-gray">
@@ -129,11 +136,11 @@ export default function Combobox({
             )}
             {open && (
                 <>
-                    <button type="button" aria-hidden tabIndex={-1} onClick={close} className="fixed inset-0 z-10 cursor-default" />
+                    {!inDialog && <button type="button" aria-hidden tabIndex={-1} onClick={close} className="fixed inset-0 z-10 cursor-default" />}
                     <ul
                         id={listId}
                         role="listbox"
-                        className="absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg"
+                        className={`${inDialog ? 'relative' : 'absolute left-0 right-0 z-20'} mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg`}
                     >
                         {options?.length === 0 && !loading && <li className="px-3 py-2 text-sm text-ink-gray">{emptyText}</li>}
                         {options === null && loading && (

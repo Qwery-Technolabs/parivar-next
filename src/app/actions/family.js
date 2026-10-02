@@ -3,10 +3,11 @@ import { revalidatePath } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
-import { canEditFamily, fillFatherNames, genderFor, getPerson, linkProblem, linkRelative, MARITAL_STATUSES, RELATIVE_KINDS } from '@/lib/family';
+import { canEditFamily, fillCastes, fillFatherNames, genderFor, getPerson, linkProblem, linkRelative, MARITAL_STATUSES, RELATIVE_KINDS } from '@/lib/family';
 import { date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { composeName } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
+import { applySurnameCastes } from '@/lib/surnames';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -125,6 +126,10 @@ export async function addRelative(prev, fd) {
         await linkRelative(q, person, kind, relativeId);
         // Father's name follows the father: fill empty middle names of the people just linked.
         await fillFatherNames(q, [person.id, relativeId]);
+        // Caste follows the family (father → husband → spouse → mother → siblings → children); never overwrites.
+        await fillCastes(q);
+        // Still no caste: the surname's (Members ⋮ → Surnames).
+        await applySurnameCastes([person.id, relativeId], q);
     });
     await audit(actor.id, 'user.relation.add', 'user', person.id, { relativeId, kind });
     refresh(person.id, relativeId);

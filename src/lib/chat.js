@@ -40,13 +40,15 @@ export async function chatAccess(user, scope, scopeId) {
         if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') return none;
         const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
         // An inactive or archived group's discussion is read-only for everyone.
-        if (group.status !== 'active') return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), postRoles, paused: true };
+        // Clear the whole discussion: the group's admins and app-level group managers (not sub-admins).
+        const canClear = standing === 'app' || standing === 'admin';
+        if (group.status !== 'active') return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), canClear, postRoles, paused: true };
         const canPost = canPostIn(postRoles, standing, myRole);
-        return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), postRoles };
+        return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), canClear, postRoles };
     }
     const campaign = await queryOne('SELECT id, group_id FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;
-    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, canAlert: true, moderate: true };
+    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: true, canAlert: true, moderate: true, canClear: true };
     const [perms, member, leader] = await Promise.all([
         fundraisePermissions(user, campaign),
         isInFundraiseGroup(user.id, campaign.id),
@@ -54,7 +56,8 @@ export async function chatAccess(user, scope, scopeId) {
     ]);
     const allowed = perms.post || member;
     // perms.manage = app-level, a group admin, or the fundraise's own admin; plus group sub-admins.
-    return { allowed, canPost: allowed, canAlert: perms.manage || leader, moderate: perms.manage };
+    // Delete others' messages: admins and sub-admins (incl. sub-admins of its groups); clear all: admins (manage).
+    return { allowed, canPost: allowed, canAlert: perms.manage || leader, moderate: perms.manage || leader, canClear: perms.manage };
 }
 
 /**

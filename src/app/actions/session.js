@@ -10,6 +10,7 @@ import { getSettings } from '@/lib/settings';
 import { LANG_COOKIE, LANG_MAX_AGE, normalizeLocale } from '@/lib/i18n/config';
 import { composeName } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
+import { applySurnameCastes } from '@/lib/surnames';
 import { safeNext } from '@/lib/url';
 
 /** Set the UI language: cookie always, and the profile when signed in. */
@@ -150,6 +151,7 @@ export async function register(prev, formData) {
             language,
         },
     );
+    await applySurnameCastes([r.insertId]); // the surname's caste (Members ⋮ → Surnames)
     const newId = r.insertId;
     // Everyone who can approve (sub-admin and up) hears about it.
     const approvers = (await query("SELECT id, role FROM users_list WHERE status = 'active' AND role IN ('super_admin', 'administrator', 'sub_admin')"))

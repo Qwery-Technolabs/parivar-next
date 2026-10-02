@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown, PiggyBank } from 'lucide-react';
 import { setCampaignArchived } from '@/app/actions/fundraise';
 import SubmitButton from '@/components/ui/submit-button';
 import { cookies } from 'next/headers';
@@ -11,6 +11,7 @@ import DetailsTab from '@/components/fundraise/details-tab';
 import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
+import MandalTab from '@/components/mandal/mandal-tab';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
@@ -51,7 +52,7 @@ const LEGACY = {
 
 function resolveTab(sp) {
     const raw = sp1(sp.tab);
-    if (raw === 'money' || raw === 'details' || raw === 'meetings') return { tab: raw, view: sp1(sp.view) };
+    if (raw === 'money' || raw === 'details' || raw === 'meetings' || raw === 'mandal') return { tab: raw, view: sp1(sp.view) };
     if (LEGACY[raw]) return { tab: LEGACY[raw][0], view: LEGACY[raw][1] ?? '' };
     return { tab: 'discussion', view: '' };
 }
@@ -92,6 +93,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
         { key: 'meetings', label: t('fundraise.tabs.meetings'), href: `${base}?tab=meetings`, icon: CalendarClock },
         { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details`, icon: Info },
     ];
+    // A Mandal (savings circle) gets its own tab: members, dues, attendance & money per meeting.
+    if (campaign.kind === 'mandal') tabs.splice(1, 0, { key: 'mandal', label: t('mandal.tab'), href: `${base}?tab=mandal`, icon: PiggyBank });
 
     let body;
     if (tab === 'money') {
@@ -126,6 +129,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 locale={locale}
             />
         );
+    } else if (tab === 'mandal' && campaign.kind === 'mandal') {
+        body = <MandalTab campaign={campaign} user={user} today={today} t={t} locale={locale} />;
     } else if (tab === 'meetings') {
         // Minutes are updates tied to a meeting; they show under that meeting.
         const updates = await listUpdates(campaign.id);
@@ -253,6 +258,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     {(campaign.archived_at || perms.teamRole) && (
                         <div className={`mt-2 items-center justify-between gap-2 ${campaign.archived_at ? 'flex' : 'hidden sm:flex'}`}>
                             <div className="flex flex-wrap items-center gap-1.5">
+                                {campaign.kind === 'mandal' && <Badge tone="orange">{t('mandal.badge')}</Badge>}
                                 {campaign.archived_at && <Badge tone="gray">{t('fundraise.archivedBadge')}</Badge>}
                             </div>
                             {perms.teamRole && (

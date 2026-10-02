@@ -11,6 +11,7 @@ import { casteOptions } from '@/lib/castes';
 import { audienceSuggestions, getAudience, getCampaign, knownLocations, listGroupsForSelect } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
+import { queryOne } from '@/lib/db';
 import { canManageAllFundraises } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -48,6 +49,11 @@ export default async function EditFundraisePage({ params }) {
         ...(campaign.groups ?? []).filter((g) => g.id !== campaign.group_id && !groups.some((x) => x.id === g.id)),
     ].map((g) => ({ ...g, linked: linked.has(g.id), locked: linked.has(g.id) && !manageable.has(g.id) }));
     const groupName = localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale);
+    // A Mandal's opening balance is its "Opening balance" contribution row.
+    const openingId = Number(campaign.meta?.opening_contribution_id) || null;
+    const openingBalance = openingId
+        ? ((await queryOne('SELECT amount FROM fundraise_contributions WHERE id = :openingId AND deleted_at IS NULL', { openingId }))?.amount ?? '')
+        : '';
 
     return (
         <div className="theme-fundraise">
@@ -91,7 +97,7 @@ export default async function EditFundraisePage({ params }) {
             <div className="space-y-4">
                 {/* The form draws its own card; Status sits above it. */}
                 <CampaignForm
-                    campaign={campaign}
+                    campaign={{ ...campaign, openingBalance }}
                     groups={allowed}
                     otherGroups={otherGroups}
                     allowNoGroup={all || !campaign.group_id}

@@ -17,6 +17,9 @@ backfill rules) get recorded here when applied.
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.
 - `matrimony_profiles` (PK user_id): is_active, height_cm, income_range, contact_name / contact_phone, pref_* ,
   about, listed_by. Module prefix `matrimony_`.
+- fundraise_campaigns.kind ENUM('fundraise','mandal'); `fundraise_subscribers` (campaign_id, user_id); `fundraise_mandal_marks`
+  (event_id, user_id, campaign_id, present, paid, contribution_id → fundraise_contributions).
+- `admin_surnames` (name UNIQUE, name_local, caste_id, subcaste_id → admin_castes, SET NULL on delete).
 - users_list.maiden_middle_name / maiden_surname (+ _local): a married woman's father's name + surname; her main name parts
   are her married ones (husband's name, in-laws' surname).
 - users_list.phone is **nullable** (family-tree relatives without a number; UNIQUE still holds for real numbers);
