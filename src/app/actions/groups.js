@@ -14,6 +14,7 @@ import { normalizePhone } from '@/lib/phone';
 import { notify } from '@/lib/notifications';
 import { canManageGroups } from '@/lib/roles';
 import { syncGroupJoin } from '@/lib/meetings';
+import { forget } from '@/lib/memo';
 
 async function notifyGroupRole(userId, groupId, memberRole, actorId) {
     const g = await queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId });
@@ -81,6 +82,7 @@ export async function saveGroup(prev, fd) {
     await audit(actor.id, groupId ? 'group.update' : 'group.create', 'group', savedId, { name });
     revalidatePath('/groups');
     revalidatePath(`/groups/${savedId}`);
+    forget('groups'); // cached lists (lib/memo)
     return { ok: true, message: groupId ? 'common.saved' : 'groups.created', id: savedId };
 }
 
@@ -213,6 +215,7 @@ export async function setGroupStatus(groupId, status) {
     await audit(actor.id, 'group.update', 'group', groupId, { name: g.name, status: { from: g.status, to: status } });
     revalidatePath('/groups');
     revalidatePath(`/groups/${groupId}`);
+    forget('groups'); // cached lists (lib/memo)
     return { ok: true, message: `groups.danger.done.${status}` };
 }
 
@@ -235,5 +238,6 @@ export async function deleteGroup(groupId) {
     });
     await audit(actor.id, 'group.delete', 'group', groupId, { name: g.name });
     revalidatePath('/groups');
+    forget('groups'); // cached lists (lib/memo)
     redirect('/groups');
 }

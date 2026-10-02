@@ -1,5 +1,6 @@
 import 'server-only';
 import { query } from './db';
+import { memo } from './memo';
 
 /**
  * All castes with their sub-castes and member counts, as a two-level tree.
@@ -24,9 +25,9 @@ export async function listCastes({ activeOnly = false } = {}) {
     return top;
 }
 
-/** Flat option lists for selects: castes, and sub-castes keyed by caste id. */
+/** Flat option lists for selects: castes, and sub-castes keyed by caste id. Memoised (castes change rarely). */
 export async function casteOptions(locale) {
-    const tree = await listCastes({ activeOnly: true });
+    const tree = await memo('castes:active', () => listCastes({ activeOnly: true }));
     const label = (c) => (locale === 'gu' && c.name_local) || c.name;
     return {
         castes: tree.map((c) => ({ value: String(c.id), label: label(c) })),

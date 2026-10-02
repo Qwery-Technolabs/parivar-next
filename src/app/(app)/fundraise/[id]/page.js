@@ -71,29 +71,52 @@ export async function generateMetadata({ params }) {
 
 export default async function FundraiseDetailPage({ params, searchParams }) {
     const [{ id }, sp] = await Promise.all([params, searchParams]);
-    const user = await requireUser();
-    const campaign = await getCampaign(Number(id));
+    // Independent work runs together (speed): who is asking + the fundraise, then the checks, the
+    // texts and the next meeting; the Mandal total and "Add to group" list load while the tab does.
+    const [user, campaign] = await Promise.all([requireUser(), getCampaign(Number(id))]);
     if (!campaign) notFound();
 
-    const perms = await fundraisePermissions(user, campaign);
+    const today = todayLocal();
+    const [perms, visible, { t, locale }, upNext] = await Promise.all([
+        fundraisePermissions(user, campaign),
+        canSeeCampaign(user, campaign.id),
+        getT(),
+        nextMeeting(campaign.id, today),
+    ]);
     // Outside the fundraise's audience (and not its team / group leaders / managers): it does not exist.
-    if (!(await canSeeCampaign(user, campaign.id))) notFound();
+    if (!visible) notFound();
     // Drafts stay invisible to everyone who could not manage them (same rule as the list).
     // Archived ones too: out of sight for everyone but managers.
     if ((campaign.status === 'draft' || campaign.archived_at) && !perms.manage) notFound();
 
-    const { t, locale } = await getT();
     const { tab, view: rawView } = resolveTab(sp);
     const view = MONEY_VIEWS.includes(rawView) ? rawView : 'contributions';
     const base = `/fundraise/${campaign.id}`;
-    const today = todayLocal();
-    const upNext = await nextMeeting(campaign.id, today);
+    // Started now, awaited after the tab's own data (they run side by side).
     // A Mandal's pending money = what its members still owe (missed / short payments).
-    if (campaign.kind === 'mandal') {
-        await syncMandalMembers(campaign);
-        const members = await mandalMembers(campaign.id, await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0), today);
-        campaign.pending = Number(campaign.pending || 0) + members.reduce((s, m) => s + m.due, 0);
-    }
+    const mandalDueP =
+        campaign.kind === 'mandal'
+            ? (async () => {
+                  await syncMandalMembers(campaign);
+                  const meetings = await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0);
+                  const members = await mandalMembers(campaign.id, meetings, today);
+                  return members.reduce((sum, m) => sum + m.due, 0);
+              })()
+            : Promise.resolve(0);
+    // "Add to group": groups this person may start a fundraise in (all, for fundraise managers) not linked yet.
+    const addableP =
+        perms.manage && campaign.kind !== 'mandal'
+            ? (async () => {
+                  const all = canManageAllFundraises(user.role);
+                  const [groups, mine] = await Promise.all([listGroupsForSelect(), all ? [] : fundraiseGroupIds(user.id)]);
+                  const linked = new Set([campaign.group_id, ...(campaign.groups ?? []).map((g) => g.id)]);
+                  return groups
+                      .filter((g) => !linked.has(g.id) && (all || mine.includes(g.id)))
+                      .map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }));
+              })()
+            : Promise.resolve([]);
+    // The Mandal total is needed by the tabs below (the Money summary): wait for it first — still alongside "Add to group".
+    campaign.pending = Number(campaign.pending || 0) + (await mandalDueP);
 
     const groupName = localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale);
     const collected = Number(campaign.collected);
@@ -108,7 +131,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     let body;
     if (tab === 'money') {
         const page = normalizePage(sp1(sp.page));
-        const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
+        const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
         const offset = (page - 1) * perPage;
         const [rows, settings] = await Promise.all([
             view === 'contributions'
@@ -190,17 +213,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
         body = <ChatPanel scope="fundraise" scopeId={campaign.id} />;
     }
 
-    // "Add to group": groups this person may start a fundraise in (all, for fundraise managers)
-    // that it is not shown in yet.
-    let addableGroups = [];
-    if (perms.manage && campaign.kind !== 'mandal') {
-        const all = canManageAllFundraises(user.role);
-        const [groups, mine] = await Promise.all([listGroupsForSelect(), all ? [] : fundraiseGroupIds(user.id)]);
-        const linked = new Set([campaign.group_id, ...(campaign.groups ?? []).map((g) => g.id)]);
-        addableGroups = groups
-            .filter((g) => !linked.has(g.id) && (all || mine.includes(g.id)))
-            .map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }));
-    }
+    const addableGroups = await addableP;
 
     return (
         // Inside the normal content gutters, like the group page: a rounded header card, then the tab.

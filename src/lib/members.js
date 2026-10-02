@@ -2,6 +2,7 @@ import 'server-only';
 import { getMeta, getMetaMany, inList, query, queryOne } from './db';
 import { BLOOD_DONORS_FOR, BLOOD_GROUPS, ROLES } from './roles';
 import { sp1 } from './url';
+import { memo } from './memo';
 
 // `position` is the person's current post (Talati, ward member, trustee…) — free text,
 // deliberately separate from the app role, which only decides permissions.
@@ -152,7 +153,12 @@ export async function listMembers(f, page, perPage) {
     };
 }
 
+/** Native villages with member counts — memoised (forget('places') on member changes). */
 export async function listVillages() {
+    return memo('places:villages', loadVillages);
+}
+
+async function loadVillages() {
     const rows = await query(
         `SELECT village, COUNT(*) AS n FROM users_list WHERE village IS NOT NULL AND village <> ''
           GROUP BY village ORDER BY village`,
@@ -162,6 +168,10 @@ export async function listVillages() {
 
 /** Current-residence cities with member counts, for the city filter and form suggestions. */
 export async function listCities() {
+    return memo('places:cities', loadCities);
+}
+
+async function loadCities() {
     const rows = await query(
         `SELECT city, COUNT(*) AS n FROM users_list WHERE city IS NOT NULL AND city <> ''
           GROUP BY city ORDER BY city`,

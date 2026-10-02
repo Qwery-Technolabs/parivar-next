@@ -8,6 +8,7 @@ import { date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { composeName } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
 import { applySurnameCastes } from '@/lib/surnames';
+import { forget } from '@/lib/memo';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -133,6 +134,7 @@ export async function addRelative(prev, fd) {
     });
     await audit(actor.id, 'user.relation.add', 'user', person.id, { relativeId, kind });
     refresh(person.id, relativeId);
+    forget('places'); // cached lists (lib/memo)
     return { ok: true, message: 'family.added' };
 }
 

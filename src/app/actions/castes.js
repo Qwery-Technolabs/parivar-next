@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { query, queryOne } from '@/lib/db';
 import { id, str, strOrNull } from '@/lib/forms';
 import { canManageSettings } from '@/lib/roles';
+import { forget } from '@/lib/memo';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -55,6 +56,7 @@ export async function saveCaste(prev, fd) {
     }
     await audit(user.id, casteId ? 'caste.update' : 'caste.create', 'caste', savedId, { name, parentId });
     revalidatePath('/members/castes');
+    forget('castes'); // cached lists (lib/memo)
     return { ok: true, message: 'common.saved' };
 }
 
@@ -71,6 +73,7 @@ export async function setCasteStatus(casteId, status) {
     });
     await audit(user.id, 'caste.status', 'caste', cid, { status });
     revalidatePath('/members/castes');
+    forget('castes'); // cached lists (lib/memo)
     return { ok: true, message: 'common.saved' };
 }
 
@@ -90,5 +93,6 @@ export async function deleteCaste(casteId) {
     await query('DELETE FROM admin_castes WHERE id = :cid', { cid });
     await audit(user.id, 'caste.delete', 'caste', cid);
     revalidatePath('/members/castes');
+    forget('castes'); // cached lists (lib/memo)
     return { ok: true, message: 'common.deleted' };
 }

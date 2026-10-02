@@ -41,22 +41,21 @@ const TABS = ['discussion', 'meetings', 'fundraise', 'members', 'about'];
  * Discussion (default = no ?tab), Fundraises, About.
  */
 export default async function GroupPage({ params, searchParams }) {
-    const { id } = await params;
-    const sp = await searchParams;
-    const user = await requireUser();
-    const group = await getGroup(Number(id) || 0);
-    if (!group) notFound();
-    const { t, locale } = await getT();
-    const tab = TABS.includes(sp1(sp.tab)) ? sp1(sp.tab) : 'discussion';
-
-    const [members, fundraises, { standing, myRole }, canFundraise, messages, upcoming] = await Promise.all([
-        groupMembers(group.id),
-        groupFundraises(group.id, user),
-        groupStanding(user, group.id),
-        canCreateFundraiseIn(user, group.id),
-        messageCount('group', group.id),
-        upcomingMeetingCount(group.id, todayLocal()),
+    const [{ id }, sp, user] = await Promise.all([params, searchParams, requireUser()]);
+    const groupId = Number(id) || 0;
+    // Everything below only needs the id: one round of parallel queries (speed) instead of one after another.
+    const [group, { t, locale }, members, fundraises, { standing, myRole }, canFundraise, messages, upcoming] = await Promise.all([
+        getGroup(groupId),
+        getT(),
+        groupMembers(groupId),
+        groupFundraises(groupId, user),
+        groupStanding(user, groupId),
+        canCreateFundraiseIn(user, groupId),
+        messageCount('group', groupId),
+        upcomingMeetingCount(groupId, todayLocal()),
     ]);
+    if (!group) notFound();
+    const tab = TABS.includes(sp1(sp.tab)) ? sp1(sp.tab) : 'discussion';
     // A private group does not exist for outsiders.
     const isPrivate = group.meta.visibility === 'private';
     if (isPrivate && !standing && !myRole) notFound();

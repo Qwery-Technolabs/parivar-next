@@ -131,6 +131,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Stale server actions after a deploy**: a page open across a deploy calls OLD action ids → Next throws
   UnrecognizedActionError. app/(app)/error.js detects it (`unstable_isUnrecognizedActionError`) and reloads the page once
   (sessionStorage guard, 30 s) instead of showing "Something went wrong".
+- **Speed — parallel queries**: in pages and actions, never await independent DB calls one after another. Load the user
+  and the main record together, then everything that needs only the id in ONE Promise.all (start background pieces as
+  promises and await them after the tab's data). Fundraise / group / member pages follow this.
 - **Debounce**: every search / suggestion field that reacts to typing goes through `useDebouncedCallback`
   (components/ui/use-debounce.js, DEBOUNCE_MS = 300): list search boxes (search as you type; Enter still immediate),
   Combobox / member pickers, Google local-script suggestions. Never a hand-made setTimeout for this.

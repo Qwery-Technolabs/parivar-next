@@ -36,17 +36,17 @@ export default async function MembersPage({ searchParams }) {
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
 
     const groupManager = canManageGroups(user.role);
-    const [{ total, rows }, villages, groups, ownGroups, castes, cities] = await Promise.all([
+    const manage = canManageMembers(user.role);
+    const [{ total, rows }, villages, groups, ownGroups, castes, cities, family] = await Promise.all([
         listMembers(filters, page, perPage),
         listVillages(),
         listGroupsBrief(),
         groupManager ? null : adminGroupIds(user.id),
         casteOptions(locale),
         listCities(),
+        // Phone numbers of relatives added from a family tree: their family and member managers only.
+        manage ? null : familyIds(user.id),
     ]);
-    const manage = canManageMembers(user.role);
-    // Phone numbers of relatives added from a family tree: their family and member managers only.
-    const family = manage ? null : await familyIds(user.id);
     const phoneShown = (m) => Boolean(m.phone) && (m.added_via !== 'family' || manage || m.created_by === user.id || family.has(m.id));
     // Row selection serves bulk group actions and the bulk password reset (sub-admin and up).
     const canBulkReset = canInviteMembers(user.role);

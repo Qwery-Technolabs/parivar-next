@@ -17,6 +17,7 @@ import { normalizePhone } from '@/lib/phone';
 import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword, canDeleteMember } from '@/lib/roles';
 import { syncGroupJoin } from '@/lib/meetings';
 import { redirect } from 'next/navigation';
+import { forget } from '@/lib/memo';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -127,6 +128,7 @@ export async function createMember(prev, fd) {
     });
     await audit(actor.id, 'user.create', 'user', newId, { role });
     revalidatePath('/members');
+    forget('places'); // cached lists (lib/memo)
     return { ok: true, message: 'members.created', id: newId };
 }
 
@@ -218,6 +220,7 @@ export async function updateMemberSection(prev, fd) {
     await audit(actor.id, 'user.update', 'user', target.id, { section });
     revalidatePath('/members');
     revalidatePath(`/members/${target.id}`);
+    forget('places', 'castes'); // cached lists (lib/memo)
     return { ok: true, message, id: target.id };
 }
 
@@ -420,6 +423,7 @@ export async function deleteMember(userId, fromProfile = false) {
     const target = await queryOne('SELECT id, role, full_name, phone FROM users_list WHERE id = :userId', { userId: Number(userId) });
     if (!actor || !target || !canDeleteMember(actor, target)) return { error: 'common.forbidden' };
     await query('DELETE FROM users_list WHERE id = :id', { id: target.id });
+    forget('places', 'castes'); // cached lists (lib/memo)
     await audit(actor.id, 'user.delete', 'user', target.id, { name: target.full_name, phone: target.phone, role: target.role });
     revalidatePath('/members');
     if (fromProfile) redirect('/members');

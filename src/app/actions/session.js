@@ -12,6 +12,7 @@ import { composeName } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
 import { applySurnameCastes } from '@/lib/surnames';
 import { safeNext } from '@/lib/url';
+import { forget } from '@/lib/memo';
 
 /** Set the UI language: cookie always, and the profile when signed in. */
 export async function setLanguage(formData) {
@@ -164,6 +165,7 @@ export async function register(prev, formData) {
     });
     if (pending) return { ok: true, pending: true };
     await createSession(newId);
+    forget('places'); // cached lists (lib/memo)
     redirect('/');
 }
 

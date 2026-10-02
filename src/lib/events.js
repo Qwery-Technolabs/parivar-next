@@ -1,6 +1,7 @@
 import 'server-only';
 import { getMetaMany, query } from './db';
 import { todayLocal } from './forms';
+import { memo } from './memo';
 
 export const EVENT_TYPES = ['event', 'fundraise', 'meeting', 'festival', 'other'];
 
@@ -91,5 +92,5 @@ export async function listBirthdays(year, month, daysInMonth, role = '') {
 }
 
 export async function listGroupOptions() {
-    return query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`);
+    return memo('groups:active', () => query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`));
 }

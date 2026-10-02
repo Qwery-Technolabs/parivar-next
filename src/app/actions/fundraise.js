@@ -16,6 +16,7 @@ import { sanitizeAvatar } from '@/lib/group-avatar';
 import { normalizePhone } from '@/lib/phone';
 import { getSettings } from '@/lib/settings';
 import { syncEveryoneMeetings } from '@/lib/meetings';
+import { forget } from '@/lib/memo';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -373,6 +374,7 @@ export async function saveCampaign(prev, fd) {
         });
         await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title, audience: audience.length });
         refreshCampaign(campaignId);
+        forget('places'); // cached lists (lib/memo)
         redirect(`/fundraise/${campaignId}`);
     }
 
@@ -406,6 +408,7 @@ export async function saveCampaign(prev, fd) {
     });
     await audit(user.id, 'fundraise.create', 'fundraise', newId, { title, audience: audience.length });
     revalidatePath('/fundraise');
+    forget('places'); // cached lists (lib/memo)
     redirect(`/fundraise/${newId}`);
 }
 

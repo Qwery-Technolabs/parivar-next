@@ -2,6 +2,7 @@ import 'server-only';
 import { getMeta, getMetaMany, inList, query, queryOne } from './db';
 import { fundraiseGroupIds } from './access';
 import { canManageAllFundraises } from './roles';
+import { memo } from './memo';
 
 export const CAMPAIGN_STATUSES = ['active', 'draft', 'closed'];
 // 'unpaid' = pledged, money not in yet: listed (marked Pending) but out of every collected total.
@@ -230,8 +231,9 @@ export function maskAnonymous(rows, label) {
     return rows.map((r) => (r.is_anonymous ? { ...r, donor_name: label, user_id: null } : r));
 }
 
+/** Active groups for pickers — memoised (forget('groups') on any group change). */
 export async function listGroupsForSelect() {
-    return query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`);
+    return memo('groups:active', () => query(`SELECT id, name, name_local FROM admin_groups WHERE status = 'active' ORDER BY name`));
 }
 
 export function progressPct(campaign) {
@@ -244,6 +246,10 @@ export function progressPct(campaign) {
 
 /** Suggestions for the location field: members' villages ∪ locations already used. */
 export async function knownLocations() {
+    return memo('places:locations', loadLocations);
+}
+
+async function loadLocations() {
     const rows = await query(
         `SELECT village AS v FROM users_list WHERE village IS NOT NULL AND village <> ''
          UNION
@@ -369,6 +375,10 @@ export async function getAudience(campaignId) {
  * where the count helps choose), and distinct current cities / native villages.
  */
 export async function audienceSuggestions() {
+    return memo('places:audience', loadAudienceSuggestions);
+}
+
+async function loadAudienceSuggestions() {
     const [surnames, cities, villages] = await Promise.all([
         query(
             `SELECT COALESCE(surname, SUBSTRING_INDEX(TRIM(full_name), ' ', -1)) AS v, COUNT(*) AS n FROM users_list

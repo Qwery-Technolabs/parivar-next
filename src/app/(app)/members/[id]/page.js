@@ -34,19 +34,20 @@ function Detail({ label, children }) {
 }
 
 export default async function MemberPage({ params }) {
-    const { id } = await params;
-    const user = await requireUser();
-    const member = await getMember(Number(id) || 0);
-    if (!member) notFound();
-    const { t, locale } = await getT();
-    const [relatives, seeFamily, groups, donations, relation] = await Promise.all([
-        getRelatives(member.id),
-        canSeeFamily(user, member),
-        memberGroups(member.id),
-        memberDonations(member.id, user.id === member.id || canManageAllFundraises(user.role)),
+    const [{ id }, user] = await Promise.all([params, requireUser()]);
+    const memberId = Number(id) || 0;
+    // One round of parallel queries (speed) — only the family check needs the loaded member.
+    const [member, { t, locale }, relatives, groups, donations, relation] = await Promise.all([
+        getMember(memberId),
+        getT(),
+        getRelatives(memberId),
+        memberGroups(memberId),
+        memberDonations(memberId, user.id === memberId || canManageAllFundraises(user.role)),
         // How this person is related to the viewer (any chain through the family tree).
-        user.id === member.id ? null : relationPath(user.id, member.id),
+        user.id === memberId ? null : relationPath(user.id, memberId),
     ]);
+    if (!member) notFound();
+    const seeFamily = await canSeeFamily(user, member);
     const canEdit = canEditUser(user, member);
     // The Edit page also opens for a password-only reset (it then shows just that tab).
     const canOpenEdit = canEdit || canResetPassword(user, member);

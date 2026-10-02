@@ -300,3 +300,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fix: fundraise discussion clear only for app admins / sub-admins and the fundraise's own team admins (not group sub-admins)
 - [x] Settings memoised 60 s per instance (cleared on save) — most requests skip the settings query
 - [x] Error screen shows the short error and reports it to the server log ([client error]) for diagnosis
+- [x] Speed: read-mostly lists cached 60 s per instance (castes, groups, villages, cities, places, audience) with forget() on writes; fundraise / group / member / members pages load their queries in parallel
