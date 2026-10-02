@@ -6,6 +6,7 @@ import { localized } from '@/lib/i18n/config';
 import GroupAvatar from '@/components/groups/group-avatar';
 import PrintButton from './print-button';
 import Statement, { STATEMENT_SECTIONS } from './statement';
+import { getSettings, samajName } from '@/lib/settings';
 
 const SECTION_LABEL = { contributors: 'fundraise.byContributor', contributions: 'fundraise.contributions', expenses: 'fundraise.expenses' };
 
@@ -13,7 +14,9 @@ const SECTION_LABEL = { contributors: 'fundraise.byContributor', contributions: 
  * A4 statement page. Rendered outside the app shell, because the shell's
  * h-dvh overflow-hidden frame would clip everything past the first printed page.
  */
-export default function PrintSheet({ campaign, contributors, contributions, expenses, t, locale, backHref, publicView, basePath, sections }) {
+export default async function PrintSheet({ campaign, contributors, contributions, expenses, t, locale, backHref, publicView, basePath, sections }) {
+    // The Samaj name (Settings → General) heads the printout; the app name only when none is set.
+    const brand = samajName(await getSettings('admin'), locale) || t('app.name');
     // Each chip links to the same page with that section switched on / off (at least one stays on).
     const toggled = (s) => {
         const next = sections.includes(s) ? sections.filter((x) => x !== s) : STATEMENT_SECTIONS.filter((x) => x === s || sections.includes(x));
@@ -69,7 +72,7 @@ export default function PrintSheet({ campaign, contributors, contributions, expe
                     />
                     <div className="min-w-0">
                         <p className="text-[11px] uppercase tracking-wide text-ink-gray">
-                            {t('app.name')} · {t('fundraise.publicTitle')}
+                            {brand} · {t('fundraise.publicTitle')}
                         </p>
                         <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
                         <p className="mt-0.5 text-xs text-ink-gray">

@@ -279,3 +279,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Invite by phone: "Full name in English", note "your name, father's name, surname — separated by spaces", example placeholder
 - [x] Fix: new group members were left out of "Everyone" meetings until someone opened the Meetings tab — now invited at once (group add / invite / bulk / team / Mandal); fixed getMeta misuse in Mandal (everyone-sync, archived lock)
 - [x] Mandal: "Latest Mandal" strip with Record money for the newest schedule; per-member unpaid schedules (last 3 with dates, +N older) in the sheet and members list
+- [x] Samaj name (Settings → General) as the app name everywhere: tab titles, print header, push titles (Parivar only as fallback)

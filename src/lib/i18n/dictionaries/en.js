@@ -1110,12 +1110,12 @@ const en = {
     },
     push: {
         label: 'Browser notifications on this device',
-        hint: 'Get meeting reminders, blood requests and other alerts as phone or computer notifications, even when Parivar is closed. Turn it on separately on each device.',
+        hint: 'Get meeting reminders, blood requests and other alerts as phone or computer notifications, even when the app is closed. Turn it on separately on each device.',
         test: 'Send test',
         enabled: 'Notifications turned on.',
         enabledTest: 'Notifications turned on. A test is on its way.',
         failed: 'Could not turn on notifications on this device.',
-        unsupported: 'This browser does not support notifications. On iPhone, add Parivar to the Home Screen first.',
+        unsupported: 'This browser does not support notifications. On iPhone, add this app to the Home Screen first.',
         denied: 'Notifications are blocked for this site. Allow them in the browser settings, then come back here.',
     },
     errors: {

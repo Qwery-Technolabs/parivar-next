@@ -2,7 +2,7 @@ import { Geist, Geist_Mono, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from 'nex
 import { Toaster } from '@/components/ui/sonner';
 import { I18nProvider } from '@/lib/i18n/client';
 import { getDictionary, getLocalLanguage, getLocale } from '@/lib/i18n/server';
-import { getSettings } from '@/lib/settings';
+import { getSettings, samajName } from '@/lib/settings';
 import { themeColor } from '@/lib/theme-color';
 import './globals.css';
 
@@ -23,17 +23,21 @@ const devanagari = Noto_Sans_Devanagari({
 });
 
 export async function generateMetadata() {
-    const dict = getDictionary(await getLocale());
-    // The Samaj logo, once saved in Settings → General, is the favicon and app icon.
+    const locale = await getLocale();
+    const dict = getDictionary(locale);
+    // The Samaj logo, once saved in Settings → General, is the favicon and app icon; its name is the title.
     let version = '';
+    let brand = dict.app.name;
     try {
-        version = (await getSettings('admin')).logo_version;
+        const general = await getSettings('admin');
+        version = general.logo_version;
+        brand = samajName(general, locale) || brand;
     } catch {
-        // No database (build time): keep the built-in favicon.
+        // No database (build time): keep the built-in favicon and name.
     }
     const icon = (size) => `/api/app-icon?size=${size}&v=${version}`;
     return {
-        title: { default: dict.app.name, template: `%s · ${dict.app.name}` },
+        title: { default: brand, template: `%s · ${brand}` },
         description: dict.app.tagline,
         ...(version
             ? {

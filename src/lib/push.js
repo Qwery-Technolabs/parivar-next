@@ -6,6 +6,7 @@ import { translate } from './i18n/config';
 import en from './i18n/dictionaries/en';
 import gu from './i18n/dictionaries/gu';
 import { notificationText } from './notification-text';
+import { getSettings, samajName } from './settings';
 
 const DICTS = { en, gu };
 
@@ -43,6 +44,7 @@ export async function pushToUsers(userIds, n) {
             l.params,
         );
         let sent = 0;
+        const general = await getSettings('admin').catch(() => ({}));
         await Promise.all(
             subs.map(async (s) => {
                 const dict = DICTS[s.language] ?? gu;
@@ -53,7 +55,7 @@ export async function pushToUsers(userIds, n) {
                 const local = s.language !== 'en';
                 const source = (local && d.title_local) || d.title || (local && d.group_local) || d.group || '';
                 const payload = JSON.stringify({
-                    title: source || t('app.name'),
+                    title: source || samajName(general, s.language) || t('app.name'),
                     body: notificationText(n, t, s.language),
                     link: n.link || '/notifications',
                     tag: `${n.type}:${n.link ?? ''}`, // same thing twice replaces, not stacks

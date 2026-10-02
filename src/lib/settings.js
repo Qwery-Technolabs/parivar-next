@@ -116,3 +116,13 @@ export async function saveSettings(mod, values, q = query) {
         );
     }
 }
+
+/**
+ * The name the app goes by: the Samaj name from Settings → General, in the reader's language
+ * (local name for gu / hi readers), or '' when none is set — callers fall back to the app name.
+ * @param {Record<string, any>} general  getSettings('admin')
+ * @param {string} locale
+ */
+export function samajName(general, locale) {
+    return ((locale !== 'en' && general?.samaj_name_local) || general?.samaj_name || '').trim();
+}

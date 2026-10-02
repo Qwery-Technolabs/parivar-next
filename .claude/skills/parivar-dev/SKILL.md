@@ -123,6 +123,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   card daughter / sister rows, tree hover when she is a blood node, relation chain reached via 'daughter' / 'sister').
   `fillFatherNames` fills her maiden_* from her father and an empty husband part from her husband — never her main middle
   from her father. Live backfilled 2026-10-02.
+- **App name = the Samaj name** (Settings → General): `samajName(general, locale)` (lib/settings) everywhere the app names
+  itself — browser tab titles (root generateMetadata), sidebar, login / public / print headers, push titles, manifest.
+  `t('app.name')` ("Parivar") is only the fallback when no Samaj name is set; never hard-code "Parivar" in UI text.
 - **"Everyone" meetings** (events_listmeta audience 'all'): people who join are invited AT ONCE — `syncGroupJoin(groupId)`
   after any group add (pick, phone invite, bulk add; also fills "everyone" Mandals of that group), `syncEveryoneMeetings`
   after a fundraise team add or a Mandal member add — plus the lazy sync on meeting lists and reminders.
