@@ -112,17 +112,6 @@ export default function CampaignForm({
                                     </Field>
                                 </div>
                             )}
-                            {mandal && (
-                                <PeopleChoice
-                                    people={mandalPeople}
-                                    initialIds={mandalMemberIds ?? mandalPeople.map((p) => p.id)}
-                                    audience={meta.members_mode ?? (c.id ? 'selected' : 'all')}
-                                    label={t('mandal.whoIn')}
-                                    modeName="members_mode"
-                                    idsName="member_ids"
-                                    error={fe('member_ids')}
-                                />
-                            )}
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                 <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
                                     <input
@@ -186,6 +175,21 @@ export default function CampaignForm({
                             />
                         )}
                     </Panel>
+                    {/* A Mandal: who is in it — everyone in its group (kept in sync) or chosen people. */}
+                    {mandal && (
+                        <Panel title={t('mandal.whoIn')}>
+                            <PeopleChoice
+                                people={mandalPeople}
+                                initialIds={mandalMemberIds ?? mandalPeople.map((p) => p.id)}
+                                audience={meta.members_mode ?? (c.id ? 'selected' : 'all')}
+                                label={false}
+                                modeName="members_mode"
+                                idsName="member_ids"
+                                error={fe('member_ids')}
+                            />
+                            <p className="text-xs text-ink-gray">{t('mandal.schedulesHint')}</p>
+                        </Panel>
+                    )}
                     {/* An existing fundraise's public link is switched from its detail page. */}
                     {!c.id && (
                         <Panel title={t('fundraise.sections.sharing')}>

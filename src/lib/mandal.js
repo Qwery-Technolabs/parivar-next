@@ -23,8 +23,9 @@ export async function canRunMandal(user, campaign) {
 }
 
 /**
- * The Mandal's meetings, newest first, with whether money is collected and how much, and who it is
- * for: everyone (audience 'all', or older meetings without one) or the chosen members (`invited`).
+ * The Mandal's schedules (its meetings — one per Mandal day, "21 Oct 2026 - Mandal"), newest first, with whether money is collected and how much, and who it is
+ * for: everyone (audience 'all', or older meetings without one) or the chosen members (`invited`),
+ * archived (money in, closed: no more changes) and who holds its money (`holder`).
  */
 export async function mandalMeetings(campaignId, defaultInstallment) {
     const rows = await query(
@@ -32,7 +33,19 @@ export async function mandalMeetings(campaignId, defaultInstallment) {
           WHERE event_type = 'meeting' AND campaign_id = :campaignId ORDER BY start_date DESC, start_time DESC LIMIT 100`,
         { campaignId },
     );
-    const meta = await getMetaMany('events_list', rows.map((r) => r.id), ['collect', 'installment', 'audience']);
+    const meta = await getMetaMany('events_list', rows.map((r) => r.id), ['collect', 'installment', 'audience', 'archived', 'held_by']);
+    // Who keeps the money collected at each schedule (events_listmeta held_by = a user id).
+    const holderIds = [...new Set(rows.map((r) => Number(meta[r.id]?.held_by) || 0).filter(Boolean))];
+    const holders = holderIds.length
+        ? new Map(
+              (
+                  await (async () => {
+                      const l = inList(holderIds, 'h');
+                      return query(`SELECT id, full_name, full_name_local FROM users_list WHERE id IN (${l.sql})`, l.params);
+                  })()
+              ).map((u) => [u.id, u]),
+          )
+        : new Map();
     const chosen = rows.filter((r) => meta[r.id]?.audience === 'selected').map((r) => r.id);
     const att = chosen.length
         ? await (async () => {
@@ -43,6 +56,8 @@ export async function mandalMeetings(campaignId, defaultInstallment) {
     return rows.map((r) => ({
         ...r,
         everyone: meta[r.id]?.audience !== 'selected',
+        archived: meta[r.id]?.archived === '1',
+        holder: holders.get(Number(meta[r.id]?.held_by)) ?? null,
         invited: att.filter((a) => a.event_id === r.id).map((a) => a.user_id),
         collect: (meta[r.id]?.collect ?? '1') === '1',
         installment: Number(meta[r.id]?.installment ?? defaultInstallment ?? 0) || 0,

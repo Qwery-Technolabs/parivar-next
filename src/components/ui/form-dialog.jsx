@@ -1,5 +1,5 @@
 'use client';
-import { startTransition, useActionState, useState } from 'react';
+import { startTransition, useActionState, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useT } from '@/lib/i18n/client';
@@ -119,4 +119,18 @@ function DialogForm({ action, hidden, submitLabel, submitIcon, submitVariant, on
             </div>
         </form>
     );
+}
+
+/**
+ * A FormDialog trigger that opens it once on mount — for dialogs started from a kebab item: the
+ * menu closes on click, so the dialog is mounted outside it, and a fresh key per click reopens it.
+ */
+export function OpenOnMount({ open }) {
+    const done = useRef(false);
+    useEffect(() => {
+        if (done.current) return;
+        done.current = true;
+        open();
+    }, [open]);
+    return null;
 }

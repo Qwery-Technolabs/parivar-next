@@ -25,7 +25,7 @@ export default function PeopleChoice({ people, initialIds, audience = null, erro
 
     return (
         <div>
-            <p className="mb-1 text-xs font-medium text-ink-gray">{label ?? t('meetings.whoComes')}</p>
+            {label !== false && <p className="mb-1 text-xs font-medium text-ink-gray">{label ?? t('meetings.whoComes')}</p>}
             <input type="hidden" name={modeName} value={mode} />
             <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
                 {['all', 'selected'].map((m) => (

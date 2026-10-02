@@ -1,31 +1,16 @@
 'use client';
 import { CheckCircle2, History, Loader2, Pencil, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteContribution, deleteExpense, entryHistory, markContributionPaid } from '@/app/actions/fundraise';
 import { Field, selectInput, textInput } from '@/components/ui/field';
-import FormDialog from '@/components/ui/form-dialog';
+import FormDialog, { OpenOnMount } from '@/components/ui/form-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 import ContributionDialog from './contribution-dialog';
 import ExpenseDialog from './expense-dialog';
 import { describeHistory, historyWhen } from './history-format';
-
-/**
- * FormDialog opens only through its trigger. The row menu closes as soon as an item is
- * clicked, so the edit dialog is mounted OUTSIDE the menu with this trigger, which opens it
- * once on mount; a fresh key per click remounts it, so each Edit click opens it again.
- */
-function OpenOnMount({ open }) {
-    const done = useRef(false);
-    useEffect(() => {
-        if (done.current) return;
-        done.current = true;
-        open();
-    }, [open]);
-    return null;
-}
 
 /**
  * Kebab on a contribution / expense row: Edit and Delete for managers, History for everyone.

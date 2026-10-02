@@ -2,8 +2,9 @@
 import { revalidatePath } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
-import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
-import { id, str } from '@/lib/forms';
+import { getMeta, query, queryOne, setMeta, withTransaction } from '@/lib/db';
+import { date as formatDate } from '@/lib/format';
+import { date, id, str, strOrNull } from '@/lib/forms';
 import { ensureInvitedUser } from '@/lib/invite';
 import { canRunMandal, isFor, mandalMeetings } from '@/lib/mandal';
 import { syncEveryoneMeetings } from '@/lib/meetings';
@@ -72,6 +73,7 @@ export async function saveMandalMeeting(prev, fd) {
         { eventId, c: campaign.id },
     );
     if (!meeting) return FORBIDDEN;
+    if ((await getMeta('events_list', eventId, 'archived')) === '1') return { error: 'mandal.errors.archived' };
     const collect = fd.get('collect') === '1';
     const rawAmount = str(fd, 'installment', 12);
     const installment = rawAmount ? Number(rawAmount) : 0;
@@ -128,4 +130,98 @@ export async function saveMandalMeeting(prev, fd) {
     await audit(actor.id, 'mandal.meeting.save', 'fundraise', campaign.id, { eventId, collect, installment, present: rows.filter((r) => r.present).length });
     refresh(campaign.id);
     return { ok: true, message: 'mandal.sheetSaved' };
+}
+
+// ── schedules: one Mandal day each (a meeting of the Mandal) ─────────────────────────────
+
+/**
+ * New / edit a schedule: date, place, amount per person and who keeps the money. Saved as the
+ * Mandal's meeting "<date> - Mandal" for everyone in it (members who join later are added too),
+ * collecting that amount. Fields: campaign_id, event_id?, start_date, location, installment, held_by.
+ */
+export async function saveMandalSchedule(prev, fd) {
+    const actor = await getCurrentUser();
+    const campaign = await loadMandal(id(fd, 'campaign_id'));
+    if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
+    const eventId = id(fd, 'event_id');
+    const day = date(fd, 'start_date');
+    const place = strOrNull(fd, 'location', 200);
+    const rawAmount = str(fd, 'installment', 12);
+    const installment = rawAmount ? Number(rawAmount) : NaN;
+    const heldBy = id(fd, 'held_by');
+    const fieldErrors = {};
+    if (!day) fieldErrors.start_date = 'meetings.errors.date';
+    if (!Number.isFinite(installment) || installment <= 0) fieldErrors.installment = 'mandal.errors.amount';
+    if (heldBy && !(await queryOne('SELECT id FROM users_list WHERE id = :heldBy', { heldBy }))) fieldErrors.held_by = 'common.required';
+    if (Object.keys(fieldErrors).length) return { fieldErrors };
+    if (eventId) {
+        const ev = await queryOne("SELECT id FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", { eventId, c: campaign.id });
+        if (!ev) return FORBIDDEN;
+        if ((await getMeta('events_list', eventId, 'archived')) === '1') return { error: 'mandal.errors.archived' };
+    }
+    const title = `${formatDate(day, 'en')} - Mandal`;
+    const titleLocal = `${formatDate(day, 'gu')} - મંડળ`;
+    const amount = String(Math.round(installment * 100) / 100);
+    const saved = await withTransaction(async (q) => {
+        let evId = eventId;
+        if (evId) {
+            await q('UPDATE events_list SET title = :title, title_local = :titleLocal, start_date = :day, location = :place WHERE id = :evId', {
+                title,
+                titleLocal,
+                day,
+                place,
+                evId,
+            });
+        } else {
+            const r = await q(
+                `INSERT INTO events_list (title, title_local, event_type, start_date, location, group_id, campaign_id, created_by)
+                 VALUES (:title, :titleLocal, 'meeting', :day, :place, :groupId, :c, :by)`,
+                { title, titleLocal, day, place, groupId: campaign.group_id, c: campaign.id, by: actor.id },
+            );
+            evId = r.insertId;
+            await q('INSERT IGNORE INTO events_attendees (event_id, user_id) SELECT :evId, user_id FROM fundraise_subscribers WHERE campaign_id = :c', {
+                evId,
+                c: campaign.id,
+            });
+        }
+        await setMeta('events_list', evId, { collect: '1', installment: amount, held_by: heldBy ? String(heldBy) : '', ...(eventId ? {} : { audience: 'all' }) }, q);
+        return evId;
+    });
+    await audit(actor.id, eventId ? 'mandal.schedule.update' : 'mandal.schedule.create', 'fundraise', campaign.id, { event: saved, day, installment: amount });
+    refresh(campaign.id);
+    return { ok: true, message: 'mandal.scheduleSaved' };
+}
+
+/** Delete a schedule added by mistake — only while no money was received at it. */
+export async function deleteMandalSchedule(campaignId, eventId) {
+    const actor = await getCurrentUser();
+    const campaign = await loadMandal(Number(campaignId));
+    if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
+    const ev = await queryOne("SELECT id, title FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", {
+        eventId: Number(eventId),
+        c: campaign.id,
+    });
+    if (!ev) return FORBIDDEN;
+    const got = await queryOne('SELECT COALESCE(SUM(paid), 0) AS s FROM fundraise_mandal_marks WHERE event_id = :id', { id: ev.id });
+    if (Number(got.s) > 0) return { error: 'mandal.errors.hasMoney' };
+    await query('DELETE FROM events_list WHERE id = :id', { id: ev.id });
+    await audit(actor.id, 'mandal.schedule.delete', 'fundraise', campaign.id, { event: ev.id, title: ev.title });
+    refresh(campaign.id);
+    return { ok: true, message: 'common.deleted' };
+}
+
+/** Archive a schedule whose money is in (closed: no more changes), or bring it back. */
+export async function setMandalScheduleArchived(campaignId, eventId, archived) {
+    const actor = await getCurrentUser();
+    const campaign = await loadMandal(Number(campaignId));
+    if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
+    const ev = await queryOne("SELECT id FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", {
+        eventId: Number(eventId),
+        c: campaign.id,
+    });
+    if (!ev) return FORBIDDEN;
+    await setMeta('events_list', ev.id, { archived: archived ? '1' : '' });
+    await audit(actor.id, archived ? 'mandal.schedule.archive' : 'mandal.schedule.restore', 'fundraise', campaign.id, { event: ev.id });
+    refresh(campaign.id);
+    return { ok: true, message: archived ? 'mandal.scheduleArchived' : 'mandal.scheduleRestored' };
 }
