@@ -302,3 +302,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Error screen shows the short error and reports it to the server log ([client error]) for diagnosis
 - [x] Speed: read-mostly lists cached 60 s per instance (castes, groups, villages, cities, places, audience) with forget() on writes; fundraise / group / member / members pages load their queries in parallel
 - [x] Surnames: Members button enabled from 1 member (disabled only at 0)
+- [x] Fix: notifications ⋮ crashed (React #306 — server-rendered icon elements, repeated Trash2); page menus take icon names now
+- [x] Calendar: Filters button at the right end of the month row on phones
+- [x] Relation view: generation indent 26 → 15 px (gentler joint curves)

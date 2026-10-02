@@ -1,4 +1,5 @@
 'use client';
+import { Archive, ArchiveRestore, CheckCheck, GitFork, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -9,14 +10,31 @@ import { useT } from '@/lib/i18n/client';
  * A page's actions as a kebab (⋮) at the right end of the title row, instead of a row of buttons.
  *   <PageHeader menu={<PageMenu items={[...]}>{dialogs}</PageMenu>} />
  * Items (plain data, so server pages can pass them):
- *   { key, label, icon: <Icon/>, href }        → a link
- *   { key, label, icon: <Icon/>, action }      → a server action run in place (e.g. mark all read);
+ *   { key, label, icon: 'pencil', href }       → a link
+ *   { key, label, icon: 'trash', action }      → a server action run in place (e.g. mark all read);
  *                                                add confirm: '…' to ask first, danger: true for red
- *   { key, label, icon: <Icon/> }              → opens the dialog registered under `key`
+ *   { key, label, icon: 'smartphone' }         → opens the dialog registered under `key`
+ * `icon` is a NAME from MENU_ICONS (drawn here, in the browser) — never a <Icon /> element from a
+ * server page: the server pre-renders it, de-duplicates repeats (two Trash2 → a pointer to the
+ * first) and opening the menu then crashed with React error #306.
  * Dialogs stay mounted as `children`, outside the menu — a menu unmounts when it closes, which
  * would take an open dialog with it. A dialog registers its open() with <MenuOpener> (pass
  * `menuKey` to the dialog components that support it).
  */
+// Add an icon here (by a kebab-case name) before using it in a page's menu.
+const MENU_ICONS = {
+    archive: Archive,
+    'archive-restore': ArchiveRestore,
+    'check-check': CheckCheck,
+    'git-fork': GitFork,
+    network: Network,
+    pencil: Pencil,
+    smartphone: Smartphone,
+    tags: Tags,
+    trash: Trash2,
+    'user-plus': UserPlus,
+};
+
 const Ctx = createContext(null);
 
 export default function PageMenu({ items, children, label }) {
@@ -45,7 +63,7 @@ export default function PageMenu({ items, children, label }) {
                         visible.map((item) => (
                             <MenuItem
                                 key={item.key}
-                                icon={item.icon}
+                                icon={typeof item.icon === 'string' ? MENU_ICONS[item.icon] : item.icon}
                                 href={item.href}
                                 danger={item.danger}
                                 disabled={pending}

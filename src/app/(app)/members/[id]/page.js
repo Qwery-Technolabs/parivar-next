@@ -1,4 +1,4 @@
-import { GitFork, Pencil, Phone, ShieldCheck, Trash2 } from 'lucide-react';
+import { Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
@@ -77,13 +77,13 @@ export default async function MemberPage({ params }) {
                 menu={
                     <PageMenu
                         items={[
-                            canOpenEdit && { key: 'edit', label: t('common.edit'), icon: <Pencil />, href: `/members/${member.id}/edit` },
-                            { key: 'tree', label: t('members.familyTree'), icon: <GitFork />, href: `/members/${member.id}/tree` },
+                            canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
+                            { key: 'tree', label: t('members.familyTree'), icon: 'git-fork', href: `/members/${member.id}/tree` },
                             // Delete for good: super admins / administrators only (last, red, asks first).
                             canDeleteMember(user, member) && {
                                 key: 'delete',
                                 label: t('members.delete'),
-                                icon: <Trash2 />,
+                                icon: 'trash',
                                 action: deleteMember.bind(null, member.id, true),
                                 confirm: t('members.deleteConfirm', { name }),
                                 danger: true,

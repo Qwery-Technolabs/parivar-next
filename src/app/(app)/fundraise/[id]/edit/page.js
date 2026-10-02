@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
-import { Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { Archive } from 'lucide-react';
 import { deleteCampaign, setCampaignArchived } from '@/app/actions/fundraise';
 import PageHeader from '@/components/shell/page-header';
 import PageMenu from '@/components/shell/page-menu';
@@ -87,11 +87,11 @@ export default async function EditFundraisePage({ params }) {
                             items={
                                 campaign.archived_at
                                     ? [
-                                          { key: 'restore', label: t('fundraise.restore'), icon: <ArchiveRestore />, action: setCampaignArchived.bind(null, campaign.id, false) },
+                                          { key: 'restore', label: t('fundraise.restore'), icon: 'archive-restore', action: setCampaignArchived.bind(null, campaign.id, false) },
                                           {
                                               key: 'delete',
                                               label: t('fundraise.deleteCampaign'),
-                                              icon: <Trash2 />,
+                                              icon: 'trash',
                                               action: deleteCampaign.bind(null, campaign.id),
                                               confirm: t('fundraise.deleteCampaignConfirm'),
                                               danger: true,
@@ -101,7 +101,7 @@ export default async function EditFundraisePage({ params }) {
                                           {
                                               key: 'archive',
                                               label: t('fundraise.archive'),
-                                              icon: <Archive />,
+                                              icon: 'archive',
                                               action: setCampaignArchived.bind(null, campaign.id, true),
                                               confirm: t('fundraise.archiveConfirm'),
                                           },

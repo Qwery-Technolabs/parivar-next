@@ -1,4 +1,4 @@
-import { Bell, BellRing, CalendarDays, CheckCheck, Droplet, HandCoins, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Bell, BellRing, CalendarDays, Droplet, HandCoins, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { deleteAllNotifications, deleteNotification, deleteReadNotifications, markAllRead, openNotification } from '@/app/actions/notifications';
 import PageHeader from '@/components/shell/page-header';
@@ -43,18 +43,18 @@ export default async function NotificationsPage({ searchParams }) {
                     total > 0 && (
                         <PageMenu
                             items={[
-                                unread > 0 && { key: 'read', label: t('notifications.markAllRead'), icon: <CheckCheck />, action: markAllRead },
+                                unread > 0 && { key: 'read', label: t('notifications.markAllRead'), icon: 'check-check', action: markAllRead },
                                 total > unread && {
                                     key: 'delete-read',
                                     label: t('notifications.deleteRead'),
-                                    icon: <Trash2 />,
+                                    icon: 'trash',
                                     action: deleteReadNotifications,
                                     confirm: t('notifications.deleteReadConfirm'),
                                 },
                                 {
                                     key: 'delete-all',
                                     label: t('notifications.deleteAll'),
-                                    icon: <Trash2 />,
+                                    icon: 'trash',
                                     action: deleteAllNotifications,
                                     confirm: t('notifications.deleteAllConfirm'),
                                     danger: true,

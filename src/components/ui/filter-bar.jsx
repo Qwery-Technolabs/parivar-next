@@ -137,11 +137,12 @@ export function SearchBox({ value, onChange, placeholder, disabled }) {
 }
 
 /** Row layout shared by every toolbar: left content, right cluster (wraps under on phones). */
-export function ToolbarRow({ left, children, className = 'mb-3' }) {
+/** `inline`: keep the right-hand controls on the same line on phones too (no search box to make room for). */
+export function ToolbarRow({ left, children, className = 'mb-3', inline = false }) {
     return (
-        <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+        <div className={`flex items-center gap-2 ${inline ? '' : 'flex-wrap'} ${className}`}>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{left}</div>
-            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">{children}</div>
+            <div className={`flex items-center justify-end gap-2 ${inline ? 'shrink-0' : 'w-full flex-wrap sm:w-auto sm:flex-nowrap'}`}>{children}</div>
         </div>
     );
 }
@@ -229,6 +230,8 @@ export default function FilterBar({ search, filters = [], fixed = {}, left, clas
     return (
         <ToolbarRow
             className={className}
+            // No search box (e.g. the calendar): the Filters button stays at the end of the same row on phones.
+            inline={!search}
             // Clear lives only inside the filter popup (its footer), never as a loose button in the toolbar.
             left={left}
         >
@@ -238,7 +241,7 @@ export default function FilterBar({ search, filters = [], fixed = {}, left, clas
                     searchLater.cancel();
                     if (q.trim() !== appliedQ) navigate({ [qParam]: q.trim() });
                 }}
-                className={`flex w-full items-center gap-2 sm:w-auto ${pending ? 'cursor-wait opacity-70' : ''}`}
+                className={`flex items-center gap-2 sm:w-auto ${search ? 'w-full' : ''} ${pending ? 'cursor-wait opacity-70' : ''}`}
             >
                 {search && (
                     <SearchBox

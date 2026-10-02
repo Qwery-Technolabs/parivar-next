@@ -114,6 +114,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- Page ⋮ menus (PageMenu): `icon` is a NAME ('trash', 'pencil' …, MENU_ICONS in page-menu.jsx), never a `<Icon />` element
+  from a server page (React #306 when the same icon repeats). Add new names to MENU_ICONS.
 - Password fields: always `<PasswordInput>` (components/ui/password-input.jsx) — eye button to show / hide; never a raw
   type="password" input.
 - Placeholder colour everywhere: light grey `#b3b8c2` (globals.css `::placeholder`), never a per-input class.
@@ -190,7 +192,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **"How you're related" lives in the Family card**: a Family | Relation switch in its header (only when the profile is
   someone else connected to the viewer; icon-only on phones). Relation view = the chain from the viewer (`RelationChain`,
   client): rows (avatar, full name + **relation tag** to the viewer (Father, Dada, Kaka …), gender · **generation**
-  ("1st generation above / below", "Same generation") · village). Cards step right **26px per generation away** from the
+  ("1st generation above / below", "Same generation") · village). Cards step right **15px per generation away** from the
   viewer (max 4); the **joint is an SVG curve from under the previous avatar to over the next one** — top-left →
   bottom-right going further away, top-right → bottom-left coming back, straight when level — dots at both ends, the step
   ("’s father" / "ના પિતા") beside it. Chains over 6 people fold the middle behind "Show N more"; summary with the kinship
@@ -232,7 +234,7 @@ Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`.
 
 ## Changelog of decisions (append when the user sets a new "everywhere" rule)
 
-- Filters → 2 columns, header/footer fixed, body scrolls; Clear/Apply in footer. The Filters button is icon-only on phones (text from sm). Clear ONLY in that popup footer — never a loose "× Clear" in the toolbar.
+- Filters → 2 columns, header/footer fixed, body scrolls; Clear/Apply in footer. The Filters button is icon-only on phones (text from sm). Without a search box (calendar) it stays at the right end of the same row on phones (ToolbarRow inline). Clear ONLY in that popup footer — never a loose "× Clear" in the toolbar.
 - Kebab: white bg, darker border, grey dots; page kebab at the right of the title row.
 - Single create actions stay buttons; kebab only for several/non-create actions.
 - Back link lives in the top header; history-back on phones.
