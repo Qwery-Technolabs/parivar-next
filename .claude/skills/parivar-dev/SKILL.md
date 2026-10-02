@@ -96,7 +96,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   (wife/husband by gender), brother, sister, son, daughter; gender follows the slot. `linkRelative` keeps it
   consistent (father ⇄ mother spouses, siblings share parents, a child gets the only spouse as other parent,
   spouses → married). **Who sees / edits**: `canSeeFamily` = self, member managers, whoever added the person, or
-  anyone connected in the tree (`familyIds`, BFS over all links). Tree-added people (meta added_via='family')
+  anyone connected in the tree (`familyIds`: all links read in ONE query per request (`allLinks`, React cache), walked in
+  memory — never one query per generation; that queued requests with 4+ users). Tree-added people (meta added_via='family')
   hide phone / dob / marital status from others (profile, Members list, member search). Male-line picker
   (father / brother / son) searches the person's surname only (`/api/members/search?surname=…&family=1`).
   Whoever added a relative who never signed in may edit them (`canEditUser` — the target row must carry
@@ -111,6 +112,17 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   profile — the user will decide; change it there). Profile shows basics, education & work (users_listmeta
   education / occupation), family names from the tree, preferences, about, and a family contact (default: father
   with a phone, else the person). No photos yet (no upload storage).
+- **Married women — two names** (users_list maiden_* columns; lib/names.js `isMarriedWoman`, `birthName`): a married /
+  widowed / divorced woman's MAIN name = first + husband's name (middle) + in-laws' surname; her maiden parts (father's name +
+  father's surname, en + local) sit in maiden_*. Forms show 4 parts for her (member edit Basic: gender + marital drive it;
+  add-relative popup: wife / mother default married, daughter / sister switch when Married is chosen; parts pre-filled from
+  the person). Shown: married name by default + "Maiden name: …" on her profile; maiden name in her father's family (Family
+  card daughter / sister rows, tree hover when she is a blood node, relation chain reached via 'daughter' / 'sister').
+  `fillFatherNames` fills her maiden_* from her father and an empty husband part from her husband — never her main middle
+  from her father. Live backfilled 2026-10-02.
+- **Father's name follows the father**: `fillFatherNames(q, ids)` (lib/family.js) runs after every family link — an EMPTY
+  middle_name (+ _local) of a child is filled from the linked father's first name and full_name(_local) rebuilt; typed
+  middle names are never overwritten. Live data was backfilled once (2026-10-02).
 - **Kinship** (lib/kinship.js, pure): steps father | mother | son | daughter | husband | wife | brother | sister;
   `KIN_TERMS` maps a path ('father.sister.husband' → 'fuva') to `kin.terms.*`. lib/family.js `relationPath(from, to)`
   (shortest chain, BFS over parents / children / spouses / siblings incl. shared-parent siblings) and

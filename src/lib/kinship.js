@@ -27,6 +27,14 @@ export const KIN_TERMS = {
     'daughter.daughter': 'dohitri',
     'father.father.father': 'pardada',
     'father.father.mother': 'pardadi',
+    // the grandfather's line: his brother is also "Dada", his son a "Kaka", their children cousins
+    'father.father.brother': 'dada_bhai',
+    'father.father.brother.wife': 'dadi_bhai',
+    'father.father.brother.son': 'kaka_cousin',
+    'father.father.brother.daughter': 'foi_cousin',
+    'father.father.brother.son.son': 'cousin2_m',
+    'father.father.brother.son.daughter': 'cousin2_f',
+    'father.father.sister': 'foi_dadi',
     // uncles / aunts
     'father.brother': 'kaka',
     'father.brother.wife': 'kaki',

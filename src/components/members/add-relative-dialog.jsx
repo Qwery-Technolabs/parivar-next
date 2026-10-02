@@ -6,6 +6,7 @@ import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
 import GujaratiField from '@/components/ui/gujarati-field';
+import NameFields from '@/components/members/name-fields';
 import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
 import { useT } from '@/lib/i18n/client';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
@@ -45,6 +46,23 @@ function defaultsFor(kind, p, spouse) {
     };
 }
 
+/** A married woman's four name parts, worked out from the person: husband / in-laws, and her father's side. */
+function marriedDefaultsFor(kind, p, spouse) {
+    const husbandOfPerson = p.gender === 'female' ? spouse : null;
+    const base = { first_name: '', first_name_local: '', middle_name: '', middle_name_local: '', surname: '', surname_local: '' };
+    if (kind === 'spouse') return { ...base, middle_name: p.first_name ?? '', middle_name_local: p.first_name_local ?? '', surname: p.surname ?? '', surname_local: p.surname_local ?? '' };
+    if (kind === 'mother') return { ...base, middle_name: p.middle_name ?? '', middle_name_local: p.middle_name_local ?? '', surname: p.surname ?? '', surname_local: p.surname_local ?? '' };
+    // daughter / sister: her father's side is known, her husband's is typed
+    const father = kind === 'daughter' ? (p.gender === 'female' ? husbandOfPerson : p) : null;
+    return {
+        ...base,
+        maiden_middle_name: kind === 'sister' ? p.middle_name ?? '' : father?.first_name ?? '',
+        maiden_middle_name_local: kind === 'sister' ? p.middle_name_local ?? '' : father?.first_name_local ?? '',
+        maiden_surname: kind === 'sister' ? p.surname ?? '' : father?.surname ?? '',
+        maiden_surname_local: kind === 'sister' ? p.surname_local ?? '' : father?.surname_local ?? '',
+    };
+}
+
 /**
  * Name for a new relative: just the first name (its local spelling fills in), with the full
  * name previewed. Father's name and surname come from defaultsFor and post as hidden fields;
@@ -60,7 +78,7 @@ function QuickName({ defaults, fe }) {
     const lang = LOCAL_LANGUAGES[localLang]?.label ?? '';
     const firstProps = { ...first.enProps, onChange: (e) => (first.enProps.onChange(e), setFirstEn(e.target.value)) };
     const en = (name, label, auto, props = {}) => (
-        <Field label={t(label)} error={fe(name)} required={props.required}>
+        <Field label={`${t(label)} (${t('lang.en')})`} error={fe(name)} required={props.required}>
             <input name={name} maxLength={60} autoComplete="off" {...(props.enProps ?? auto.enProps)} required={props.required} className={`${textInput(!!fe(name))} w-full`} />
         </Field>
     );
@@ -102,6 +120,14 @@ function QuickName({ defaults, fe }) {
 export default function AddRelativeDialog({ person, filled = {}, spouse = null }) {
     const { t } = useT();
     const [kind, setKind] = useState('');
+    const [marital, setMarital] = useState('unmarried');
+    const pickKind = (k) => {
+        setKind(k);
+        setMarital(k === 'father' || k === 'mother' || k === 'spouse' ? 'married' : 'unmarried');
+    };
+    // A woman who is (or was) married gets all four name parts: husband's name + in-laws' surname, father's name + surname.
+    const female = ['mother', 'sister', 'daughter'].includes(kind) || (kind === 'spouse' && person.gender === 'male');
+    const marriedWoman = female && ['married', 'widowed', 'divorced'].includes(marital);
     const [mode, setMode] = useState('new');
     const spouseKey = person.gender === 'female' ? 'husband' : person.gender === 'male' ? 'wife' : 'spouse';
     const labelOf = (k) => t(`family.one.${k === 'spouse' ? spouseKey : k}`);
@@ -140,7 +166,7 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
             {({ fieldError }) => (
                 <>
                     <Field label={t('family.relation')} hint={t('family.relationHint')} error={fieldError('kind')} required>
-                        <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} required className={`${selectInput(!!fieldError('kind'))} w-full`}>
+                        <select name="kind" value={kind} onChange={(e) => pickKind(e.target.value)} required className={`${selectInput(!!fieldError('kind'))} w-full`}>
                             <option value="" disabled>
                                 {t('family.chooseRelation')}
                             </option>
@@ -190,7 +216,19 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
                             ) : (
                                 // key: switching the relation refills the suggested names.
                                 <div key={kind} className="space-y-3">
-                                    <QuickName defaults={defaultsFor(kind, person, spouse)} fe={fieldError} />
+                                    {marriedWoman ? (
+                                        <div key={`${kind}-married`} className="grid gap-3 sm:grid-cols-3">
+                                            <NameFields
+                                                member={marriedDefaultsFor(kind, person, spouse)}
+                                                fe={fieldError}
+                                                married
+                                                optional={['middle_name', 'maiden_middle_name', 'maiden_surname']}
+                                                spacerClass="hidden sm:block"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <QuickName key={`${kind}-single`} defaults={defaultsFor(kind, person, spouse)} fe={fieldError} />
+                                    )}
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <Field label={t('family.phoneOptional')} hint={t('family.phoneHint')} error={fieldError('phone')}>
                                             <input
@@ -213,7 +251,8 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
                                         <Field label={t('family.maritalStatus')}>
                                             <select
                                                 name="marital_status"
-                                                defaultValue={kind === 'father' || kind === 'mother' || kind === 'spouse' ? 'married' : 'unmarried'}
+                                                value={marital}
+                                                onChange={(e) => setMarital(e.target.value)}
                                                 className={`${selectInput()} w-full`}
                                             >
                                                 {MARITAL.map((m) => (

@@ -23,3 +23,23 @@ export function splitName(full) {
     if (w.length === 2) return { first: w[0], middle: '', surname: w[1] };
     return { first: w[0], middle: w.slice(1, -1).join(' '), surname: w.at(-1) };
 }
+
+/** Marital states in which a woman carries her husband's name (and keeps a maiden name). */
+export const MARRIED_LIKE = ['married', 'widowed', 'divorced'];
+
+/** A married (or widowed / divorced) woman: main name = first + husband's name + in-laws' surname. */
+export function isMarriedWoman(p) {
+    return p?.gender === 'female' && MARRIED_LIKE.includes(p?.marital_status);
+}
+
+/**
+ * Her name as her birth family knows it — first + father's name + father's surname (maiden) —
+ * or null when no maiden name is stored. `local` = the local-script spelling.
+ */
+export function birthName(p, local = false) {
+    if (!p) return null;
+    const middle = local ? p.maiden_middle_name_local : p.maiden_middle_name;
+    const surname = local ? p.maiden_surname_local : p.maiden_surname;
+    if (!middle && !surname) return null;
+    return composeName({ first: local ? p.first_name_local || p.first_name : p.first_name, middle, surname }) || null;
+}

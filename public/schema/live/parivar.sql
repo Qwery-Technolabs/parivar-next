@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS users_list (
     first_name_local  VARCHAR(60)   NULL,                     -- the same parts in the local script
     middle_name_local VARCHAR(60)   NULL,
     surname_local     VARCHAR(60)   NULL,
+    maiden_middle_name       VARCHAR(60) NULL,                   -- married women: father's name (main middle = husband's name)
+    maiden_surname           VARCHAR(60) NULL,                   -- married women: father's surname (main surname = in-laws')
+    maiden_middle_name_local VARCHAR(60) NULL,
+    maiden_surname_local     VARCHAR(60) NULL,
     gender         ENUM('male','female','other') NULL,
     dob            DATE             NULL,
     marital_status ENUM('unmarried','married','engaged','widowed','divorced') NULL, -- set from the family tree

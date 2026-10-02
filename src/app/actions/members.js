@@ -40,6 +40,10 @@ function readMember(fd) {
         gender: oneOf(fd, 'gender', ['male', 'female', 'other']),
         dob: date(fd, 'dob'),
         marital_status: oneOf(fd, 'marital_status', ['unmarried', 'married', 'engaged', 'widowed', 'divorced']),
+        maiden_middle_name: strOrNull(fd, 'maiden_middle_name', 60),
+        maiden_surname: strOrNull(fd, 'maiden_surname', 60),
+        maiden_middle_name_local: strOrNull(fd, 'maiden_middle_name_local', 60),
+        maiden_surname_local: strOrNull(fd, 'maiden_surname_local', 60),
         blood_group: oneOf(fd, 'blood_group', BLOOD_GROUPS),
         village: strOrNull(fd, 'village', 100),
         city: strOrNull(fd, 'city', 100),
@@ -149,14 +153,19 @@ export async function updateMemberSection(prev, fd) {
     if (section === 'basic') {
         // A family-tree relative who has no number yet: phone and father's name may stay empty.
         const relativeOnly = !target.phone;
-        const bad = validate({ ...m, password: '' }, { requirePhone: !relativeOnly || Boolean(m.phoneRaw), requireMiddle: !relativeOnly });
+        // Maiden parts belong to a married (widowed / divorced) woman only.
+        const marriedWoman = m.gender === 'female' && ['married', 'widowed', 'divorced'].includes(m.marital_status);
+        if (!marriedWoman) Object.assign(m, { maiden_middle_name: null, maiden_surname: null, maiden_middle_name_local: null, maiden_surname_local: null });
+        const bad = validate({ ...m, password: '' }, { requirePhone: !relativeOnly || Boolean(m.phoneRaw), requireMiddle: !relativeOnly && !marriedWoman });
         if (bad) return bad;
         if (m.phone !== target.phone && (await phoneTaken(m.phone, target.id))) return { fieldErrors: { phone: 'auth.errors.phoneTaken' } };
         await query(
             `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local,
                     first_name = :first_name, middle_name = :middle_name, surname = :surname,
                     first_name_local = :first_name_local, middle_name_local = :middle_name_local, surname_local = :surname_local, gender = :gender,
-                    dob = :dob, marital_status = :marital_status, village = :village, city = :city WHERE id = :id`,
+                    dob = :dob, marital_status = :marital_status, village = :village, city = :city,
+                    maiden_middle_name = :maiden_middle_name, maiden_surname = :maiden_surname,
+                    maiden_middle_name_local = :maiden_middle_name_local, maiden_surname_local = :maiden_surname_local WHERE id = :id`,
             { ...m, id: target.id },
         );
         // Someone without a login (a family-tree relative added with no number): giving them a number

@@ -241,3 +241,9 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree: smaller avatar tiles; light grey canvas
 - [x] Family tree: smaller avatars, longer connecting lines, tidier spacing
 - [x] Family tree tiles: figure fills the tile (3px edge), name written inside in white; couple card 3px padding/gap
+- [x] Name fields: "(English)" after the English labels (member form, register, add relative)
+- [x] Family tree: every generation on the same level across branches (only children keep the spacing; fixed tile height with Details)
+- [x] Relation view: generation per person (1st / 2nd generation above / below, same), relation tag per person, cards stepped by generation, curved joints from avatar to avatar; more kinship names (grandfather's brother, father's cousin, second cousins)
+- [x] Father's name filled automatically from the linked father (new links + one-time backfill on live); never overwrites a typed one
+- [x] Married women: married name (husband's name + in-laws' surname) as the main name, maiden name (father's name + surname) kept beside it; 4 name fields in add / edit for married women; maiden name shown in her father's family; live backfill (+ #45 first-name fix)
+- [x] Faster pages with several users: the family connection check reads all links in one query per request

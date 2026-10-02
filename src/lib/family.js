@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { inList, query, queryOne } from './db';
+import { composeName } from './names';
 import { canManageMembers } from './roles';
 
 // Family tree: people are users_list rows (a relative may have no phone and no login); links
@@ -29,25 +30,30 @@ const MAX_PEOPLE = 2000;
  * Cached per request.
  * @returns {Promise<Set<number>>}
  */
+/**
+ * Every family link in the app, read ONCE per request (one small query — a Samaj has a few
+ * hundred links at most). The connected-family walk then runs in memory instead of one
+ * database round trip per generation, which queued requests when several people were on.
+ */
+const allLinks = cache(async () => query('SELECT user_id AS a, relative_id AS b FROM users_relations'));
+
 export const familyIds = cache(async (userId) => {
-    const seen = new Set([Number(userId)]);
-    let level = [Number(userId)];
-    while (level.length && seen.size < MAX_PEOPLE) {
-        const l = inList(level, 'f');
-        const rows = await query(
-            `SELECT user_id AS a, relative_id AS b FROM users_relations WHERE user_id IN (${l.sql}) OR relative_id IN (${l.sql})`,
-            l.params,
-        );
-        const next = [];
-        for (const { a, b } of rows) {
-            for (const x of [a, b]) {
-                if (!seen.has(x)) {
-                    seen.add(x);
-                    next.push(x);
-                }
+    const adj = new Map();
+    const add = (x, y) => (adj.get(x) ?? adj.set(x, []).get(x)).push(y);
+    for (const { a, b } of await allLinks()) {
+        add(a, b);
+        add(b, a);
+    }
+    const start = Number(userId);
+    const seen = new Set([start]);
+    const stack = [start];
+    while (stack.length && seen.size < MAX_PEOPLE) {
+        for (const n of adj.get(stack.pop()) ?? []) {
+            if (!seen.has(n)) {
+                seen.add(n);
+                stack.push(n);
             }
         }
-        level = next;
     }
     return seen;
 });
@@ -70,7 +76,8 @@ export async function canSeeFamily(viewer, person) {
 export const canEditFamily = canSeeFamily;
 
 const COLS = `u.id, u.full_name, u.full_name_local, u.first_name, u.middle_name, u.surname,
-    u.first_name_local, u.middle_name_local, u.surname_local, u.gender, u.dob, u.marital_status,
+    u.first_name_local, u.middle_name_local, u.surname_local, u.maiden_middle_name, u.maiden_surname,
+    u.maiden_middle_name_local, u.maiden_surname_local, u.gender, u.dob, u.marital_status,
     u.status, u.phone, u.village, u.created_by, u.last_login_at`;
 
 /** One person with the columns the family pages need. */
@@ -381,4 +388,79 @@ export async function relationPath(fromId, toId) {
 export async function relationStepsFrom(rootId) {
     const graph = await familyGraph(rootId);
     return pathsFrom(graph, rootId).steps;
+}
+
+const MARRIED_LIKE = ['married', 'widowed', 'divorced'];
+const marriedWoman = (p) => p.gender === 'female' && MARRIED_LIKE.includes(p.marital_status);
+
+/**
+ * Names follow the links (never overwriting what someone typed):
+ *  - father's name: a child's EMPTY father's name is filled from the linked father's first name —
+ *    for a married woman that is her MAIDEN father's name (+ maiden surname = his surname), since
+ *    her main middle name is her husband's;
+ *  - husband's name: a married woman's EMPTY main middle name / surname come from her linked
+ *    husband (his first name, his surname — the in-laws').
+ * Full names are rebuilt. Runs inside the same transaction as the link (`q`), for the given
+ * people and everyone sharing a father with them (or whose father they are).
+ */
+export async function fillFatherNames(q, ids) {
+    const list = [...new Set(ids.filter(Boolean).map(Number))];
+    if (!list.length) return;
+    const l = inList(list, 'n');
+    const NAME_COLS = `u.id, u.gender, u.marital_status, u.first_name, u.middle_name, u.surname, u.first_name_local, u.middle_name_local,
+        u.surname_local, u.maiden_middle_name, u.maiden_surname, u.maiden_middle_name_local, u.maiden_surname_local`;
+    const save = (k) =>
+        q(
+            `UPDATE users_list SET middle_name = :middle_name, middle_name_local = :middle_name_local, surname = :surname, surname_local = :surname_local,
+                    maiden_middle_name = :maiden_middle_name, maiden_surname = :maiden_surname,
+                    maiden_middle_name_local = :maiden_middle_name_local, maiden_surname_local = :maiden_surname_local,
+                    full_name = :full_name, full_name_local = :full_name_local
+              WHERE id = :id`,
+            {
+                ...k,
+                full_name: composeName({ first: k.first_name, middle: k.middle_name, surname: k.surname }).slice(0, 150) || k.first_name,
+                full_name_local: composeName({ first: k.first_name_local, middle: k.middle_name_local, surname: k.surname_local }).slice(0, 150) || null,
+            },
+        );
+
+    // 1) Father's name from the linked father.
+    const fathers = new Set(list); // the people themselves may be fathers
+    for (const r of await q(`SELECT relative_id FROM users_relations WHERE relation = 'father' AND user_id IN (${l.sql})`, l.params)) fathers.add(r.relative_id);
+    for (const fid of fathers) {
+        const [father] = await q('SELECT first_name, first_name_local, surname, surname_local FROM users_list WHERE id = :fid', { fid });
+        if (!father?.first_name) continue;
+        const kids = await q(`SELECT ${NAME_COLS} FROM users_relations r JOIN users_list u ON u.id = r.user_id WHERE r.relative_id = :fid AND r.relation = 'father'`, { fid });
+        for (const k of kids) {
+            if (marriedWoman(k)) {
+                if (k.maiden_middle_name) continue;
+                await save({
+                    ...k,
+                    maiden_middle_name: father.first_name,
+                    maiden_middle_name_local: k.maiden_middle_name_local || father.first_name_local || null,
+                    maiden_surname: k.maiden_surname || father.surname || null,
+                    maiden_surname_local: k.maiden_surname_local || father.surname_local || null,
+                });
+            } else if (!k.middle_name) {
+                await save({ ...k, middle_name: father.first_name, middle_name_local: k.middle_name_local || father.first_name_local || null });
+            }
+        }
+    }
+
+    // 2) Husband's name + in-laws' surname for married women among (and married to) these people.
+    const wives = await q(
+        `SELECT ${NAME_COLS}, h.first_name AS h_first, h.first_name_local AS h_first_local, h.surname AS h_surname, h.surname_local AS h_surname_local
+           FROM users_relations r JOIN users_list u ON u.id = r.user_id JOIN users_list h ON h.id = r.relative_id
+          WHERE r.relation = 'spouse' AND h.gender = 'male' AND (r.user_id IN (${l.sql}) OR r.relative_id IN (${l.sql}))`,
+        l.params,
+    );
+    for (const w of wives) {
+        if (!marriedWoman(w) || (w.middle_name && w.surname)) continue;
+        await save({
+            ...w,
+            middle_name: w.middle_name || w.h_first,
+            middle_name_local: w.middle_name_local || w.h_first_local || null,
+            surname: w.surname || w.h_surname,
+            surname_local: w.surname_local || w.h_surname_local || null,
+        });
+    }
 }

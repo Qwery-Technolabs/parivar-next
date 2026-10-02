@@ -10,6 +10,7 @@ import Badge from '@/components/ui/badge';
 import { RELATIVE_KINDS } from '@/lib/family';
 import { age } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
+import { birthName } from '@/lib/names';
 
 /**
  * The Family card on a member's profile (server component). Header: "Family tree" (the whole tree
@@ -36,7 +37,20 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
                 steps: relation.steps,
                 chain: relation.chain.map(({ person: p, step }) => ({
                     step,
-                    person: { id: p.id, full_name: p.full_name, full_name_local: p.full_name_local, gender: p.gender, status: p.status, village: p.village },
+                    person: {
+                        id: p.id,
+                        full_name: p.full_name,
+                        full_name_local: p.full_name_local,
+                        first_name: p.first_name,
+                        first_name_local: p.first_name_local,
+                        maiden_middle_name: p.maiden_middle_name,
+                        maiden_surname: p.maiden_surname,
+                        maiden_middle_name_local: p.maiden_middle_name_local,
+                        maiden_surname_local: p.maiden_surname_local,
+                        gender: p.gender,
+                        status: p.status,
+                        village: p.village,
+                    },
                 })),
             }}
         />
@@ -76,7 +90,9 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
                 <ul className="divide-y divide-surface-border">
                     {groups.map((g) =>
                         g.list.map((p, i) => {
-                            const name = localized(p, 'full_name', locale);
+                            // In her father's family a married daughter / sister goes by her maiden name.
+                            const name =
+                                ((g.kind === 'daughter' || g.kind === 'sister') && birthName(p, locale !== 'en')) || localized(p, 'full_name', locale);
                             return (
                                 <li key={`${g.kind}-${p.id}`} className="flex items-center gap-3 px-4 py-2">
                                     {/* The slot name once per group; later rows of the same group leave it blank. */}

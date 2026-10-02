@@ -155,7 +155,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   shadow) with two square rounded "photo" tiles side by side — husband left, wife right — first name under each. Tiles show
   a **man / woman silhouette (ManIcon / WomanIcon), same navy tile for both** — **one coloured tile per person (w-14, 3px padding): the figure fills it and the first name is written INSIDE it in
   white** (10px; details 9px white/80; leaf marital orange-200); couple card = white, 3px padding and 3px gap; grey + flower
-  = late; connector step --ft-gap 1.75rem, sibling gap 0.625rem; the
+  = late; connector step --ft-gap 1.75rem, sibling gap 0.625rem. **Every generation sits on one level across all branches**: an only
+  child keeps the same top spacing (straight line, no bar); with Details on, tiles always reserve both detail lines; the
   tree's person has a slim 1.5px orange ring; light grey canvas (bg-gray-100, no pattern) so the white cards stand out. With Details on, the **end of a line** (no spouse, no
   children) also shows marital status (orange, small) — nobody else. A
   single person gets a one-tile card. Dark-grey square-cornered connectors (--ft-line #6b7280) drop from the card's
@@ -164,9 +165,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   fingers; box is `touch-none` so the page does not scroll or zoom instead.
 - **"How you're related" lives in the Family card**: a Family | Relation switch in its header (only when the profile is
   someone else connected to the viewer; icon-only on phones). Relation view = the chain from the viewer (`RelationChain`,
-  client): rows (avatar, full name, gender · Same generation · village) joined by a wavy step link ("’s father"); people in
-  another generation than the viewer are **indented**, the same generation stays aligned; chains over 6 people fold the
-  middle behind "Show N more"; summary with the kinship word when known.
+  client): rows (avatar, full name + **relation tag** to the viewer (Father, Dada, Kaka …), gender · **generation**
+  ("1st generation above / below", "Same generation") · village). Cards step right **26px per generation away** from the
+  viewer (max 4); the **joint is an SVG curve from under the previous avatar to over the next one** — top-left →
+  bottom-right going further away, top-right → bottom-left coming back, straight when level — dots at both ends, the step
+  ("’s father" / "ના પિતા") beside it. Chains over 6 people fold the middle behind "Show N more"; summary with the kinship
+  word when known.
 - Add-relative popup asks only the **first name**: father's name and surname follow from the person
   (`defaultsFor` in add-relative-dialog.jsx), previewed as "Full name: …" with "Change surname / father's name".
 - **Action buttons are icon-only on phones** (square `size-8`/`size-9`, `aria-label` + `title`, label in
@@ -187,6 +191,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   colours (`print-color-adjust: exact`).
 
 ## i18n in UI
+- Name fields say which script they take: English ones "First name (English)" (`lang.en`), local ones "First name (ગુજરાતી)".
 
 Full rules and the Gujarati glossary: the **parivar-i18n** skill.
 Every visible string comes from `t()`; add keys to **both** `en.js` and `gu.js`. Plurals use

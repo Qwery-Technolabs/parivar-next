@@ -21,10 +21,19 @@ export const FIELD_GRID = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3';
 export function BasicFields({ member, fe, villages = [], cities = [] }) {
     const relativeOnly = Boolean(member?.id) && !member?.phone;
     const { t } = useT();
+    // A married (widowed / divorced) woman gets four name parts: husband's name + in-laws' surname, and her maiden parts.
+    const [gender, setGender] = useState(member?.gender ?? '');
+    const [marital, setMarital] = useState(member?.marital_status ?? '');
+    const married = gender === 'female' && ['married', 'widowed', 'divorced'].includes(marital);
     return (
         <div className={FIELD_GRID}>
             {/* A family-tree relative without a number (member exists, no phone): phone and father's name optional. */}
-            <NameFields member={member} fe={fe} optional={relativeOnly ? ['middle_name'] : []} />
+            <NameFields
+                member={member}
+                fe={fe}
+                married={married}
+                optional={relativeOnly || married ? ['middle_name', 'maiden_middle_name', 'maiden_surname'] : []}
+            />
             <Field label={t('members.phone')} hint={relativeOnly ? t('members.phoneGivesLogin') : t('auth.phoneHint')} error={fe('phone')} required={!relativeOnly}>
                 <input
                     name="phone"
@@ -36,7 +45,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                 />
             </Field>
             <Field label={t('members.gender')}>
-                <select name="gender" defaultValue={member?.gender ?? ''} className={`${selectInput()} w-full`}>
+                <select name="gender" value={gender} onChange={(e) => setGender(e.target.value)} className={`${selectInput()} w-full`}>
                     <option value="">—</option>
                     <option value="male">{t('gender.male')}</option>
                     <option value="female">{t('gender.female')}</option>
@@ -47,7 +56,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                 <input name="dob" type="date" defaultValue={member?.dob ?? ''} className={`${textInput()} w-full`} />
             </Field>
             <Field label={t('family.maritalStatus')}>
-                <select name="marital_status" defaultValue={member?.marital_status ?? ''} className={`${selectInput()} w-full`}>
+                <select name="marital_status" value={marital} onChange={(e) => setMarital(e.target.value)} className={`${selectInput()} w-full`}>
                     <option value="">—</option>
                     {['unmarried', 'married', 'engaged', 'widowed', 'divorced'].map((s) => (
                         <option key={s} value={s}>

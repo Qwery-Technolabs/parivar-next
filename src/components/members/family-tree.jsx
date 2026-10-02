@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import Switch from '@/components/ui/switch';
 import { age } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
+import { birthName } from '@/lib/names';
 
 /** Avatar silhouettes: a man, and a woman (longer hair). White on the tile. */
 function ManIcon({ className = '' }) {
@@ -32,11 +33,12 @@ function WomanIcon({ className = '' }) {
  * (Father, Kaka …) and their age are in the hover / long-press text; with Details on, the age
  * shows under the name. The tree's person has an orange ring.
  */
-function PersonTile({ p, isRoot, showDetails, leaf = false }) {
+function PersonTile({ p, isRoot, showDetails, leaf = false, birth = false }) {
     const { t, locale } = useT();
     const local = locale !== 'en';
     const name = (local && (p.first_name_local || p.full_name_local)) || p.first_name || p.full_name;
-    const fullName = (local && p.full_name_local) || p.full_name;
+    // A daughter in her father's line goes by her maiden name; a wife (spouse) by her married name.
+    const fullName = (birth && birthName(p, local)) || (local && p.full_name_local) || p.full_name;
     const a = age(p.dob);
     const late = p.status === 'deceased';
     // Same tile colour for men and women — the figure tells them apart; late relatives are grey.
@@ -57,14 +59,17 @@ function PersonTile({ p, isRoot, showDetails, leaf = false }) {
         >
             <Figure className="size-12 text-white/90" />
             <span className="-mt-0.5 block w-full truncate px-0.5 text-[10px] font-semibold leading-tight text-white">{name}</span>
-            {showDetails && (late || a != null || p.kin) && (
-                <span className="block w-full truncate px-0.5 text-[9px] leading-tight text-white/80">
-                    {[p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? a : null].filter(Boolean).join(' · ')}
+            {/* Details: always two lines (blank when empty) so every tile in a row is the same height. */}
+            {showDetails && (
+                <span className="block h-3 w-full truncate px-0.5 text-[9px] leading-3 text-white/80">
+                    {[p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? a : null].filter(Boolean).join(' · ') || '\u00a0'}
                 </span>
             )}
             {/* The end of a line (no spouse, no children): Details also says whether they are married yet. */}
-            {showDetails && leaf && !late && p.marital_status && (
-                <span className="block w-full truncate px-0.5 text-[9px] font-semibold leading-tight text-orange-200">{t(`family.marital.${p.marital_status}`)}</span>
+            {showDetails && (
+                <span className="block h-3 w-full truncate px-0.5 text-[9px] font-semibold leading-3 text-orange-200">
+                    {leaf && !late && p.marital_status ? t(`family.marital.${p.marital_status}`) : '\u00a0'}
+                </span>
             )}
             {late && (
                 <span className="absolute top-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full bg-white/90" title={t('family.late')}>
@@ -92,6 +97,7 @@ function Branch({ node, rootId, showDetails }) {
                         isRoot={p.id === rootId}
                         showDetails={showDetails}
                         leaf={p.id === node.id && node.spouses.length === 0 && node.children.length === 0}
+                        birth={p.id === node.id}
                     />
                 ))}
             </div>

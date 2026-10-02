@@ -208,9 +208,6 @@ body {
   left: 50%;
   border-left: 2px solid var(--ft-line);
 }
-.ftree li:only-child::before,
-.ftree li:only-child::after { display: none; }
-.ftree li:only-child { padding-top: 0; }
 .ftree li:first-child::before,
 .ftree li:last-child::after { border: 0 none; }
 .ftree li:last-child::before {
@@ -225,3 +222,16 @@ body {
   border-left: 2px solid var(--ft-line);
 }
 .ftree > ul { padding-top: 0; }
+/* An only child: no sibling bar, just the line straight down — but the SAME top spacing as
+   siblings, so a generation lines up across all branches. */
+.ftree li:only-child::before { display: none; }
+.ftree li:only-child::after {
+  width: 0;
+  border-top: 0 none;
+  border-left: 2px solid var(--ft-line);
+  border-radius: 0;
+}
+/* The oldest ancestor (top card): nothing above it. */
+.ftree > ul > li { padding-top: 0; }
+.ftree > ul > li::before,
+.ftree > ul > li::after { display: none; }

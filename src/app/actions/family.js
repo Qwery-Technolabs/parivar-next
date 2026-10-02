@@ -3,8 +3,8 @@ import { revalidatePath } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
-import { canEditFamily, genderFor, getPerson, linkProblem, linkRelative, MARITAL_STATUSES, RELATIVE_KINDS } from '@/lib/family';
-import { date, id, oneOf, str } from '@/lib/forms';
+import { canEditFamily, fillFatherNames, genderFor, getPerson, linkProblem, linkRelative, MARITAL_STATUSES, RELATIVE_KINDS } from '@/lib/family';
+import { date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { composeName } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
 
@@ -59,6 +59,16 @@ export async function addRelative(prev, fd) {
         const late = fd.get('alive') === 'late';
         // Parents are married by default; the form preselects it and the server keeps the rule.
         const marital = oneOf(fd, 'marital_status', MARITAL_STATUSES, kind === 'father' || kind === 'mother' || kind === 'spouse' ? 'married' : null);
+        // A married (widowed / divorced) woman: main name = husband's name + in-laws' surname; maiden parts beside it.
+        const marriedWoman = gender === 'female' && ['married', 'widowed', 'divorced'].includes(marital ?? '');
+        const maiden = marriedWoman
+            ? {
+                  middle: strOrNull(fd, 'maiden_middle_name', 60),
+                  surname: strOrNull(fd, 'maiden_surname', 60),
+                  middleLocal: strOrNull(fd, 'maiden_middle_name_local', 60),
+                  surnameLocal: strOrNull(fd, 'maiden_surname_local', 60),
+              }
+            : { middle: null, surname: null, middleLocal: null, surnameLocal: null };
         const local = {
             first: str(fd, 'first_name_local', 60),
             middle: str(fd, 'middle_name_local', 60),
@@ -73,9 +83,11 @@ export async function addRelative(prev, fd) {
             const withLogin = Boolean(phone) && !late;
             const r = await query(
                 `INSERT INTO users_list (phone, password_hash, full_name, full_name_local, first_name, middle_name, surname,
-                                         first_name_local, middle_name_local, surname_local, gender, dob, marital_status, status, role, created_by)
+                                         first_name_local, middle_name_local, surname_local, maiden_middle_name, maiden_surname,
+                                         maiden_middle_name_local, maiden_surname_local, gender, dob, marital_status, status, role, created_by)
                  VALUES (:phone, :hash, :fullName, :fullNameLocal, :first, :middle, :surname,
-                         :firstLocal, :middleLocal, :surnameLocal, :gender, :dob, :marital, :status, 'sabhyo', :by)`,
+                         :firstLocal, :middleLocal, :surnameLocal, :maidenMiddle, :maidenSurname,
+                         :maidenMiddleLocal, :maidenSurnameLocal, :gender, :dob, :marital, :status, 'sabhyo', :by)`,
                 {
                     phone,
                     hash: withLogin ? await hashPassword(phone) : null,
@@ -87,6 +99,10 @@ export async function addRelative(prev, fd) {
                     firstLocal: local.first || null,
                     middleLocal: local.middle || null,
                     surnameLocal: local.surname || null,
+                    maidenMiddle: maiden.middle,
+                    maidenSurname: maiden.surname,
+                    maidenMiddleLocal: maiden.middleLocal,
+                    maidenSurnameLocal: maiden.surnameLocal,
                     gender,
                     dob,
                     marital,
@@ -105,7 +121,11 @@ export async function addRelative(prev, fd) {
 
     const problem = await linkProblem(person, kind, relativeId);
     if (problem) return { fieldErrors: { [fd.get('mode') === 'member' ? 'relative_id' : 'first_name']: problem } };
-    await withTransaction((q) => linkRelative(q, person, kind, relativeId));
+    await withTransaction(async (q) => {
+        await linkRelative(q, person, kind, relativeId);
+        // Father's name follows the father: fill empty middle names of the people just linked.
+        await fillFatherNames(q, [person.id, relativeId]);
+    });
     await audit(actor.id, 'user.relation.add', 'user', person.id, { relativeId, kind });
     refresh(person.id, relativeId);
     return { ok: true, message: 'family.added' };

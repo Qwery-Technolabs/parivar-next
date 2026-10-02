@@ -10,6 +10,7 @@ import { age, date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
+import { birthName, isMarriedWoman } from '@/lib/names';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
 import { formatPhone } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword } from '@/lib/roles';
@@ -59,7 +60,14 @@ export default async function MemberPage({ params }) {
             <PageHeader
                 title={name}
                 subtitle={
-                    [otherName && otherName !== name ? otherName : null, canInviteMembers(user.role) && !member.last_login_at ? t('groups.invite.notJoined') : null]
+                    [
+                        otherName && otherName !== name ? otherName : null,
+                        // A married woman: her maiden name (father's name + surname) under the married one.
+                        isMarriedWoman(member) && birthName(member, locale !== 'en') && birthName(member, locale !== 'en') !== name
+                            ? `${t('members.maidenName')}: ${birthName(member, locale !== 'en')}`
+                            : null,
+                        canInviteMembers(user.role) && !member.last_login_at ? t('groups.invite.notJoined') : null,
+                    ]
                         .filter(Boolean)
                         .join(' · ') || undefined
                 }

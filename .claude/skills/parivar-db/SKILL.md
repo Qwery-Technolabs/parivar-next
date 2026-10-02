@@ -17,6 +17,8 @@ backfill rules) get recorded here when applied.
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.
 - `matrimony_profiles` (PK user_id): is_active, height_cm, income_range, contact_name / contact_phone, pref_* ,
   about, listed_by. Module prefix `matrimony_`.
+- users_list.maiden_middle_name / maiden_surname (+ _local): a married woman's father's name + surname; her main name parts
+  are her married ones (husband's name, in-laws' surname).
 - users_list.phone is **nullable** (family-tree relatives without a number; UNIQUE still holds for real numbers);
   `marital_status` ENUM(unmarried, married, engaged, widowed, divorced); users_relations.relation adds 'sibling'.
   Test family writes on the throwaway DB (`npm run db:dev` :3307 + `next start -p 3001` with DB_* overrides).
