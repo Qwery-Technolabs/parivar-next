@@ -126,6 +126,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **"Everyone" meetings** (events_listmeta audience 'all'): people who join are invited AT ONCE — `syncGroupJoin(groupId)`
   after any group add (pick, phone invite, bulk add; also fills "everyone" Mandals of that group), `syncEveryoneMeetings`
   after a fundraise team add or a Mandal member add — plus the lazy sync on meeting lists and reminders.
+  NEVER add anyone to a "selected" (Choose people) meeting — or one with no saved audience — automatically: only an
+  edit by a manager changes that list. Every sync path must filter on audience = 'all'.
   `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
