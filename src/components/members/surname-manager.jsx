@@ -204,8 +204,8 @@ export default function SurnameManager({ surnames, options, canEdit = false }) {
                                         {caste ? <span className="text-ink">{caste}</span> : <span className="italic">{t('surnames.noCaste')}</span>}
                                     </p>
                                 </div>
-                                {/* Everyone with this surname (all statuses) — only worth it with more than one. */}
-                                {(r.members ?? 0) > 1 ? (
+                                {/* Everyone with this surname (all statuses) — disabled only when nobody carries it. */}
+                                {(r.members ?? 0) > 0 ? (
                                     <Link
                                         href={`/members?surname=${encodeURIComponent(r.name)}&status=all&reg=all`}
                                         aria-label={t('surnames.viewMembers')}

@@ -163,7 +163,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   keep donor_name (user_id → NULL), chat messages stay without author. Audited (user.delete).
 - **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮ — visible to EVERYONE;
   add / edit / tick-assign only for administrators, `canEdit`; each row has "Members" (→ /members?surname=…&status=all&reg=all,
-  disabled when ≤ 1 member) before Edit; Members list filters by `surname`): list = every surname in use
+  disabled only when 0 members) before Edit; Members list filters by `surname`): list = every surname in use
   + saved ones, shown COMPACT (name · local · members · caste → sub-caste, Edit button); add / edit happen in a small
   popup (SurnameDialog: local spelling with Google's list + caste); one or many (tick boxes) mapped to caste → sub-caste. `applySurnameCastes(ids?, q?)` fills members WITHOUT a
   caste — called on admin create, invite (ensureInvitedUser), register, family link (after fillCastes) and surname edit.
