@@ -7,6 +7,7 @@ import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import AvatarPicker from '@/components/groups/avatar-picker';
 import GroupChecklist from '@/components/ui/group-checklist';
 import PeopleChoice from '@/components/ui/people-choice';
+import SchedulesEditor from '@/components/mandal/schedules-editor';
 import PickOrType from '@/components/ui/pick-or-type';
 import { CAMPAIGN_FORM_ID } from './status-select';
 import SubmitButton from '@/components/ui/submit-button';
@@ -37,6 +38,8 @@ export default function CampaignForm({
     kind: newKind = 'fundraise',
     mandalPeople = [],
     mandalMemberIds = null,
+    mandalSchedules = [],
+    today = '',
 }) {
     const { t, locale } = useT();
     const [state, action, pending] = useActionState(saveCampaign, null);
@@ -93,15 +96,7 @@ export default function CampaignForm({
                             </div>
                             {mandal && (
                                 <div className="grid gap-3 sm:grid-cols-2">
-                                    <Field label={t('mandal.installment')} hint={t('mandal.installmentHint')} error={fe('installment')} required>
-                                        <input
-                                            name="installment"
-                                            inputMode="decimal"
-                                            required
-                                            defaultValue={meta.installment ?? ''}
-                                            className={`${textInput(!!fe('installment'))} w-full tabular-nums`}
-                                        />
-                                    </Field>
+                                    {/* Amount per person is set on each schedule (Schedules card). */}
                                     <Field label={t('mandal.opening')} hint={t('mandal.openingHint')} error={fe('opening_balance')}>
                                         <input
                                             name="opening_balance"
@@ -113,6 +108,7 @@ export default function CampaignForm({
                                 </div>
                             )}
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                {!mandal && (
                                 <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
                                     <input
                                         name="target_amount"
@@ -121,8 +117,14 @@ export default function CampaignForm({
                                         className={`${textInput(!!fe('target_amount'))} w-full tabular-nums`}
                                     />
                                 </Field>
+                                )}
                                 <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')}>
-                                    <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
+                                    {/* A Mandal's place is just text (a home, an office, anywhere) — no suggestions. */}
+                                    {mandal ? (
+                                        <input name="location" maxLength={100} defaultValue={c.location ?? ''} className={`${textInput()} w-full`} />
+                                    ) : (
+                                        <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
+                                    )}
                                 </Field>
                                 <Field label={t('fundraise.startDate')} error={fe('start_date')}>
                                     <input
@@ -187,7 +189,6 @@ export default function CampaignForm({
                                 idsName="member_ids"
                                 error={fe('member_ids')}
                             />
-                            <p className="text-xs text-ink-gray">{t('mandal.schedulesHint')}</p>
                         </Panel>
                     )}
                     {/* An existing fundraise's public link is switched from its detail page. */}
@@ -196,6 +197,8 @@ export default function CampaignForm({
                             <Switch checked={isPublic} onChange={setIsPublic} name="is_public" label={t('fundraise.makePublic')} />
                         </Panel>
                     )}
+                    {/* A Mandal's days: added / edited / archived here and saved with the form. */}
+                    {mandal && <SchedulesEditor initial={mandalSchedules} people={mandalPeople} today={today} />}
                     {/* A Mandal: its group's people only — no audience rules. */}
                     {!mandal && (
                         <Panel title={t('fundraise.audience.title')}>

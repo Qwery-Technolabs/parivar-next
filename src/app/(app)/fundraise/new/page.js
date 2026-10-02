@@ -12,6 +12,7 @@ import { canManageAllFundraises } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { sp1 } from '@/lib/url';
 import { mandalChoice } from '@/lib/mandal';
+import { todayLocal } from '@/lib/forms';
 
 export async function generateMetadata() {
     const { t } = await getT();
@@ -59,6 +60,7 @@ export default async function NewFundraisePage({ searchParams }) {
             <CampaignForm
                     kind={kind}
                     mandalPeople={mandal?.people}
+                    today={todayLocal()}
                     groups={allowed}
                     defaultGroupId={groupId}
                     // Other groups it may also be shown in: the ones this user may create in.

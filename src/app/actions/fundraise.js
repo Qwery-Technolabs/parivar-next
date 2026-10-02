@@ -7,6 +7,7 @@ import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, money, oneOf, str, strOrNull } from '@/lib/forms';
+import { date as formatDate } from '@/lib/format';
 import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, listHistory, PAY_MODES } from '@/lib/fundraise';
 import { ensureInvitedUser } from '@/lib/invite';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
@@ -115,6 +116,95 @@ async function planCampaignGroups(user, campaignId, homeId, extraIds) {
     const exists = add.length ? await query(`SELECT id FROM admin_groups WHERE id IN (${add.map((_, i) => `:g${i}`).join(',')})`, Object.fromEntries(add.map((g, i) => [`g${i}`, g]))) : [];
     if (exists.length !== add.length) return { error: 'fundraise.errors.extraGroup' };
     return { add, drop: dropAllowed };
+}
+
+/**
+ * The Schedules card's rows (sch_id[], sch_date[], sch_place[], sch_amount[], sch_holder[], sch_archived[]).
+ * sch_present = the card was on the form (so an empty list means "all removed").
+ * @returns {{ present: boolean, rows: Array<{ id: number|null, day: string, place: string|null, amount: number, holder: number|null, archived: boolean }> } | { error: string }}
+ */
+function readSchedules(fd) {
+    if (fd.get('sch_present') !== '1') return { present: false, rows: [] };
+    const ids = fd.getAll('sch_id');
+    const days = fd.getAll('sch_date');
+    const places = fd.getAll('sch_place');
+    const amounts = fd.getAll('sch_amount');
+    const holders = fd.getAll('sch_holder');
+    const archived = fd.getAll('sch_archived');
+    const rows = [];
+    for (let i = 0; i < days.length && i < 200; i++) {
+        const day = String(days[i] ?? '');
+        const amount = Number(amounts[i]);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return { error: 'meetings.errors.date' };
+        if (!Number.isFinite(amount) || amount <= 0) return { error: 'mandal.errors.amount' };
+        rows.push({
+            id: Number(ids[i]) > 0 ? Number(ids[i]) : null,
+            day,
+            place: String(places[i] ?? '').trim().slice(0, 200) || null,
+            amount: Math.round(amount * 100) / 100,
+            holder: Number(holders[i]) > 0 ? Number(holders[i]) : null,
+            archived: archived[i] === '1',
+        });
+    }
+    return { present: true, rows };
+}
+
+/**
+ * Save a Mandal's schedules (its meetings "<date> - Mandal"), inside the caller's transaction:
+ * new rows → a meeting for everyone in it (audience 'all'); changed rows → updated (an archived one
+ * only changes its archived flag); rows no longer listed → deleted, but only if nothing was received.
+ */
+async function writeMandalSchedules(q, campaignId, groupId, rows, userId) {
+    const existing = new Map(
+        (await q("SELECT id FROM events_list WHERE event_type = 'meeting' AND campaign_id = :c", { c: campaignId })).map((r) => [r.id, r]),
+    );
+    const archivedNow = new Set(
+        (
+            await q(
+                "SELECT e.id FROM events_list e JOIN events_listmeta m ON m.event_id = e.id AND m.meta_key = 'archived' AND m.meta_value = '1' WHERE e.campaign_id = :c",
+                { c: campaignId },
+            )
+        ).map((r) => r.id),
+    );
+    const people = new Set((await q('SELECT id FROM users_list WHERE id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c UNION SELECT user_id FROM admin_group_members WHERE group_id = :g)', { c: campaignId, g: groupId })).map((r) => r.id));
+    const kept = new Set();
+    for (const r of rows) {
+        const title = `${formatDate(r.day, 'en')} - Mandal`;
+        const titleLocal = `${formatDate(r.day, 'gu')} - મંડળ`;
+        const holder = r.holder && people.has(r.holder) ? String(r.holder) : '';
+        if (r.id && existing.has(r.id)) {
+            kept.add(r.id);
+            if (archivedNow.has(r.id)) {
+                if (!r.archived) await setMeta('events_list', r.id, { archived: '' }, q);
+                continue;
+            }
+            await q('UPDATE events_list SET title = :title, title_local = :titleLocal, start_date = :day, location = :place WHERE id = :id', {
+                title,
+                titleLocal,
+                day: r.day,
+                place: r.place,
+                id: r.id,
+            });
+            await setMeta('events_list', r.id, { collect: '1', installment: String(r.amount), held_by: holder, archived: r.archived ? '1' : '' }, q);
+        } else {
+            const ins = await q(
+                `INSERT INTO events_list (title, title_local, event_type, start_date, location, group_id, campaign_id, created_by)
+                 VALUES (:title, :titleLocal, 'meeting', :day, :place, :groupId, :c, :by)`,
+                { title, titleLocal, day: r.day, place: r.place, groupId, c: campaignId, by: userId },
+            );
+            await q('INSERT IGNORE INTO events_attendees (event_id, user_id) SELECT :e, user_id FROM fundraise_subscribers WHERE campaign_id = :c', {
+                e: ins.insertId,
+                c: campaignId,
+            });
+            await setMeta('events_list', ins.insertId, { collect: '1', installment: String(r.amount), held_by: holder, audience: 'all' }, q);
+        }
+    }
+    for (const evId of existing.keys()) {
+        if (kept.has(evId)) continue;
+        const got = await q('SELECT COALESCE(SUM(paid), 0) AS s FROM fundraise_mandal_marks WHERE event_id = :e', { e: evId });
+        if (Number(got[0]?.s) > 0) continue; // money came in: kept (archive it instead)
+        await q('DELETE FROM events_list WHERE id = :e', { e: evId });
+    }
 }
 
 /**
@@ -227,9 +317,9 @@ export async function saveCampaign(prev, fd) {
     const membersMode = fd.get('members_mode') === 'selected' ? 'selected' : 'all';
     const memberIds = [...new Set(fd.getAll('member_ids').map(Number))].filter((n) => n > 0);
     if (kind === 'mandal' && membersMode === 'selected' && !memberIds.length) return { fieldErrors: { member_ids: 'mandal.errors.members' } };
-    const rawInstallment = str(fd, 'installment', 12);
-    const installment = rawInstallment ? Number(rawInstallment) : null;
-    if (kind === 'mandal' && (!installment || !Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
+    // A Mandal's days come with the form: amount per person is per schedule, not on the Mandal.
+    const schedules = kind === 'mandal' ? readSchedules(fd) : null;
+    if (schedules?.error) return { error: schedules.error };
     const rawOpening = str(fd, 'opening_balance', 14);
     const opening = rawOpening ? Number(rawOpening) : 0;
     if (kind === 'mandal' && rawOpening && (!Number.isFinite(opening) || opening < 0)) return { fieldErrors: { opening_balance: 'mandal.errors.amount' } };
@@ -251,7 +341,7 @@ export async function saveCampaign(prev, fd) {
         // Picture: icon / emoji / ≤2 letters on a colour, like a group's (lib/group-avatar).
         ...sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10)),
         // No local-language description on the form any more; an older one is left as it is.
-        ...(kind === 'mandal' ? { installment: String(Math.round(installment * 100) / 100), members_mode: membersMode } : {}),
+        ...(kind === 'mandal' ? { members_mode: membersMode } : {}),
     };
 
     if (campaignId) {
@@ -277,6 +367,7 @@ export async function saveCampaign(prev, fd) {
             if (kind === 'mandal') {
                 await writeOpeningBalance(q, campaignId, opening, user.id);
                 await writeMandalMembers(q, campaignId, groupId, membersMode, memberIds, user.id);
+                if (schedules.present) await writeMandalSchedules(q, campaignId, groupId, schedules.rows, user.id);
             }
         });
         await audit(user.id, 'fundraise.update', 'fundraise', campaignId, { title, audience: audience.length });
@@ -298,6 +389,7 @@ export async function saveCampaign(prev, fd) {
         if (kind === 'mandal') {
             await writeOpeningBalance(q, r.insertId, opening, user.id);
             await writeMandalMembers(q, r.insertId, groupId, membersMode, memberIds, user.id);
+            if (schedules.present) await writeMandalSchedules(q, r.insertId, groupId, schedules.rows, user.id);
         }
         await setMeta('fundraise_campaigns', r.insertId, meta, q);
         await writeAudience(q, r.insertId, audience);

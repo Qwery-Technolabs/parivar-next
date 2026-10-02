@@ -24,6 +24,8 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
     await syncMandalMembers(campaign);
     const [meetings, canRun, marks] = await Promise.all([mandalMeetings(campaign.id, installment), canRunMandal(user, campaign), allMarks(campaign.id)]);
     const members = await mandalMembers(campaign.id, meetings, today);
+    // Amount per person is set on each schedule; the latest one is the usual amount.
+    const latest = meetings[0]?.installment || installment;
     // "Everyone in the group": group members come back on their own, so only people added by phone can be removed here.
     const inGroup =
         campaign.meta?.members_mode === 'all'
@@ -60,7 +62,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
             <div className="grid grid-cols-3 gap-2">
                 {[
                     [t('mandal.members'), members.length],
-                    [t('mandal.perMeeting'), money(installment)],
+                    [t('mandal.perMeeting'), money(latest)],
                     [t('mandal.totalPending'), money(totalPending)],
                 ].map(([label, value]) => (
                     <div key={label} className="rounded-lg border border-surface-border bg-white px-3 py-2 shadow-sm">
@@ -112,7 +114,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                     <Card
                         title={t('mandal.schedules')}
                         bodyClass=""
-                        actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={installment || ''} today={today} />}
+                        actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} today={today} />}
                     >
                         {meetings.length === 0 ? (
                             <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
@@ -158,7 +160,7 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                                                 schedule={e}
                                                 received={got}
                                                 members={plain}
-                                                defaultInstallment={installment || ''}
+                                                defaultInstallment={latest || ''}
                                                 today={today}
                                             />
                                         )}

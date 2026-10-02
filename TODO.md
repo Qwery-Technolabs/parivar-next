@@ -259,3 +259,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal: members on the form like a meeting's attendees (everyone in the group, kept in sync / chosen people); home group shown (that group only); public link allowed. Print: payment modes in their own colours, Not paid amounts + Pending total in red
 - [x] Family tree + Family card: children (and siblings) eldest first by birth date, left to right; people without a birth date keep their place
 - [x] Mandal: "Who is in this Mandal" in its own right-side card on the form; Mandal tab Schedules card (+ New schedule; date - Mandal, place, amount per person, money kept by; kebab Edit / Archive when money received / Delete when none / Restore); Who has the money + common expenses + balance
+- [x] Mandal form: no Target, no Amount per meeting; Place plain text (not a suggestion); Schedules card on the right under Sharing — add / edit / archive / delete, saved with the form

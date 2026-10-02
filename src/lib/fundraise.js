@@ -248,7 +248,7 @@ export async function knownLocations() {
     const rows = await query(
         `SELECT village AS v FROM users_list WHERE village IS NOT NULL AND village <> ''
          UNION
-         SELECT location AS v FROM fundraise_campaigns WHERE location IS NOT NULL AND location <> ''
+         SELECT location AS v FROM fundraise_campaigns WHERE location IS NOT NULL AND location <> '' AND kind <> 'mandal'
          ORDER BY v`,
     );
     return rows.map((r) => r.v);

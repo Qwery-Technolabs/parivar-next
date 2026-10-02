@@ -152,7 +152,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a contribution per payment in the chosen mode (cash / UPI / bank / cheque / other) (so the
   ledger / totals include it). Dues = installments of collecting meetings held since joining − paid; missed = absent marks
   since last present (+ days away). Opening balance = one "Opening balance" contribution (meta opening_contribution_id).
-  Schedules (Mandal tab, right card): each = a Mandal meeting "<date> - Mandal" (saveMandalSchedule: date, place,
+  Mandal form: no target, no amount-per-meeting (amount is per schedule), place = plain text (never a suggestion —
+  knownLocations skips Mandals); right column: Who is in it, Sharing, Schedules (SchedulesEditor: rows in state,
+  posted with the form as sch_*; writeMandalSchedules creates / updates / archives / deletes-if-no-money).
+  Schedules (also on the Mandal tab, right card, with the money sheet): each = a Mandal meeting "<date> - Mandal" (saveMandalSchedule: date, place,
   installment, meta held_by = who keeps that day's money; audience 'all'). Kebab: Edit; Archive (meta archived '1',
   money in — sheet locked) or Delete (only while nothing received); archived → Restore. Income per schedule, expenses
   common (Money tab); "Who has the money" = schedule collections summed per held_by, minus common expenses = balance.

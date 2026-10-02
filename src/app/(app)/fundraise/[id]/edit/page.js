@@ -12,7 +12,8 @@ import { audienceSuggestions, getAudience, getCampaign, knownLocations, listGrou
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { queryOne } from '@/lib/db';
-import { mandalChoice } from '@/lib/mandal';
+import { allMarks, mandalChoice, mandalMeetings } from '@/lib/mandal';
+import { todayLocal } from '@/lib/forms';
 import { canManageAllFundraises } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -53,6 +54,20 @@ export default async function EditFundraisePage({ params }) {
     // A Mandal's opening balance is its "Opening balance" contribution row.
     const openingId = Number(campaign.meta?.opening_contribution_id) || null;
     const mandal = campaign.kind === 'mandal' ? await mandalChoice(campaign.group_id, campaign.id) : null;
+    // Its schedules, each with what was received at it (decides Archive vs Delete).
+    let schedules = [];
+    if (mandal) {
+        const [meetings, marks] = await Promise.all([mandalMeetings(campaign.id, 0), allMarks(campaign.id)]);
+        schedules = meetings.map((e) => ({
+            id: e.id,
+            start_date: e.start_date,
+            location: e.location,
+            installment: e.installment,
+            holder: e.holder ? { id: e.holder.id } : null,
+            archived: e.archived,
+            received: Object.values(marks[e.id] ?? {}).reduce((s, x) => s + Number(x.paid || 0), 0),
+        }));
+    }
     const openingBalance = openingId
         ? ((await queryOne('SELECT amount FROM fundraise_contributions WHERE id = :openingId AND deleted_at IS NULL', { openingId }))?.amount ?? '')
         : '';
@@ -110,6 +125,8 @@ export default async function EditFundraisePage({ params }) {
                     suggestions={suggestions}
                     mandalPeople={mandal?.people}
                     mandalMemberIds={mandal?.memberIds}
+                    mandalSchedules={schedules}
+                    today={todayLocal()}
                 />
             </div>
         </div>
