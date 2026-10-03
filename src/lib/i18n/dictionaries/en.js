@@ -837,6 +837,7 @@ const en = {
         handedHint: 'On once the money is with the treasurer.',
         withTreasurer: 'With treasurer',
         notHandedOver: 'Not handed over',
+        anonymousShort: 'Anonymous',
         donorNameHint: 'At least two words — first name, (father\'s name,) surname: "Nilesh Kanani" or "Nilesh Lallubhai Kanani".',
         donorNamePlaceholder: 'e.g. Nilesh Lallubhai Kanani',
         paidBy: 'Paid by',

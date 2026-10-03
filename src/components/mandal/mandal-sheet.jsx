@@ -72,7 +72,10 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                             <Field label={t('mandal.amountThisTime')} error={fieldError('installment')}>
                                 <input
                                     name="installment"
+                                    type="number"
                                     inputMode="decimal"
+                                    min="0"
+                                    step="0.01"
                                     value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     className={`${textInput(!!fieldError('installment'))} w-32 tabular-nums`}
@@ -116,7 +119,10 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                                         </label>
                                         <input
                                             name={`paid_${m.id}`}
+                                            type="number"
                                             inputMode="decimal"
+                                            min="0"
+                                            step="0.01"
                                             placeholder={t('mandal.paid')}
                                             aria-label={`${t('mandal.paid')} — ${name(m)}`}
                                             defaultValue={marks[m.id]?.paid ?? ''}

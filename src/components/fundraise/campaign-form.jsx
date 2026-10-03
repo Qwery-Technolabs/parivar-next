@@ -105,14 +105,29 @@ export default function CampaignForm({
                                     <div className={`grid gap-3 ${mandal ? 'grid-cols-2 sm:max-w-md' : 'sm:grid-cols-3'}`}>
                                         {!mandal && (
                                             <Field label={t('fundraise.place')} hint={t('fundraise.placeHint')} className="col-span-full sm:col-span-1">
-                                                <PickOrType name="location" defaultValue={c.location ?? ''} suggestions={locations} label={t('fundraise.place')} />
+                                                <PickOrType
+                                                    name="location"
+                                                    defaultValue={c.location ?? ''}
+                                                    suggestions={locations}
+                                                    label={t('fundraise.place')}
+                                                />
                                             </Field>
                                         )}
                                         <Field label={t('fundraise.startDate')} error={fe('start_date')}>
-                                            <input type="date" name="start_date" defaultValue={c.start_date ?? ''} className={`${textInput(!!fe('start_date'))} w-full`} />
+                                            <input
+                                                type="date"
+                                                name="start_date"
+                                                defaultValue={c.start_date ?? ''}
+                                                className={`${textInput(!!fe('start_date'))} w-full`}
+                                            />
                                         </Field>
                                         <Field label={t('fundraise.endDate')} error={fe('end_date')}>
-                                            <input type="date" name="end_date" defaultValue={c.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
+                                            <input
+                                                type="date"
+                                                name="end_date"
+                                                defaultValue={c.end_date ?? ''}
+                                                className={`${textInput(!!fe('end_date'))} w-full`}
+                                            />
                                         </Field>
                                     </div>
                                 </FormPart>
@@ -139,7 +154,10 @@ export default function CampaignForm({
                                 <Field label={t('mandal.opening')} hint={t('mandal.openingHint')} error={fe('opening_balance')}>
                                     <input
                                         name="opening_balance"
+                                        type="number"
                                         inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
                                         defaultValue={c.openingBalance ?? ''}
                                         className={`${textInput(!!fe('opening_balance'))} w-full tabular-nums`}
                                     />
@@ -148,7 +166,10 @@ export default function CampaignForm({
                                 <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
                                     <input
                                         name="target_amount"
+                                        type="number"
                                         inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
                                         defaultValue={c.target_amount ?? ''}
                                         className={`${textInput(!!fe('target_amount'))} w-full tabular-nums`}
                                     />

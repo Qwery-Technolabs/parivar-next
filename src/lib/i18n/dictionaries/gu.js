@@ -838,6 +838,7 @@ const gu = {
         handedHint: 'રકમ ખજાનચી પાસે પહોંચે ત્યારે ચાલુ કરો.',
         withTreasurer: 'ખજાનચી પાસે',
         notHandedOver: 'હજુ આપી નથી',
+        anonymousShort: 'નામ છુપાવો',
         donorNameHint: 'ઓછામાં ઓછા બે શબ્દ — નામ, (પિતાનું નામ,) અટક: "Nilesh Kanani" અથવા "Nilesh Lallubhai Kanani".',
         donorNamePlaceholder: 'ઉદા. Nilesh Lallubhai Kanani',
         paidBy: 'કોણે ચૂકવ્યું',

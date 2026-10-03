@@ -105,7 +105,7 @@ function DialogForm({ action, hidden, submitLabel, submitIcon, submitVariant, on
             )}
             {/* Pinned to the bottom of the scrolling dialog, so Save never scrolls out of reach. */}
             {/* Cancel and Save side by side — halves on phones, their own width from sm up. */}
-            <div className="sticky bottom-0 -mx-4 flex flex-row gap-2 border-t border-surface-border bg-white px-4 py-3 sm:justify-end">
+            <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-row gap-2 border-t border-surface-border bg-white px-4 pt-3 pb-7 sm:justify-end">
                 <button
                     type="button"
                     onClick={onCancel}

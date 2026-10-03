@@ -20,7 +20,11 @@ function PaidBy({ people, entry, meId, fieldError }) {
     const initial = entry?.paid_by ?? meId;
     // A payer no longer in the list (left the group) still shows, so editing never drops them.
     const list = initial && !people.some((p) => p.id === initial) && entry?.paid_by_name ? [...people, { id: initial, full_name: entry.paid_by_name }] : people;
-    const options = list.map((p) => ({ value: String(p.id), label: name(p) + (p.id === meId ? ` (${t('fundraise.you')})` : ''), hint: p.full_name !== name(p) ? p.full_name : undefined }));
+    const options = list.map((p) => ({
+        value: String(p.id),
+        label: name(p) + (p.id === meId ? ` (${t('fundraise.you')})` : ''),
+        hint: p.full_name !== name(p) ? p.full_name : undefined,
+    }));
     const [payer, setPayer] = useState(() => options.find((o) => o.value === String(initial ?? '')) ?? null);
     // Type to search: filters this list in the browser (English and local name), no server call.
     const search = async (q) => {
@@ -94,7 +98,10 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                         <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
                             <input
                                 name="amount"
+                                type="number"
                                 inputMode="decimal"
+                                min="0"
+                                step="0.01"
                                 defaultValue={entry?.amount ?? ''}
                                 className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
                             />

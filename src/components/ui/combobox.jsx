@@ -1,6 +1,6 @@
 'use client';
 import { ChevronDown, Loader2, X } from 'lucide-react';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { textInput } from './field';
 import { useDebouncedCallback } from './use-debounce';
 
@@ -39,6 +39,7 @@ export default function Combobox({
     // Inside a dialog the list must not float: the dialog scrolls and clips it, so half the list
     // hides under its bottom edge. There it opens in the flow instead — the dialog grows to show it.
     const wrap = useRef(null);
+    const listRef = useRef(null);
     const [inDialog, setInDialog] = useState(false);
     const listId = useId();
 
@@ -66,6 +67,12 @@ export default function Combobox({
     function placeList() {
         setInDialog(Boolean(wrap.current?.closest('[data-slot="dialog-content"]')));
     }
+
+    // In a dialog the list opens in the flow: scroll it fully into view (scroll-mb keeps it clear of the
+    // sticky Cancel / Save footer), so it is never cut off at the bottom.
+    useEffect(() => {
+        if (open && inDialog) listRef.current?.scrollIntoView({ block: 'nearest' });
+    }, [open, inDialog, options]);
 
     function openList() {
         if (open || Date.now() - chosenAt.current < 400) return;
@@ -149,9 +156,10 @@ export default function Combobox({
                 <>
                     {!inDialog && <button type="button" aria-hidden tabIndex={-1} onClick={close} className="fixed inset-0 z-10 cursor-default" />}
                     <ul
+                        ref={listRef}
                         id={listId}
                         role="listbox"
-                        className={`${inDialog ? 'relative' : 'absolute left-0 right-0 z-20'} mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg`}
+                        className={`${inDialog ? 'relative scroll-mb-24' : 'absolute left-0 right-0 z-20'} mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg`}
                     >
                         {options?.length === 0 && !loading && <li className="px-3 py-2 text-sm text-ink-gray">{emptyText}</li>}
                         {options === null && loading && (

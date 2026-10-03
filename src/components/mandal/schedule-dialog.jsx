@@ -48,7 +48,10 @@ export default function ScheduleDialog({ campaignId, schedule = null, members, d
                     <Field label={t('mandal.amountThisTime')} error={fieldError('installment')} required>
                         <input
                             name="installment"
+                            type="number"
                             inputMode="decimal"
+                            min="0"
+                            step="0.01"
                             required
                             defaultValue={schedule?.installment ?? defaultInstallment ?? ''}
                             className={`${textInput(!!fieldError('installment'))} w-full tabular-nums`}

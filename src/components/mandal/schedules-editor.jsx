@@ -74,99 +74,109 @@ export default function SchedulesEditor({ initial = [], people = [], today }) {
                 </button>
             </div>
             <div className="p-3.5">
-            {/* What posts with the campaign form. */}
-            {rows.map((r) => (
-                <span key={r.key} hidden>
-                    <input type="hidden" name="sch_id" value={r.id ?? ''} />
-                    <input type="hidden" name="sch_date" value={r.start_date} />
-                    <input type="hidden" name="sch_place" value={r.location} />
-                    <input type="hidden" name="sch_amount" value={r.installment} />
-                    <input type="hidden" name="sch_holder" value={r.held_by} />
-                    <input type="hidden" name="sch_archived" value={r.archived ? '1' : ''} />
-                </span>
-            ))}
-            <input type="hidden" name="sch_present" value="1" />
+                {/* What posts with the campaign form. */}
+                {rows.map((r) => (
+                    <span key={r.key} hidden>
+                        <input type="hidden" name="sch_id" value={r.id ?? ''} />
+                        <input type="hidden" name="sch_date" value={r.start_date} />
+                        <input type="hidden" name="sch_place" value={r.location} />
+                        <input type="hidden" name="sch_amount" value={r.installment} />
+                        <input type="hidden" name="sch_holder" value={r.held_by} />
+                        <input type="hidden" name="sch_archived" value={r.archived ? '1' : ''} />
+                    </span>
+                ))}
+                <input type="hidden" name="sch_present" value="1" />
 
-            {sorted.length === 0 ? (
-                <p className="text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
-            ) : (
-                <ul className="-mx-3.5 divide-y divide-surface-border border-y border-surface-border">
-                    {sorted.map((r) => (
-                        <li key={r.key} className={`flex items-start gap-2 px-3.5 py-2 ${r.archived ? 'bg-surface-bggray/40' : ''}`}>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-primary">
-                                    {fmt(r.start_date)} - {t('mandal.word')}
-                                    {r.archived && <span className="ml-1.5 rounded-full bg-surface-bggray px-1.5 text-[10px] font-medium text-ink-gray">{t('fundraise.archivedBadge')}</span>}
-                                </p>
-                                <p className="text-xs text-ink-gray tabular-nums">
-                                    {[r.location, t('mandal.perPersonAmount', { amount: money(r.installment) }), r.held_by && holderName(r.held_by) ? t('mandal.moneyWith', { name: holderName(r.held_by) }) : null]
-                                        .filter(Boolean)
-                                        .join(' · ')}
-                                </p>
-                            </div>
-                            <span className="shrink-0 pt-0.5 text-sm font-semibold text-income tabular-nums">{money(r.received)}/-</span>
-                            <KebabMenu label={t('common.more')}>
-                                {(close) =>
-                                    r.archived ? (
-                                        <MenuItem
-                                            icon={ArchiveRestore}
-                                            onClick={() => {
-                                                close();
-                                                patch(r.key, { archived: false });
-                                            }}
-                                        >
-                                            {t('mandal.restoreSchedule')}
-                                        </MenuItem>
-                                    ) : (
-                                        <>
+                {sorted.length === 0 ? (
+                    <p className="text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
+                ) : (
+                    <ul className="-mx-3.5 divide-y divide-surface-border border-y border-surface-border">
+                        {sorted.map((r) => (
+                            <li key={r.key} className={`flex items-start gap-2 px-3.5 py-2 ${r.archived ? 'bg-surface-bggray/40' : ''}`}>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-primary">
+                                        {fmt(r.start_date)} - {t('mandal.word')}
+                                        {r.archived && (
+                                            <span className="ml-1.5 rounded-full bg-surface-bggray px-1.5 text-[10px] font-medium text-ink-gray">
+                                                {t('fundraise.archivedBadge')}
+                                            </span>
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-ink-gray tabular-nums">
+                                        {[
+                                            r.location,
+                                            t('mandal.perPersonAmount', { amount: money(r.installment) }),
+                                            r.held_by && holderName(r.held_by) ? t('mandal.moneyWith', { name: holderName(r.held_by) }) : null,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </p>
+                                </div>
+                                <span className="shrink-0 pt-0.5 text-sm font-semibold text-income tabular-nums">{money(r.received)}/-</span>
+                                <KebabMenu label={t('common.more')}>
+                                    {(close) =>
+                                        r.archived ? (
                                             <MenuItem
-                                                icon={Pencil}
+                                                icon={ArchiveRestore}
                                                 onClick={() => {
                                                     close();
-                                                    setError(null);
-                                                    setEditing({ ...r });
+                                                    patch(r.key, { archived: false });
                                                 }}
                                             >
-                                                {t('common.edit')}
+                                                {t('mandal.restoreSchedule')}
                                             </MenuItem>
-                                            <MenuSeparator />
-                                            {r.received > 0 ? (
+                                        ) : (
+                                            <>
                                                 <MenuItem
-                                                    icon={Archive}
+                                                    icon={Pencil}
                                                     onClick={() => {
                                                         close();
-                                                        patch(r.key, { archived: true });
+                                                        setError(null);
+                                                        setEditing({ ...r });
                                                     }}
                                                 >
-                                                    {t('mandal.archiveSchedule')}
+                                                    {t('common.edit')}
                                                 </MenuItem>
-                                            ) : (
-                                                <MenuItem
-                                                    icon={Trash2}
-                                                    danger
-                                                    onClick={() => {
-                                                        close();
-                                                        setRows((list) => list.filter((x) => x.key !== r.key));
-                                                    }}
-                                                >
-                                                    {t('common.delete')}
-                                                </MenuItem>
-                                            )}
-                                        </>
-                                    )
-                                }
-                            </KebabMenu>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            <p className="mt-2 text-xs text-ink-gray">{t('mandal.schedulesSaveHint')}</p>
+                                                <MenuSeparator />
+                                                {r.received > 0 ? (
+                                                    <MenuItem
+                                                        icon={Archive}
+                                                        onClick={() => {
+                                                            close();
+                                                            patch(r.key, { archived: true });
+                                                        }}
+                                                    >
+                                                        {t('mandal.archiveSchedule')}
+                                                    </MenuItem>
+                                                ) : (
+                                                    <MenuItem
+                                                        icon={Trash2}
+                                                        danger
+                                                        onClick={() => {
+                                                            close();
+                                                            setRows((list) => list.filter((x) => x.key !== r.key));
+                                                        }}
+                                                    >
+                                                        {t('common.delete')}
+                                                    </MenuItem>
+                                                )}
+                                            </>
+                                        )
+                                    }
+                                </KebabMenu>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                <p className="mt-2 text-xs text-ink-gray">{t('mandal.schedulesSaveHint')}</p>
             </div>
 
             <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
                 <DialogContent focusPopup className="max-h-[92vh] overflow-y-auto bg-white sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-base font-semibold text-primary">{editing?.key ? t('mandal.editSchedule') : t('mandal.newSchedule')}</DialogTitle>
+                        <DialogTitle className="text-base font-semibold text-primary">
+                            {editing?.key ? t('mandal.editSchedule') : t('mandal.newSchedule')}
+                        </DialogTitle>
                     </DialogHeader>
                     {editing && (
                         <div className="space-y-3">
@@ -181,7 +191,10 @@ export default function SchedulesEditor({ initial = [], people = [], today }) {
                                 </Field>
                                 <Field label={t('mandal.amountThisTime')} required>
                                     <input
+                                        type="number"
                                         inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
                                         value={editing.installment}
                                         onChange={(e) => setEditing((s) => ({ ...s, installment: e.target.value }))}
                                         className={`${textInput()} w-full tabular-nums`}
@@ -220,7 +233,11 @@ export default function SchedulesEditor({ initial = [], people = [], today }) {
                                 >
                                     {t('common.cancel')}
                                 </button>
-                                <button type="button" onClick={save} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                                <button
+                                    type="button"
+                                    onClick={save}
+                                    className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                                >
                                     <Check className="size-4" /> {t('common.done')}
                                 </button>
                             </div>
@@ -231,4 +248,3 @@ export default function SchedulesEditor({ initial = [], people = [], today }) {
         </section>
     );
 }
-

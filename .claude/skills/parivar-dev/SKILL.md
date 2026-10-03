@@ -154,7 +154,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Contribution kept by** (fundraise_contributions.kept_by, handed_over): "Kept by" (searchable, default = the recorder) +
   "Handed over to the treasurer" (default ON for a treasurer / admin recording it, OFF for a collector); none for a pledge
   (mode unpaid). List shows "Kept by X" + With treasurer / Not handed over; both in the snapshot → History.
-  Donor name: at least two words on new names (first [father's] surname), "Hide name publicly" sits right of the name.
+  Donor name: at least two words on new names (first [father's] surname), the "Anonymous" switch sits INSIDE the name box on its right (title = "Hide name publicly").
 - **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
   pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore
   (`setCampaignArchived`, no longer app-level only). Group: GroupDangerCard also holds "Clear history".

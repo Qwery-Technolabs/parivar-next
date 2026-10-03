@@ -65,7 +65,11 @@ function KeptBy({ people, entry, meId, handDefault, fieldError }) {
     const name = (p) => (locale !== 'en' && p.full_name_local) || p.full_name;
     const initial = entry?.kept_by ?? meId;
     const list = initial && !people.some((p) => p.id === initial) && entry?.kept_by_name ? [...people, { id: initial, full_name: entry.kept_by_name }] : people;
-    const options = list.map((p) => ({ value: String(p.id), label: name(p) + (p.id === meId ? ` (${t('fundraise.you')})` : ''), hint: p.full_name !== name(p) ? p.full_name : undefined }));
+    const options = list.map((p) => ({
+        value: String(p.id),
+        label: name(p) + (p.id === meId ? ` (${t('fundraise.you')})` : ''),
+        hint: p.full_name !== name(p) ? p.full_name : undefined,
+    }));
     const [keeper, setKeeper] = useState(() => options.find((o) => o.value === String(initial ?? '')) ?? null);
     const [handed, setHanded] = useState(entry ? Boolean(entry.handed_over) : handDefault);
     const search = async (q) => {
@@ -114,40 +118,44 @@ function ContributionFields({ fieldError, today, allowAnonymous, entry, people, 
                     onPick={(opt) => opt && !opt.invite && setName(opt.label)}
                 />
             </Field>
-            {/* The name, with "Hide name publicly" on its right. */}
-            <div className="grid items-start gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <Field label={t('fundraise.donor')} hint={t('fundraise.donorNameHint')} error={fieldError('donor_name')} required>
+            {/* The name, with the "Anonymous" switch inside the box on its right. */}
+            <Field label={t('fundraise.donor')} hint={t('fundraise.donorNameHint')} error={fieldError('donor_name')} required>
+                <div className="relative">
                     <input
                         name="donor_name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         maxLength={150}
                         placeholder={t('fundraise.donorNamePlaceholder')}
-                        className={`${textInput(!!fieldError('donor_name'))} w-full`}
+                        className={`${textInput(!!fieldError('donor_name'))} w-full ${allowAnonymous ? 'pr-32' : ''}`}
                     />
-                </Field>
-                {allowAnonymous && (
-                    <div className="sm:pt-7">
-                        <Switch checked={anon} onChange={setAnon} name="is_anonymous" label={t('fundraise.anonymous')} />
-                    </div>
-                )}
-            </div>
+                    {allowAnonymous && (
+                        <div className="absolute inset-y-0 right-2.5 flex items-center">
+                            <Switch
+                                checked={anon}
+                                onChange={setAnon}
+                                name="is_anonymous"
+                                title={t('fundraise.anonymous')}
+                                label={<span className="text-xs text-ink-gray">{t('fundraise.anonymousShort')}</span>}
+                            />
+                        </div>
+                    )}
+                </div>
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
                     <input
                         name="amount"
+                        type="number"
                         inputMode="decimal"
+                        min="0"
+                        step="0.01"
                         defaultValue={entry?.amount ?? ''}
                         className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
                     />
                 </Field>
                 <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
-                    <input
-                        type="date"
-                        name="paid_on"
-                        defaultValue={entry?.paid_on ?? today}
-                        className={`${textInput(!!fieldError('paid_on'))} w-full`}
-                    />
+                    <input type="date" name="paid_on" defaultValue={entry?.paid_on ?? today} className={`${textInput(!!fieldError('paid_on'))} w-full`} />
                 </Field>
                 <Field label={t('fundraise.mode')}>
                     <select name="mode" value={mode} onChange={(e) => setMode(e.target.value)} className={`${selectInput()} w-full`}>
