@@ -310,3 +310,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Expense Paid by: type-to-search
 - [x] Expense form: What + Where in one row; Paid by / repaid after Notes
 - [x] Contributions: "Hide name publicly" beside the name; two-word name note + check; "Kept by" + "Handed over to the treasurer" (default on for treasurer / admin, off for collector)
+- [x] Fix: Kept by / Paid by list spilled over the dialog footer and hid the switch — now opens in the flow; switch top-aligned

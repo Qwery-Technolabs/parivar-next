@@ -61,9 +61,15 @@ export default function Combobox({
     // Typing searches 300 ms after the last key (useDebouncedCallback).
     const loadLater = useDebouncedCallback((v) => load(v));
 
+    // Inside a dialog the list opens in the flow (it scrolls with the form, never over the footer or the
+    // fields beside it); elsewhere it floats. Decided on EVERY way of opening — focus, typing, arrow keys.
+    function placeList() {
+        setInDialog(Boolean(wrap.current?.closest('[data-slot="dialog-content"]')));
+    }
+
     function openList() {
         if (open || Date.now() - chosenAt.current < 400) return;
-        setInDialog(Boolean(wrap.current?.closest('[data-slot="dialog-content"]')));
+        placeList();
         setOpen(true);
         setQ('');
         if (options === null) load('');
@@ -84,7 +90,10 @@ export default function Combobox({
     function onType(e) {
         const v = e.target.value;
         setQ(v);
-        if (!open) setOpen(true);
+        if (!open) {
+            placeList();
+            setOpen(true);
+        }
         loadLater(v);
     }
 

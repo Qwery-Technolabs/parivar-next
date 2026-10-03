@@ -74,7 +74,8 @@ function KeptBy({ people, entry, meId, handDefault, fieldError }) {
         return options.filter((o) => o.label.toLowerCase().includes(needle) || (o.hint ?? '').toLowerCase().includes(needle));
     };
     return (
-        <div className="grid items-end gap-4 sm:grid-cols-2">
+        // Top-aligned: when the search list opens (in the flow) the switch stays level with the box.
+        <div className="grid items-start gap-4 sm:grid-cols-2">
             <Field label={t('fundraise.keptBy')} hint={t('fundraise.keptByHint')} error={fieldError('kept_by')} required>
                 <Combobox
                     name="kept_by"
@@ -88,7 +89,7 @@ function KeptBy({ people, entry, meId, handDefault, fieldError }) {
                     clearable={false}
                 />
             </Field>
-            <div className="pb-1">
+            <div className="sm:pt-7">
                 <Switch checked={handed} onChange={setHanded} name="handed_over" label={t('fundraise.handedSwitch')} />
                 <p className="mt-1 text-xs text-ink-gray">{t('fundraise.handedHint')}</p>
             </div>

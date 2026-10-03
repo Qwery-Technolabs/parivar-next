@@ -114,6 +114,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- Combobox inside a dialog opens its list IN THE FLOW (decided on every open: focus, typing, arrows) — never floating over the
+  footer or neighbouring fields. A switch beside a combobox is top-aligned (items-start + sm:pt-7), not bottom-aligned.
 - Page ⋮ menus (PageMenu): `icon` is a NAME ('trash', 'pencil' …, MENU_ICONS in page-menu.jsx), never a `<Icon />` element
   from a server page (React #306 when the same icon repeats). Add new names to MENU_ICONS.
 - Password fields: always `<PasswordInput>` (components/ui/password-input.jsx) — eye button to show / hide; never a raw

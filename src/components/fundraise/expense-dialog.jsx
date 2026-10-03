@@ -29,7 +29,8 @@ function PaidBy({ people, entry, meId, fieldError }) {
         return options.filter((o) => o.label.toLowerCase().includes(needle) || (o.hint ?? '').toLowerCase().includes(needle));
     };
     return (
-        <div className="grid items-end gap-4 sm:grid-cols-2">
+        // Top-aligned: when the search list opens (in the flow) the switch stays level with the box.
+        <div className="grid items-start gap-4 sm:grid-cols-2">
             <Field label={t('fundraise.paidBy')} hint={t('fundraise.paidByHint')} error={fieldError('paid_by')} required>
                 <Combobox
                     name="paid_by"
@@ -43,7 +44,7 @@ function PaidBy({ people, entry, meId, fieldError }) {
                     clearable={false}
                 />
             </Field>
-            <div className="pb-1">
+            <div className="sm:pt-7">
                 <Switch checked={repaid} onChange={setRepaid} name="repaid" label={t('fundraise.repaidSwitch')} />
                 <p className="mt-1 text-xs text-ink-gray">{t('fundraise.repaidHint')}</p>
             </div>
