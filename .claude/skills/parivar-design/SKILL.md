@@ -210,11 +210,13 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **"How you're related" lives in the Family card**: a Family | Relation switch in its header (only when the profile is
   someone else connected to the viewer; icon-only on phones). Relation view = the chain from the viewer (`RelationChain`,
   client): rows (avatar, full name + **relation tag** to the viewer (Father, Dada, Kaka …), gender · **generation**
-  ("1st generation above / below", "Same generation") · village). Cards step right **15px per generation away** from the
+  ("1st generation above / below", "Same generation") · village). Cards step right **10px per generation away** from the
   viewer (max 4); the **joint is an SVG curve from under the previous avatar to over the next one** — top-left →
   bottom-right going further away, top-right → bottom-left coming back, straight when level — dots at both ends, the step
   ("’s father" / "ના પિતા") beside it. Chains over 6 people fold the middle behind "Show N more"; summary with the kinship
-  word when known.
+  word when known. Every blood relative gets a tag: exact paths from KIN_TERMS, longer ones a "distant" term by
+  generation / side / gender (lib/kinship.js farTerm: Kaka (distant), Dadi / Baa (distant), Sister (distant) …;
+  gu "(કુટુંબી)"); their spouse gets the matching term (Kaki, Fuva, Bhabhi …); in-laws' relatives stay untagged.
 - Married woman in the add popup (`MarriedName`): **ask only unknown parts** — known ones (a daughter's father, a sister's
   father, a wife's / mother's husband) post hidden, previewed in one line with "Change". A woman's child's father = her
   linked husband, else the husband named in her married name (her middle name + surname).

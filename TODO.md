@@ -324,3 +324,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Print / PDF "By contributor": people with ₹0 paid (pending only) left out; Contributions still lists pending entries
 - [x] Fundraise About: Holdings card under Team — who holds money not handed over, who is owed for expenses (all viewers)
 - [x] Danger zone rows: full explaining sentences (up to ~20 words), en + gu
+- [x] Holdings: Income / Expense switch, amount per person, treasurer (else admin / creator) holds handed-over money
+- [x] Fundraise History collapsible (closed by default); on phones it sits just before the Danger zone
+- [x] Relation chain: distant relatives tagged (Kaka / Dadi / Sister … (distant), gu કુટુંબી); indent 15 → 10px

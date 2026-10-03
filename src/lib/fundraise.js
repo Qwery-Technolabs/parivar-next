@@ -258,49 +258,73 @@ const CONTRIB_KEY = `COALESCE(CONCAT('u:', user_id), CONCAT('n:', donor_name))`;
 const PUBLIC_KEY = `IF(is_anonymous = 1, 'anon', ${CONTRIB_KEY})`;
 
 /**
- * Holdings — who has the fundraise's money outside the treasurer, per person:
- *   holding = received contributions they keep (kept_by) that are not handed over yet;
- *   owed    = expenses they paid from their pocket (meta paid_by) not repaid yet (meta repaid ≠ '1').
- * Largest first; people with neither are left out. Two grouped queries, names joined in.
+ * Holdings — where the fundraise's money is, per person (About tab, everyone who sees it).
+ * The treasurer = the team's first treasurer, else its first admin, else the creator.
+ *   income:  received contributions by who holds them now — the keeper (kept_by) until handed over;
+ *            handed-over ones, and old ones with no keeper, are with the treasurer. Sums to "collected".
+ *   expense: expenses by who paid (meta paid_by; none = the treasurer, from the fund), with how much
+ *            of it the treasurer still owes back (not repaid, paid by someone else). Sums to "spent".
+ * Rows: { user_id, full_name, full_name_local, amount, entries, is_treasurer, handed (income: from
+ * others), to_get_back (expense) }, largest first.
  */
-export async function listHoldings(campaignId) {
-    const [kept, paid] = await Promise.all([
+export async function listHoldings(campaign) {
+    const campaignId = campaign.id;
+    const [team, contribs, expenses] = await Promise.all([
+        query(`SELECT user_id, member_role FROM fundraise_members WHERE campaign_id = :campaignId ORDER BY added_at, user_id`, { campaignId }),
         query(
-            `SELECT u.id AS user_id, u.full_name, u.full_name_local, SUM(c.amount) AS amount, COUNT(*) AS entries
-               FROM fundraise_contributions c JOIN users_list u ON u.id = c.kept_by
-              WHERE c.campaign_id = :campaignId AND c.deleted_at IS NULL AND c.mode <> 'unpaid' AND c.handed_over = 0
-              GROUP BY u.id, u.full_name, u.full_name_local`,
+            `SELECT kept_by, handed_over, SUM(amount) AS amount, COUNT(*) AS entries
+               FROM fundraise_contributions
+              WHERE campaign_id = :campaignId AND deleted_at IS NULL AND mode <> 'unpaid'
+              GROUP BY kept_by, handed_over`,
             { campaignId },
         ),
         query(
-            `SELECT u.id AS user_id, u.full_name, u.full_name_local, SUM(e.amount) AS amount, COUNT(*) AS entries
+            `SELECT CAST(pb.meta_value AS UNSIGNED) AS paid_by, (COALESCE(rp.meta_value, '') = '1') AS repaid,
+                    SUM(e.amount) AS amount, COUNT(*) AS entries
                FROM fundraise_expenses e
-               JOIN fundraise_expensesmeta pb ON pb.expense_id = e.id AND pb.meta_key = 'paid_by'
-               JOIN users_list u ON u.id = CAST(pb.meta_value AS UNSIGNED)
+               LEFT JOIN fundraise_expensesmeta pb ON pb.expense_id = e.id AND pb.meta_key = 'paid_by'
                LEFT JOIN fundraise_expensesmeta rp ON rp.expense_id = e.id AND rp.meta_key = 'repaid'
-              WHERE e.campaign_id = :campaignId AND e.deleted_at IS NULL AND COALESCE(rp.meta_value, '') <> '1'
-              GROUP BY u.id, u.full_name, u.full_name_local`,
+              WHERE e.campaign_id = :campaignId AND e.deleted_at IS NULL
+              GROUP BY paid_by, repaid`,
             { campaignId },
         ),
     ]);
-    const people = new Map();
-    const person = (r) => {
-        if (!people.has(r.user_id)) {
-            people.set(r.user_id, {
-                user_id: r.user_id,
-                full_name: r.full_name,
-                full_name_local: r.full_name_local,
-                holding: 0,
-                holding_entries: 0,
-                owed: 0,
-                owed_entries: 0,
-            });
-        }
-        return people.get(r.user_id);
+    const treasurerId =
+        team.find((m) => m.member_role === 'treasurer')?.user_id ?? team.find((m) => m.member_role === 'admin')?.user_id ?? campaign.created_by ?? null;
+
+    const income = new Map();
+    const expense = new Map();
+    const row = (map, id) => {
+        if (!map.has(id)) map.set(id, { user_id: id, amount: 0, entries: 0, handed: 0, to_get_back: 0, is_treasurer: id === treasurerId });
+        return map.get(id);
     };
-    for (const r of kept) Object.assign(person(r), { holding: Number(r.amount), holding_entries: Number(r.entries) });
-    for (const r of paid) Object.assign(person(r), { owed: Number(r.amount), owed_entries: Number(r.entries) });
-    return [...people.values()].sort((a, b) => b.holding + b.owed - (a.holding + a.owed));
+    for (const c of contribs) {
+        const keeper = Number(c.kept_by) || null;
+        const holder = !keeper || c.handed_over ? treasurerId : keeper;
+        const r = row(income, holder);
+        r.amount += Number(c.amount);
+        r.entries += Number(c.entries);
+        if (holder === treasurerId && keeper && keeper !== treasurerId) r.handed += Number(c.amount);
+    }
+    for (const e of expenses) {
+        const payer = Number(e.paid_by) || treasurerId;
+        const r = row(expense, payer);
+        r.amount += Number(e.amount);
+        r.entries += Number(e.entries);
+        if (payer !== treasurerId && !Number(e.repaid)) r.to_get_back += Number(e.amount);
+    }
+
+    const ids = [...new Set([...income.keys(), ...expense.keys()].filter(Boolean))];
+    const names = new Map();
+    if (ids.length) {
+        const l = inList(ids, 'hu');
+        for (const u of await query(`SELECT id, full_name, full_name_local FROM users_list WHERE id IN (${l.sql})`, l.params)) names.set(u.id, u);
+    }
+    const finish = (map) =>
+        [...map.values()]
+            .map((r) => ({ ...r, full_name: names.get(r.user_id)?.full_name ?? null, full_name_local: names.get(r.user_id)?.full_name_local ?? null }))
+            .sort((a, b) => b.amount - a.amount);
+    return { income: finish(income), expense: finish(expense) };
 }
 
 /**

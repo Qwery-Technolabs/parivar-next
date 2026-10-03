@@ -150,9 +150,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Every ledger change is in fundraise_history (who); role changes in the audit log (added / removed).
 - **Copy list / Copy all** (money tab → /api/fundraise/[id]/ledger → lib/ledger-text.js): every contribution, unpaid ones
   too with "(pending)" after the name; Total counts paid only, then a "Pending ₹…" line when any; anonymous stays hidden.
-- **Holdings card** (About tab under Team, everyone who sees the fundraise; not on a Mandal): listHoldings() = per person
-  "Holds ₹" (contributions kept_by them, received, handed_over = 0) and "To get back ₹" (expenses meta paid_by them,
-  repaid ≠ 1); totals row when 2+ people; empty = "All money is with the treasurer".
+- **Holdings card** (About tab under Team, everyone who sees the fundraise; not on a Mandal), listHoldings(campaign):
+  Income / Expense switch in the header. Treasurer = team's first treasurer, else first admin, else creator.
+  Income = received contributions by who holds them: keeper until handed over; handed-over and keeper-less ones →
+  treasurer (sums to collected; treasurer row shows "₹… handed over by others"). Expense = expenses by payer (no
+  paid_by → treasurer), with "To get back" for not-repaid ones paid by someone else (sums to spent). Totals row.
+- **Fundraise History** (About): native <details>, collapsed by default; below lg the two columns are `contents` and
+  History is ordered just before the Danger zone (max-lg:order-1 / -2).
 - **Statement "By contributor"** (print / PDF / public page, components/fundraise/statement.jsx): only people with paid > 0,
   entries = paid entries (contributorTotals.paid_entries). The Contributions table still lists every entry, pending in red.
 - **Expense paid by** (fundraise_expensesmeta paid_by = user id, repaid = '1'): the expense form's "Paid by" (searchable Combobox filtering fundraisePeople in the browser —

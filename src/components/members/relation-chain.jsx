@@ -23,7 +23,7 @@ const ordinal = (n) => {
     return `${n}${suffix}`;
 };
 
-const STEP_PX = 15; // indent per generation away from the viewer (small: the joint curve stays gentle)
+const STEP_PX = 10; // indent per generation away from the viewer (small: the joint curve stays a gentle S)
 const MAX_LEVEL = 4;
 const AVATAR_X = 30; // avatar centre from the card's left edge (12px padding + half of 36px)
 const LINK_H = 34; // height of the joint between two cards

@@ -187,7 +187,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             getAudience(campaign.id),
             listTeam(campaign.id),
             // Holdings card (everyone who sees the fundraise); a Mandal shows who has its money in its own tab.
-            campaign.kind === 'mandal' ? null : listHoldings(campaign.id),
+            campaign.kind === 'mandal' ? null : listHoldings(campaign),
             listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),

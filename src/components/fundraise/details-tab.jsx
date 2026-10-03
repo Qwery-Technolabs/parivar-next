@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import { Card } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import { localized } from '@/lib/i18n/config';
@@ -40,9 +41,10 @@ export default function DetailsTab({
 }) {
     const description = localized(campaign.meta, 'description', locale);
     return (
-        // Side column (team, public link): a little wider on desktop.
+        // Side column (team, public link): a little wider on desktop. Below lg both columns dissolve
+        // (contents) into one list, so History can sit just before the Danger zone on a phone (order).
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-            <div className="min-w-0 space-y-4">
+            <div className="contents lg:block lg:min-w-0 lg:space-y-4">
                 {(description || audience.length > 0) && (
                     <Card title={t('fundraise.description')}>
                         {description && <p className="whitespace-pre-line text-sm text-ink break-words">{description}</p>}
@@ -69,10 +71,17 @@ export default function DetailsTab({
                     </section>
                 )}
 
-                <section id="history" className="scroll-mt-4">
-                    <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.history.title')}</h2>
-                    <p className="-mt-1 mb-2 text-xs text-ink-gray">{t('fundraise.history.hint')}</p>
-                    <div className="rounded-lg border border-surface-border bg-white p-4 shadow-sm">
+                {/* Collapsed by default (native details — no script); on a phone just above the Danger zone. */}
+                <details id="history" className="group min-w-0 scroll-mt-4 rounded-lg border border-surface-border bg-white shadow-sm max-lg:order-1">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg bg-card-head px-3.5 py-2.5 group-open:rounded-b-none group-open:border-b group-open:border-surface-border [&::-webkit-details-marker]:hidden">
+                        <span className="text-sm font-semibold text-primary">
+                            {t('fundraise.history.title')}
+                            {history.length > 0 && <span className="ml-1.5 text-xs font-normal text-ink-gray tabular-nums">{history.length}</span>}
+                        </span>
+                        <ChevronDown className="size-4 text-ink-gray transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="p-4">
+                        <p className="mb-3 text-xs text-ink-gray">{t('fundraise.history.hint')}</p>
                         {history.length === 0 ? (
                             <p className="text-center text-sm text-ink-gray">{t('fundraise.history.empty')}</p>
                         ) : (
@@ -96,10 +105,10 @@ export default function DetailsTab({
                             </ol>
                         )}
                     </div>
-                </section>
+                </details>
             </div>
 
-            <div className="min-w-0 space-y-4">
+            <div className="contents lg:block lg:min-w-0 lg:space-y-4">
                 <section id="team" className="scroll-mt-4">
                     <Card
                         title={t('fundraise.tabs.team')}
@@ -117,18 +126,20 @@ export default function DetailsTab({
                     </Card>
                 </section>
                 {/* Who has money outside the treasurer: kept contributions, expenses to get back. */}
-                {holdings && <HoldingsCard holdings={holdings} t={t} locale={locale} />}
+                {holdings && <HoldingsCard holdings={holdings} />}
                 {/* Draws its own card, with the public switch in the header. */}
                 <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
                 {/* Danger zone (its admins): clear the discussion, pause, archive — each with a sentence and a confirmation. */}
                 {(perms.manage || (canClearChat && messageCount > 0) || historyCount > 0) && (
-                    <FundraiseDangerCard
-                        campaign={campaign}
-                        canManage={perms.manage}
-                        messageCount={canClearChat ? messageCount : 0}
-                        historyCount={historyCount}
-                        t={t}
-                    />
+                    <div className="min-w-0 max-lg:order-2">
+                        <FundraiseDangerCard
+                            campaign={campaign}
+                            canManage={perms.manage}
+                            messageCount={canClearChat ? messageCount : 0}
+                            historyCount={historyCount}
+                            t={t}
+                        />
+                    </div>
                 )}
             </div>
         </div>
