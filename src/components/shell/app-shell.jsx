@@ -20,9 +20,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { logout } from '@/app/actions/session';
 import { Popover } from '@/components/ui/popover';
+import BackgroundPrefetch from './background-prefetch';
 import { BACK_SLOT_ID } from './header-back';
 import SamajLogo from './samaj-logo';
 import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
@@ -170,6 +171,12 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
     // Initial state comes from a cookie read on the server, so the first paint already has
     // the right width — localStorage would render expanded and then jump.
     const [collapsed, setCollapsed] = useState(initialCollapsed);
+    // The main menu pages (plus the header's Notifications / Calendar), fetched in the background
+    // once the first page is up; the audit log is heavy and rarely opened, so it is left out.
+    const prefetchHrefs = useMemo(
+        () => [...sections.flatMap((s) => s.items).filter((i) => i.icon !== 'audit').map((i) => i.href), '/notifications', '/calendar'],
+        [sections],
+    );
 
     function toggleCollapsed() {
         const next = !collapsed;
@@ -336,6 +343,7 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                     {/* Full width with slim side gutters: tables and the discussion get the room.
                         Forms keep their own max-w-* so lines stay readable. */}
                     <div className="w-full px-2 py-3 sm:px-3 lg:px-4">{children}</div>
+                    <BackgroundPrefetch hrefs={prefetchHrefs} />
                 </main>
                 <BottomNav sections={sections} pathname={pathname} />
             </div>

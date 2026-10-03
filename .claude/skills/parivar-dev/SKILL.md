@@ -259,7 +259,14 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `public/` (the no-logo fallback) — never `src/app/favicon.ico`, which Next links on every page.
 - **Manifest** (src/app/manifest.js): static + `revalidate = 3600` (no `connection()`) — the browser fetches it on every
   page, so it must be a cache hit, not a function + DB read. Saving Settings → General calls
-  revalidatePath('/manifest.webmanifest') so a new Samaj name / logo shows at once.
+  revalidatePath('/manifest.webmanifest') so a new Samaj name / logo shows at once. Browser keeps it a day
+  (next.config headers). Favicon `/favicon.ico` and unversioned `/api/app-icon` (+ its fallback redirect): 7 days;
+  `/api/app-icon?v=…`: a year, immutable.
+- **No loading.js — ever** (user's choice: no loading screens on navigation). Speed comes from
+  `BackgroundPrefetch` (components/shell, in AppShell): once per app load, on idle, router.prefetch of the main menu
+  pages + /notifications + /calendar (not the audit log), 300ms apart, skipped on Data Saver / 2G. Prefetched pages
+  live `experimental.staleTimes.static = 180`s; a save (revalidatePath) drops them. New main sections are prefetched
+  automatically from the nav `sections`.
 
 ## i18n
 

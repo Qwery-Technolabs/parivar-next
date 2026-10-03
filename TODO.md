@@ -331,3 +331,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Members ⋮ menu: separator between Invite by phone and Castes (PageMenu item groups)
 - [x] Members list: removed "Make group admin" (row menu + bulk bar); admins are made inside the group
 - [x] manifest.webmanifest cached (static, hourly + on Settings → General save) instead of a function + DB read per page
+- [x] No loading.js; main menu pages prefetched in the background after the first load (3-min reuse)
+- [x] Favicon / unversioned app icon cached 7 days; manifest kept by the browser for a day
