@@ -182,6 +182,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
+- **Members list → groups**: the row ⋮ and the bulk bar only "Add to group" (as member; assignToGroup /
+  bulkAssignToGroup force member_role = member). Group admins are made ONLY inside the group (its Members tab).
 - **Bulk edit members** (Members bulk bar → Bulk edit, `bulkEditMembers`, app admins / sub-admins = canManageMembers): rows of
   "what to change ▾ / value / ×" (+ Add a change; each field once): status, role, native village, current city, caste → sub-caste,
   blood group, donor. Per person: canEditUser, role only via canChangeRole, never own role / status, non-active → sessions revoked;
@@ -255,6 +257,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `admin_settings.app_icon_<size>`; `getSettings` skips `app_icon_%` rows; `logo_version` busts caches.
   Manifest, favicon and apple-touch icon all use `/api/app-icon`. The built-in `favicon.ico` lives in
   `public/` (the no-logo fallback) — never `src/app/favicon.ico`, which Next links on every page.
+- **Manifest** (src/app/manifest.js): static + `revalidate = 3600` (no `connection()`) — the browser fetches it on every
+  page, so it must be a cache hit, not a function + DB read. Saving Settings → General calls
+  revalidatePath('/manifest.webmanifest') so a new Samaj name / logo shows at once.
 
 ## i18n
 

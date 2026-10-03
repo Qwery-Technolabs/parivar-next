@@ -329,3 +329,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Relation chain: distant relatives tagged (Kaka / Dadi / Sister … (distant), gu કુટુંબી); indent 15 → 10px
 - [x] Relation: father's wife (no direct mother link) shows as Mother; spouse's child as Son / Daughter
 - [x] Members ⋮ menu: separator between Invite by phone and Castes (PageMenu item groups)
+- [x] Members list: removed "Make group admin" (row menu + bulk bar); admins are made inside the group
+- [x] manifest.webmanifest cached (static, hourly + on Settings → General save) instead of a function + DB read per page

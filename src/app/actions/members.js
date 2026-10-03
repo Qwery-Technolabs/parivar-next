@@ -292,12 +292,12 @@ async function applyGroupMembership(actor, userIds, groupIds, memberRole) {
     return out;
 }
 
-/** Row menu on the Members list: one person, one group. */
+/** Row menu on the Members list: one person, one group — as a member (group admins are made inside the group). */
 export async function assignToGroup(prev, fd) {
     const actor = await getCurrentUser();
     const userId = id(fd, 'user_id');
     const groupId = id(fd, 'group_id');
-    const memberRole = oneOf(fd, 'member_role', ['member', 'admin'], 'member');
+    const memberRole = 'member';
     if (!groupId) return { fieldErrors: { group_id: 'common.required' } };
     if (!actor || !userId || !canActOnRole((await groupStanding(actor, groupId)).standing, null, memberRole)) return FORBIDDEN;
     const [user, group] = await Promise.all([
@@ -307,21 +307,19 @@ export async function assignToGroup(prev, fd) {
     if (!user || !group) return { error: 'common.error' };
     await applyGroupMembership(actor, [userId], [groupId], memberRole);
     revalidatePath(`/members/${userId}`);
-    return memberRole === 'admin'
-        ? { ok: true, message: 'members.madeAdmin', vars: { name: user.full_name, group: group.name } }
-        : { ok: true, message: 'common.saved' };
+    return { ok: true, message: 'common.saved' };
 }
 
 /**
  * Bulk bar on the Members list: many people × one or more groups.
- * Fields: user_ids[] (at most 500), group_ids[], member_role.
+ * Fields: user_ids[] (at most 500), group_ids[]. Always as members — group admins are made inside the group.
  */
 export async function bulkAssignToGroup(prev, fd) {
     const actor = await getCurrentUser();
     if (!actor) return FORBIDDEN;
     const userIds = [...new Set(fd.getAll('user_ids').map(Number))].filter((n) => n > 0).slice(0, 500);
     const groupIds = [...new Set(fd.getAll('group_ids').map(Number))].filter((n) => n > 0).slice(0, 50);
-    const memberRole = oneOf(fd, 'member_role', ['member', 'admin'], 'member');
+    const memberRole = 'member';
     if (!userIds.length) return { error: 'members.bulk.noneSelected' };
     if (!groupIds.length) return { fieldErrors: { group_ids: 'members.bulk.chooseGroups' } };
     const r = await applyGroupMembership(actor, userIds, groupIds, memberRole);

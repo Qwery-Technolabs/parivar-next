@@ -1,6 +1,6 @@
 'use client';
-import { Eye, GitFork, Pencil, ShieldCheck, Trash2, UserPlus } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { Eye, GitFork, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { useTransition } from 'react';
 import { toast } from 'sonner';
 import { assignToGroup, deleteMember } from '@/app/actions/members';
 import { Field, selectInput } from '@/components/ui/field';
@@ -10,7 +10,6 @@ import { useT } from '@/lib/i18n/client';
 
 export default function MemberRowActions({ member, canEdit, groups, canAssignGroups, canDelete = false }) {
     const { t } = useT();
-    const [memberRole, setMemberRole] = useState('admin');
     const [deleting, startDelete] = useTransition();
     // Delete (super admins / administrators): asks first, names the person, cannot be undone.
     const remove = (close) => {
@@ -25,12 +24,13 @@ export default function MemberRowActions({ member, canEdit, groups, canAssignGro
 
     return (
         <FormDialog
-            title={memberRole === 'admin' ? t('members.makeGroupAdmin') : t('members.addToGroup')}
+            // Adds as a member only; making someone a group admin happens inside the group.
+            title={t('members.addToGroup')}
             description={member.name}
             action={assignToGroup}
-            hidden={{ user_id: member.id, member_role: memberRole }}
-            submitIcon={memberRole === 'admin' ? ShieldCheck : UserPlus}
-            submitLabel={memberRole === 'admin' ? t('members.makeGroupAdmin') : t('members.addToGroup')}
+            hidden={{ user_id: member.id }}
+            submitIcon={UserPlus}
+            submitLabel={t('members.addToGroup')}
             width="sm:max-w-sm"
             trigger={({ open }) => (
                 <KebabMenu label={t('common.more')}>
@@ -51,20 +51,9 @@ export default function MemberRowActions({ member, canEdit, groups, canAssignGro
                                 <>
                                     <MenuSeparator />
                                     <MenuItem
-                                        icon={ShieldCheck}
-                                        onClick={() => {
-                                            close();
-                                            setMemberRole('admin');
-                                            open();
-                                        }}
-                                    >
-                                        {t('members.makeGroupAdmin')}
-                                    </MenuItem>
-                                    <MenuItem
                                         icon={UserPlus}
                                         onClick={() => {
                                             close();
-                                            setMemberRole('member');
                                             open();
                                         }}
                                     >

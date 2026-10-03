@@ -1,5 +1,5 @@
 'use client';
-import { KeyRound, ShieldCheck, UserPlus, X } from 'lucide-react';
+import { KeyRound, UserPlus, X } from 'lucide-react';
 import { createContext, useContext, useState } from 'react';
 import { bulkAssignToGroup, bulkResetPasswords } from '@/app/actions/members';
 import FormDialog from '@/components/ui/form-dialog';
@@ -61,7 +61,7 @@ export function RowCheck({ id, label }) {
 }
 
 /**
- * Bar above the table that appears once anyone is selected: Add to group / Make group admin, each
+ * Bar above the table that appears once anyone is selected: Add to group (as members — group admins are made inside the group),
  * opening a dialog where one or more groups are ticked.
  * canReset adds "Reset password to phone" (for people who forgot theirs).
  * editCtx (app admins / sub-admins) adds "Bulk edit": status, role, village, city, caste, blood group, donor.
@@ -73,21 +73,20 @@ export function BulkBar({ groups, canReset = false, editCtx = null }) {
     if (selected.size === 0) return null;
     const ids = [...selected];
 
-    const dialog = (role) => (
+    // Add to groups as members; making someone a group admin happens inside the group.
+    const addToGroups = (
         <FormDialog
-            key={role}
-            title={role === 'admin' ? t('members.makeGroupAdmin') : t('members.addToGroup')}
+            title={t('members.addToGroup')}
             description={t('members.bulk.selected', { count: ids.length })}
             action={bulkAssignToGroup}
-            hidden={{ member_role: role }}
-            submitIcon={role === 'admin' ? ShieldCheck : UserPlus}
+            submitIcon={UserPlus}
             submitLabel={t('common.apply')}
             width="sm:max-w-md"
             onSuccess={clear}
             trigger={({ open }) => (
                 <button type="button" onClick={open} className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-3 text-xs font-medium">
-                    {role === 'admin' ? <ShieldCheck className="size-3.5" /> : <UserPlus className="size-3.5" />}
-                    {role === 'admin' ? t('members.makeGroupAdmin') : t('members.addToGroup')}
+                    <UserPlus className="size-3.5" />
+                    {t('members.addToGroup')}
                 </button>
             )}
         >
@@ -102,7 +101,7 @@ export function BulkBar({ groups, canReset = false, editCtx = null }) {
                         <div>
                             <GroupChecklist groups={groups} label={t('members.bulk.chooseGroups')} />
                             {fieldError('group_ids') && <p className="mt-1 text-xs font-medium text-destructive">{fieldError('group_ids')}</p>}
-                            {role === 'member' && <p className="mt-1 text-xs text-ink-gray">{t('members.bulk.keepAdmins')}</p>}
+                            <p className="mt-1 text-xs text-ink-gray">{t('members.bulk.keepAdmins')}</p>
                         </div>
                     )}
                 </>
@@ -115,7 +114,7 @@ export function BulkBar({ groups, canReset = false, editCtx = null }) {
             <span className="text-sm font-semibold text-primary">{t('members.bulk.selected', { count: ids.length })}</span>
             <span className="flex-1" />
             {editCtx && <BulkEditDialog ids={ids} ctx={editCtx} onDone={clear} />}
-            {groups.length > 0 && ['member', 'admin'].map(dialog)}
+            {groups.length > 0 && addToGroups}
             {canReset && (
                 <FormDialog
                     title={t('members.bulk.resetTitle')}

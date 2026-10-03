@@ -35,6 +35,8 @@ export async function saveModuleSettings(prev, fd) {
     await withTransaction((q) => saveSettings(mod, values, q));
     await audit(user.id, 'settings.update', 'settings', null, { module: mod, keys: Object.keys(values) });
     revalidatePath('/', 'layout');
+    // The cached web manifest carries the Samaj name and logo version.
+    if (mod === 'admin') revalidatePath('/manifest.webmanifest');
     return { ok: true, message: 'common.saved' };
 }
 
