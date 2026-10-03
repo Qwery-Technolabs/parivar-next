@@ -317,3 +317,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Money forms in parts (Contributor / Details · Amount · Holding) with placeholders for What, Where, Notes, Reference
 - [x] Add family member: title shows whose relative and which ("Add Mother of …")
 - [x] Members: Bulk edit (app admins / sub-admins) — status, role, village, city, caste, blood group, donor for all ticked, via add/remove change rows
+- [x] Bulk edit rows restyled: headings, plain rows, outlined × and + Add a change

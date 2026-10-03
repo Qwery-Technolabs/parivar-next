@@ -198,6 +198,7 @@ const en = {
             button: 'Bulk edit',
             title: 'Bulk edit',
             what: 'What to change',
+            value: 'New value',
             pickFirst: 'Choose what to change first',
             addChange: 'Add a change',
             note: 'Applies to everyone ticked. People above your role are left out, and nobody changes their own role or status. An empty village, city or caste clears it.',

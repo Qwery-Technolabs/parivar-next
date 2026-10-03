@@ -114,6 +114,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- Repeater rows (e.g. Bulk edit): small uppercase column headings, plain rows (no box per row), a bordered square × at the
+  right of each row, "+ Add …" as an outlined button bottom-right.
 - Money forms are grouped with FormPart: contribution = Contributor · Amount · Holding (Kept by); expense = Details · Amount
   (+ Notes) · Holding (Paid by). What / Where / Notes / Reference carry example placeholders.
 - Money / amount inputs: type="number" inputMode="decimal" min="0" step="0.01" everywhere (contribution, expense, Mandal

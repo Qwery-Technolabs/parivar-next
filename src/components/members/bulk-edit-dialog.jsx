@@ -11,6 +11,8 @@ import { BLOOD_GROUPS } from '@/lib/roles';
 
 // What Bulk edit can change, in menu order.
 const FIELDS = ['status', 'role', 'village', 'city', 'caste', 'blood_group', 'donor'];
+// One column layout for the headings and every row: what to change | new value | remove.
+const ROW_GRID = 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[11rem_minmax(0,1fr)_auto]';
 
 /**
  * One change row: what to change ▾ — the new value — ×. The value control follows the field
@@ -83,13 +85,14 @@ function ChangeRow({ row, used, onField, onRemove, removable, ctx, fieldError })
         }
     };
     return (
-        <div className="grid items-start gap-2 rounded-md border border-surface-border p-2 sm:grid-cols-[11rem_minmax(0,1fr)_auto]">
+        <div className={`grid items-start gap-2 ${ROW_GRID}`}>
             {row.field && <input type="hidden" name="change" value={row.field} />}
             <select
                 value={row.field}
                 onChange={(e) => onField(e.target.value)}
                 aria-label={t('members.bulkEdit.what')}
-                className={`${selectInput()} w-full`}
+                // Phones: what + × on the first line, the value full-width below; from sm: one line.
+                className={`${selectInput()} col-start-1 row-start-1 w-full`}
             >
                 <option value="" disabled>
                     {t('members.bulkEdit.what')}
@@ -101,7 +104,7 @@ function ChangeRow({ row, used, onField, onRemove, removable, ctx, fieldError })
                 ))}
             </select>
             {/* key: switching the field gives a fresh value control */}
-            <div key={row.field} className="min-w-0">
+            <div key={row.field} className="col-span-2 min-w-0 sm:col-span-1">
                 {row.field ? value() : <p className="py-2 text-xs text-ink-gray">{t('members.bulkEdit.pickFirst')}</p>}
             </div>
             <button
@@ -110,7 +113,7 @@ function ChangeRow({ row, used, onField, onRemove, removable, ctx, fieldError })
                 disabled={!removable}
                 aria-label={t('common.remove')}
                 title={t('common.remove')}
-                className="flex size-9 items-center justify-center rounded-md text-ink-gray hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
+                className="col-start-2 row-start-1 flex size-9 shrink-0 items-center sm:col-start-3 justify-center rounded-md border border-surface-border bg-white text-ink-gray hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
             >
                 <X className="size-4" />
             </button>
@@ -125,6 +128,12 @@ function ChangeRows({ ctx, fieldError }) {
     const next = FIELDS.find((f) => !used.includes(f));
     return (
         <div className="space-y-2">
+            {/* Column headings, like a line-item table (from sm up). */}
+            <div className={`hidden gap-2 ${ROW_GRID} text-[11px] font-semibold uppercase tracking-wide text-ink-gray sm:grid`}>
+                <span>{t('members.bulkEdit.what')}</span>
+                <span>{t('members.bulkEdit.value')}</span>
+                <span className="w-9" />
+            </div>
             {rows.map((row) => (
                 <ChangeRow
                     key={row.key}
@@ -138,13 +147,15 @@ function ChangeRows({ ctx, fieldError }) {
                 />
             ))}
             {next && rows.length < FIELDS.length && (
-                <button
-                    type="button"
-                    onClick={() => setRows((list) => [...list, { key: Date.now(), field: '' }])}
-                    className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium"
-                >
-                    <Plus className="size-3.5" /> {t('members.bulkEdit.addChange')}
-                </button>
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={() => setRows((list) => [...list, { key: Date.now(), field: '' }])}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent"
+                    >
+                        <Plus className="size-4" /> {t('members.bulkEdit.addChange')}
+                    </button>
+                </div>
             )}
             <p className="text-xs text-ink-gray">{t('members.bulkEdit.note')}</p>
         </div>
