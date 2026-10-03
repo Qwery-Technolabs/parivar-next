@@ -3,7 +3,7 @@
 import { date, money } from '@/lib/format';
 
 const FIELDS = {
-    contribution: ['donor_name', 'amount', 'paid_on', 'mode', 'reference', 'is_anonymous'],
+    contribution: ['donor_name', 'amount', 'paid_on', 'mode', 'reference', 'is_anonymous', 'kept_by_name', 'handed_over'],
     expense: ['title', 'place', 'category', 'amount', 'spent_on', 'notes', 'bill_ref', 'paid_by_name', 'repaid'],
 };
 
@@ -21,6 +21,8 @@ const LABEL = {
     notes: 'common.notes',
     bill_ref: 'fundraise.billRef',
     paid_by_name: 'fundraise.paidBy',
+    kept_by_name: 'fundraise.keptBy',
+    handed_over: 'fundraise.handedOver',
     repaid: 'fundraise.repaid',
 };
 
@@ -29,7 +31,7 @@ function show(field, value, t, locale) {
     if (field === 'amount') return money(value);
     if (field === 'paid_on' || field === 'spent_on') return date(String(value).slice(0, 10), locale);
     if (field === 'mode') return t(`fundraise.modes.${value}`);
-    if (field === 'is_anonymous' || field === 'repaid') return Number(value) ? t('common.yes') : t('common.no');
+    if (field === 'is_anonymous' || field === 'repaid' || field === 'handed_over') return Number(value) ? t('common.yes') : t('common.no');
     return String(value);
 }
 

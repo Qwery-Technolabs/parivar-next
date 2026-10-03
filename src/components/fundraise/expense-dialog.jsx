@@ -2,6 +2,7 @@
 import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { saveExpense } from '@/app/actions/fundraise';
+import Combobox from '@/components/ui/combobox';
 import Switch from '@/components/ui/switch';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
@@ -15,21 +16,32 @@ import { useT } from '@/lib/i18n/client';
 function PaidBy({ people, entry, meId, fieldError }) {
     const { t, locale } = useT();
     const [repaid, setRepaid] = useState(Boolean(entry?.repaid));
-    const current = entry?.paid_by ?? meId;
     const name = (p) => (locale !== 'en' && p.full_name_local) || p.full_name;
+    const initial = entry?.paid_by ?? meId;
     // A payer no longer in the list (left the group) still shows, so editing never drops them.
-    const list = current && !people.some((p) => p.id === current) && entry?.paid_by_name ? [...people, { id: current, full_name: entry.paid_by_name }] : people;
+    const list = initial && !people.some((p) => p.id === initial) && entry?.paid_by_name ? [...people, { id: initial, full_name: entry.paid_by_name }] : people;
+    const options = list.map((p) => ({ value: String(p.id), label: name(p) + (p.id === meId ? ` (${t('fundraise.you')})` : ''), hint: p.full_name !== name(p) ? p.full_name : undefined }));
+    const [payer, setPayer] = useState(() => options.find((o) => o.value === String(initial ?? '')) ?? null);
+    // Type to search: filters this list in the browser (English and local name), no server call.
+    const search = async (q) => {
+        const needle = q.trim().toLowerCase();
+        if (!needle) return options;
+        return options.filter((o) => o.label.toLowerCase().includes(needle) || (o.hint ?? '').toLowerCase().includes(needle));
+    };
     return (
         <div className="grid items-end gap-4 sm:grid-cols-2">
             <Field label={t('fundraise.paidBy')} hint={t('fundraise.paidByHint')} error={fieldError('paid_by')} required>
-                <select name="paid_by" defaultValue={current ?? ''} className={`${selectInput(!!fieldError('paid_by'))} w-full`}>
-                    {list.map((p) => (
-                        <option key={p.id} value={p.id}>
-                            {name(p)}
-                            {p.id === meId ? ` (${t('fundraise.you')})` : ''}
-                        </option>
-                    ))}
-                </select>
+                <Combobox
+                    name="paid_by"
+                    value={payer?.value ?? ''}
+                    valueLabel={payer?.label ?? ''}
+                    onSelect={(opt) => opt && setPayer(opt)}
+                    fetchOptions={search}
+                    placeholder={t('fundraise.paidBySearch')}
+                    hasError={!!fieldError('paid_by')}
+                    emptyText={t('fundraise.paidByNone')}
+                    clearable={false}
+                />
             </Field>
             <div className="pb-1">
                 <Switch checked={repaid} onChange={setRepaid} name="repaid" label={t('fundraise.repaidSwitch')} />
@@ -68,12 +80,15 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
         >
             {({ fieldError }) => (
                 <>
-                    <Field label={t('fundraise.expenseWhat')} error={fieldError('title')} required>
-                        <input name="title" maxLength={200} defaultValue={entry?.title ?? ''} className={`${textInput(!!fieldError('title'))} w-full`} />
-                    </Field>
-                    <Field label={t('fundraise.expenseWhere')}>
-                        <input name="place" maxLength={200} defaultValue={entry?.place ?? ''} className={`${textInput()} w-full`} />
-                    </Field>
+                    {/* What and Where side by side (half each). */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label={t('fundraise.expenseWhat')} error={fieldError('title')} required>
+                            <input name="title" maxLength={200} defaultValue={entry?.title ?? ''} className={`${textInput(!!fieldError('title'))} w-full`} />
+                        </Field>
+                        <Field label={t('fundraise.expenseWhere')}>
+                            <input name="place" maxLength={200} defaultValue={entry?.place ?? ''} className={`${textInput()} w-full`} />
+                        </Field>
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
                             <input
@@ -106,10 +121,11 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                             <input name="bill_ref" maxLength={100} defaultValue={entry?.bill_ref ?? ''} className={`${textInput()} w-full`} />
                         </Field>
                     </div>
-                    <PaidBy people={people} entry={entry} meId={meId} fieldError={fieldError} />
                     <Field label={t('common.notes')}>
                         <textarea name="notes" rows={3} defaultValue={entry?.notes ?? ''} className={`${textArea()} w-full`} />
                     </Field>
+                    {/* Who paid, and whether the treasurer has paid them back — after the notes. */}
+                    <PaidBy people={people} entry={entry} meId={meId} fieldError={fieldError} />
                 </>
             )}
         </FormDialog>

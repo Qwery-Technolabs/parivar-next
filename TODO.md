@@ -307,3 +307,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Relation view: generation indent 26 → 15 px (gentler joint curves)
 - [x] Fundraise team: several roles per person (ticks), new Expenser role; treasurer / collector record contributions, expenser records expenses (each change in History)
 - [x] Expenses: "Paid by" (default: the recorder, from the team / group) + "Treasurer has paid them back" switch (default off); shown in the list and History
+- [x] Expense Paid by: type-to-search
+- [x] Expense form: What + Where in one row; Paid by / repaid after Notes
+- [x] Contributions: "Hide name publicly" beside the name; two-word name note + check; "Kept by" + "Handed over to the treasurer" (default on for treasurer / admin, off for collector)

@@ -329,6 +329,8 @@ CREATE TABLE IF NOT EXISTS fundraise_contributions (
     reference    VARCHAR(100)  NULL,
     is_anonymous TINYINT(1)    NOT NULL DEFAULT 0,  -- public page shows "Anonymous", admins see the name
     recorded_by  INT UNSIGNED  NULL,
+    kept_by      INT UNSIGNED  NULL,             -- who holds the money now (default: whoever recorded it); NULL for a pledge
+    handed_over  TINYINT(1)    NOT NULL DEFAULT 0,  -- 1 = handed to the treasurer
     deleted_at   DATETIME      NULL,             -- soft delete: hidden and out of totals, kept for history
     deleted_by   INT UNSIGNED  NULL,
     created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,7 +338,8 @@ CREATE TABLE IF NOT EXISTS fundraise_contributions (
     KEY idx_fundraise_contrib_camp (campaign_id, paid_on),
     KEY idx_fundraise_contrib_user (user_id),
     CONSTRAINT fk_fundraise_contrib_camp FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE,
-    CONSTRAINT fk_fundraise_contrib_user FOREIGN KEY (user_id)     REFERENCES users_list (id)          ON DELETE SET NULL
+    CONSTRAINT fk_fundraise_contrib_user FOREIGN KEY (user_id)     REFERENCES users_list (id)          ON DELETE SET NULL,
+    CONSTRAINT fk_fundraise_contrib_kept FOREIGN KEY (kept_by)     REFERENCES users_list (id)          ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS fundraise_expenses (

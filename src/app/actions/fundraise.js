@@ -504,11 +504,12 @@ export async function regenerateToken(campaignId) {
 
 async function contributionSnapshot(q, contributionId) {
     const [row] = await q(
-        `SELECT id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at
-           FROM fundraise_contributions WHERE id = :contributionId`,
+        `SELECT f.id, f.user_id, f.donor_name, f.amount, f.paid_on, f.mode, f.reference, f.is_anonymous, f.deleted_at,
+                k.full_name AS kept_by_name, f.handed_over
+           FROM fundraise_contributions f LEFT JOIN users_list k ON k.id = f.kept_by WHERE f.id = :contributionId`,
         { contributionId },
     );
-    return row ? { ...row, amount: Number(row.amount), is_anonymous: Number(row.is_anonymous) } : null;
+    return row ? { ...row, amount: Number(row.amount), is_anonymous: Number(row.is_anonymous), handed_over: Number(row.handed_over) } : null;
 }
 
 async function expenseSnapshot(q, expenseId) {
@@ -600,6 +601,12 @@ export async function saveContribution(prev, fd) {
 
     const fieldErrors = {};
     if (!donorName) fieldErrors.donor_name = 'fundraise.errors.donor';
+    // At least two words ("Nilesh Kanani", "Nilesh Lallubhai Kanani") — checked on new names; an old
+    // one-word name may stay when an entry is edited without touching it.
+    else if (donorName.split(/\s+/).filter(Boolean).length < 2) {
+        const old = contributionId ? await queryOne('SELECT donor_name FROM fundraise_contributions WHERE id = :contributionId', { contributionId }) : null;
+        if (!old || old.donor_name !== donorName) fieldErrors.donor_name = 'fundraise.errors.donorTwoWords';
+    }
     if (rawUser.startsWith('phone:') && !invitePhone) fieldErrors.user_id = 'auth.errors.phoneInvalid';
     if (amount == null) fieldErrors.amount = 'fundraise.errors.amount';
     if (!paidOn) fieldErrors.paid_on = 'fundraise.errors.date';
@@ -625,6 +632,16 @@ export async function saveContribution(prev, fd) {
         // Forced off server-side when the setting disallows it — hiding the switch enforces nothing.
         anon: bool(fd, 'is_anonymous') && (await getSettings('fundraise')).allow_anonymous ? 1 : 0,
     };
+    // Who keeps the money (default: whoever records it) and whether it has been handed to the treasurer.
+    // A pledge (not paid yet) has neither.
+    if (values.mode === 'unpaid') {
+        values.keptBy = null;
+        values.handed = 0;
+    } else {
+        values.keptBy = id(fd, 'kept_by') || user.id;
+        if (!(await queryOne('SELECT id FROM users_list WHERE id = :keptBy', { keptBy: values.keptBy }))) return { fieldErrors: { kept_by: 'fundraise.errors.member' } };
+        values.handed = bool(fd, 'handed_over') ? 1 : 0;
+    }
 
     const result = await withTransaction(async (q) => {
         if (contributionId) {
@@ -638,7 +655,7 @@ export async function saveContribution(prev, fd) {
             await q(
                 `UPDATE fundraise_contributions
                     SET user_id = :userId, donor_name = :donorName, amount = :amount, paid_on = :paidOn,
-                        mode = :mode, reference = :reference, is_anonymous = :anon
+                        mode = :mode, reference = :reference, is_anonymous = :anon, kept_by = :keptBy, handed_over = :handed
                   WHERE id = :contributionId AND campaign_id = :campaignId`,
                 { ...values, contributionId },
             );
@@ -655,8 +672,8 @@ export async function saveContribution(prev, fd) {
         }
         const r = await q(
             `INSERT INTO fundraise_contributions
-                (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, recorded_by)
-             VALUES (:campaignId, :userId, :donorName, :amount, :paidOn, :mode, :reference, :anon, :by)`,
+                (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, recorded_by, kept_by, handed_over)
+             VALUES (:campaignId, :userId, :donorName, :amount, :paidOn, :mode, :reference, :anon, :by, :keptBy, :handed)`,
             { ...values, by: user.id },
         );
         await writeHistory(q, {

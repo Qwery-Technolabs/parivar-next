@@ -141,8 +141,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                   ? listExpenses(campaign.id, { limit: perPage, offset })
                   : contributorTotals(campaign.id, { publicView: !perms.manage }),
             getSettings('fundraise'),
-            // "Paid by" choices on the expense form.
-            perms.expense ? fundraisePeople(campaign.id) : [],
+            // "Paid by" (expenses) and "Kept by" (contributions) choices.
+            perms.expense || perms.contribution ? fundraisePeople(campaign.id) : [],
         ]);
         // Anonymous gifts: only managers see who gave (they get the name + an "Anonymous" badge).
         const shown = perms.manage || view === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));

@@ -17,6 +17,8 @@ export const MONEY_VIEWS = ['contributions', 'expenses', 'contributors'];
  * the add buttons the viewer's permissions allow, and the table.
  */
 export default function MoneyTab({ campaign, view, rows, total, page, perPage, perms, settings, today, base, sp, t, locale, people = [], meId = null }) {
+    // A treasurer or admin recording money already holds it for the fundraise: "handed to treasurer" starts on.
+    const handDefault = Boolean(perms.manage || perms.teamRoles?.includes('treasurer'));
     // Every viewer gets the row menu (History); Edit / Delete for whoever may record that kind
     // (contributions: managers, treasurers, collectors; expenses: managers, expensers) — every change is in the History.
     const rowProps = {
@@ -73,6 +75,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                             categories={settings.expense_categories}
                             people={people}
                             meId={meId}
+                            handDefault={handDefault}
                         />
                     )}
                 </div>
@@ -109,6 +112,12 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                             </Badge>
                                         ) : null}
                                         {c.reference && <span className="block text-xs text-ink-gray">{c.reference}</span>}
+                                        {c.kept_by_name && c.mode !== 'unpaid' && (
+                                            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-gray">
+                                                {t('fundraise.keptByName', { name: (locale !== 'en' && c.kept_by_name_local) || c.kept_by_name })}
+                                                <Badge tone={c.handed_over ? 'green' : 'amber'}>{c.handed_over ? t('fundraise.withTreasurer') : t('fundraise.notHandedOver')}</Badge>
+                                            </span>
+                                        )}
                                     </Td>
                                     <Td className="hidden sm:table-cell">
                                         {c.mode === 'unpaid' ? <Badge tone="amber">{t('fundraise.pendingBadge')}</Badge> : t(`fundraise.modes.${c.mode}`)}

@@ -148,9 +148,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   perms.teamRole = main one. Rights add up: manage = admin; contribution = treasurer / collector (add, edit, delete,
   mark paid); expense = expenser. Team card: role chips, ⋮ Edit roles (ticks), Add with ticks (saveTeamMember sets the set).
   Every ledger change is in fundraise_history (who); role changes in the audit log (added / removed).
-- **Expense paid by** (fundraise_expensesmeta paid_by = user id, repaid = '1'): the expense form's "Paid by" (fundraisePeople —
+- **Expense paid by** (fundraise_expensesmeta paid_by = user id, repaid = '1'): the expense form's "Paid by" (searchable Combobox filtering fundraisePeople in the browser —
   team + group members + Mandal members, default = the recorder) and a "Treasurer has paid them back" switch (default off).
   The list shows "Paid by X" + Repaid / To repay; both are in the expense snapshot, so History shows changes.
+- **Contribution kept by** (fundraise_contributions.kept_by, handed_over): "Kept by" (searchable, default = the recorder) +
+  "Handed over to the treasurer" (default ON for a treasurer / admin recording it, OFF for a collector); none for a pledge
+  (mode unpaid). List shows "Kept by X" + With treasurer / Not handed over; both in the snapshot → History.
+  Donor name: at least two words on new names (first [father's] surname), "Hide name publicly" sits right of the name.
 - **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
   pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore
   (`setCampaignArchived`, no longer app-level only). Group: GroupDangerCard also holds "Clear history".

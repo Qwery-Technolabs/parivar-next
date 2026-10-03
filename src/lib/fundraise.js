@@ -177,14 +177,18 @@ export async function getCampaignByToken(token) {
 }
 
 /** @param {{ limit?: number, offset?: number }} [opts] omit for all rows (statement / print). */
+/** Contributions, newest first — with who keeps the money (kept_by → name) and whether it was handed to the treasurer. */
 export async function listContributions(campaignId, { limit, offset = 0 } = {}) {
     const page = limit ? `LIMIT ${Number(limit)} OFFSET ${Number(offset)}` : '';
-    return query(
-        `SELECT id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, created_at
-           FROM fundraise_contributions WHERE campaign_id = :campaignId AND deleted_at IS NULL
-          ORDER BY paid_on DESC, id DESC ${page}`,
+    const rows = await query(
+        `SELECT f.id, f.user_id, f.donor_name, f.amount, f.paid_on, f.mode, f.reference, f.is_anonymous, f.created_at,
+                f.kept_by, f.handed_over, k.full_name AS kept_by_name, k.full_name_local AS kept_by_name_local
+           FROM fundraise_contributions f LEFT JOIN users_list k ON k.id = f.kept_by
+          WHERE f.campaign_id = :campaignId AND f.deleted_at IS NULL
+          ORDER BY f.paid_on DESC, f.id DESC ${page}`,
         { campaignId },
     );
+    return rows.map((r) => ({ ...r, handed_over: Boolean(r.handed_over) }));
 }
 
 /**
