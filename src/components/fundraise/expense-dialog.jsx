@@ -1,12 +1,46 @@
 'use client';
 import { Pencil, Plus } from 'lucide-react';
+import { useState } from 'react';
 import { saveExpense } from '@/app/actions/fundraise';
+import Switch from '@/components/ui/switch';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 
-/** Add an expense, or edit one when `entry` (the row, with notes / bill_ref) is given. */
-export default function ExpenseDialog({ campaignId, today, categories = [], entry = null, trigger }) {
+/**
+ * Paid by (who paid out of pocket — default: the person recording it) and whether the treasurer has
+ * paid them back (default off). Its own component so its state remounts with the dialog's form.
+ * `people`: [{ id, full_name, full_name_local }] — the fundraise's team and group members.
+ */
+function PaidBy({ people, entry, meId, fieldError }) {
+    const { t, locale } = useT();
+    const [repaid, setRepaid] = useState(Boolean(entry?.repaid));
+    const current = entry?.paid_by ?? meId;
+    const name = (p) => (locale !== 'en' && p.full_name_local) || p.full_name;
+    // A payer no longer in the list (left the group) still shows, so editing never drops them.
+    const list = current && !people.some((p) => p.id === current) && entry?.paid_by_name ? [...people, { id: current, full_name: entry.paid_by_name }] : people;
+    return (
+        <div className="grid items-end gap-4 sm:grid-cols-2">
+            <Field label={t('fundraise.paidBy')} hint={t('fundraise.paidByHint')} error={fieldError('paid_by')} required>
+                <select name="paid_by" defaultValue={current ?? ''} className={`${selectInput(!!fieldError('paid_by'))} w-full`}>
+                    {list.map((p) => (
+                        <option key={p.id} value={p.id}>
+                            {name(p)}
+                            {p.id === meId ? ` (${t('fundraise.you')})` : ''}
+                        </option>
+                    ))}
+                </select>
+            </Field>
+            <div className="pb-1">
+                <Switch checked={repaid} onChange={setRepaid} name="repaid" label={t('fundraise.repaidSwitch')} />
+                <p className="mt-1 text-xs text-ink-gray">{t('fundraise.repaidHint')}</p>
+            </div>
+        </div>
+    );
+}
+
+/** Add an expense, or edit one when `entry` (the row, with notes / bill_ref / paid_by / repaid) is given. */
+export default function ExpenseDialog({ campaignId, today, categories = [], entry = null, trigger, people = [], meId = null }) {
     const { t } = useT();
     const editing = Boolean(entry);
     // A stored category removed from settings since still shows, so editing never drops it.
@@ -72,6 +106,7 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                             <input name="bill_ref" maxLength={100} defaultValue={entry?.bill_ref ?? ''} className={`${textInput()} w-full`} />
                         </Field>
                     </div>
+                    <PaidBy people={people} entry={entry} meId={meId} fieldError={fieldError} />
                     <Field label={t('common.notes')}>
                         <textarea name="notes" rows={3} defaultValue={entry?.notes ?? ''} className={`${textArea()} w-full`} />
                     </Field>

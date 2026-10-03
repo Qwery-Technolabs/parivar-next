@@ -16,13 +16,15 @@ export const MONEY_VIEWS = ['contributions', 'expenses', 'contributors'];
  * contributions / expenses / by-contributor (?view=, default = contributions = absence),
  * the add buttons the viewer's permissions allow, and the table.
  */
-export default function MoneyTab({ campaign, view, rows, total, page, perPage, perms, settings, today, base, sp, t, locale }) {
+export default function MoneyTab({ campaign, view, rows, total, page, perPage, perms, settings, today, base, sp, t, locale, people = [], meId = null }) {
     // Every viewer gets the row menu (History); Edit / Delete for whoever may record that kind
     // (contributions: managers, treasurers, collectors; expenses: managers, expensers) — every change is in the History.
     const rowProps = {
         today,
         allowAnonymous: settings.allow_anonymous,
         categories: settings.expense_categories,
+        people,
+        meId,
     };
     const labels = {
         contributions: t('fundraise.contributions'),
@@ -69,6 +71,8 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                             perms={{ contribution: perms.contribution, expense: perms.expense }}
                             allowAnonymous={settings.allow_anonymous}
                             categories={settings.expense_categories}
+                            people={people}
+                            meId={meId}
                         />
                     )}
                 </div>
@@ -146,6 +150,12 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                             </Badge>
                                         )}
                                         {e.place && <span className="block text-xs text-ink-gray md:hidden">{e.place}</span>}
+                                        {e.paid_by_name && (
+                                            <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-gray">
+                                                {t('fundraise.paidByName', { name: (locale !== 'en' && e.paid_by_name_local) || e.paid_by_name })}
+                                                <Badge tone={e.repaid ? 'green' : 'amber'}>{e.repaid ? t('fundraise.repaidBadge') : t('fundraise.toRepayBadge')}</Badge>
+                                            </span>
+                                        )}
                                         {(e.bill_ref || e.notes) && (
                                             <span className="block whitespace-pre-line text-xs text-ink-gray">
                                                 {[e.bill_ref && `${t('fundraise.billRef')}: ${e.bill_ref}`, e.notes].filter(Boolean).join(' · ')}

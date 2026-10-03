@@ -306,3 +306,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Calendar: Filters button at the right end of the month row on phones
 - [x] Relation view: generation indent 26 → 15 px (gentler joint curves)
 - [x] Fundraise team: several roles per person (ticks), new Expenser role; treasurer / collector record contributions, expenser records expenses (each change in History)
+- [x] Expenses: "Paid by" (default: the recorder, from the team / group) + "Treasurer has paid them back" switch (default off); shown in the list and History

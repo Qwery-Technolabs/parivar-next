@@ -187,6 +187,22 @@ export async function listContributions(campaignId, { limit, offset = 0 } = {}) 
     );
 }
 
+/**
+ * People who may have paid for one of its expenses: its team, the members of its groups and (a
+ * Mandal) its members — active people, by name. For the expense form's "Paid by".
+ */
+export async function fundraisePeople(campaignId) {
+    return query(
+        `SELECT id, full_name, full_name_local FROM users_list
+          WHERE status = 'active' AND id IN (
+                SELECT user_id FROM fundraise_members WHERE campaign_id = :campaignId
+                UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id WHERE fg.campaign_id = :campaignId
+                UNION SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :campaignId)
+          ORDER BY full_name`,
+        { campaignId },
+    );
+}
+
 export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
     const page = limit ? `LIMIT ${Number(limit)} OFFSET ${Number(offset)}` : '';
     const rows = await query(
@@ -195,8 +211,32 @@ export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
           ORDER BY spent_on DESC, id DESC ${page}`,
         { campaignId },
     );
-    const meta = await getMetaMany('fundraise_expenses', rows.map((r) => r.id), ['notes', 'bill_ref']);
-    return rows.map((r) => ({ ...r, notes: meta[r.id]?.notes ?? '', bill_ref: meta[r.id]?.bill_ref ?? '' }));
+    // Who paid out of pocket (meta paid_by = user id) and whether the treasurer has paid them back (meta repaid = '1').
+    const meta = await getMetaMany('fundraise_expenses', rows.map((r) => r.id), ['notes', 'bill_ref', 'paid_by', 'repaid']);
+    const payerIds = [...new Set(rows.map((r) => Number(meta[r.id]?.paid_by) || 0).filter(Boolean))];
+    const payers = payerIds.length
+        ? new Map(
+              (
+                  await (async () => {
+                      const l = inList(payerIds, 'pb');
+                      return query(`SELECT id, full_name, full_name_local FROM users_list WHERE id IN (${l.sql})`, l.params);
+                  })()
+              ).map((u) => [u.id, u]),
+          )
+        : new Map();
+    return rows.map((r) => {
+        const paidBy = Number(meta[r.id]?.paid_by) || null;
+        const payer = paidBy ? payers.get(paidBy) : null;
+        return {
+            ...r,
+            notes: meta[r.id]?.notes ?? '',
+            bill_ref: meta[r.id]?.bill_ref ?? '',
+            paid_by: paidBy,
+            paid_by_name: payer?.full_name ?? null,
+            paid_by_name_local: payer?.full_name_local ?? null,
+            repaid: meta[r.id]?.repaid === '1',
+        };
+    });
 }
 
 // Two literal SQL variants rather than a bound flag: under ONLY_FULL_GROUP_BY the SELECT

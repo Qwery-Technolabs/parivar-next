@@ -518,11 +518,20 @@ async function expenseSnapshot(q, expenseId) {
     );
     if (!row) return null;
     const meta = await q(
-        `SELECT meta_key, meta_value FROM fundraise_expensesmeta WHERE expense_id = :expenseId AND meta_key IN ('notes', 'bill_ref')`,
+        `SELECT meta_key, meta_value FROM fundraise_expensesmeta WHERE expense_id = :expenseId AND meta_key IN ('notes', 'bill_ref', 'paid_by', 'repaid')`,
         { expenseId },
     );
     const m = Object.fromEntries(meta.map((r) => [r.meta_key, r.meta_value]));
-    return { ...row, amount: Number(row.amount), notes: m.notes ?? null, bill_ref: m.bill_ref ?? null };
+    // The payer's name goes into the history (a name, not an id, reads well later).
+    const [payer] = m.paid_by ? await q('SELECT full_name FROM users_list WHERE id = :id', { id: Number(m.paid_by) }) : [];
+    return {
+        ...row,
+        amount: Number(row.amount),
+        notes: m.notes ?? null,
+        bill_ref: m.bill_ref ?? null,
+        paid_by_name: payer?.full_name ?? null,
+        repaid: m.repaid === '1' ? 1 : 0,
+    };
 }
 
 async function writeHistory(q, { campaignId, entity, entityId, action, actorId, snapshot }) {
@@ -733,7 +742,10 @@ export async function saveExpense(prev, fd) {
         amount,
         spentOn,
     };
-    const meta = { notes: str(fd, 'notes', 5000), bill_ref: str(fd, 'bill_ref', 100) };
+    // Paid by (default: whoever records it) and "the treasurer has paid them back" (default off).
+    const paidBy = id(fd, 'paid_by') || user.id;
+    if (!(await queryOne('SELECT id FROM users_list WHERE id = :paidBy', { paidBy }))) return { fieldErrors: { paid_by: 'fundraise.errors.member' } };
+    const meta = { notes: str(fd, 'notes', 5000), bill_ref: str(fd, 'bill_ref', 100), paid_by: String(paidBy), repaid: bool(fd, 'repaid') ? '1' : '' };
 
     const result = await withTransaction(async (q) => {
         if (expenseId) {

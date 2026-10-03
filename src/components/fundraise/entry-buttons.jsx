@@ -40,13 +40,13 @@ function PlusTrigger({ label, tone }) {
  * From sm up: both labelled buttons. Phones: two round "+" buttons — blue adds a contribution,
  * orange an expense (the same colours as the amounts and the tabs).
  */
-export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories }) {
+export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories, people = [], meId = null }) {
     const { t } = useT();
     return (
         <>
             <span className="hidden sm:contents">
                 {perms.contribution && <ContributionDialog campaignId={campaignId} today={today} allowAnonymous={allowAnonymous} />}
-                {perms.expense && <ExpenseDialog campaignId={campaignId} today={today} categories={categories} />}
+                {perms.expense && <ExpenseDialog campaignId={campaignId} today={today} categories={categories} people={people} meId={meId} />}
             </span>
             <span className="contents sm:hidden">
                 {perms.contribution && (
@@ -62,6 +62,8 @@ export default function EntryButtons({ campaignId, today, perms, allowAnonymous,
                         campaignId={campaignId}
                         today={today}
                         categories={categories}
+                        people={people}
+                        meId={meId}
                         trigger={PlusTrigger({ label: t('fundraise.addExpense'), tone: 'expense' })}
                     />
                 )}

@@ -34,6 +34,7 @@ import {
     listUpdates,
     nextMeeting,
     historyCount,
+    fundraisePeople,
 } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
@@ -133,13 +134,15 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
         const page = normalizePage(sp1(sp.page));
         const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
         const offset = (page - 1) * perPage;
-        const [rows, settings] = await Promise.all([
+        const [rows, settings, people] = await Promise.all([
             view === 'contributions'
                 ? listContributions(campaign.id, { limit: perPage, offset })
                 : view === 'expenses'
                   ? listExpenses(campaign.id, { limit: perPage, offset })
                   : contributorTotals(campaign.id, { publicView: !perms.manage }),
             getSettings('fundraise'),
+            // "Paid by" choices on the expense form.
+            perms.expense ? fundraisePeople(campaign.id) : [],
         ]);
         // Anonymous gifts: only managers see who gave (they get the name + an "Anonymous" badge).
         const shown = perms.manage || view === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));
@@ -159,6 +162,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                 sp={{ ...sp, tab: 'money', view: view === 'contributions' ? undefined : view }}
                 t={t}
                 locale={locale}
+                people={people}
+                meId={user.id}
             />
         );
     } else if (tab === 'meetings') {
