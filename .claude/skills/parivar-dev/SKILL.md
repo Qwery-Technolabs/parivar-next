@@ -155,6 +155,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   "Handed over to the treasurer" (default ON for a treasurer / admin recording it, OFF for a collector); none for a pledge
   (mode unpaid). List shows "Kept by X" + With treasurer / Not handed over; both in the snapshot → History.
   Donor name: at least two words on new names (first [father's] surname), the "Anonymous" switch sits INSIDE the name box on its right (title = "Hide name publicly").
+- **Add family member dialog** title names the person and, once picked, the relation: "Add Mother of <name>" (family.addKindOf /
+  addTitleOf, the person's local name for gu/hi).
 - **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
   pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore
   (`setCampaignArchived`, no longer app-level only). Group: GroupDangerCard also holds "Clear history".
@@ -169,6 +171,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
+- **Bulk edit members** (Members bulk bar → Bulk edit, `bulkEditMembers`, app admins / sub-admins = canManageMembers): rows of
+  "what to change ▾ / value / ×" (+ Add a change; each field once): status, role, native village, current city, caste → sub-caste,
+  blood group, donor. Per person: canEditUser, role only via canChangeRole, never own role / status, non-active → sessions revoked;
+  audited user.bulk_edit; forget('places','castes').
 - **Delete member** (`deleteMember`, `canDeleteMember`): super admin / administrator only (never sub-admin), never
   themselves; an administrator cannot delete an administrator / super admin. In the Members row ⋮ and the profile ⋮ (red,
   last, confirm). Hard delete: FK cascades remove memberships, relations, roles, Mandal marks, sessions; contributions

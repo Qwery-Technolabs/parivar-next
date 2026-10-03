@@ -429,3 +429,73 @@ export async function deleteMember(userId, fromProfile = false) {
     if (fromProfile) redirect('/members');
     return { ok: true, message: 'members.deleted' };
 }
+
+// Fields Bulk edit may change, and their columns.
+const BULK_FIELDS = ['village', 'city', 'caste', 'blood_group', 'donor', 'role', 'status'];
+const MEMBER_STATUSES = ['active', 'inactive', 'deceased'];
+
+/**
+ * Members ⋮ bulk bar → Bulk edit: the same changes for every ticked person (app admins / sub-admins).
+ * Fields: user_ids[], change[] (which fields, BULK_FIELDS) and each one's value — village, city,
+ * caste_id + subcaste_id, blood_group, is_blood_donor ('1' / '0'), role, status. Each person is checked
+ * like the Edit page: nobody above the actor's rank is touched, a role is set only where the actor may
+ * give it, and nobody changes their own role or status. Empty village / city / caste clears it.
+ */
+export async function bulkEditMembers(prev, fd) {
+    const actor = await getCurrentUser();
+    if (!actor || !canManageMembers(actor.role)) return FORBIDDEN;
+    const userIds = [...new Set(fd.getAll('user_ids').map(Number))].filter((n) => n > 0).slice(0, 500);
+    if (!userIds.length) return { error: 'members.bulk.noneSelected' };
+    const change = [...new Set(fd.getAll('change').map(String))].filter((f) => BULK_FIELDS.includes(f));
+    if (!change.length) return { error: 'members.bulkEdit.nothing' };
+
+    const set = {};
+    if (change.includes('village')) set.village = strOrNull(fd, 'village', 100);
+    if (change.includes('city')) set.city = strOrNull(fd, 'city', 100);
+    if (change.includes('caste')) {
+        const m = { caste_id: id(fd, 'caste_id'), subcaste_id: id(fd, 'subcaste_id') };
+        const bad = await casteProblem(m);
+        if (bad) return { fieldErrors: bad };
+        set.caste_id = m.caste_id;
+        set.subcaste_id = m.subcaste_id;
+    }
+    if (change.includes('blood_group')) {
+        const g = str(fd, 'blood_group', 5);
+        if (g && !BLOOD_GROUPS.includes(g)) return { fieldErrors: { blood_group: 'common.required' } };
+        set.blood_group = g || null;
+    }
+    if (change.includes('donor')) set.is_blood_donor = fd.get('is_blood_donor') === '1' ? 1 : 0;
+    const newRole = change.includes('role') ? oneOf(fd, 'role', assignableRoles(actor.role), null) : null;
+    if (change.includes('role') && !newRole) return { fieldErrors: { role: 'common.required' } };
+    const newStatus = change.includes('status') ? oneOf(fd, 'status', MEMBER_STATUSES, null) : null;
+    if (change.includes('status') && !newStatus) return { fieldErrors: { status: 'common.required' } };
+
+    const list = inList(userIds, 'u');
+    const targets = await query(`SELECT id, role, status FROM users_list WHERE id IN (${list.sql})`, list.params);
+    let updated = 0;
+    let skipped = userIds.length - targets.length;
+    for (const target of targets) {
+        if (!canEditUser(actor, target)) {
+            skipped++;
+            continue;
+        }
+        const row = { ...set };
+        const self = target.id === actor.id;
+        // Role and status: never your own, and a role only where you may give it.
+        if (newRole && !self && newRole !== target.role && canChangeRole(actor, target, newRole)) row.role = newRole;
+        if (newStatus && !self) row.status = newStatus;
+        const cols = Object.keys(row);
+        if (!cols.length) {
+            skipped++;
+            continue;
+        }
+        await query(`UPDATE users_list SET ${cols.map((c) => `${c} = :${c}`).join(', ')} WHERE id = :id`, { ...row, id: target.id });
+        if (row.status && row.status !== 'active') await revokeUserSessions(target.id, false);
+        await audit(actor.id, 'user.bulk_edit', 'user', target.id, { ...row, ...(row.role ? { from_role: target.role } : {}) });
+        updated++;
+    }
+    if (!updated) return { error: 'members.bulkEdit.none' };
+    forget('places', 'castes'); // cached lists (lib/memo)
+    revalidatePath('/members');
+    return { ok: true, message: skipped ? 'members.bulkEdit.doneSkipped' : 'members.bulkEdit.done', vars: { updated, skipped } };
+}

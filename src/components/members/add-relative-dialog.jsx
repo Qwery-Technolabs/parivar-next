@@ -187,7 +187,7 @@ function QuickName({ defaults, fe }) {
  * `person`: { id, first_name, middle_name, surname, *_local, gender }; `filled`: { father, mother }.
  */
 export default function AddRelativeDialog({ person, filled = {}, spouse = null }) {
-    const { t } = useT();
+    const { t, locale } = useT();
     const [kind, setKind] = useState('');
     const [marital, setMarital] = useState('unmarried');
     const pickKind = (k) => {
@@ -201,6 +201,12 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
     const spouseKey = person.gender === 'female' ? 'husband' : person.gender === 'male' ? 'wife' : 'spouse';
     const labelOf = (k) => t(`family.one.${k === 'spouse' ? spouseKey : k}`);
     const maleLine = MALE_LINE.includes(kind);
+    // The title names whose relative this is — and, once chosen, which one: "Add Mother of Nilesh Lallubhai Kanani".
+    const personName = (locale !== 'en' && person.full_name_local) || person.full_name;
+    const kindLabel = kind ? labelOf(kind) : '';
+    const dialogTitle = kind
+        ? t('family.addKindOf', { kind: locale === 'en' ? kindLabel.charAt(0).toUpperCase() + kindLabel.slice(1) : kindLabel, name: personName })
+        : t('family.addTitleOf', { name: personName });
     const modes = [
         { key: 'new', label: t('family.newPerson'), Icon: UserPlus },
         { key: 'member', label: t('family.pickMember'), Icon: UserRoundSearch },
@@ -208,7 +214,7 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
 
     return (
         <FormDialog
-            title={t('family.addTitle')}
+            title={dialogTitle}
             action={addRelative}
             hidden={{ person_id: person.id }}
             submitIcon={Plus}

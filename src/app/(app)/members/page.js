@@ -18,7 +18,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES, canDeleteMember } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES, canDeleteMember, assignableRoles } from '@/lib/roles';
 import { familyIds } from '@/lib/family';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
@@ -56,7 +56,9 @@ export default async function MembersPage({ searchParams }) {
     const groupOptions = groups
         .filter((g) => groupManager || ownGroups.includes(g.id))
         .map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }));
-    const bulk = groupOptions.length > 0 || canBulkReset;
+    // Bulk edit (status, role, village, city, caste, blood): app admins / sub-admins.
+    const canBulkEdit = canManageMembers(user.role);
+    const bulk = groupOptions.length > 0 || canBulkReset || canBulkEdit;
 
     return (
         <div>
@@ -90,7 +92,11 @@ export default async function MembersPage({ searchParams }) {
 
             {/* Bulk selection: for people who can put others into a group, or reset passwords. */}
             <BulkSelectProvider pageIds={bulk ? rows.map((r) => r.id) : []}>
-            <BulkBar groups={groupOptions} canReset={canBulkReset} />
+            <BulkBar
+                groups={groupOptions}
+                canReset={canBulkReset}
+                editCtx={canBulkEdit ? { villages, cities, casteOptions: castes, roles: assignableRoles(user.role) } : null}
+            />
             <TableShell className="mt-4">
                 <THead>
                     {bulk && (

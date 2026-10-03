@@ -313,3 +313,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fix: Kept by / Paid by list spilled over the dialog footer and hid the switch — now opens in the flow; switch top-aligned
 - [x] Contribution: Anonymous switch inside the name box
 - [x] Combobox list in dialogs scrolls fully into view; dialog footer flush to the bottom; amount fields are number inputs everywhere
+- [x] Search lists in pop-ups float on their own layer (fixed, under / above the box), never clipped and never pushing the form
+- [x] Money forms in parts (Contributor / Details · Amount · Holding) with placeholders for What, Where, Notes, Reference
+- [x] Add family member: title shows whose relative and which ("Add Mother of …")
+- [x] Members: Bulk edit (app admins / sub-admins) — status, role, village, city, caste, blood group, donor for all ticked, via add/remove change rows

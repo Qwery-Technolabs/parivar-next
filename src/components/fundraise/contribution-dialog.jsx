@@ -1,9 +1,10 @@
 'use client';
-import { Pencil, Plus } from 'lucide-react';
+import { HandCoins, Pencil, Plus, UserRound, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { saveContribution } from '@/app/actions/fundraise';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
+import FormPart from '@/components/ui/form-part';
 import Combobox from '@/components/ui/combobox';
 import MemberPicker from '@/components/ui/member-picker';
 import Switch from '@/components/ui/switch';
@@ -108,70 +109,86 @@ function ContributionFields({ fieldError, today, allowAnonymous, entry, people, 
     const [mode, setMode] = useState(entry?.mode ?? 'cash');
     return (
         <>
-            <Field label={t('fundraise.donorMember')} hint={t('fundraise.donorHint')}>
-                {/* Picking a member pre-fills the name; the name stays editable. */}
-                <MemberPicker
-                    name="user_id"
-                    defaultValue={entry?.user_id ? { id: entry.user_id, label: entry.donor_name } : null}
-                    // A phone number that is not a member can be invited; the name below becomes theirs.
-                    allowInvite
-                    onPick={(opt) => opt && !opt.invite && setName(opt.label)}
-                />
-            </Field>
-            {/* The name, with the "Anonymous" switch inside the box on its right. */}
-            <Field label={t('fundraise.donor')} hint={t('fundraise.donorNameHint')} error={fieldError('donor_name')} required>
-                <div className="relative">
-                    <input
-                        name="donor_name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        maxLength={150}
-                        placeholder={t('fundraise.donorNamePlaceholder')}
-                        className={`${textInput(!!fieldError('donor_name'))} w-full ${allowAnonymous ? 'pr-32' : ''}`}
-                    />
-                    {allowAnonymous && (
-                        <div className="absolute inset-y-0 right-2.5 flex items-center">
-                            <Switch
-                                checked={anon}
-                                onChange={setAnon}
-                                name="is_anonymous"
-                                title={t('fundraise.anonymous')}
-                                label={<span className="text-xs text-ink-gray">{t('fundraise.anonymousShort')}</span>}
+            <FormPart title={t('fundraise.parts.donor')} icon={UserRound} className="border-t-0 pt-0">
+                <div className="space-y-3">
+                    <Field label={t('fundraise.donorMember')} hint={t('fundraise.donorHint')}>
+                        {/* Picking a member pre-fills the name; the name stays editable. */}
+                        <MemberPicker
+                            name="user_id"
+                            defaultValue={entry?.user_id ? { id: entry.user_id, label: entry.donor_name } : null}
+                            // A phone number that is not a member can be invited; the name below becomes theirs.
+                            allowInvite
+                            onPick={(opt) => opt && !opt.invite && setName(opt.label)}
+                        />
+                    </Field>
+                    {/* The name, with the "Anonymous" switch inside the box on its right. */}
+                    <Field label={t('fundraise.donor')} hint={t('fundraise.donorNameHint')} error={fieldError('donor_name')} required>
+                        <div className="relative">
+                            <input
+                                name="donor_name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                maxLength={150}
+                                placeholder={t('fundraise.donorNamePlaceholder')}
+                                className={`${textInput(!!fieldError('donor_name'))} w-full ${allowAnonymous ? 'pr-32' : ''}`}
                             />
+                            {allowAnonymous && (
+                                <div className="absolute inset-y-0 right-2.5 flex items-center">
+                                    <Switch
+                                        checked={anon}
+                                        onChange={setAnon}
+                                        name="is_anonymous"
+                                        title={t('fundraise.anonymous')}
+                                        label={<span className="text-xs text-ink-gray">{t('fundraise.anonymousShort')}</span>}
+                                    />
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </Field>
                 </div>
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
-                    <input
-                        name="amount"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="0.01"
-                        defaultValue={entry?.amount ?? ''}
-                        className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
-                    />
-                </Field>
-                <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
-                    <input type="date" name="paid_on" defaultValue={entry?.paid_on ?? today} className={`${textInput(!!fieldError('paid_on'))} w-full`} />
-                </Field>
-                <Field label={t('fundraise.mode')}>
-                    <select name="mode" value={mode} onChange={(e) => setMode(e.target.value)} className={`${selectInput()} w-full`}>
-                        {MODES.map((m) => (
-                            <option key={m} value={m}>
-                                {t(`fundraise.modes.${m}`)}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
-                <Field label={t('fundraise.reference')} hint={t('common.optional')}>
-                    <input name="reference" maxLength={100} defaultValue={entry?.reference ?? ''} className={`${textInput()} w-full`} />
-                </Field>
-            </div>
+            </FormPart>
+            <FormPart title={t('fundraise.parts.amount')} icon={Wallet}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
+                        <input
+                            name="amount"
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="0.01"
+                            defaultValue={entry?.amount ?? ''}
+                            className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
+                        />
+                    </Field>
+                    <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
+                        <input type="date" name="paid_on" defaultValue={entry?.paid_on ?? today} className={`${textInput(!!fieldError('paid_on'))} w-full`} />
+                    </Field>
+                    <Field label={t('fundraise.mode')}>
+                        <select name="mode" value={mode} onChange={(e) => setMode(e.target.value)} className={`${selectInput()} w-full`}>
+                            {MODES.map((m) => (
+                                <option key={m} value={m}>
+                                    {t(`fundraise.modes.${m}`)}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+                    <Field label={t('fundraise.reference')} hint={t('common.optional')}>
+                        <input
+                            name="reference"
+                            maxLength={100}
+                            defaultValue={entry?.reference ?? ''}
+                            placeholder={t('fundraise.referencePlaceholder')}
+                            className={`${textInput()} w-full`}
+                        />
+                    </Field>
+                </div>
+            </FormPart>
             {/* Money in hand: who keeps it, and has it reached the treasurer? (Not for a pledge.) */}
-            {mode !== 'unpaid' && <KeptBy people={people} entry={entry} meId={meId} handDefault={handDefault} fieldError={fieldError} />}
+            {mode !== 'unpaid' && (
+                <FormPart title={t('fundraise.parts.holding')} icon={HandCoins}>
+                    <KeptBy people={people} entry={entry} meId={meId} handDefault={handDefault} fieldError={fieldError} />
+                </FormPart>
+            )}
         </>
     );
 }

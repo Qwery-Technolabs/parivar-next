@@ -1,11 +1,12 @@
 'use client';
-import { Pencil, Plus } from 'lucide-react';
+import { FileText, HandCoins, Pencil, Plus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { saveExpense } from '@/app/actions/fundraise';
 import Combobox from '@/components/ui/combobox';
 import Switch from '@/components/ui/switch';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
+import FormPart from '@/components/ui/form-part';
 import { useT } from '@/lib/i18n/client';
 
 /**
@@ -85,55 +86,79 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
         >
             {({ fieldError }) => (
                 <>
-                    {/* What and Where side by side (half each). */}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label={t('fundraise.expenseWhat')} error={fieldError('title')} required>
-                            <input name="title" maxLength={200} defaultValue={entry?.title ?? ''} className={`${textInput(!!fieldError('title'))} w-full`} />
-                        </Field>
-                        <Field label={t('fundraise.expenseWhere')}>
-                            <input name="place" maxLength={200} defaultValue={entry?.place ?? ''} className={`${textInput()} w-full`} />
-                        </Field>
-                    </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
-                            <input
-                                name="amount"
-                                type="number"
-                                inputMode="decimal"
-                                min="0"
-                                step="0.01"
-                                defaultValue={entry?.amount ?? ''}
-                                className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
+                    {/* Details: what and where (half each) and notes. */}
+                    <FormPart title={t('fundraise.parts.details')} icon={FileText} className="border-t-0 pt-0">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <Field label={t('fundraise.expenseWhat')} error={fieldError('title')} required>
+                                <input
+                                    name="title"
+                                    maxLength={200}
+                                    defaultValue={entry?.title ?? ''}
+                                    placeholder={t('fundraise.expenseWhatPlaceholder')}
+                                    className={`${textInput(!!fieldError('title'))} w-full`}
+                                />
+                            </Field>
+                            <Field label={t('fundraise.expenseWhere')}>
+                                <input
+                                    name="place"
+                                    maxLength={200}
+                                    defaultValue={entry?.place ?? ''}
+                                    placeholder={t('fundraise.expenseWherePlaceholder')}
+                                    className={`${textInput()} w-full`}
+                                />
+                            </Field>
+                        </div>
+                    </FormPart>
+                    <FormPart title={t('fundraise.parts.amount')} icon={Wallet}>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
+                                <input
+                                    name="amount"
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    step="0.01"
+                                    defaultValue={entry?.amount ?? ''}
+                                    className={`${textInput(!!fieldError('amount'))} w-full tabular-nums`}
+                                />
+                            </Field>
+                            <Field label={t('fundraise.spentOn')} error={fieldError('spent_on')} required>
+                                <input
+                                    type="date"
+                                    name="spent_on"
+                                    defaultValue={entry?.spent_on ?? today}
+                                    className={`${textInput(!!fieldError('spent_on'))} w-full`}
+                                />
+                            </Field>
+                            <Field label={t('fundraise.category')} hint={t('common.optional')}>
+                                {/* Categories come from fundraise_settings.expense_categories. */}
+                                <select name="category" defaultValue={entry?.category ?? ''} className={`${selectInput()} w-full`}>
+                                    <option value="">{t('common.none')}</option>
+                                    {options.map((c) => (
+                                        <option key={c} value={c}>
+                                            {c}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field label={t('fundraise.billRef')} hint={t('common.optional')}>
+                                <input name="bill_ref" maxLength={100} defaultValue={entry?.bill_ref ?? ''} className={`${textInput()} w-full`} />
+                            </Field>
+                        </div>
+                        <Field label={t('common.notes')} className="mt-3">
+                            <textarea
+                                name="notes"
+                                rows={3}
+                                defaultValue={entry?.notes ?? ''}
+                                placeholder={t('fundraise.notesPlaceholder')}
+                                className={`${textArea()} w-full`}
                             />
                         </Field>
-                        <Field label={t('fundraise.spentOn')} error={fieldError('spent_on')} required>
-                            <input
-                                type="date"
-                                name="spent_on"
-                                defaultValue={entry?.spent_on ?? today}
-                                className={`${textInput(!!fieldError('spent_on'))} w-full`}
-                            />
-                        </Field>
-                        <Field label={t('fundraise.category')} hint={t('common.optional')}>
-                            {/* Categories come from fundraise_settings.expense_categories. */}
-                            <select name="category" defaultValue={entry?.category ?? ''} className={`${selectInput()} w-full`}>
-                                <option value="">{t('common.none')}</option>
-                                {options.map((c) => (
-                                    <option key={c} value={c}>
-                                        {c}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field label={t('fundraise.billRef')} hint={t('common.optional')}>
-                            <input name="bill_ref" maxLength={100} defaultValue={entry?.bill_ref ?? ''} className={`${textInput()} w-full`} />
-                        </Field>
-                    </div>
-                    <Field label={t('common.notes')}>
-                        <textarea name="notes" rows={3} defaultValue={entry?.notes ?? ''} className={`${textArea()} w-full`} />
-                    </Field>
-                    {/* Who paid, and whether the treasurer has paid them back — after the notes. */}
-                    <PaidBy people={people} entry={entry} meId={meId} fieldError={fieldError} />
+                    </FormPart>
+                    {/* Holding: who paid, and whether the treasurer has paid them back. */}
+                    <FormPart title={t('fundraise.parts.holding')} icon={HandCoins}>
+                        <PaidBy people={people} entry={entry} meId={meId} fieldError={fieldError} />
+                    </FormPart>
                 </>
             )}
         </FormDialog>

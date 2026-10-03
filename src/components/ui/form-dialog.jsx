@@ -42,7 +42,17 @@ export default function FormDialog({
                     setOpen(true);
                 },
             })}
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog
+                open={open}
+                onOpenChange={(next, details) => {
+                    // A search list floats on its own layer (Combobox in a dialog): pressing it is not "outside".
+                    if (!next && details?.event?.target?.closest?.('[data-floating-list]')) {
+                        details.cancel?.();
+                        return;
+                    }
+                    setOpen(next);
+                }}
+            >
                 {/* sm:max-w-*, never max-w-*: the base class ends in sm:max-w-sm and would win above sm. */}
                 {/* No autofocus on a field (focusPopup): nothing pre-selected, no phone keyboard on open. */}
                 <DialogContent focusPopup className={`${width} max-h-[92vh] overflow-y-auto bg-white`}>

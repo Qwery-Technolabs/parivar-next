@@ -1,6 +1,7 @@
 'use client';
 import { ChevronDown, Loader2, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { textInput } from './field';
 import { useDebouncedCallback } from './use-debounce';
 
@@ -35,12 +36,12 @@ export default function Combobox({
     const seq = useRef(0);
     // Right after a choice the list unmounts and focus lands back on the input (a dialog's focus
     // trap, a tap on a phone) — which must not reopen the list. Ignore opens for a moment.
-    const chosenAt = useRef(0);
-    // Inside a dialog the list must not float: the dialog scrolls and clips it, so half the list
-    // hides under its bottom edge. There it opens in the flow instead — the dialog grows to show it.
+    const justChose = useRef(false);
+    // Inside a dialog the list floats on its own top layer (portalled to <body>, fixed under or above
+    // the input): the dialog's scroll box would otherwise clip it, or an in-flow list would push the form.
     const wrap = useRef(null);
-    const listRef = useRef(null);
     const [inDialog, setInDialog] = useState(false);
+    const [pos, setPos] = useState(null); // fixed coordinates of the floating list (dialogs only)
     const listId = useId();
 
     async function load(query) {
@@ -62,20 +63,42 @@ export default function Combobox({
     // Typing searches 300 ms after the last key (useDebouncedCallback).
     const loadLater = useDebouncedCallback((v) => load(v));
 
-    // Inside a dialog the list opens in the flow (it scrolls with the form, never over the footer or the
-    // fields beside it); elsewhere it floats. Decided on EVERY way of opening — focus, typing, arrow keys.
+    // Where the floating list goes: under the input, or above it when there is clearly more room above;
+    // its height is capped by the room on that side. Decided on EVERY way of opening (focus, typing, arrows).
+    function measure() {
+        const el = wrap.current;
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const below = window.innerHeight - r.bottom - 8;
+        const above = r.top - 8;
+        const up = below < 200 && above > below;
+        return {
+            left: r.left,
+            width: r.width,
+            ...(up ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+            maxHeight: Math.max(120, Math.min(256, (up ? above : below) - 4)),
+        };
+    }
     function placeList() {
-        setInDialog(Boolean(wrap.current?.closest('[data-slot="dialog-content"]')));
+        const dialog = Boolean(wrap.current?.closest('[data-slot="dialog-content"]'));
+        setInDialog(dialog);
+        if (dialog) setPos(measure());
     }
 
-    // In a dialog the list opens in the flow: scroll it fully into view (scroll-mb keeps it clear of the
-    // sticky Cancel / Save footer), so it is never cut off at the bottom.
+    // While open in a dialog, follow the input when the dialog scrolls or the window resizes.
     useEffect(() => {
-        if (open && inDialog) listRef.current?.scrollIntoView({ block: 'nearest' });
-    }, [open, inDialog, options]);
+        if (!open || !inDialog) return undefined;
+        const follow = () => setPos(measure());
+        window.addEventListener('scroll', follow, true);
+        window.addEventListener('resize', follow);
+        return () => {
+            window.removeEventListener('scroll', follow, true);
+            window.removeEventListener('resize', follow);
+        };
+    }, [open, inDialog]);
 
     function openList() {
-        if (open || Date.now() - chosenAt.current < 400) return;
+        if (open || justChose.current) return;
         placeList();
         setOpen(true);
         setQ('');
@@ -88,7 +111,10 @@ export default function Combobox({
     }
 
     function choose(opt) {
-        chosenAt.current = Date.now();
+        justChose.current = true;
+        setTimeout(() => {
+            justChose.current = false;
+        }, 400);
         onSelect(opt);
         setOpen(false);
         setQ('');
@@ -120,6 +146,40 @@ export default function Combobox({
             close();
         }
     }
+
+    const list = (
+        <ul
+            id={listId}
+            role="listbox"
+            // Dialog: a fixed, portalled layer above the dialog (data-floating-list lets the dialog
+            // ignore presses on it); keeping focus in the input on mousedown keeps it open.
+            data-floating-list={inDialog ? '' : undefined}
+            onMouseDown={inDialog ? (e) => e.preventDefault() : undefined}
+            style={inDialog && pos ? { position: 'fixed', pointerEvents: 'auto', ...pos } : undefined}
+            className={`${inDialog ? 'z-[70]' : 'absolute left-0 right-0 z-20 mt-1 max-h-64'} overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg`}
+        >
+            {options?.length === 0 && !loading && <li className="px-3 py-2 text-sm text-ink-gray">{emptyText}</li>}
+            {options === null && loading && (
+                <li className="flex justify-center py-3">
+                    <Loader2 className="size-4 animate-spin text-ink-gray" />
+                </li>
+            )}
+            {options?.map((opt, i) => (
+                <li
+                    key={opt.value}
+                    role="option"
+                    aria-selected={opt.value === value}
+                    onMouseEnter={() => setActive(i)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => choose(opt)}
+                    className={`cursor-pointer px-3 py-1.5 ${i === active ? 'bg-accent' : ''}`}
+                >
+                    <span className={`block text-sm text-primary ${opt.value === value ? 'font-semibold' : ''}`}>{opt.label}</span>
+                    {opt.hint && <span className="block text-xs text-ink-gray">{opt.hint}</span>}
+                </li>
+            ))}
+        </ul>
+    );
 
     return (
         <div ref={wrap} className="relative min-w-0">
@@ -155,35 +215,7 @@ export default function Combobox({
             {open && (
                 <>
                     {!inDialog && <button type="button" aria-hidden tabIndex={-1} onClick={close} className="fixed inset-0 z-10 cursor-default" />}
-                    <ul
-                        ref={listRef}
-                        id={listId}
-                        role="listbox"
-                        className={`${inDialog ? 'relative scroll-mb-24' : 'absolute left-0 right-0 z-20'} mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg`}
-                    >
-                        {options?.length === 0 && !loading && <li className="px-3 py-2 text-sm text-ink-gray">{emptyText}</li>}
-                        {options === null && loading && (
-                            <li className="flex justify-center py-3">
-                                <Loader2 className="size-4 animate-spin text-ink-gray" />
-                            </li>
-                        )}
-                        {options?.map((opt, i) => (
-                            <li
-                                key={opt.value}
-                                role="option"
-                                aria-selected={opt.value === value}
-                                onMouseEnter={() => setActive(i)}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => choose(opt)}
-                                className={`cursor-pointer px-3 py-1.5 ${i === active ? 'bg-accent' : ''}`}
-                            >
-                                <span className={`block text-sm text-primary ${opt.value === value ? 'font-semibold' : ''}`}>
-                                    {opt.label}
-                                </span>
-                                {opt.hint && <span className="block text-xs text-ink-gray">{opt.hint}</span>}
-                            </li>
-                        ))}
-                    </ul>
+                    {inDialog ? pos && createPortal(list, document.body) : list}
                 </>
             )}
         </div>
