@@ -18,7 +18,17 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageGroups, canResetPassword, canManageMembers, canManageSettings, ROLES, canDeleteMember, assignableRoles } from '@/lib/roles';
+import {
+    canEditUser,
+    canInviteMembers,
+    canManageGroups,
+    canResetPassword,
+    canManageMembers,
+    canManageSettings,
+    ROLES,
+    canDeleteMember,
+    assignableRoles,
+} from '@/lib/roles';
 import { familyIds } from '@/lib/family';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
@@ -69,11 +79,17 @@ export default async function MembersPage({ searchParams }) {
                 menu={
                     <PageMenu
                         items={[
-                            manage && { key: 'add', label: t('members.add'), icon: 'user-plus', href: '/members/new' },
-                            canInviteMembers(user.role) && { key: 'invite', label: t('members.invite.button'), icon: 'smartphone' },
-                            canManageSettings(user.role) && { key: 'castes', label: t('members.manageCastes'), icon: 'network', href: '/members/castes' },
+                            manage && { key: 'add', label: t('members.add'), icon: 'user-plus', href: '/members/new', group: 'people' },
+                            canInviteMembers(user.role) && { key: 'invite', label: t('members.invite.button'), icon: 'smartphone', group: 'people' },
+                            canManageSettings(user.role) && {
+                                key: 'castes',
+                                label: t('members.manageCastes'),
+                                icon: 'network',
+                                href: '/members/castes',
+                                group: 'lists',
+                            },
                             // Surnames: everyone may look; editing stays with administrators (on that page).
-                            { key: 'surnames', label: t('members.manageSurnames'), icon: 'tags', href: '/members/surnames' },
+                            { key: 'surnames', label: t('members.manageSurnames'), icon: 'tags', href: '/members/surnames', group: 'lists' },
                         ]}
                     >
                         {canInviteMembers(user.role) && <InviteMembersDialog groups={groupOptions} menuKey="invite" />}
@@ -92,123 +108,119 @@ export default async function MembersPage({ searchParams }) {
 
             {/* Bulk selection: for people who can put others into a group, or reset passwords. */}
             <BulkSelectProvider pageIds={bulk ? rows.map((r) => r.id) : []}>
-            <BulkBar
-                groups={groupOptions}
-                canReset={canBulkReset}
-                editCtx={canBulkEdit ? { villages, cities, casteOptions: castes, roles: assignableRoles(user.role) } : null}
-            />
-            <TableShell className="mt-4">
-                <THead>
-                    {bulk && (
-                        <Th className="w-10">
-                            <SelectAll />
+                <BulkBar
+                    groups={groupOptions}
+                    canReset={canBulkReset}
+                    editCtx={canBulkEdit ? { villages, cities, casteOptions: castes, roles: assignableRoles(user.role) } : null}
+                />
+                <TableShell className="mt-4">
+                    <THead>
+                        {bulk && (
+                            <Th className="w-10">
+                                <SelectAll />
+                            </Th>
+                        )}
+                        {/* Phones: a wider name column so full names show (the table scrolls sideways). */}
+                        <Th className="min-w-44">{t('members.fullName')}</Th>
+                        <Th>{t('members.phone')}</Th>
+                        <Th>{t('members.role')}</Th>
+                        <Th className="hidden md:table-cell">{t('members.cityVillage')}</Th>
+                        <Th className="hidden lg:table-cell">{t('members.caste')}</Th>
+                        <Th>{t('members.bloodGroup')}</Th>
+                        <Th numeric className="hidden sm:table-cell">
+                            {t('members.age')}
                         </Th>
-                    )}
-                    {/* Phones: a wider name column so full names show (the table scrolls sideways). */}
-                    <Th className="min-w-44">{t('members.fullName')}</Th>
-                    <Th>{t('members.phone')}</Th>
-                    <Th>{t('members.role')}</Th>
-                    <Th className="hidden md:table-cell">{t('members.cityVillage')}</Th>
-                    <Th className="hidden lg:table-cell">{t('members.caste')}</Th>
-                    <Th>{t('members.bloodGroup')}</Th>
-                    <Th numeric className="hidden sm:table-cell">
-                        {t('members.age')}
-                    </Th>
-                    <Th className="w-12">
-                        <span className="sr-only">{t('common.actions')}</span>
-                    </Th>
-                </THead>
-                <tbody>
-                    {rows.length === 0 && <EmptyRow colSpan={bulk ? 9 : 8}>{t('common.noResults')}</EmptyRow>}
-                    {rows.map((m) => {
-                        const primary = localized(m, 'full_name', locale);
-                        const secondary = locale === 'gu' ? m.full_name : m.full_name_local;
-                        return (
-                            <Tr key={m.id}>
-                                {bulk && (
-                                    <Td className="w-10">
-                                        <RowCheck id={m.id} label={primary} />
+                        <Th className="w-12">
+                            <span className="sr-only">{t('common.actions')}</span>
+                        </Th>
+                    </THead>
+                    <tbody>
+                        {rows.length === 0 && <EmptyRow colSpan={bulk ? 9 : 8}>{t('common.noResults')}</EmptyRow>}
+                        {rows.map((m) => {
+                            const primary = localized(m, 'full_name', locale);
+                            const secondary = locale === 'gu' ? m.full_name : m.full_name_local;
+                            return (
+                                <Tr key={m.id}>
+                                    {bulk && (
+                                        <Td className="w-10">
+                                            <RowCheck id={m.id} label={primary} />
+                                        </Td>
+                                    )}
+                                    <Td className="min-w-44 max-w-64">
+                                        <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
+                                            {primary}
+                                        </Link>
+                                        {secondary && secondary !== primary && <span className="block text-xs text-ink-gray">{secondary}</span>}
+                                        {/* Occupation: from sm up only — on phones the name alone. */}
+                                        {m.position && <span className="hidden text-xs font-medium text-brand-navy sm:block">{m.position}</span>}
+                                        {m.status !== 'active' && (
+                                            <Badge status={m.status} className="mt-1">
+                                                {t(`status.${m.status}`)}
+                                            </Badge>
+                                        )}
+                                        {seesRegistration && !m.last_login_at && (
+                                            <Badge tone="amber" className="mt-1 ml-1">
+                                                {t('groups.invite.notJoined')}
+                                            </Badge>
+                                        )}
                                     </Td>
-                                )}
-                                <Td className="min-w-44 max-w-64">
-                                    <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
-                                        {primary}
-                                    </Link>
-                                    {secondary && secondary !== primary && (
-                                        <span className="block text-xs text-ink-gray">{secondary}</span>
-                                    )}
-                                    {/* Occupation: from sm up only — on phones the name alone. */}
-                                    {m.position && <span className="hidden text-xs font-medium text-brand-navy sm:block">{m.position}</span>}
-                                    {m.status !== 'active' && (
-                                        <Badge status={m.status} className="mt-1">
-                                            {t(`status.${m.status}`)}
-                                        </Badge>
-                                    )}
-                                    {seesRegistration && !m.last_login_at && (
-                                        <Badge tone="amber" className="mt-1 ml-1">
-                                            {t('groups.invite.notJoined')}
-                                        </Badge>
-                                    )}
-                                </Td>
-                                <Td>
-                                    {phoneShown(m) ? (
-                                        <a
-                                            href={`tel:${m.phone}`}
-                                            className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums text-primary hover:underline"
-                                        >
-                                            <Phone className="size-3.5 text-ink-gray" />
-                                            {formatPhone(m.phone)}
-                                        </a>
-                                    ) : null}
-                                </Td>
-                                <Td>
-                                    <Badge tone={m.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${m.role}`)}</Badge>
-                                </Td>
-                                <Td className="hidden md:table-cell">
-                                    {m.city || m.village ? (
-                                        <>
-                                            {m.city}
-                                            {m.village && m.village !== m.city && <span className="block text-xs text-ink-gray">{m.village}</span>}
-                                        </>
-                                    ) : null}
-                                </Td>
-                                <Td className="hidden lg:table-cell">
-                                    {m.caste_name && (
-                                        <>
-                                            {localized({ n: m.caste_name, n_local: m.caste_name_local }, 'n', locale)}
-                                            {m.subcaste_name && (
-                                                <span className="block text-xs text-ink-gray">
-                                                    {localized({ n: m.subcaste_name, n_local: m.subcaste_name_local }, 'n', locale)}
-                                                </span>
-                                            )}
-                                        </>
-                                    )}
-                                </Td>
-                                <Td>
-                                    <span className="inline-flex items-center gap-1">
-                                        <BloodBadge group={m.blood_group} />
-                                        {m.is_blood_donor ? (
-                                            <span title={t('members.donor')} className="size-1.5 rounded-full bg-rose-700" />
+                                    <Td>
+                                        {phoneShown(m) ? (
+                                            <a
+                                                href={`tel:${m.phone}`}
+                                                className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums text-primary hover:underline"
+                                            >
+                                                <Phone className="size-3.5 text-ink-gray" />
+                                                {formatPhone(m.phone)}
+                                            </a>
                                         ) : null}
-                                    </span>
-                                </Td>
-                                <Td numeric className="hidden sm:table-cell">
-                                    {age(m.dob)}
-                                </Td>
-                                <Td className="text-right">
-                                    <MemberRowActions
-                                        member={{ id: m.id, name: primary }}
-                                        canEdit={canEditUser(user, m) || canResetPassword(user, m)}
-                                        groups={groupOptions}
-                                        canAssignGroups={groupOptions.length > 0}
-                                        canDelete={canDeleteMember(user, m)}
-                                    />
-                                </Td>
-                            </Tr>
-                        );
-                    })}
-                </tbody>
-            </TableShell>
+                                    </Td>
+                                    <Td>
+                                        <Badge tone={m.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${m.role}`)}</Badge>
+                                    </Td>
+                                    <Td className="hidden md:table-cell">
+                                        {m.city || m.village ? (
+                                            <>
+                                                {m.city}
+                                                {m.village && m.village !== m.city && <span className="block text-xs text-ink-gray">{m.village}</span>}
+                                            </>
+                                        ) : null}
+                                    </Td>
+                                    <Td className="hidden lg:table-cell">
+                                        {m.caste_name && (
+                                            <>
+                                                {localized({ n: m.caste_name, n_local: m.caste_name_local }, 'n', locale)}
+                                                {m.subcaste_name && (
+                                                    <span className="block text-xs text-ink-gray">
+                                                        {localized({ n: m.subcaste_name, n_local: m.subcaste_name_local }, 'n', locale)}
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </Td>
+                                    <Td>
+                                        <span className="inline-flex items-center gap-1">
+                                            <BloodBadge group={m.blood_group} />
+                                            {m.is_blood_donor ? <span title={t('members.donor')} className="size-1.5 rounded-full bg-rose-700" /> : null}
+                                        </span>
+                                    </Td>
+                                    <Td numeric className="hidden sm:table-cell">
+                                        {age(m.dob)}
+                                    </Td>
+                                    <Td className="text-right">
+                                        <MemberRowActions
+                                            member={{ id: m.id, name: primary }}
+                                            canEdit={canEditUser(user, m) || canResetPassword(user, m)}
+                                            groups={groupOptions}
+                                            canAssignGroups={groupOptions.length > 0}
+                                            canDelete={canDeleteMember(user, m)}
+                                        />
+                                    </Td>
+                                </Tr>
+                            );
+                        })}
+                    </tbody>
+                </TableShell>
             </BulkSelectProvider>
             <Pagination pathname="/members" searchParams={sp} page={page} perPage={perPage} total={total} t={t} />
         </div>

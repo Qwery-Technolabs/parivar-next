@@ -133,7 +133,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   (onOpenChange cancel). Nothing in the form moves (decided on every open: focus, typing, arrows) — never clipped by the
   footer or neighbouring fields. A switch beside a combobox is top-aligned (items-start + sm:pt-7), not bottom-aligned.
 - Page ⋮ menus (PageMenu): `icon` is a NAME ('trash', 'pencil' …, MENU_ICONS in page-menu.jsx), never a `<Icon />` element
-  from a server page (React #306 when the same icon repeats). Add new names to MENU_ICONS.
+  from a server page (React #306 when the same icon repeats). Add new names to MENU_ICONS. Group related items with
+  `group: 'name'` — a separator line is drawn where the group changes (Members: Add · Invite / Castes · Surnames).
 - Password fields: always `<PasswordInput>` (components/ui/password-input.jsx) — eye button to show / hide; never a raw
   type="password" input.
 - Placeholder colour everywhere: light grey `#b3b8c2` (globals.css `::placeholder`), never a per-input class.
@@ -217,6 +218,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   word when known. Every blood relative gets a tag: exact paths from KIN_TERMS, longer ones a "distant" term by
   generation / side / gender (lib/kinship.js farTerm: Kaka (distant), Dadi / Baa (distant), Sister (distant) …;
   gu "(કુટુંબી)"); their spouse gets the matching term (Kaki, Fuva, Bhabhi …); in-laws' relatives stay untagged.
+  Before naming, a parent's spouse counts as a parent and a spouse's child as a child (father → wife = Mother), since
+  families often link only the father and his wife.
 - Married woman in the add popup (`MarriedName`): **ask only unknown parts** — known ones (a daughter's father, a sister's
   father, a wife's / mother's husband) post hidden, previewed in one line with "Change". A woman's child's father = her
   linked husband, else the husband named in her married name (her middle name + surname).

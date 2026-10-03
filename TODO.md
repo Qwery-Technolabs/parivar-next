@@ -327,3 +327,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Holdings: Income / Expense switch, amount per person, treasurer (else admin / creator) holds handed-over money
 - [x] Fundraise History collapsible (closed by default); on phones it sits just before the Danger zone
 - [x] Relation chain: distant relatives tagged (Kaka / Dadi / Sister … (distant), gu કુટુંબી); indent 15 → 10px
+- [x] Relation: father's wife (no direct mother link) shows as Mother; spouse's child as Son / Daughter
+- [x] Members ⋮ menu: separator between Invite by phone and Castes (PageMenu item groups)

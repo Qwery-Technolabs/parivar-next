@@ -133,8 +133,23 @@ function farTerm(steps) {
     return row[MALE.has(steps.at(-2)) ? 'male' : 'female'][g];
 }
 
+// A parent's spouse is a parent, a spouse's child is one's own child — families often link only
+// the father and his wife, so "father → wife" must still read "Mother".
+const MERGE = { 'father.wife': 'mother', 'mother.husband': 'father', 'wife.son': 'son', 'wife.daughter': 'daughter', 'husband.son': 'son', 'husband.daughter': 'daughter' };
+
+function normalize(steps) {
+    const out = [];
+    for (const s of steps) {
+        const merged = out.length ? MERGE[`${out.at(-1)}.${s}`] : null;
+        if (merged) out[out.length - 1] = merged;
+        else out.push(s);
+    }
+    return out;
+}
+
 /** Term key for a path of steps: its exact name, else a "distant" one, else null. */
 export function kinTerm(steps) {
     if (!steps?.length) return null;
-    return KIN_TERMS[steps.join('.')] ?? farTerm(steps);
+    const path = normalize(steps);
+    return KIN_TERMS[path.join('.')] ?? farTerm(path);
 }

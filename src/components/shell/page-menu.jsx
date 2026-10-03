@@ -1,9 +1,9 @@
 'use client';
 import { Archive, ArchiveRestore, CheckCheck, GitFork, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createContext, useContext, useEffect, useRef, useState, useTransition } from 'react';
+import { Fragment, createContext, useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { KebabMenu, MenuItem } from '@/components/ui/popover';
+import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 
 /*
@@ -14,6 +14,8 @@ import { useT } from '@/lib/i18n/client';
  *   { key, label, icon: 'trash', action }      → a server action run in place (e.g. mark all read);
  *                                                add confirm: '…' to ask first, danger: true for red
  *   { key, label, icon: 'smartphone' }         → opens the dialog registered under `key`
+ * Any item may carry `group: 'name'`: a separator line is drawn where the group changes
+ * (between visible items only, so a hidden item never leaves a stray line).
  * `icon` is a NAME from MENU_ICONS (drawn here, in the browser) — never a <Icon /> element from a
  * server page: the server pre-renders it, de-duplicates repeats (two Trash2 → a pointer to the
  * first) and opening the menu then crashed with React error #306.
@@ -60,34 +62,36 @@ export default function PageMenu({ items, children, label }) {
             {visible.length > 0 && (
                 <KebabMenu label={label ?? t('common.more')}>
                     {(close) =>
-                        visible.map((item) => (
-                            <MenuItem
-                                key={item.key}
-                                icon={typeof item.icon === 'string' ? MENU_ICONS[item.icon] : item.icon}
-                                href={item.href}
-                                danger={item.danger}
-                                disabled={pending}
-                                onClick={
-                                    item.href
-                                        ? undefined
-                                        : () => {
-                                              close();
-                                              if (item.confirm && !window.confirm(item.confirm)) return;
-                                              if (item.action) {
-                                                  startTransition(async () => {
-                                                      const res = await item.action();
-                                                      if (res?.error) return toast.error(t(res.error));
-                                                      if (res?.message) toast.success(t(res.message));
-                                                      router.refresh();
-                                                  });
-                                              } else {
-                                                  openers.current[item.key]?.();
+                        visible.map((item, i) => (
+                            <Fragment key={item.key}>
+                                {i > 0 && item.group && visible[i - 1].group && item.group !== visible[i - 1].group && <MenuSeparator />}
+                                <MenuItem
+                                    icon={typeof item.icon === 'string' ? MENU_ICONS[item.icon] : item.icon}
+                                    href={item.href}
+                                    danger={item.danger}
+                                    disabled={pending}
+                                    onClick={
+                                        item.href
+                                            ? undefined
+                                            : () => {
+                                                  close();
+                                                  if (item.confirm && !window.confirm(item.confirm)) return;
+                                                  if (item.action) {
+                                                      startTransition(async () => {
+                                                          const res = await item.action();
+                                                          if (res?.error) return toast.error(t(res.error));
+                                                          if (res?.message) toast.success(t(res.message));
+                                                          router.refresh();
+                                                      });
+                                                  } else {
+                                                      openers.current[item.key]?.();
+                                                  }
                                               }
-                                          }
-                                }
-                            >
-                                {item.label}
-                            </MenuItem>
+                                    }
+                                >
+                                    {item.label}
+                                </MenuItem>
+                            </Fragment>
                         ))
                     }
                 </KebabMenu>
