@@ -27,6 +27,7 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.
 - `matrimony_profiles` (PK user_id): is_active, height_cm, income_range, contact_name / contact_phone, pref_* ,
   about, listed_by. Module prefix `matrimony_`.
+- fundraise_members: PK (campaign_id, user_id, member_role) — several roles per person; member_role adds 'expenser'.
 - fundraise_campaigns.kind ENUM('fundraise','mandal'); `fundraise_subscribers` (campaign_id, user_id); `fundraise_mandal_marks`
   (event_id, user_id, campaign_id, present, paid, contribution_id → fundraise_contributions).
 - `admin_surnames` (name UNIQUE, name_local, caste_id, subcaste_id → admin_castes, SET NULL on delete).

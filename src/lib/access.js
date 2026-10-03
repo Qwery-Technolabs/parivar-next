@@ -60,16 +60,18 @@ export async function canEditGroupDetails(user, groupId) {
 }
 
 // admin manages the fundraise (the creator starts as admin); the rest are informational.
-export const FUNDRAISE_TEAM_ROLES = ['admin', 'organizer', 'treasurer', 'collector', 'volunteer'];
+// In rank order (the first a person holds is their "main" role, e.g. on badges).
+export const FUNDRAISE_TEAM_ROLES = ['admin', 'organizer', 'treasurer', 'collector', 'expenser', 'volunteer'];
+// Who may add / edit / delete money entries, besides managers: contributions — treasurer, collector; expenses — expenser.
+export const CONTRIBUTION_ROLES = ['treasurer', 'collector'];
+export const EXPENSE_ROLES = ['expenser'];
 
-/** The user's role on one fundraise's team (fundraise_members), or null. */
-export async function fundraiseTeamRole(userId, campaignId) {
-    if (!userId || !campaignId) return null;
-    const row = await queryOne(
-        'SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId',
-        { campaignId, userId },
-    );
-    return row?.member_role ?? null;
+/** Every role the user holds on one fundraise's team (fundraise_members — one row per role), in rank order. */
+export async function fundraiseTeamRoles(userId, campaignId) {
+    if (!userId || !campaignId) return [];
+    const rows = await query('SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId });
+    const held = new Set(rows.map((r) => r.member_role));
+    return FUNDRAISE_TEAM_ROLES.filter((r) => held.has(r));
 }
 
 /**
@@ -89,17 +91,26 @@ export async function fundraiseTeamRole(userId, campaignId) {
  * @param {{id: number, group_id: number|null}} campaign
  */
 export async function fundraisePermissions(user, campaign) {
-    const none = { manage: false, contribution: false, expense: false, post: false, teamRole: null };
+    const none = { manage: false, contribution: false, expense: false, post: false, teamRole: null, teamRoles: [] };
     if (!user || !campaign) return none;
     const appLevel = canManageAllFundraises(user.role);
-    const [teamRole, groupAdmin] = await Promise.all([
-        fundraiseTeamRole(user.id, campaign.id),
+    const [teamRoles, groupAdmin] = await Promise.all([
+        fundraiseTeamRoles(user.id, campaign.id),
         !appLevel ? isAdminOfFundraiseGroup(user.id, campaign.id) : false,
     ]);
     // A fundraise admin (its creator, or anyone an admin promoted) manages it even without
     // being a group admin; once demoted, they lose it like anyone else.
-    const manage = appLevel || groupAdmin || teamRole === 'admin';
-    return { manage, contribution: manage, expense: manage, post: manage || Boolean(teamRole), teamRole };
+    const has = (list) => teamRoles.some((r) => list.includes(r));
+    const manage = appLevel || groupAdmin || teamRoles.includes('admin');
+    return {
+        manage,
+        // Several roles add up: Treasurer + Expenser may record both contributions and expenses.
+        contribution: manage || has(CONTRIBUTION_ROLES),
+        expense: manage || has(EXPENSE_ROLES),
+        post: manage || teamRoles.length > 0,
+        teamRoles,
+        teamRole: teamRoles[0] ?? null, // the main (highest) role
+    };
 }
 
 /**

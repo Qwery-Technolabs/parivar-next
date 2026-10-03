@@ -143,6 +143,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   sub-admins / for a fundraise or Mandal ONLY its own team admins (teamRole admin) — a group admin / sub-admin of its
   group gets nothing on the fundraise unless on its team. A group sub-admin sees the
   Danger zone card with only that row; pause / archive / status rows stay admin-only (`canManage`).
+- **Fundraise team roles** (fundraise_members, one row PER ROLE — PK campaign + user + role): a person can hold several
+  (admin, organizer, treasurer, collector, expenser, volunteer). `fundraiseTeamRoles` → perms.teamRoles (rank order),
+  perms.teamRole = main one. Rights add up: manage = admin; contribution = treasurer / collector (add, edit, delete,
+  mark paid); expense = expenser. Team card: role chips, ⋮ Edit roles (ticks), Add with ticks (saveTeamMember sets the set).
+  Every ledger change is in fundraise_history (who); role changes in the audit log (added / removed).
 - **Fundraise Danger zone** (About tab, FundraiseDangerCard; its admins = fundraisePermissions.manage): clear discussion (app admins only),
   pause ⇄ resume (`setCampaignStatus` closed ⇄ active — discussion read-only via chatAccess.paused), archive ⇄ restore
   (`setCampaignArchived`, no longer app-level only). Group: GroupDangerCard also holds "Clear history".

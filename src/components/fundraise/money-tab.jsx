@@ -17,9 +17,9 @@ export const MONEY_VIEWS = ['contributions', 'expenses', 'contributors'];
  * the add buttons the viewer's permissions allow, and the table.
  */
 export default function MoneyTab({ campaign, view, rows, total, page, perPage, perms, settings, today, base, sp, t, locale }) {
-    // Every viewer gets the row menu (History); Edit / Delete appear only for managers.
+    // Every viewer gets the row menu (History); Edit / Delete for whoever may record that kind
+    // (contributions: managers, treasurers, collectors; expenses: managers, expensers) — every change is in the History.
     const rowProps = {
-        canManage: perms.manage,
         today,
         allowAnonymous: settings.allow_anonymous,
         categories: settings.expense_categories,
@@ -113,7 +113,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                         {money(c.amount)}
                                     </Td>
                                     <Td className="w-12 py-1">
-                                        <RowActions kind="contribution" campaignId={campaign.id} row={c} {...rowProps} />
+                                        <RowActions kind="contribution" campaignId={campaign.id} row={c} canManage={perms.contribution} {...rowProps} />
                                     </Td>
                                 </Tr>
                             ))
@@ -157,7 +157,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                         {money(e.amount)}
                                     </Td>
                                     <Td className="w-12 py-1">
-                                        <RowActions kind="expense" campaignId={campaign.id} row={e} {...rowProps} />
+                                        <RowActions kind="expense" campaignId={campaign.id} row={e} canManage={perms.expense} {...rowProps} />
                                     </Td>
                                 </Tr>
                             ))

@@ -402,10 +402,10 @@ CREATE TABLE IF NOT EXISTS fundraise_settings (
 CREATE TABLE IF NOT EXISTS fundraise_members (
     campaign_id  INT UNSIGNED NOT NULL,
     user_id      INT UNSIGNED NOT NULL,
-    member_role  ENUM('admin','organizer','treasurer','collector','volunteer') NOT NULL DEFAULT 'volunteer',  -- admin manages the fundraise; creator starts as admin
+    member_role  ENUM('admin','organizer','treasurer','collector','expenser','volunteer') NOT NULL DEFAULT 'volunteer',  -- one row per role: a person can hold several; admin manages, treasurer/collector record contributions, expenser records expenses
     added_by     INT UNSIGNED NULL,
     added_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (campaign_id, user_id),
+    PRIMARY KEY (campaign_id, user_id, member_role),
     KEY idx_fundraise_members_user (user_id, member_role),
     CONSTRAINT fk_fundraise_members_camp FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE,
     CONSTRAINT fk_fundraise_members_user FOREIGN KEY (user_id)     REFERENCES users_list (id)          ON DELETE CASCADE

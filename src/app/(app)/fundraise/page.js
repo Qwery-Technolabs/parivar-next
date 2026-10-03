@@ -223,7 +223,7 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                 </Td>
                                 <Td>
                                     {roleColumn ? (
-                                        <Badge tone="orange">{t(`fundraise.teamRoles.${c.member_role}`)}</Badge>
+                                        <Badge tone="orange">{(c.roles?.length ? c.roles : [c.member_role]).map((r) => t(`fundraise.teamRoles.${r}`)).join(', ')}</Badge>
                                     ) : (
                                         <Badge status={c.status}>{t(`fundraise.${c.status}`)}</Badge>
                                     )}

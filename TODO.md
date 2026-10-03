@@ -305,3 +305,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Fix: notifications ⋮ crashed (React #306 — server-rendered icon elements, repeated Trash2); page menus take icon names now
 - [x] Calendar: Filters button at the right end of the month row on phones
 - [x] Relation view: generation indent 26 → 15 px (gentler joint curves)
+- [x] Fundraise team: several roles per person (ticks), new Expenser role; treasurer / collector record contributions, expenser records expenses (each change in History)

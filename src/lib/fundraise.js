@@ -5,6 +5,8 @@ import { canManageAllFundraises } from './roles';
 import { memo } from './memo';
 
 export const CAMPAIGN_STATUSES = ['active', 'draft', 'closed'];
+// Team roles in rank order, for ORDER BY FIELD(...) (same order as access.js FUNDRAISE_TEAM_ROLES).
+const ROLE_ORDER = "'admin', 'organizer', 'treasurer', 'collector', 'expenser', 'volunteer'";
 // 'unpaid' = pledged, money not in yet: listed (marked Pending) but out of every collected total.
 export const PAY_MODES = ['cash', 'upi', 'bank', 'cheque', 'other', 'unpaid'];
 const TOKEN_RE = /^[A-Za-z0-9_-]{24}$/;
@@ -283,28 +285,41 @@ export async function myContributions(userId, { page, perPage }) {
 }
 
 /** Fundraises where the user holds a team role. */
+/** Fundraises the user is on the team of, once each — `roles` = their roles there, `member_role` = the main one. */
 export async function myTeamCampaigns(userId) {
-    return query(
-        `SELECT ${COLS}, ${TOTALS}, fm.member_role
-           FROM fundraise_members fm
-           JOIN fundraise_campaigns c ON c.id = fm.campaign_id
+    const rows = await query(
+        `SELECT ${COLS}, ${TOTALS},
+                (SELECT GROUP_CONCAT(x.member_role ORDER BY FIELD(x.member_role, ${ROLE_ORDER}))
+                   FROM fundraise_members x WHERE x.campaign_id = c.id AND x.user_id = :userId) AS roles
+           FROM fundraise_campaigns c
            LEFT JOIN admin_groups g ON g.id = c.group_id
-          WHERE fm.user_id = :userId
+          WHERE c.id IN (SELECT campaign_id FROM fundraise_members WHERE user_id = :userId)
           ORDER BY FIELD(c.status, 'active', 'draft', 'closed'), c.id DESC`,
         { userId },
     );
+    return rows.map((r) => {
+        const roles = String(r.roles ?? '').split(',').filter(Boolean);
+        return { ...r, roles, member_role: roles[0] ?? null };
+    });
 }
 
 // ── team ──────────────────────────────────────────────────────────────────────
 
+/** The team, one row per person: `roles` = every role they hold (rank order), `member_role` = the main one. */
 export async function listTeam(campaignId) {
-    return query(
-        `SELECT fm.user_id, fm.member_role, fm.added_at, u.full_name, u.full_name_local, u.phone, u.village
+    const rows = await query(
+        `SELECT fm.user_id, GROUP_CONCAT(fm.member_role ORDER BY FIELD(fm.member_role, ${ROLE_ORDER})) AS roles, MIN(fm.added_at) AS added_at,
+                u.full_name, u.full_name_local, u.phone, u.village
            FROM fundraise_members fm JOIN users_list u ON u.id = fm.user_id
           WHERE fm.campaign_id = :campaignId
-          ORDER BY FIELD(fm.member_role, 'organizer', 'treasurer', 'collector', 'volunteer'), u.full_name`,
+          GROUP BY fm.user_id, u.full_name, u.full_name_local, u.phone, u.village
+          ORDER BY MIN(FIELD(fm.member_role, ${ROLE_ORDER})), u.full_name`,
         { campaignId },
     );
+    return rows.map((r) => {
+        const roles = String(r.roles ?? '').split(',').filter(Boolean);
+        return { ...r, roles, member_role: roles[0] ?? null };
+    });
 }
 
 // ── meetings (events_list rows with campaign_id, event_type = 'meeting') ─────

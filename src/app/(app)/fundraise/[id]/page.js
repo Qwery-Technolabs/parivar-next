@@ -202,7 +202,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     locale={locale}
                     messageCount={messageCount}
                     // Clear the discussion: app admins / sub-admins and the fundraise's own team admins only.
-                    canClearChat={canClearChats(user.role) || perms.teamRole === 'admin'}
+                    canClearChat={canClearChats(user.role) || perms.teamRoles.includes('admin')}
                     // Edit history: deleted only by app admins / sub-admins (canClearHistory).
                     historyCount={canClearHistory(user.role) ? editCount : 0}
                 />
@@ -297,7 +297,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                             </div>
                             {perms.teamRole && (
                                 <Badge tone="orange" className="hidden sm:inline-flex">
-                                    {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
+                                    {t('fundraise.yourRole')}: {perms.teamRoles.map((r) => t(`fundraise.teamRoles.${r}`)).join(', ')}
                                 </Badge>
                             )}
                         </div>

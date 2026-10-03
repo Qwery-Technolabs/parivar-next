@@ -682,7 +682,7 @@ export async function saveContribution(prev, fd) {
 
 /** Soft delete: the row stays (hidden, out of totals) so its history remains complete. */
 export async function deleteContribution(campaignId, contributionId) {
-    const { user, campaign } = await authorize(campaignId);
+    const { user, campaign } = await authorize(campaignId, 'contribution');
     if (!campaign) return FORBIDDEN;
     const snap = await withTransaction(async (q) => {
         const r = await q(
@@ -786,7 +786,7 @@ export async function saveExpense(prev, fd) {
 
 /** Soft delete, like contributions. */
 export async function deleteExpense(campaignId, expenseId) {
-    const { user, campaign } = await authorize(campaignId);
+    const { user, campaign } = await authorize(campaignId, 'expense');
     if (!campaign) return FORBIDDEN;
     const snap = await withTransaction(async (q) => {
         const r = await q(
@@ -824,67 +824,68 @@ export async function entryHistory(campaignId, entity, entityId) {
 
 const campaignLink = (campaignId, tab) => `/fundraise/${campaignId}${tab ? `?tab=${tab}` : ''}`;
 
-/** Add or re-role a team member (same form: an existing member just gets the new role). */
+/**
+ * Add a team member or change their roles — a person can hold several (member_roles[] ticks):
+ * the ticked set replaces what they had. Fields: campaign_id, user_id, member_roles[].
+ */
 export async function saveTeamMember(prev, fd) {
     const campaignId = id(fd, 'campaign_id');
     const { user, campaign } = await authorize(campaignId);
     if (!campaign) return FORBIDDEN;
 
     const userId = id(fd, 'user_id');
-    const role = oneOf(fd, 'member_role', FUNDRAISE_TEAM_ROLES);
+    const roles = FUNDRAISE_TEAM_ROLES.filter((r) => fd.getAll('member_roles').includes(r));
     const fieldErrors = {};
     if (!userId) fieldErrors.user_id = 'fundraise.errors.member';
-    if (!role) fieldErrors.member_role = 'fundraise.errors.teamRole';
+    if (!roles.length) fieldErrors.member_roles = 'fundraise.errors.teamRole';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
     const member = await queryOne('SELECT id, full_name FROM users_list WHERE id = :userId', { userId });
     if (!member) return { fieldErrors: { user_id: 'fundraise.errors.member' } };
-    const before = await queryOne(
-        'SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId',
-        { campaignId, userId },
+    const before = (await query('SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId })).map(
+        (r) => r.member_role,
     );
-    if (before?.member_role === role) return { ok: true, message: 'fundraise.teamSaved' };
-    // An admin cannot demote themselves (the fundraise could be left with nobody to run it);
+    const added = roles.filter((r) => !before.includes(r));
+    const removed = before.filter((r) => !roles.includes(r));
+    if (!added.length && !removed.length) return { ok: true, message: 'fundraise.teamSaved' };
+    // An admin cannot take away their own Admin role (the fundraise could be left with nobody to run it);
     // another admin, or an app-level manager, has to do it.
-    if (userId === user.id && before?.member_role === 'admin' && role !== 'admin' && !canManageAllFundraises(user.role)) {
-        return { error: 'fundraise.errors.selfDemote' };
-    }
+    if (userId === user.id && removed.includes('admin') && !canManageAllFundraises(user.role)) return { error: 'fundraise.errors.selfDemote' };
 
-    await query(
-        `INSERT INTO fundraise_members (campaign_id, user_id, member_role, added_by)
-         VALUES (:campaignId, :userId, :role, :by)
-         ON DUPLICATE KEY UPDATE member_role = VALUES(member_role)`,
-        { campaignId, userId, role, by: user.id },
-    );
-    if (!before) await syncEveryoneMeetings({ scope: 'fundraise', scopeId: campaignId }); // its upcoming "Everyone" meetings
-    await audit(user.id, before ? 'fundraise.team.role' : 'fundraise.team.add', 'fundraise', campaignId, {
-        user: userId,
-        role,
-        from: before?.member_role ?? null,
+    await withTransaction(async (q) => {
+        for (const role of added) {
+            await q('INSERT IGNORE INTO fundraise_members (campaign_id, user_id, member_role, added_by) VALUES (:campaignId, :userId, :role, :by)', {
+                campaignId,
+                userId,
+                role,
+                by: user.id,
+            });
+        }
+        for (const role of removed) {
+            await q('DELETE FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId AND member_role = :role', { campaignId, userId, role });
+        }
     });
-    await notify(userId, {
-        type: 'fundraise.role',
-        data: { title: campaign.title, role },
-        link: campaignLink(campaignId, 'team'),
-        actorId: user.id,
-    });
+    if (!before.length) await syncEveryoneMeetings({ scope: 'fundraise', scopeId: campaignId }); // its upcoming "Everyone" meetings
+    // Role history: who gave / took which role, in the activity log.
+    await audit(user.id, before.length ? 'fundraise.team.role' : 'fundraise.team.add', 'fundraise', campaignId, { user: userId, roles, added, removed });
+    for (const role of added) {
+        await notify(userId, { type: 'fundraise.role', data: { title: campaign.title, role }, link: campaignLink(campaignId, 'team'), actorId: user.id });
+    }
     refreshCampaign(campaignId);
     return { ok: true, message: 'fundraise.teamSaved' };
 }
 
+/** Take someone off the team (all their roles). */
 export async function removeTeamMember(campaignId, userId) {
     const { user, campaign } = await authorize(campaignId);
     if (!campaign) return FORBIDDEN;
-    const row = await queryOne(
-        'SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId',
-        { campaignId, userId },
+    const roles = (await query('SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId })).map(
+        (r) => r.member_role,
     );
-    if (!row) return FORBIDDEN;
-    if (Number(userId) === user.id && row.member_role === 'admin' && !canManageAllFundraises(user.role)) {
-        return { error: 'fundraise.errors.selfDemote' };
-    }
+    if (!roles.length) return FORBIDDEN;
+    if (Number(userId) === user.id && roles.includes('admin') && !canManageAllFundraises(user.role)) return { error: 'fundraise.errors.selfDemote' };
     await query('DELETE FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId });
-    await audit(user.id, 'fundraise.team.remove', 'fundraise', campaignId, { user: userId, role: row.member_role });
+    await audit(user.id, 'fundraise.team.remove', 'fundraise', campaignId, { user: userId, roles });
     refreshCampaign(campaignId);
     return { ok: true, message: 'fundraise.teamRemoved' };
 }

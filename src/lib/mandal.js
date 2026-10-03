@@ -18,7 +18,7 @@ import { getMeta, getMetaMany, inList, query } from './db';
 export async function canRunMandal(user, campaign) {
     if (!user || !campaign) return false;
     const perms = await fundraisePermissions(user, campaign);
-    if (perms.manage || perms.teamRole === 'treasurer' || perms.teamRole === 'collector') return true;
+    if (perms.manage || perms.teamRoles.includes('treasurer') || perms.teamRoles.includes('collector')) return true;
     return isLeaderOfFundraiseGroup(user.id, campaign.id);
 }
 

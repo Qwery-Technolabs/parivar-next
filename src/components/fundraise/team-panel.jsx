@@ -1,19 +1,25 @@
 'use client';
-import { UserMinus, UserPlus } from 'lucide-react';
+import { ShieldCheck, UserMinus, UserPlus } from 'lucide-react';
 import Link from 'next/link';
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { removeTeamMember, saveTeamMember } from '@/app/actions/fundraise';
 import Badge from '@/components/ui/badge';
-import { Field, selectInput } from '@/components/ui/field';
-import FormDialog from '@/components/ui/form-dialog';
+import { Field } from '@/components/ui/field';
+import FormDialog, { OpenOnMount } from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
-import { KebabMenu, MenuItem } from '@/components/ui/popover';
+import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 
-const ROLES = ['admin', 'organizer', 'treasurer', 'collector', 'volunteer'];
-const TONE = { admin: 'navy', organizer: 'orange', treasurer: 'green', collector: 'blue', volunteer: 'gray' };
+// Rank order (access.js FUNDRAISE_TEAM_ROLES). A person can hold several.
+const ROLES = ['admin', 'organizer', 'treasurer', 'collector', 'expenser', 'volunteer'];
+const TONE = { admin: 'navy', organizer: 'orange', treasurer: 'green', collector: 'blue', expenser: 'purple', volunteer: 'gray' };
 
+/**
+ * The fundraise's team (About tab): each person with every role they hold. Managers add people and
+ * change roles with tick boxes (Admin + Treasurer, Treasurer + Collector + Expenser …) and remove them.
+ * Treasurer / Collector record contributions, Expenser records expenses; each entry's History shows who.
+ */
 export default function TeamPanel({ campaignId, team, canManage, creatorId = null }) {
     const { t, locale } = useT();
     return (
@@ -40,10 +46,47 @@ export default function TeamPanel({ campaignId, team, canManage, creatorId = nul
     );
 }
 
+/** Tick boxes for the roles (posted as member_roles[]). */
+function RoleChecks({ initial, error }) {
+    const { t } = useT();
+    const [picked, setPicked] = useState(() => new Set(initial));
+    return (
+        <Field label={t('fundraise.teamRolesLabel')} hint={t('fundraise.teamRolesHint')} error={error} required>
+            <div className="grid gap-1.5 sm:grid-cols-2">
+                {ROLES.map((r) => (
+                    <label key={r} className="flex cursor-pointer items-start gap-2 rounded-md border border-surface-border px-2.5 py-2 text-sm hover:bg-accent/50">
+                        <input
+                            type="checkbox"
+                            name="member_roles"
+                            value={r}
+                            checked={picked.has(r)}
+                            onChange={() =>
+                                setPicked((s) => {
+                                    const n = new Set(s);
+                                    if (n.has(r)) n.delete(r);
+                                    else n.add(r);
+                                    return n;
+                                })
+                            }
+                            className="mt-0.5 size-4 shrink-0 accent-brand-orange-strong"
+                        />
+                        <span className="min-w-0">
+                            <span className="block font-medium text-primary">{t(`fundraise.teamRoles.${r}`)}</span>
+                            <span className="block text-xs text-ink-gray">{t(`fundraise.teamRoleHints.${r}`)}</span>
+                        </span>
+                    </label>
+                ))}
+            </div>
+        </Field>
+    );
+}
+
 function TeamRow({ campaignId, m, canManage, locale, creatorId }) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
+    const [editKey, setEditKey] = useState(0);
     const name = (locale === 'gu' && m.full_name_local) || m.full_name;
+    const roles = m.roles?.length ? m.roles : [m.member_role];
 
     function run(fn) {
         startTransition(async () => {
@@ -53,68 +96,74 @@ function TeamRow({ campaignId, m, canManage, locale, creatorId }) {
         });
     }
 
-    // Live control: one change is one intent (design-system.md §6), so the role select saves on change.
-    function changeRole(e) {
-        const fd = new FormData();
-        fd.set('campaign_id', String(campaignId));
-        fd.set('user_id', String(m.user_id));
-        fd.set('member_role', e.target.value);
-        run(() => saveTeamMember(null, fd));
-    }
-
     return (
         <li className={`flex flex-wrap items-center gap-3 px-4 py-3 ${pending ? 'cursor-wait opacity-70' : ''}`}>
             <div className="min-w-0 flex-1">
                 <Link href={`/members/${m.user_id}`} className="font-medium text-primary hover:underline break-words">
                     {name}
                 </Link>
-                {/* Only a tag: the creator's rights are whatever role they hold now. */}
+                {/* Only a tag: the creator's rights are whatever roles they hold now. */}
                 {m.user_id === creatorId && (
                     <Badge tone="gray" className="ml-1.5">
                         {t('common.creator')}
                     </Badge>
                 )}
                 {m.village && <p className="text-xs text-ink-gray">{m.village}</p>}
-            </div>
-            {canManage ? (
-                <select
-                    value={m.member_role}
-                    onChange={changeRole}
-                    disabled={pending}
-                    aria-label={t('fundraise.changeRole')}
-                    className={`${selectInput(false, 'h-8')} text-xs`}
-                >
-                    {ROLES.map((r) => (
-                        <option key={r} value={r}>
+                <div className="mt-1 flex flex-wrap gap-1">
+                    {roles.map((r) => (
+                        <Badge key={r} tone={TONE[r]}>
                             {t(`fundraise.teamRoles.${r}`)}
-                        </option>
+                        </Badge>
                     ))}
-                </select>
-            ) : (
-                <Badge tone={TONE[m.member_role]}>{t(`fundraise.teamRoles.${m.member_role}`)}</Badge>
-            )}
+                </div>
+            </div>
             {canManage && (
                 <KebabMenu label={t('common.more')}>
                     {(close) => (
-                        <MenuItem
-                            icon={UserMinus}
-                            danger
-                            onClick={() => {
-                                close();
-                                if (window.confirm(t('fundraise.removeFromTeamConfirm', { name })))
-                                    run(() => removeTeamMember(campaignId, m.user_id));
-                            }}
-                        >
-                            {t('fundraise.removeFromTeam')}
-                        </MenuItem>
+                        <>
+                            <MenuItem
+                                icon={ShieldCheck}
+                                onClick={() => {
+                                    close();
+                                    setEditKey((k) => k + 1);
+                                }}
+                            >
+                                {t('fundraise.editRoles')}
+                            </MenuItem>
+                            <MenuSeparator />
+                            <MenuItem
+                                icon={UserMinus}
+                                danger
+                                onClick={() => {
+                                    close();
+                                    if (window.confirm(t('fundraise.removeFromTeamConfirm', { name }))) run(() => removeTeamMember(campaignId, m.user_id));
+                                }}
+                            >
+                                {t('fundraise.removeFromTeam')}
+                            </MenuItem>
+                        </>
                     )}
                 </KebabMenu>
+            )}
+            {canManage && editKey > 0 && (
+                <FormDialog
+                    key={editKey}
+                    title={t('fundraise.editRoles')}
+                    description={name}
+                    action={saveTeamMember}
+                    hidden={{ campaign_id: campaignId, user_id: m.user_id }}
+                    submitIcon={ShieldCheck}
+                    width="sm:max-w-lg"
+                    trigger={({ open }) => <OpenOnMount open={open} />}
+                >
+                    {({ fieldError }) => <RoleChecks initial={roles} error={fieldError('member_roles')} />}
+                </FormDialog>
             )}
         </li>
     );
 }
 
-/** "Add to team" — sits in the Team card's header (details-tab.jsx). */
+/** "Add to team" — sits in the Team card's header (details-tab.jsx). Pick a member, tick their roles. */
 export function AddTeamMemberButton({ campaignId, exclude }) {
     const { t } = useT();
     return (
@@ -124,12 +173,9 @@ export function AddTeamMemberButton({ campaignId, exclude }) {
             hidden={{ campaign_id: campaignId }}
             submitIcon={UserPlus}
             submitLabel={t('common.add')}
+            width="sm:max-w-lg"
             trigger={({ open }) => (
-                <button
-                    type="button"
-                    onClick={open}
-                    className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
-                >
+                <button type="button" onClick={open} className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium">
                     <UserPlus className="size-3.5" /> {t('fundraise.addTeamMember')}
                 </button>
             )}
@@ -139,15 +185,7 @@ export function AddTeamMemberButton({ campaignId, exclude }) {
                     <Field label={t('members.fullName')} error={fieldError('user_id')} required>
                         <MemberPicker name="user_id" exclude={exclude} hasError={!!fieldError('user_id')} />
                     </Field>
-                    <Field label={t('fundraise.teamRole')} error={fieldError('member_role')} required>
-                        <select name="member_role" defaultValue="collector" className={`${selectInput(!!fieldError('member_role'))} w-full`}>
-                            {ROLES.map((r) => (
-                                <option key={r} value={r}>
-                                    {t(`fundraise.teamRoles.${r}`)} — {t(`fundraise.teamRoleHints.${r}`)}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
+                    <RoleChecks initial={['collector']} error={fieldError('member_roles')} />
                 </>
             )}
         </FormDialog>

@@ -93,7 +93,7 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
                         {perms.teamRole && (
                             <p className="mb-3">
                                 <Badge tone="orange">
-                                    {t('fundraise.yourRole')}: {t(`fundraise.teamRoles.${perms.teamRole}`)}
+                                    {t('fundraise.yourRole')}: {perms.teamRoles.map((r) => t(`fundraise.teamRoles.${r}`)).join(', ')}
                                 </Badge>
                             </p>
                         )}
