@@ -131,7 +131,11 @@ export async function listCampaigns(user, { status, groupId, q = '', archived = 
         ),
         queryOne(`SELECT COUNT(*) AS n FROM fundraise_campaigns c WHERE ${whereSql}`, params),
     ]);
-    const pics = await getMetaMany('fundraise_campaigns', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);
+    const pics = await getMetaMany(
+        'fundraise_campaigns',
+        rows.map((r) => r.id),
+        ['avatar_kind', 'avatar_value', 'avatar_color'],
+    );
     return { rows: rows.map((r) => ({ ...r, avatar: pics[r.id] ?? {} })), total: count.n };
 }
 
@@ -216,7 +220,11 @@ export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
         { campaignId },
     );
     // Who paid out of pocket (meta paid_by = user id) and whether the treasurer has paid them back (meta repaid = '1').
-    const meta = await getMetaMany('fundraise_expenses', rows.map((r) => r.id), ['notes', 'bill_ref', 'paid_by', 'repaid']);
+    const meta = await getMetaMany(
+        'fundraise_expenses',
+        rows.map((r) => r.id),
+        ['notes', 'bill_ref', 'paid_by', 'repaid'],
+    );
     const payerIds = [...new Set(rows.map((r) => Number(meta[r.id]?.paid_by) || 0).filter(Boolean))];
     const payers = payerIds.length
         ? new Map(
@@ -248,6 +256,52 @@ export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
 // is not recognised as the same expression.
 const CONTRIB_KEY = `COALESCE(CONCAT('u:', user_id), CONCAT('n:', donor_name))`;
 const PUBLIC_KEY = `IF(is_anonymous = 1, 'anon', ${CONTRIB_KEY})`;
+
+/**
+ * Holdings — who has the fundraise's money outside the treasurer, per person:
+ *   holding = received contributions they keep (kept_by) that are not handed over yet;
+ *   owed    = expenses they paid from their pocket (meta paid_by) not repaid yet (meta repaid ≠ '1').
+ * Largest first; people with neither are left out. Two grouped queries, names joined in.
+ */
+export async function listHoldings(campaignId) {
+    const [kept, paid] = await Promise.all([
+        query(
+            `SELECT u.id AS user_id, u.full_name, u.full_name_local, SUM(c.amount) AS amount, COUNT(*) AS entries
+               FROM fundraise_contributions c JOIN users_list u ON u.id = c.kept_by
+              WHERE c.campaign_id = :campaignId AND c.deleted_at IS NULL AND c.mode <> 'unpaid' AND c.handed_over = 0
+              GROUP BY u.id, u.full_name, u.full_name_local`,
+            { campaignId },
+        ),
+        query(
+            `SELECT u.id AS user_id, u.full_name, u.full_name_local, SUM(e.amount) AS amount, COUNT(*) AS entries
+               FROM fundraise_expenses e
+               JOIN fundraise_expensesmeta pb ON pb.expense_id = e.id AND pb.meta_key = 'paid_by'
+               JOIN users_list u ON u.id = CAST(pb.meta_value AS UNSIGNED)
+               LEFT JOIN fundraise_expensesmeta rp ON rp.expense_id = e.id AND rp.meta_key = 'repaid'
+              WHERE e.campaign_id = :campaignId AND e.deleted_at IS NULL AND COALESCE(rp.meta_value, '') <> '1'
+              GROUP BY u.id, u.full_name, u.full_name_local`,
+            { campaignId },
+        ),
+    ]);
+    const people = new Map();
+    const person = (r) => {
+        if (!people.has(r.user_id)) {
+            people.set(r.user_id, {
+                user_id: r.user_id,
+                full_name: r.full_name,
+                full_name_local: r.full_name_local,
+                holding: 0,
+                holding_entries: 0,
+                owed: 0,
+                owed_entries: 0,
+            });
+        }
+        return people.get(r.user_id);
+    };
+    for (const r of kept) Object.assign(person(r), { holding: Number(r.amount), holding_entries: Number(r.entries) });
+    for (const r of paid) Object.assign(person(r), { owed: Number(r.amount), owed_entries: Number(r.entries) });
+    return [...people.values()].sort((a, b) => b.holding + b.owed - (a.holding + a.owed));
+}
 
 /**
  * One row per contributor: a member is keyed by user_id (so name edits do not split
@@ -306,7 +360,6 @@ async function loadLocations() {
     return rows.map((r) => r.v);
 }
 
-
 /** My donations across every fundraise, newest first, plus my overall total. */
 export async function myContributions(userId, { page, perPage }) {
     const offset = (page - 1) * perPage;
@@ -343,7 +396,9 @@ export async function myTeamCampaigns(userId) {
         { userId },
     );
     return rows.map((r) => {
-        const roles = String(r.roles ?? '').split(',').filter(Boolean);
+        const roles = String(r.roles ?? '')
+            .split(',')
+            .filter(Boolean);
         return { ...r, roles, member_role: roles[0] ?? null };
     });
 }
@@ -362,7 +417,9 @@ export async function listTeam(campaignId) {
         { campaignId },
     );
     return rows.map((r) => {
-        const roles = String(r.roles ?? '').split(',').filter(Boolean);
+        const roles = String(r.roles ?? '')
+            .split(',')
+            .filter(Boolean);
         return { ...r, roles, member_role: roles[0] ?? null };
     });
 }
@@ -379,7 +436,11 @@ export async function listMeetings(campaignId, today) {
           ORDER BY e.start_date, e.start_time`,
         { campaignId },
     );
-    const meta = await getMetaMany('events_list', rows.map((r) => r.id), ['description']);
+    const meta = await getMetaMany(
+        'events_list',
+        rows.map((r) => r.id),
+        ['description'],
+    );
     const all = rows.map((r) => ({ ...r, agenda: meta[r.id]?.description ?? '' }));
     return {
         upcoming: all.filter((m) => m.start_date >= today),
@@ -412,7 +473,11 @@ export async function listUpdates(campaignId, { eventId = null } = {}) {
           LIMIT 200`,
         eventId ? { campaignId, eventId } : { campaignId },
     );
-    const meta = await getMetaMany('fundraise_updates', rows.map((r) => r.id), ['body']);
+    const meta = await getMetaMany(
+        'fundraise_updates',
+        rows.map((r) => r.id),
+        ['body'],
+    );
     return rows.map((r) => ({ ...r, body: meta[r.id]?.body ?? '' }));
 }
 

@@ -27,6 +27,7 @@ import {
     listContributions,
     listExpenses,
     listHistory,
+    listHoldings,
     listTeam,
     canSeeCampaign,
     listGroupsForSelect,
@@ -182,9 +183,11 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             />
         );
     } else if (tab === 'details') {
-        const [audience, team, updates, history, messageCount, editCount] = await Promise.all([
+        const [audience, team, holdings, updates, history, messageCount, editCount] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
+            // Holdings card (everyone who sees the fundraise); a Mandal shows who has its money in its own tab.
+            campaign.kind === 'mandal' ? null : listHoldings(campaign.id),
             listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),
@@ -198,6 +201,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
                     campaign={campaign}
                     audience={audience}
                     team={team}
+                    holdings={holdings}
                     updates={updates}
                     history={history}
                     perms={perms}

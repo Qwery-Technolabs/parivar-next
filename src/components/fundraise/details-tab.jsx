@@ -3,6 +3,7 @@ import Badge from '@/components/ui/badge';
 import { localized } from '@/lib/i18n/config';
 import { describeHistory, historyWhen } from './history-format';
 import FundraiseDangerCard from './fundraise-danger-card';
+import HoldingsCard from './holdings-card';
 import PublicLinkCard from './public-link-card';
 import TeamPanel, { AddTeamMemberButton } from './team-panel';
 import UpdatesPanel from './updates-panel';
@@ -21,7 +22,22 @@ export function audienceLabel(rule, t, locale) {
  * link, history. Meetings have their own tab. Sections keep ids so old ?tab=team / updates
  * links can land on them.
  */
-export default function DetailsTab({ campaign, audience, team, updates, history, perms, userId, today, t, locale, messageCount = 0, canClearChat = false, historyCount = 0 }) {
+export default function DetailsTab({
+    campaign,
+    audience,
+    team,
+    holdings = null,
+    updates,
+    history,
+    perms,
+    userId,
+    today,
+    t,
+    locale,
+    messageCount = 0,
+    canClearChat = false,
+    historyCount = 0,
+}) {
     const description = localized(campaign.meta, 'description', locale);
     return (
         // Side column (team, public link): a little wider on desktop.
@@ -100,6 +116,8 @@ export default function DetailsTab({ campaign, audience, team, updates, history,
                         <TeamPanel campaignId={campaign.id} team={team} canManage={perms.manage} creatorId={campaign.created_by} />
                     </Card>
                 </section>
+                {/* Who has money outside the treasurer: kept contributions, expenses to get back. */}
+                {holdings && <HoldingsCard holdings={holdings} t={t} locale={locale} />}
                 {/* Draws its own card, with the public switch in the header. */}
                 <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
                 {/* Danger zone (its admins): clear the discussion, pause, archive — each with a sentence and a confirmation. */}

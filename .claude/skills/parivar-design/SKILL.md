@@ -118,8 +118,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   line under the field (also when only SOME users may leave it empty: label switches, e.g. relative phone, new-member
   password). A hint is only for a real requirement or a needed explanation.
 - Hints, notes and short descriptions: aim for 5-6 words ("Who paid from their pocket"); up to 8-10 words when the
-  rule needs it ("Skips higher roles and yourself. An empty value clears it."). Never longer; danger-zone rows keep
-  their "Action: …" prefix. Same length in gu.
+  rule needs it ("Skips higher roles and yourself. An empty value clears it."). Same length in gu.
+- EXCEPT Danger zone rows (every danger card in the app): a full explaining sentence, up to ~20 words, keeping the
+  "Action: …" prefix — what happens, who can still see / undo it, or "This cannot be undone."
 - Repeater rows (e.g. Bulk edit): small uppercase column headings, plain rows (no box per row), a bordered square × at the
   right of each row, "+ Add …" as an outlined button bottom-right.
 - Money forms are grouped with FormPart: contribution = Contributor · Amount · Holding (Kept by); expense = Details · Amount
