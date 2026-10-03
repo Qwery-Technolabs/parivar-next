@@ -172,7 +172,7 @@ function ContributionFields({ fieldError, today, allowAnonymous, entry, people, 
                             ))}
                         </select>
                     </Field>
-                    <Field label={t('fundraise.reference')} hint={t('common.optional')}>
+                    <Field label={`${t('fundraise.reference')} (${t('common.optional')})`}>
                         <input
                             name="reference"
                             maxLength={100}

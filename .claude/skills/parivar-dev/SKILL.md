@@ -148,6 +148,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   perms.teamRole = main one. Rights add up: manage = admin; contribution = treasurer / collector (add, edit, delete,
   mark paid); expense = expenser. Team card: role chips, ⋮ Edit roles (ticks), Add with ticks (saveTeamMember sets the set).
   Every ledger change is in fundraise_history (who); role changes in the audit log (added / removed).
+- **Copy list / Copy all** (money tab → /api/fundraise/[id]/ledger → lib/ledger-text.js): every contribution, unpaid ones
+  too with "(pending)" after the name; Total counts paid only, then a "Pending ₹…" line when any; anonymous stays hidden.
+- **Statement "By contributor"** (print / PDF / public page, components/fundraise/statement.jsx): only people with paid > 0,
+  entries = paid entries (contributorTotals.paid_entries). The Contributions table still lists every entry, pending in red.
 - **Expense paid by** (fundraise_expensesmeta paid_by = user id, repaid = '1'): the expense form's "Paid by" (searchable Combobox filtering fundraisePeople in the browser —
   team + group members + Mandal members, default = the recorder) and a "Treasurer has paid them back" switch (default off).
   The list shows "Paid by X" + Repaid / To repay; both are in the expense snapshot, so History shows changes.

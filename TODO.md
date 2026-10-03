@@ -318,3 +318,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Add family member: title shows whose relative and which ("Add Mother of …")
 - [x] Members: Bulk edit (app admins / sub-admins) — status, role, village, city, caste, blood group, donor for all ticked, via add/remove change rows
 - [x] Bulk edit rows restyled: headings, plain rows, outlined × and + Add a change
+- [x] Optional fields: "(optional)" in the label, no hint line (target, reference, category, bill no.)
+- [x] All hints / notes / short descriptions cut to 5-6 words (up to 8-10 where needed) (en + gu); optional end date, relative phone, new-member password say (optional) in the label
+- [x] Copy list / Copy all: unpaid contributors marked "(pending)" after the name, plus a Pending total line
+- [x] Print / PDF "By contributor": people with ₹0 paid (pending only) left out; Contributions still lists pending entries

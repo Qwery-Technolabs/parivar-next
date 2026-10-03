@@ -114,6 +114,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- Optional fields say so IN THE LABEL — "Reference (optional)" (`${t(label)} (${t('common.optional')})`) — never as a hint
+  line under the field (also when only SOME users may leave it empty: label switches, e.g. relative phone, new-member
+  password). A hint is only for a real requirement or a needed explanation.
+- Hints, notes and short descriptions: aim for 5-6 words ("Who paid from their pocket"); up to 8-10 words when the
+  rule needs it ("Skips higher roles and yourself. An empty value clears it."). Never longer; danger-zone rows keep
+  their "Action: …" prefix. Same length in gu.
 - Repeater rows (e.g. Bulk edit): small uppercase column headings, plain rows (no box per row), a bordered square × at the
   right of each row, "+ Add …" as an outlined button bottom-right.
 - Money forms are grouped with FormPart: contribution = Contributor · Amount · Holding (Kept by); expense = Details · Amount

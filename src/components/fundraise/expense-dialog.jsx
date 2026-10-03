@@ -130,7 +130,7 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                                     className={`${textInput(!!fieldError('spent_on'))} w-full`}
                                 />
                             </Field>
-                            <Field label={t('fundraise.category')} hint={t('common.optional')}>
+                            <Field label={`${t('fundraise.category')} (${t('common.optional')})`}>
                                 {/* Categories come from fundraise_settings.expense_categories. */}
                                 <select name="category" defaultValue={entry?.category ?? ''} className={`${selectInput()} w-full`}>
                                     <option value="">{t('common.none')}</option>
@@ -141,7 +141,7 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                                     ))}
                                 </select>
                             </Field>
-                            <Field label={t('fundraise.billRef')} hint={t('common.optional')}>
+                            <Field label={`${t('fundraise.billRef')} (${t('common.optional')})`}>
                                 <input name="bill_ref" maxLength={100} defaultValue={entry?.bill_ref ?? ''} className={`${textInput()} w-full`} />
                             </Field>
                         </div>

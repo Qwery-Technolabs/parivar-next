@@ -105,7 +105,7 @@ function EventForm({ event, groups, types, defaultDate, onDone }) {
                         className={`${textInput(!!fe('start_date'))} w-full`}
                     />
                 </Field>
-                <Field label={t('calendar.endDate')} error={fe('end_date')} hint={t('calendar.endHint')}>
+                <Field label={`${t('calendar.endDate')} (${t('common.optional')})`} error={fe('end_date')} hint={t('calendar.endHint')}>
                     <input name="end_date" type="date" defaultValue={e.end_date ?? ''} className={`${textInput(!!fe('end_date'))} w-full`} />
                 </Field>
                 <Field label={t('calendar.time')} error={fe('start_time')}>

@@ -14,13 +14,24 @@ import { money } from './format';
  */
 export function ledgerText({ income = [], expense = [], title = '', kind }, t) {
     const block = (rows, nameOf, heading) => {
-        // Pledged-but-unpaid lines are listed but not counted.
-        const total = rows.reduce((s, r) => s + (r.mode === 'unpaid' ? 0 : Number(r.amount)), 0);
+        // Pledged-but-unpaid lines are listed with "(pending)" after the name, not counted in the
+        // total, and summed on their own "Pending ₹…" line under it.
+        const unpaid = (r) => r.mode === 'unpaid';
+        const total = rows.reduce((s, r) => s + (unpaid(r) ? 0 : Number(r.amount)), 0);
+        const pending = rows.reduce((s, r) => s + (unpaid(r) ? Number(r.amount) : 0), 0);
         const amounts = rows.map((r) => money(r.amount));
         // Pad amounts to one width so the names line up in a monospace view.
         const width = Math.max(0, ...amounts.map((a) => a.length));
-        const lines = rows.map((r, i) => `${amounts[i].padStart(width)}  ${nameOf(r)}`);
-        return [heading, ...lines, '-----', `${t('common.total')} ${money(total)}`].filter((l) => l !== null).join('\n');
+        const lines = rows.map((r, i) => `${amounts[i].padStart(width)}  ${nameOf(r)}${unpaid(r) ? ` (${t('fundraise.ledger.pendingTag')})` : ''}`);
+        return [
+            heading,
+            ...lines,
+            '-----',
+            `${t('common.total')} ${money(total)}`,
+            pending > 0 ? t('fundraise.ledger.pendingTotal', { amount: money(pending) }) : null,
+        ]
+            .filter((l) => l !== null)
+            .join('\n');
     };
     // Shared text respects anonymity: the name a donor asked to hide stays hidden.
     const donor = (r) => (r.is_anonymous ? t('fundraise.anonymousLabel') : r.donor_name);

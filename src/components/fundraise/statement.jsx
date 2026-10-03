@@ -32,19 +32,23 @@ export default function Statement({ campaign, contributors, contributions, expen
     const spent = Number(campaign.spent);
     const name = (row) => (publicView && row.is_anonymous ? t('fundraise.anonymousLabel') : row.donor_name);
     const description = localized(campaign.meta ?? {}, 'description', locale);
+    // "By contributor" lists only people who have paid something (pending-only = ₹0 is left out),
+    // counting their paid entries; the Contributions table still lists every entry, pending too.
+    const givers = contributors.filter((c) => Number(c.total) > 0);
+    const paidEntries = (c) => Number(c.paid_entries ?? c.entries);
 
     return (
         <div className="space-y-6 print:space-y-4">
             {description && <p className="whitespace-pre-line text-sm text-ink break-words">{description}</p>}
 
             {sections.includes('contributors') && (
-                <Section title={t('fundraise.byContributor')} note={t('fundraise.contributorCount', { count: contributors.length })}>
+                <Section title={t('fundraise.byContributor')} note={t('fundraise.contributorCount', { count: givers.length })}>
                     <Table
                         head={[t('fundraise.donor'), t('fundraise.entries'), t('fundraise.amount')]}
                         numeric={[false, true, true]}
                         empty={t('fundraise.noContributions')}
-                        rows={contributors.map((c) => [name(c), c.entries, money(c.total)])}
-                        foot={[t('common.total'), contributions.length, money(collected)]}
+                        rows={givers.map((c) => [name(c), paidEntries(c), money(c.total)])}
+                        foot={[t('common.total'), givers.reduce((s, c) => s + paidEntries(c), 0), money(collected)]}
                         footTone="text-income"
                     />
                 </Section>

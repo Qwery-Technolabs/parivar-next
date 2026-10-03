@@ -75,7 +75,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
             <FormPart title={t('members.parts.contact')} icon={MapPin}>
                 <div className={NAME_GRID}>
                     <Field
-                        label={t('members.phone')}
+                        label={relativeOnly ? `${t('members.phone')} (${t('common.optional')})` : t('members.phone')}
                         hint={relativeOnly ? t('members.phoneGivesLogin') : t('auth.phoneHint')}
                         error={fe('phone')}
                         required={!relativeOnly}
@@ -218,14 +218,14 @@ export function DetailFields({ member }) {
 export function PasswordField({ fe, required = false }) {
     const { t } = useT();
     return (
-        <Field label={t('members.newPassword')} hint={t('members.passwordHint')} error={fe('password')} required={required} className="sm:max-w-sm">
-            <PasswordInput
-                name="password"
-                autoComplete="new-password"
-                minLength={6}
-                required={required}
-                className={`${textInput(!!fe('password'))} w-full`}
-            />
+        <Field
+            label={required ? t('members.newPassword') : `${t('members.newPassword')} (${t('common.optional')})`}
+            hint={required ? t('members.passwordHint') : t('members.passwordBlankHint')}
+            error={fe('password')}
+            required={required}
+            className="sm:max-w-sm"
+        >
+            <PasswordInput name="password" autoComplete="new-password" minLength={6} required={required} className={`${textInput(!!fe('password'))} w-full`} />
         </Field>
     );
 }

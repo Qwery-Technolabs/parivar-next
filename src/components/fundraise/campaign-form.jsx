@@ -163,7 +163,7 @@ export default function CampaignForm({
                                     />
                                 </Field>
                             ) : (
-                                <Field label={t('fundraise.target')} error={fe('target_amount')} hint={t('common.optional')}>
+                                <Field label={`${t('fundraise.target')} (${t('common.optional')})`} error={fe('target_amount')}>
                                     <input
                                         name="target_amount"
                                         type="number"
