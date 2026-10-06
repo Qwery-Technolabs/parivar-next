@@ -125,8 +125,8 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     const spent = Number(campaign.spent);
     const tabs = [
         { key: 'discussion', label: t('fundraise.tabs.discussion'), href: base, icon: MessageCircle },
-        { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money`, icon: Wallet },
         { key: 'meetings', label: t('fundraise.tabs.meetings'), href: `${base}?tab=meetings`, icon: CalendarClock },
+        { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money`, icon: Wallet },
         { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details`, icon: Info },
     ];
 

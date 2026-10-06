@@ -61,7 +61,7 @@ export default function ContributionDialog({ campaignId, today, allowAnonymous =
  * handed to the treasurer — on by default for a treasurer or admin recording it (it is with the
  * treasurer already), off for a collector. `people`: the fundraise's team and group members.
  */
-function KeptBy({ people, entry, meId, handDefault, fieldError }) {
+export function KeptBy({ people, entry, meId, handDefault, fieldError }) {
     const { t, locale } = useT();
     const name = (p) => (locale !== 'en' && p.full_name_local) || p.full_name;
     const initial = entry?.kept_by ?? meId;

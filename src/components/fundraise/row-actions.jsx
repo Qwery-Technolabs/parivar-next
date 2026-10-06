@@ -1,14 +1,16 @@
 'use client';
-import { CheckCircle2, History, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, HandCoins, History, Loader2, Pencil, Trash2, Wallet } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { deleteContribution, deleteExpense, entryHistory, markContributionPaid } from '@/app/actions/fundraise';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog, { OpenOnMount } from '@/components/ui/form-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import FormPart from '@/components/ui/form-part';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
+import { money } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
-import ContributionDialog from './contribution-dialog';
+import ContributionDialog, { KeptBy } from './contribution-dialog';
 import ExpenseDialog from './expense-dialog';
 import { describeHistory, historyWhen } from './history-format';
 
@@ -16,7 +18,7 @@ import { describeHistory, historyWhen } from './history-format';
  * Kebab on a contribution / expense row: Edit and Delete for managers, History for everyone.
  * Destructive item last, after a separator (design-system.md §6).
  */
-export default function RowActions({ kind, campaignId, row, canManage, today, allowAnonymous, categories, people = [], meId = null }) {
+export default function RowActions({ kind, campaignId, row, canManage, today, allowAnonymous, categories, people = [], meId = null, handDefault = false }) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
     const [editKey, setEditKey] = useState(0);
@@ -114,24 +116,42 @@ export default function RowActions({ kind, campaignId, row, canManage, today, al
                     hidden={{ campaign_id: campaignId, contribution_id: row.id }}
                     submitIcon={CheckCircle2}
                     submitLabel={t('fundraise.markPaid')}
-                    width="sm:max-w-sm"
+                    width="sm:max-w-lg"
                     trigger={({ open }) => <OpenOnMount open={open} />}
                 >
                     {({ fieldError }) => (
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <Field label={t('fundraise.mode')} error={fieldError('mode')} required>
-                                <select name="mode" defaultValue="cash" className={`${selectInput()} w-full`}>
-                                    {['cash', 'upi', 'bank', 'cheque', 'other'].map((m) => (
-                                        <option key={m} value={m}>
-                                            {t(`fundraise.modes.${m}`)}
-                                        </option>
-                                    ))}
-                                </select>
-                            </Field>
-                            <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
-                                <input type="date" name="paid_on" defaultValue={today} required className={`${textInput(!!fieldError('paid_on'))} w-full`} />
-                            </Field>
-                        </div>
+                        <>
+                            {/* Amount: the pledged sum, how and when it came in. */}
+                            <FormPart title={t('fundraise.parts.amount')} icon={Wallet} className="border-t-0 pt-0">
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    <Field label={t('fundraise.amount')}>
+                                        <p className="flex h-9 items-center text-sm font-semibold text-income tabular-nums">{money(row.amount)}</p>
+                                    </Field>
+                                    <Field label={t('fundraise.mode')} error={fieldError('mode')} required>
+                                        <select name="mode" defaultValue="cash" className={`${selectInput()} w-full`}>
+                                            {['cash', 'upi', 'bank', 'cheque', 'other'].map((m) => (
+                                                <option key={m} value={m}>
+                                                    {t(`fundraise.modes.${m}`)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field label={t('fundraise.paidOn')} error={fieldError('paid_on')} required>
+                                        <input
+                                            type="date"
+                                            name="paid_on"
+                                            defaultValue={today}
+                                            required
+                                            className={`${textInput(!!fieldError('paid_on'))} w-full`}
+                                        />
+                                    </Field>
+                                </div>
+                            </FormPart>
+                            {/* Holding: who keeps the money now (default: whoever marks it paid) and whether it is with the treasurer. */}
+                            <FormPart title={t('fundraise.parts.holding')} icon={HandCoins}>
+                                <KeptBy people={people} entry={null} meId={meId} handDefault={handDefault} fieldError={fieldError} />
+                            </FormPart>
+                        </>
                     )}
                 </FormDialog>
             )}

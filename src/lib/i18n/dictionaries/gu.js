@@ -896,7 +896,7 @@ const gu = {
         handedHint: 'ખજાનચીને મળે ત્યારે ચાલુ',
         withTreasurer: 'ખજાનચી પાસે',
         notHandedOver: 'હજુ આપી નથી',
-        anonymousShort: 'નામ છુપાવો',
+        anonymousShort: 'રામભરોસે',
         donorNameHint: 'ઓછામાં ઓછા બે શબ્દ, ઉદા. નિલેશ કાનાણી કે નિલેશ લલ્લુભાઈ કાનાણી',
         donorNamePlaceholder: 'ઉદા. Nilesh Lallubhai Kanani',
         paidBy: 'કોણે ચૂકવ્યું',

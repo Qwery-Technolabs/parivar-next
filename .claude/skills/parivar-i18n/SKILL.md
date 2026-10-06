@@ -77,6 +77,7 @@ start can fail to download a Google font once — restart dev; production builds
 
 | English | Gujarati |
 |---|---|
+| Anonymous (gift, switch label, public name) | રામભરોસે |
 | Dashboard | ડેશબોર્ડ |
 | Members (nav) | પરિવારજનો |
 | Member (role) | સભ્ય |

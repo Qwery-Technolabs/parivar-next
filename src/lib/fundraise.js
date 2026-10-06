@@ -338,7 +338,7 @@ export async function contributorTotals(campaignId, { publicView = false } = {})
                 MAX(is_anonymous) AS is_anonymous, SUM(CASE WHEN mode <> 'unpaid' THEN amount ELSE 0 END) AS total,
                 SUM(CASE WHEN mode = 'unpaid' THEN amount ELSE 0 END) AS pending, COUNT(*) AS entries,
                 SUM(CASE WHEN mode <> 'unpaid' THEN 1 ELSE 0 END) AS paid_entries,
-                MAX(paid_on) AS last_paid
+                MAX(CASE WHEN mode <> 'unpaid' THEN paid_on END) AS last_paid
            FROM fundraise_contributions WHERE campaign_id = :campaignId AND deleted_at IS NULL
           GROUP BY ${key}
           ORDER BY total DESC, donor_name`,

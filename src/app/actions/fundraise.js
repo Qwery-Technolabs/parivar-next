@@ -546,8 +546,9 @@ async function writeHistory(q, { campaignId, entity, entityId, action, actorId, 
 // ── contributions ─────────────────────────────────────────────────────────────
 
 /**
- * A pending (unpaid) pledge came in: set how and when it was paid. Only rows still 'unpaid'
- * change; the edit goes into the entry's history like any other.
+ * A pending (unpaid) pledge came in: set how and when it was paid, who keeps the money now
+ * (kept_by — default: whoever marks it paid) and whether it is with the treasurer (handed_over).
+ * Only rows still 'unpaid' change; the edit goes into the entry's history like any other.
  */
 export async function markContributionPaid(prev, fd) {
     const campaignId = id(fd, 'campaign_id');
@@ -556,16 +557,19 @@ export async function markContributionPaid(prev, fd) {
     const contributionId = id(fd, 'contribution_id');
     const mode = oneOf(fd, 'mode', PAY_MODES.filter((m) => m !== 'unpaid'));
     const paidOn = date(fd, 'paid_on');
+    const keptBy = id(fd, 'kept_by') || user.id;
+    const handed = bool(fd, 'handed_over') ? 1 : 0;
     const fieldErrors = {};
     if (!mode) fieldErrors.mode = 'common.required';
     if (!paidOn) fieldErrors.paid_on = 'fundraise.errors.date';
+    if (!(await queryOne('SELECT id FROM users_list WHERE id = :keptBy', { keptBy }))) fieldErrors.kept_by = 'fundraise.errors.member';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
     const done = await withTransaction(async (q) => {
         const before = await contributionSnapshot(q, contributionId);
         const r = await q(
-            `UPDATE fundraise_contributions SET mode = :mode, paid_on = :paidOn
+            `UPDATE fundraise_contributions SET mode = :mode, paid_on = :paidOn, kept_by = :keptBy, handed_over = :handed
               WHERE id = :contributionId AND campaign_id = :campaignId AND mode = 'unpaid' AND deleted_at IS NULL`,
-            { mode, paidOn, contributionId, campaignId },
+            { mode, paidOn, keptBy, handed, contributionId, campaignId },
         );
         if (!r.affectedRows) return false;
         const after = await contributionSnapshot(q, contributionId);

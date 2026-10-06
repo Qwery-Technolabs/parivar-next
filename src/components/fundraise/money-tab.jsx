@@ -27,6 +27,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
         categories: settings.expense_categories,
         people,
         meId,
+        handDefault,
     };
     const labels = {
         contributions: t('fundraise.contributions'),
@@ -34,6 +35,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
         contributors: t('fundraise.byContributor'),
     };
     const counts = { contributions: campaign.contribution_count, expenses: campaign.expense_count };
+    const givers = view === 'contributors' ? rows.filter((c) => Number(c.total) > 0) : [];
     const ledgerKind = view === 'contributions' ? 'income' : view === 'expenses' ? 'expense' : 'both';
 
     return (
@@ -194,15 +196,16 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                         <Th numeric>{t('common.total')}</Th>
                     </THead>
                     <tbody>
-                        {rows.length === 0 ? (
+                        {/* Only people who have paid something: pending-only (₹0 paid) donors are left out. */}
+                        {givers.length === 0 ? (
                             <EmptyRow colSpan={4}>{t('fundraise.noContributions')}</EmptyRow>
                         ) : (
-                            rows.map((c) => (
+                            givers.map((c) => (
                                 <Tr key={c.k}>
                                     <Td>
                                         <DonorName row={c} />
                                     </Td>
-                                    <Td numeric>{c.entries}</Td>
+                                    <Td numeric>{Number(c.paid_entries ?? c.entries)}</Td>
                                     <Td className="hidden whitespace-nowrap text-ink-gray sm:table-cell">{date(c.last_paid, locale)}</Td>
                                     <Td numeric className="font-semibold text-income">
                                         {money(c.total)}

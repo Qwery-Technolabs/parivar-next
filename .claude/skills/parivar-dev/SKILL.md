@@ -161,8 +161,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   paid_by → treasurer), with "To get back" for not-repaid ones paid by someone else (sums to spent). Totals row.
 - **Fundraise History** (About): native <details>, collapsed by default; below lg the two columns are `contents` and
   History is ordered just before the Danger zone (max-lg:order-1 / -2).
-- **Statement "By contributor"** (print / PDF / public page, components/fundraise/statement.jsx): only people with paid > 0,
+- **"By contributor"** — money tab view AND Statement (print / PDF / public page): only people with paid > 0,
   entries = paid entries (contributorTotals.paid_entries). The Contributions table still lists every entry, pending in red.
+- **Mark as paid** (pending pledge → row ⋮, `markContributionPaid`): popup in parts — Amount (pledged sum shown, mode, date)
+  and Holding (`KeptBy` from contribution-dialog: kept by, default the marker; handed over, default on for treasurer /
+  admin). Saves kept_by + handed_over with mode / date; a pending pledge never has a keeper.
 - **Expense paid by** (fundraise_expensesmeta paid_by = user id, repaid = '1'): the expense form's "Paid by" (searchable Combobox filtering fundraisePeople in the browser —
   team + group members + Mandal members, default = the recorder) and a "Treasurer has paid them back" switch (default off).
   The list shows "Paid by X" + Repaid / To repay; both are in the expense snapshot, so History shows changes.
