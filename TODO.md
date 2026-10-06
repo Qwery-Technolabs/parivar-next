@@ -333,3 +333,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] manifest.webmanifest cached (static, hourly + on Settings → General save) instead of a function + DB read per page
 - [x] No loading.js; main menu pages prefetched in the background after the first load (3-min reuse)
 - [x] Favicon / unversioned app icon cached 7 days; manifest kept by the browser for a day
+- [x] All picker lists (search, pick-or-type, tags, Gujarati suggestions) float on the top layer — never clipped by cards (e.g. Current city on member edit)

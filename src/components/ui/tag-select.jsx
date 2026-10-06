@@ -1,6 +1,7 @@
 'use client';
 import { Plus, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
+import FloatingList from './floating-list';
 
 /**
  * design-system.md §6 TagSelect — multiselect from a list: chips inside the field plus a
@@ -51,6 +52,7 @@ export default function TagSelect({
     const [q, setQ] = useState('');
     const [active, setActive] = useState(0);
     const inputRef = useRef(null);
+    const box = useRef(null);
     const listId = useId();
 
     const selected = new Set(value.map((v) => v.toLowerCase()));
@@ -104,6 +106,7 @@ export default function TagSelect({
         <div className="relative min-w-0">
             {name && value.map((v) => <input key={v} type="hidden" name={name} value={v} />)}
             <div
+                ref={box}
                 onClick={(e) => {
                     e.preventDefault();
                     setOpen(true);
@@ -168,12 +171,8 @@ export default function TagSelect({
                         }}
                         className="fixed inset-0 z-10 cursor-default"
                     />
-                    <ul
-                        id={listId}
-                        role="listbox"
-                        aria-multiselectable="true"
-                        className="absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg"
-                    >
+                    {/* On the page's top layer — never clipped by the card it sits in. */}
+                    <FloatingList anchorRef={box} id={listId} role="listbox" aria-multiselectable="true">
                         {rows.length === 0 && <li className="px-3 py-2 text-sm text-ink-gray">{emptyText}</li>}
                         {rows.map((o, i) => (
                             <li
@@ -197,7 +196,7 @@ export default function TagSelect({
                                 {o.count != null && <span className="shrink-0 text-xs text-ink-gray tabular-nums">{o.count}</span>}
                             </li>
                         ))}
-                    </ul>
+                    </FloatingList>
                 </>
             )}
         </div>

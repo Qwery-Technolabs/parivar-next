@@ -1,8 +1,8 @@
 'use client';
 import { ChevronDown, Loader2, X } from 'lucide-react';
-import { useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useId, useRef, useState } from 'react';
 import { textInput } from './field';
+import FloatingList from './floating-list';
 import { useDebouncedCallback } from './use-debounce';
 
 /**
@@ -37,11 +37,8 @@ export default function Combobox({
     // Right after a choice the list unmounts and focus lands back on the input (a dialog's focus
     // trap, a tap on a phone) — which must not reopen the list. Ignore opens for a moment.
     const justChose = useRef(false);
-    // Inside a dialog the list floats on its own top layer (portalled to <body>, fixed under or above
-    // the input): the dialog's scroll box would otherwise clip it, or an in-flow list would push the form.
+    // The list floats on the page's top layer (FloatingList) — never clipped by a card or a dialog.
     const wrap = useRef(null);
-    const [inDialog, setInDialog] = useState(false);
-    const [pos, setPos] = useState(null); // fixed coordinates of the floating list (dialogs only)
     const listId = useId();
 
     async function load(query) {
@@ -63,43 +60,8 @@ export default function Combobox({
     // Typing searches 300 ms after the last key (useDebouncedCallback).
     const loadLater = useDebouncedCallback((v) => load(v));
 
-    // Where the floating list goes: under the input, or above it when there is clearly more room above;
-    // its height is capped by the room on that side. Decided on EVERY way of opening (focus, typing, arrows).
-    function measure() {
-        const el = wrap.current;
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const below = window.innerHeight - r.bottom - 8;
-        const above = r.top - 8;
-        const up = below < 200 && above > below;
-        return {
-            left: r.left,
-            width: r.width,
-            ...(up ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
-            maxHeight: Math.max(120, Math.min(256, (up ? above : below) - 4)),
-        };
-    }
-    function placeList() {
-        const dialog = Boolean(wrap.current?.closest('[data-slot="dialog-content"]'));
-        setInDialog(dialog);
-        if (dialog) setPos(measure());
-    }
-
-    // While open in a dialog, follow the input when the dialog scrolls or the window resizes.
-    useEffect(() => {
-        if (!open || !inDialog) return undefined;
-        const follow = () => setPos(measure());
-        window.addEventListener('scroll', follow, true);
-        window.addEventListener('resize', follow);
-        return () => {
-            window.removeEventListener('scroll', follow, true);
-            window.removeEventListener('resize', follow);
-        };
-    }, [open, inDialog]);
-
     function openList() {
         if (open || justChose.current) return;
-        placeList();
         setOpen(true);
         setQ('');
         if (options === null) load('');
@@ -123,10 +85,7 @@ export default function Combobox({
     function onType(e) {
         const v = e.target.value;
         setQ(v);
-        if (!open) {
-            placeList();
-            setOpen(true);
-        }
+        if (!open) setOpen(true);
         loadLater(v);
     }
 
@@ -148,16 +107,7 @@ export default function Combobox({
     }
 
     const list = (
-        <ul
-            id={listId}
-            role="listbox"
-            // Dialog: a fixed, portalled layer above the dialog (data-floating-list lets the dialog
-            // ignore presses on it); keeping focus in the input on mousedown keeps it open.
-            data-floating-list={inDialog ? '' : undefined}
-            onMouseDown={inDialog ? (e) => e.preventDefault() : undefined}
-            style={inDialog && pos ? { position: 'fixed', pointerEvents: 'auto', ...pos } : undefined}
-            className={`${inDialog ? 'z-[70]' : 'absolute left-0 right-0 z-20 mt-1 max-h-64'} overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg`}
-        >
+        <FloatingList anchorRef={wrap} id={listId} role="listbox">
             {options?.length === 0 && !loading && <li className="px-3 py-2 text-sm text-ink-gray">{emptyText}</li>}
             {options === null && loading && (
                 <li className="flex justify-center py-3">
@@ -178,7 +128,7 @@ export default function Combobox({
                     {opt.hint && <span className="block text-xs text-ink-gray">{opt.hint}</span>}
                 </li>
             ))}
-        </ul>
+        </FloatingList>
     );
 
     return (
@@ -195,8 +145,8 @@ export default function Combobox({
                 onClick={openList}
                 onChange={onType}
                 onKeyDown={onKeyDown}
-                // In a dialog there is no backdrop to click: leaving the field closes the list (options keep focus on press).
-                onBlur={() => inDialog && open && close()}
+                // Leaving the field closes the list (pressing an option keeps focus in the input).
+                onBlur={() => open && close()}
                 className={`${textInput(hasError, size)} w-full pr-14`}
             />
             <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1 text-ink-gray">
@@ -212,12 +162,7 @@ export default function Combobox({
                     <X className="size-3.5" />
                 </button>
             )}
-            {open && (
-                <>
-                    {!inDialog && <button type="button" aria-hidden tabIndex={-1} onClick={close} className="fixed inset-0 z-10 cursor-default" />}
-                    {inDialog ? pos && createPortal(list, document.body) : list}
-                </>
-            )}
+            {open && list}
         </div>
     );
 }

@@ -1,7 +1,9 @@
 'use client';
 import { RefreshCw } from 'lucide-react';
+import { useRef } from 'react';
 import { useT } from '@/lib/i18n/client';
 import { Field, textArea, textInput } from './field';
+import FloatingList from './floating-list';
 
 /**
  * The Gujarati twin of an English name field, driven by useAutoGujarati — like Google Input
@@ -14,6 +16,7 @@ import { Field, textArea, textInput } from './field';
 export default function GujaratiField({ label, name, auto, maxLength = 150, className = '', multiline = false, rows = 4 }) {
     const { t } = useT();
     const { list } = auto;
+    const wrap = useRef(null);
     return (
         <Field
             label={label}
@@ -26,7 +29,7 @@ export default function GujaratiField({ label, name, auto, maxLength = 150, clas
             }
             className={className}
         >
-            <div className="relative">
+            <div ref={wrap} className="relative">
                 {multiline ? (
                     <textarea name={name} rows={rows} maxLength={maxLength} {...auto.guProps} className={`${textArea()} w-full pr-9`} />
                 ) : (
@@ -42,11 +45,8 @@ export default function GujaratiField({ label, name, auto, maxLength = 150, clas
                     <RefreshCw className="size-3.5" />
                 </button>
                 {list.open && (
-                    <ul
-                        role="listbox"
-                        aria-label={label}
-                        className="absolute left-0 top-full z-30 mt-1 min-w-48 max-w-full overflow-hidden rounded-md border border-surface-border bg-white py-1 shadow-lg"
-                    >
+                    // On the page's top layer — never clipped by the card it sits in.
+                    <FloatingList anchorRef={wrap} role="listbox" aria-label={label}>
                         {list.choices.map((c, i) => (
                             <li key={`${i}-${c}`} role="option" aria-selected={i === list.active}>
                                 <button
@@ -65,7 +65,7 @@ export default function GujaratiField({ label, name, auto, maxLength = 150, clas
                                 </button>
                             </li>
                         ))}
-                    </ul>
+                    </FloatingList>
                 )}
             </div>
         </Field>

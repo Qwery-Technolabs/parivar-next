@@ -2,6 +2,7 @@
 import { ChevronDown, X } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
 import { textInput } from './field';
+import FloatingList from './floating-list';
 
 /**
  * One value, picked from a list or typed — the replacement for <datalist> (native village,
@@ -23,6 +24,7 @@ export default function PickOrType({ name, defaultValue = '', value, onChange, s
     const [filtering, setFiltering] = useState(false);
     const listId = useId();
     const inputRef = useRef(null);
+    const wrap = useRef(null);
 
     const options = suggestions.map((s) => (typeof s === 'string' ? { value: s, label: s } : s));
     const needle = filtering ? current.trim().toLowerCase() : '';
@@ -54,7 +56,7 @@ export default function PickOrType({ name, defaultValue = '', value, onChange, s
     }
 
     return (
-        <div className="relative min-w-0">
+        <div ref={wrap} className="relative min-w-0">
             <input
                 ref={inputRef}
                 name={name}
@@ -101,11 +103,8 @@ export default function PickOrType({ name, defaultValue = '', value, onChange, s
                 <ChevronDown aria-hidden className="pointer-events-none size-4 text-ink-gray" />
             </span>
             {open && matches.length > 0 && (
-                <ul
-                    id={listId}
-                    role="listbox"
-                    className="absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-md border border-surface-border bg-white py-1 shadow-lg"
-                >
+                // On the page's top layer — never clipped by the card it sits in.
+                <FloatingList anchorRef={wrap} id={listId} role="listbox">
                     {matches.map((o, i) => (
                         <li
                             key={o.value}
@@ -126,7 +125,7 @@ export default function PickOrType({ name, defaultValue = '', value, onChange, s
                             {o.count != null && <span className="shrink-0 text-xs text-ink-gray tabular-nums">{o.count}</span>}
                         </li>
                     ))}
-                </ul>
+                </FloatingList>
             )}
         </div>
     );

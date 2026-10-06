@@ -128,10 +128,13 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Money / amount inputs: type="number" inputMode="decimal" min="0" step="0.01" everywhere (contribution, expense, Mandal
   sheet + schedules, target, opening balance).
 - Dialog footer (FormDialog) is pinned flush to the bottom edge (sticky -bottom-4, no strip of content under it).
-- Combobox inside a dialog: the list FLOATS on its own layer — portalled to <body>, position fixed under (or above, when
-  more room) the input, z-[70], follows dialog scroll; marked data-floating-list so FormDialog ignores presses on it
-  (onOpenChange cancel). Nothing in the form moves (decided on every open: focus, typing, arrows) — never clipped by the
-  footer or neighbouring fields. A switch beside a combobox is top-aligned (items-start + sm:pt-7), not bottom-aligned.
+- **Every picker list floats — everywhere** (`components/ui/floating-list.jsx`): Combobox, PickOrType, TagSelect and the
+  Gujarati suggestions render their list through `<FloatingList anchorRef>` — portalled to <body>, position fixed under
+  (or above, when more room) the input, z-[70], follows any scroll / resize; data-floating-list so FormDialog ignores
+  presses on it; mousedown cancelled so the input keeps focus (blur closes). Never clipped by an overflow-hidden card,
+  a table or a dialog, and nothing in the form moves. A NEW picker list must use FloatingList — never `absolute`
+  under the input. (Menus / pop-overs: Popover, already portalled.) A switch beside a combobox is top-aligned
+  (items-start + sm:pt-7), not bottom-aligned.
 - Page ⋮ menus (PageMenu): `icon` is a NAME ('trash', 'pencil' …, MENU_ICONS in page-menu.jsx), never a `<Icon />` element
   from a server page (React #306 when the same icon repeats). Add new names to MENU_ICONS. Group related items with
   `group: 'name'` — a separator line is drawn where the group changes (Members: Add · Invite / Castes · Surnames).
@@ -171,8 +174,6 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   there is a group they may start a fundraise in that it is not in yet; icon-only on phones.
 - **Every Cancel / Save bar** (dialogs, full-page forms like new fundraise, event, member, picture picker):
   **side by side on phones** — `flex flex-row gap-2 *:flex-1 sm:*:flex-none sm:justify-end`; never `flex-col-reverse`.
-- **Combobox inside a dialog opens in the flow** (the dialog scrolls and would clip a floating list); outside dialogs it floats.
-  Inside a dialog it closes on blur (no full-screen backdrop there); options keep focus on press.
 - **Dialogs (FormDialog)**: Cancel + Save side by side on phones too (each `flex-1`, own width from sm);
   **no field autofocus** — the dialog itself takes focus (`DialogContent focusPopup`) so no keyboard pops up.
 - **Status dot on pictures** (fundraise header + list, group header + list): small bottom-right dot with a
