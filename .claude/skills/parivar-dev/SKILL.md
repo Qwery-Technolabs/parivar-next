@@ -67,6 +67,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 
 ## Cross-cutting features to reuse
 
+- **Removing someone from a group / team / Mandal NEVER deletes their account** (users_list row). There is no
+  "also delete the unused account" option any more: a never-signed-in invitee may also be a family-tree relative
+  or a listed member, and deleting the row wiped them from Members and Family (Oct 2026). Deleting a person is
+  only ever an explicit action on the Members page.
 - **Invites** (lib/invite.js `ensureInvitedUser`): phone → existing / enabled / created; first password =
   phone, `must_change_password` meta forces `/set-password`, then own details. Use for group add, member
   invite, relation add, contribution "Invite <number>".

@@ -138,10 +138,8 @@ export default function GroupMembers({ groupId, members, standing, currentUserId
                                                         onRole={(r) => run(() => setGroupMemberRole(groupId, m.id, r))}
                                                         onRemove={() => {
                                                             if (!window.confirm(`${t('groups.removeMember')}?`)) return;
-                                                            // Never signed in: offer to drop the unused account too (the server
-                                                            // only does it if they were invited and are in no other group).
-                                                            const alsoDelete = !m.last_login_at && window.confirm(t('groups.invite.deleteToo'));
-                                                            run(() => removeGroupMember(groupId, m.id, alsoDelete));
+                                                            // Group membership only — the person stays in Members and Family.
+                                                            run(() => removeGroupMember(groupId, m.id));
                                                         }}
                                                     />
                                                 )}

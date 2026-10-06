@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n/client';
 /**
  * Everyone, or a hand-picked list (with search) — a meeting's attendees, a Mandal's members.
  * Posts `modeName` = 'all' | 'selected' and, when selected, one `idsName` per chosen person.
+ * Select all / Deselect all act on the people currently SHOWN — with a search typed, only the matches.
  */
 export default function PeopleChoice({ people, initialIds, audience = null, error, label, modeName = 'invite', idsName = 'attendee_ids' }) {
     const { t, locale } = useT();
@@ -20,6 +21,15 @@ export default function PeopleChoice({ people, initialIds, audience = null, erro
         setPicked((s) => {
             const n = new Set(s);
             n.has(id) ? n.delete(id) : n.add(id);
+            return n;
+        });
+    const shownIds = shown.map((p) => p.id);
+    const allShownPicked = shownIds.length > 0 && shownIds.every((id) => picked.has(id));
+    const noneShownPicked = shownIds.every((id) => !picked.has(id));
+    const setShown = (on) =>
+        setPicked((s) => {
+            const n = new Set(s);
+            for (const id of shownIds) on ? n.add(id) : n.delete(id);
             return n;
         });
 
@@ -65,7 +75,27 @@ export default function PeopleChoice({ people, initialIds, audience = null, erro
                             </li>
                         ))}
                     </ul>
-                    <p className="border-t border-surface-border px-3 py-1 text-xs text-ink-gray">{t('meetings.chosenCount', { count: picked.size })}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-surface-border px-3 py-1 text-xs">
+                        <span className="text-ink-gray">{t('meetings.chosenCount', { count: picked.size })}</span>
+                        <span className="ml-auto flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShown(true)}
+                                disabled={allShownPicked}
+                                className="font-medium text-primary hover:underline disabled:cursor-default disabled:text-ink-gray/60 disabled:no-underline"
+                            >
+                                {t('meetings.selectAll')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShown(false)}
+                                disabled={noneShownPicked}
+                                className="font-medium text-primary hover:underline disabled:cursor-default disabled:text-ink-gray/60 disabled:no-underline"
+                            >
+                                {t('meetings.deselectAll')}
+                            </button>
+                        </span>
+                    </div>
                     {[...picked].map((id) => (
                         <input key={id} type="hidden" name={idsName} value={id} />
                     ))}

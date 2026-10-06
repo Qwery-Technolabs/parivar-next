@@ -6,7 +6,7 @@ import { canActOnRole, canAdminister, GROUP_ROLES, GROUP_STATUSES, GROUP_VISIBIL
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
-import { deleteUnusedInvitee, ensureInvitedUser } from '@/lib/invite';
+import { ensureInvitedUser } from '@/lib/invite';
 import { postMemberNote } from '@/lib/chat';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { id, oneOf, str, strOrNull } from '@/lib/forms';
@@ -180,10 +180,10 @@ export async function setGroupMemberRole(groupId, userId, memberRole) {
 }
 
 /**
- * Remove someone from a group. With deleteAccount, an invited person who never signed in and
- * is in no other group also loses the account (lib/invite.js deleteUnusedInvitee decides).
+ * Remove someone from a group. ONLY the group membership goes — never the person's account:
+ * they stay in Members and in every family tree, whether or not they ever signed in.
  */
-export async function removeGroupMember(groupId, userId, deleteAccount = false) {
+export async function removeGroupMember(groupId, userId) {
     const actor = await getCurrentUser();
     const gid = Number(groupId);
     const uid = Number(userId);
@@ -197,10 +197,8 @@ export async function removeGroupMember(groupId, userId, deleteAccount = false) 
     const r = await query('DELETE FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     await audit(actor.id, 'group.member.remove', 'group', gid, { userId: uid });
     if (r.affectedRows) await postMemberNote(gid, actor.id, 'removed', [uid]);
-    const deleted = deleteAccount === true && (await deleteUnusedInvitee(actor, uid));
     revalidatePath(`/groups/${gid}`);
-    if (deleted) revalidatePath('/members');
-    return { ok: true, message: deleted ? 'groups.invite.removedDeleted' : 'common.deleted' };
+    return { ok: true, message: 'common.deleted' };
 }
 
 /** Danger zone: set a group's status (active / inactive / archived). The group's admins and app-level group managers. */

@@ -557,8 +557,6 @@ const en = {
             hint: 'Admins can always post; everyone can read',
         },
         invite: {
-            deleteToo: 'They have never signed in. Also delete their account? (Only if they are in no other group.)',
-            removedDeleted: 'Removed, and the unused account was deleted.',
             nameOptional: 'Full name in English (optional)',
             existing: 'Existing member',
             byPhone: 'By phone number',
@@ -1198,6 +1196,8 @@ const en = {
         everyone: 'Everyone ({count})',
         choose: 'Choose people',
         chosenCount: '{count} selected',
+        selectAll: 'Select all',
+        deselectAll: 'Deselect all',
         remind: 'Remind them',
         remindHint: 'Shown in the app and as phone or browser notifications',
         offsets: { 1440: '1 day before', 60: '1 hour before', 15: '15 min before', 0: 'At start' },

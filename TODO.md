@@ -82,7 +82,8 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Add member by phone number (registered or not); new numbers get an account with the phone number as first password
 - [x] "Not joined yet" tag until first sign-in; admins can remove them like anyone
 - [x] Discussion history notes: meeting scheduled, member added / removed (centred, WhatsApp-style)
-- [x] Removing a never-signed-in invitee: offer to delete the unused account (only if invited, in no other group, no contributions)
+- [x] Choose-people picker (Mandal members, meeting attendees): Select all / Deselect all (act on the search matches when searching)
+- [x] ~~Removing a never-signed-in invitee: offer to delete the unused account~~ — REMOVED 2026-10-06: it deleted a real family member's record. Removing from a group now only removes the membership.
 
 ### Members
 - [x] Bulk select → Add to group / Make group admin (bar above the table)
