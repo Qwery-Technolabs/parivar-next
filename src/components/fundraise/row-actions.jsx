@@ -8,7 +8,6 @@ import FormDialog, { OpenOnMount } from '@/components/ui/form-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import FormPart from '@/components/ui/form-part';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
-import { money } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 import ContributionDialog, { KeptBy } from './contribution-dialog';
 import ExpenseDialog from './expense-dialog';
@@ -121,12 +120,9 @@ export default function RowActions({ kind, campaignId, row, canManage, today, al
                 >
                     {({ fieldError }) => (
                         <>
-                            {/* Amount: the pledged sum, how and when it came in. */}
+                            {/* Amount: how and when it came in. */}
                             <FormPart title={t('fundraise.parts.amount')} icon={Wallet} className="border-t-0 pt-0">
-                                <div className="grid gap-3 sm:grid-cols-3">
-                                    <Field label={t('fundraise.amount')}>
-                                        <p className="flex h-9 items-center text-sm font-semibold text-income tabular-nums">{money(row.amount)}</p>
-                                    </Field>
+                                <div className="grid gap-3 sm:grid-cols-2">
                                     <Field label={t('fundraise.mode')} error={fieldError('mode')} required>
                                         <select name="mode" defaultValue="cash" className={`${selectInput()} w-full`}>
                                             {['cash', 'upi', 'bank', 'cheque', 'other'].map((m) => (
