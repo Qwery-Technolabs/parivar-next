@@ -339,3 +339,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mark as paid: Amount + Holding parts (kept by, handed over to treasurer)
 - [x] Money tab By contributor: pending-only (₹0 paid) people left out; last paid = paid entries only
 - [x] gu: anonymous switch label "રામભરોસે"
+- [x] Invite by phone: one line per person on phones (mobile · name · ×), + Add another on the right

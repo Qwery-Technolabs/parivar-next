@@ -121,8 +121,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   rule needs it ("Skips higher roles and yourself. An empty value clears it."). Same length in gu.
 - EXCEPT Danger zone rows (every danger card in the app): a full explaining sentence, up to ~20 words, keeping the
   "Action: …" prefix — what happens, who can still see / undo it, or "This cannot be undone."
-- Repeater rows (e.g. Bulk edit): small uppercase column headings, plain rows (no box per row), a bordered square × at the
-  right of each row, "+ Add …" as an outlined button bottom-right.
+- Repeater rows (Bulk edit, Invite by phone): small uppercase column headings, plain rows (no box per row), a bordered square × at the
+  right of each row, "+ Add …" as an outlined button bottom-right. Short rows (Invite: mobile · full name · ×) stay ONE
+  line on phones too (grid minmax(0,1fr) / minmax(0,1.4fr) / 2.25rem).
 - Money forms are grouped with FormPart: contribution = Contributor · Amount · Holding (Kept by); expense = Details · Amount
   (+ Notes) · Holding (Paid by). What / Where / Notes / Reference carry example placeholders.
 - Money / amount inputs: type="number" inputMode="decimal" min="0" step="0.01" everywhere (contribution, expense, Mandal

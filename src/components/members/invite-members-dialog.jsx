@@ -9,6 +9,9 @@ import { useT } from '@/lib/i18n/client';
 import { MenuOpener } from '@/components/shell/page-menu';
 import { examplePlaceholders } from '@/lib/examples';
 
+// Mobile · full name · remove — one line per person, phones included (the name gets more room).
+const ROW = 'grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_2.25rem]';
+
 const MAX_ROWS = 50;
 
 /**
@@ -114,14 +117,15 @@ function InviteRows({ groups }) {
                 <p className="rounded-md bg-accent px-3 py-2 text-xs text-primary">{t('members.invite.pasteHint')}</p>
                 {/* Names in English, as first name, father's name, surname — the server splits them at the spaces. */}
                 <p className="text-xs text-ink-gray">{t('common.fullNameOrder')}</p>
-                <div className="hidden grid-cols-[1fr_1.4fr_2rem] gap-2 text-xs font-medium text-ink-gray sm:grid">
+                {/* One line per person on every screen: mobile · full name · × (like the Bulk edit repeater). */}
+                <div className={`grid ${ROW} gap-2 text-xs font-medium text-ink-gray`}>
                     <span>
                         {t('members.invite.phone')} <span className="font-normal tabular-nums">({rows.length})</span>
                     </span>
                     <span>{t('members.invite.name')}</span>
                 </div>
                 {rows.map((row, i) => (
-                    <div key={row.id} className="grid grid-cols-[1fr_2rem] gap-2 sm:grid-cols-[1fr_1.4fr_2rem]">
+                    <div key={row.id} className={`grid ${ROW} gap-2`}>
                         <input
                             id={`invite-phone-${row.id}`}
                             name="phone"
@@ -134,15 +138,6 @@ function InviteRows({ groups }) {
                             aria-label={`${t('members.invite.phone')} ${i + 1}`}
                             className={`${textInput()} w-full min-w-0 tabular-nums`}
                         />
-                        <button
-                            type="button"
-                            onClick={() => setRows((r) => (r.length > 1 ? r.filter((x) => x.id !== row.id) : r))}
-                            disabled={rows.length === 1}
-                            aria-label={t('members.invite.removeRow')}
-                            className="order-last flex size-9 items-center justify-center rounded-md text-ink-gray hover:bg-accent hover:text-destructive disabled:opacity-30 sm:order-none sm:col-start-3 sm:row-start-1"
-                        >
-                            <X className="size-4" />
-                        </button>
                         <input
                             name="full_name"
                             maxLength={150}
@@ -150,18 +145,29 @@ function InviteRows({ groups }) {
                             onChange={(e) => set(row.id, { name: e.target.value })}
                             placeholder={examplePlaceholders('fullName').en}
                             aria-label={`${t('members.invite.name')} ${i + 1}`}
-                            className={`${textInput()} col-span-2 w-full min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1`}
+                            className={`${textInput()} w-full min-w-0`}
                         />
+                        <button
+                            type="button"
+                            onClick={() => setRows((r) => (r.length > 1 ? r.filter((x) => x.id !== row.id) : r))}
+                            disabled={rows.length === 1}
+                            aria-label={t('members.invite.removeRow')}
+                            className="flex size-9 shrink-0 items-center justify-center rounded-md border border-surface-border bg-white text-ink-gray hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive disabled:opacity-30"
+                        >
+                            <X className="size-4" />
+                        </button>
                     </div>
                 ))}
-                <button
-                    type="button"
-                    onClick={add}
-                    disabled={rows.length >= MAX_ROWS}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-primary hover:bg-accent disabled:opacity-50"
-                >
-                    <Plus className="size-4" /> {t('members.invite.addRow')}
-                </button>
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={add}
+                        disabled={rows.length >= MAX_ROWS}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent disabled:opacity-50"
+                    >
+                        <Plus className="size-4" /> {t('members.invite.addRow')}
+                    </button>
+                </div>
             </div>
             {groups.length > 0 && <GroupChecklist groups={groups} label={t('members.invite.groups')} />}
         </>
