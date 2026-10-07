@@ -34,6 +34,7 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
 - `admin_surnames` (name UNIQUE, name_local, caste_id, subcaste_id → admin_castes, SET NULL on delete).
 - users_list.maiden_middle_name / maiden_surname (+ _local): a married woman's father's name + surname; her main name parts
   are her married ones (husband's name, in-laws' surname).
+- users_list.status adds `archived` (members: archive first, then delete — see parivar-dev).
 - users_list.phone is **nullable** (family-tree relatives without a number; UNIQUE still holds for real numbers);
   `marital_status` ENUM(unmarried, married, engaged, widowed, divorced); users_relations.relation adds 'sibling'.
   Test family writes on the throwaway DB (`npm run db:dev` :3307 + `next start -p 3001` with DB_* overrides).

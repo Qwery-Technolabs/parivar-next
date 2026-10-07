@@ -4,7 +4,7 @@ import { groupStanding } from '@/lib/access';
 import { canActOnRole } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { getCurrentUser, hashPassword, passwordProblem, revokeUserSessions } from '@/lib/auth';
-import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
+import { getMeta, inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { postMemberNote } from '@/lib/chat';
 import { MEMBER_META_KEYS } from '@/lib/members';
@@ -201,7 +201,9 @@ export async function updateMemberSection(prev, fd) {
         // Role only changes when the actor may make exactly that change; otherwise it is left alone.
         const roleChanged = m.role && m.role !== target.role && canChangeRole(actor, target, m.role);
         const role = roleChanged ? m.role : target.role;
-        await query('UPDATE users_list SET role = :role, status = :status WHERE id = :id', { role, status: m.status, id: target.id });
+        // An archived member stays archived here — only ⋮ → Restore brings them back (setMemberArchived).
+        const status = target.status === 'archived' ? 'archived' : m.status;
+        await query('UPDATE users_list SET role = :role, status = :status WHERE id = :id', { role, status, id: target.id });
         // A deactivation must end sessions already open on other devices.
         if (m.status !== 'active') await revokeUserSessions(target.id, false);
         if (roleChanged) await audit(actor.id, 'user.role', 'user', target.id, { from: target.role, to: role });
@@ -415,17 +417,46 @@ export async function bulkResetPasswords(prev, fd) {
  * Their memberships, family links, roles, sessions and notifications go with them; money they gave
  * stays in the ledgers under their name and their chat messages stay without an author.
  * `fromProfile`: called from their own page, which would no longer exist — go to Members.
+ * Two steps, never one: only an ARCHIVED member can be deleted (setMemberArchived first).
  */
 export async function deleteMember(userId, fromProfile = false) {
     const actor = await getCurrentUser();
-    const target = await queryOne('SELECT id, role, full_name, phone FROM users_list WHERE id = :userId', { userId: Number(userId) });
+    const target = await queryOne('SELECT id, role, status, full_name, phone FROM users_list WHERE id = :userId', { userId: Number(userId) });
     if (!actor || !target || !canDeleteMember(actor, target)) return { error: 'common.forbidden' };
+    if (target.status !== 'archived') return { error: 'members.archiveFirst' };
     await query('DELETE FROM users_list WHERE id = :id', { id: target.id });
     forget('places', 'castes'); // cached lists (lib/memo)
     await audit(actor.id, 'user.delete', 'user', target.id, { name: target.full_name, phone: target.phone, role: target.role });
     revalidatePath('/members');
     if (fromProfile) redirect('/members');
     return { ok: true, message: 'members.deleted' };
+}
+
+/**
+ * Archive ⇄ restore a member (same people as delete: canDeleteMember). Archived = hidden from
+ * everyone but administrators (lists, pickers, birthdays, blood), cannot sign in (sessions end),
+ * and the only state from which Delete is offered. The status before archiving is kept in
+ * meta `status_before_archive`, so Restore brings back "Late" or "Inactive" as it was.
+ */
+export async function setMemberArchived(userId, archive) {
+    const actor = await getCurrentUser();
+    const target = await queryOne('SELECT id, role, status, full_name FROM users_list WHERE id = :userId', { userId: Number(userId) });
+    if (!actor || !target || !canDeleteMember(actor, target)) return { error: 'common.forbidden' };
+    if (archive && target.status !== 'archived') {
+        await setMeta('users_list', target.id, { status_before_archive: target.status });
+        await query("UPDATE users_list SET status = 'archived' WHERE id = :id", { id: target.id });
+        await revokeUserSessions(target.id, false);
+        await audit(actor.id, 'user.archive', 'user', target.id, { name: target.full_name, from: target.status });
+    } else if (!archive && target.status === 'archived') {
+        const before = (await getMeta('users_list', target.id)).status_before_archive;
+        const status = MEMBER_STATUSES.includes(before) ? before : 'active';
+        await query('UPDATE users_list SET status = :status WHERE id = :id', { status, id: target.id });
+        await setMeta('users_list', target.id, { status_before_archive: '' });
+        await audit(actor.id, 'user.restore', 'user', target.id, { name: target.full_name, to: status });
+    }
+    revalidatePath('/members');
+    revalidatePath(`/members/${target.id}`);
+    return { ok: true, message: archive ? 'members.archived' : 'members.restored' };
 }
 
 // Fields Bulk edit may change, and their columns.
@@ -481,7 +512,8 @@ export async function bulkEditMembers(prev, fd) {
         const self = target.id === actor.id;
         // Role and status: never your own, and a role only where you may give it.
         if (newRole && !self && newRole !== target.role && canChangeRole(actor, target, newRole)) row.role = newRole;
-        if (newStatus && !self) row.status = newStatus;
+        // Archived members keep their status (only ⋮ → Restore brings them back).
+        if (newStatus && !self && target.status !== 'archived') row.status = newStatus;
         const cols = Object.keys(row);
         if (!cols.length) {
             skipped++;

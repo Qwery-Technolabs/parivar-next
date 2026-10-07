@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS users_list (
                                     NOT NULL DEFAULT 'sabhyo',
     language       ENUM('gu','en')  NOT NULL DEFAULT 'gu',
     is_blood_donor TINYINT(1)       NOT NULL DEFAULT 0,
-    status         ENUM('active','inactive','deceased') NOT NULL DEFAULT 'active',
+    status         ENUM('active','inactive','deceased','archived') NOT NULL DEFAULT 'active',  -- archived = hidden from everyone but administrators, cannot sign in; only an archived member can be deleted
     last_login_at  DATETIME         NULL,
     created_by     INT UNSIGNED     NULL,
     created_at     DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,

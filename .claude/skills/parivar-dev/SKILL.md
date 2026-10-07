@@ -195,9 +195,15 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   "what to change ▾ / value / ×" (+ Add a change; each field once): status, role, native village, current city, caste → sub-caste,
   blood group, donor. Per person: canEditUser, role only via canChangeRole, never own role / status, non-active → sessions revoked;
   audited user.bulk_edit; forget('places','castes').
+- **Archive → then Delete member** (two steps, like groups). `setMemberArchived(id, on)` and `deleteMember` — same people
+  (`canDeleteMember`). users_list.status `archived`: hidden from everyone but administrators (+ super admin) — the
+  `status=all` list excludes it, only their "Archived" filter shows it, their profile 404s for others; cannot sign in
+  (sessions revoked; every `status = 'active'` query skips them). Restore brings back the status kept in meta
+  `status_before_archive`. The Edit page / Bulk edit never change an archived member's status. Row ⋮ and profile ⋮:
+  Archive, or (archived) Restore + Delete permanently.
 - **Delete member** (`deleteMember`, `canDeleteMember`): super admin / administrator only (never sub-admin), never
-  themselves; an administrator cannot delete an administrator / super admin. In the Members row ⋮ and the profile ⋮ (red,
-  last, confirm). Hard delete: FK cascades remove memberships, relations, roles, Mandal marks, sessions; contributions
+  themselves; an administrator cannot delete an administrator / super admin; ONLY an archived member (else
+  `members.archiveFirst`). In the Members row ⋮ and the profile ⋮ (red, last, confirm). Hard delete: FK cascades remove memberships, relations, roles, Mandal marks, sessions; contributions
   keep donor_name (user_id → NULL), chat messages stay without author. Audited (user.delete).
 - **Surname → caste** (lib/surnames.js, actions/surnames.js, /members/surnames via Members ⋮ — visible to EVERYONE;
   add / edit / tick-assign only for administrators, `canEdit`; each row has "Members" (→ /members?surname=…&status=all&reg=all,

@@ -340,3 +340,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Money tab By contributor: pending-only (₹0 paid) people left out; last paid = paid entries only
 - [x] gu: anonymous switch label "રામભરોસે"
 - [x] Invite by phone: one line per person on phones (mobile · name · ×), + Add another on the right
+- [x] Members: Archive first, then Delete (administrators); archived = hidden + no sign-in, Restore keeps the old status (live: users_list.status + 'archived')

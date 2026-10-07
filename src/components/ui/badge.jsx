@@ -10,6 +10,7 @@ export const STATUS_TONE = {
     draft: 'blue',
     inactive: 'gray',
     deceased: 'purple',
+    archived: 'amber', // an archived member (Members, administrators only)
     admin: 'orange',
 };
 

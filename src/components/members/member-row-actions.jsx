@@ -1,8 +1,8 @@
 'use client';
-import { Eye, GitFork, Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Archive, ArchiveRestore, Eye, GitFork, Pencil, Trash2, UserPlus } from 'lucide-react';
 import { useTransition } from 'react';
 import { toast } from 'sonner';
-import { assignToGroup, deleteMember } from '@/app/actions/members';
+import { assignToGroup, deleteMember, setMemberArchived } from '@/app/actions/members';
 import { Field, selectInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
@@ -11,7 +11,17 @@ import { useT } from '@/lib/i18n/client';
 export default function MemberRowActions({ member, canEdit, groups, canAssignGroups, canDelete = false }) {
     const { t } = useT();
     const [deleting, startDelete] = useTransition();
-    // Delete (super admins / administrators): asks first, names the person, cannot be undone.
+    // Archive ⇄ restore (super admins / administrators): the step before Delete.
+    const archive = (close, on) => {
+        close();
+        if (on && !window.confirm(t('members.archiveConfirm', { name: member.name }))) return;
+        startDelete(async () => {
+            const res = await setMemberArchived(member.id, on);
+            if (res?.ok) toast.success(t(res.message));
+            else toast.error(t(res?.error ?? 'common.error'));
+        });
+    };
+    // Delete (super admins / administrators, archived members only): asks first, names the person, cannot be undone.
     const remove = (close) => {
         close();
         if (!window.confirm(t('members.deleteConfirm', { name: member.name }))) return;
@@ -61,12 +71,24 @@ export default function MemberRowActions({ member, canEdit, groups, canAssignGro
                                     </MenuItem>
                                 </>
                             )}
+                            {/* Two steps: Archive first; only an archived member offers Restore and Delete. */}
                             {canDelete && (
                                 <>
                                     <MenuSeparator />
-                                    <MenuItem icon={Trash2} danger disabled={deleting} onClick={() => remove(close)}>
-                                        {t('members.delete')}
-                                    </MenuItem>
+                                    {member.archived ? (
+                                        <>
+                                            <MenuItem icon={ArchiveRestore} disabled={deleting} onClick={() => archive(close, false)}>
+                                                {t('members.restore')}
+                                            </MenuItem>
+                                            <MenuItem icon={Trash2} danger disabled={deleting} onClick={() => remove(close)}>
+                                                {t('members.delete')}
+                                            </MenuItem>
+                                        </>
+                                    ) : (
+                                        <MenuItem icon={Archive} disabled={deleting} onClick={() => archive(close, true)}>
+                                            {t('members.archive')}
+                                        </MenuItem>
+                                    )}
                                 </>
                             )}
                         </>

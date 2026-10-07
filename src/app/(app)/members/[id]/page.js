@@ -13,8 +13,8 @@ import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { birthName, isMarriedWoman } from '@/lib/names';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
 import { formatPhone } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember } from '@/lib/roles';
-import { deleteMember } from '@/app/actions/members';
+import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast } from '@/lib/roles';
+import { deleteMember, setMemberArchived } from '@/app/actions/members';
 
 export async function generateMetadata({ params }) {
     const { id } = await params;
@@ -47,6 +47,8 @@ export default async function MemberPage({ params }) {
         user.id === memberId ? null : relationPath(user.id, memberId),
     ]);
     if (!member) notFound();
+    // An archived member is visible to administrators (and up) only.
+    if (member.status === 'archived' && !atLeast(user.role, 'administrator')) notFound();
     const seeFamily = await canSeeFamily(user, member);
     const canEdit = canEditUser(user, member);
     // The Edit page also opens for a password-only reset (it then shows just that tab).
@@ -79,15 +81,35 @@ export default async function MemberPage({ params }) {
                         items={[
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
                             { key: 'tree', label: t('members.familyTree'), icon: 'git-fork', href: `/members/${member.id}/tree` },
-                            // Delete for good: super admins / administrators only (last, red, asks first).
-                            canDeleteMember(user, member) && {
-                                key: 'delete',
-                                label: t('members.delete'),
-                                icon: 'trash',
-                                action: deleteMember.bind(null, member.id, true),
-                                confirm: t('members.deleteConfirm', { name }),
-                                danger: true,
-                            },
+                            // Archive first (super admins / administrators); only an archived member can be
+                            // restored or deleted for good (last, red, asks first).
+                            canDeleteMember(user, member) &&
+                                member.status !== 'archived' && {
+                                    key: 'archive',
+                                    label: t('members.archive'),
+                                    icon: 'archive',
+                                    action: setMemberArchived.bind(null, member.id, true),
+                                    confirm: t('members.archiveConfirm', { name }),
+                                    group: 'danger',
+                                },
+                            canDeleteMember(user, member) &&
+                                member.status === 'archived' && {
+                                    key: 'restore',
+                                    label: t('members.restore'),
+                                    icon: 'archive-restore',
+                                    action: setMemberArchived.bind(null, member.id, false),
+                                    group: 'danger',
+                                },
+                            canDeleteMember(user, member) &&
+                                member.status === 'archived' && {
+                                    key: 'delete',
+                                    group: 'danger',
+                                    label: t('members.delete'),
+                                    icon: 'trash',
+                                    action: deleteMember.bind(null, member.id, true),
+                                    confirm: t('members.deleteConfirm', { name }),
+                                    danger: true,
+                                },
                         ]}
                     />
                 }
@@ -99,10 +121,7 @@ export default async function MemberPage({ params }) {
                 <BloodBadge group={member.blood_group} />
                 {member.is_blood_donor ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
                 {member.phone && !privateDetails && (
-                    <a
-                        href={`tel:${member.phone}`}
-                        className="ml-auto inline-flex h-9 items-center gap-2 rounded-md btn-secondary px-3 text-sm font-medium"
-                    >
+                    <a href={`tel:${member.phone}`} className="ml-auto inline-flex h-9 items-center gap-2 rounded-md btn-secondary px-3 text-sm font-medium">
                         <Phone className="size-4" />
                         <span className="tabular-nums">{formatPhone(member.phone)}</span>
                     </a>
@@ -122,9 +141,7 @@ export default async function MemberPage({ params }) {
                 <Card title={t('members.details')}>
                     <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
                         <Detail label={t('members.gender')}>{member.gender && t(`gender.${member.gender}`)}</Detail>
-                        <Detail label={t('members.dob')}>
-                            {!privateDetails && member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}
-                        </Detail>
+                        <Detail label={t('members.dob')}>{!privateDetails && member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}</Detail>
                         <Detail label={t('family.maritalStatus')}>
                             {!privateDetails && member.marital_status && t(`family.marital.${member.marital_status}`)}
                         </Detail>
@@ -199,7 +216,10 @@ export default async function MemberPage({ params }) {
                                     <li key={g.id ?? 0} className="px-4 py-3">
                                         <div className="flex items-center justify-between gap-2">
                                             {g.id ? (
-                                                <Link href={`/groups/${g.id}`} className="min-w-0 break-words text-sm font-semibold text-primary hover:underline">
+                                                <Link
+                                                    href={`/groups/${g.id}`}
+                                                    className="min-w-0 break-words text-sm font-semibold text-primary hover:underline"
+                                                >
                                                     {localized(g, 'name', locale)}
                                                 </Link>
                                             ) : (

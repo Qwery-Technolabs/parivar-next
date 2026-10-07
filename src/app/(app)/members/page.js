@@ -28,6 +28,7 @@ import {
     ROLES,
     canDeleteMember,
     assignableRoles,
+    atLeast,
 } from '@/lib/roles';
 import { familyIds } from '@/lib/family';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
@@ -42,6 +43,9 @@ export default async function MembersPage({ searchParams }) {
     const sp = await searchParams;
     const { t, locale } = await getT();
     const filters = resolveMemberFilters(sp);
+    // Archived members are for administrators (and up) only — anyone else asking for them sees active members.
+    const seesArchived = atLeast(user.role, 'administrator');
+    if (filters.status === 'archived' && !seesArchived) filters.status = 'active';
     const page = normalizePage(sp.page);
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
 
@@ -104,6 +108,7 @@ export default async function MembersPage({ searchParams }) {
                 cities={cities}
                 castes={castes}
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
+                seesArchived={seesArchived}
             />
 
             {/* Bulk selection: for people who can put others into a group, or reset passwords. */}
@@ -209,7 +214,7 @@ export default async function MembersPage({ searchParams }) {
                                     </Td>
                                     <Td className="text-right">
                                         <MemberRowActions
-                                            member={{ id: m.id, name: primary }}
+                                            member={{ id: m.id, name: primary, archived: m.status === 'archived' }}
                                             canEdit={canEditUser(user, m) || canResetPassword(user, m)}
                                             groups={groupOptions}
                                             canAssignGroups={groupOptions.length > 0}

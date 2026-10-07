@@ -13,7 +13,7 @@ import { useDebouncedCallback } from '@/components/ui/use-debounce';
  * design-system.md §5 "combining several controls" + §6 draft panel: one <form> so the search
  * and the filter button wrap as a unit; type → narrow → go.
  */
-export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes }) {
+export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes, seesArchived = false }) {
     const { t } = useT();
     const { navigate, pending } = useUrlFilters();
     const [q, setQ] = useState(filters.q);
@@ -137,6 +137,8 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, o
                     <option value="active">{t('status.active')}</option>
                     <option value="inactive">{t('status.inactive')}</option>
                     <option value="deceased">{t('status.deceased')}</option>
+                    {/* Administrators only: archived members (the step before deleting). */}
+                    {seesArchived && <option value="archived">{t('status.archived')}</option>}
                     <option value="all">{t('common.all')}</option>
                 </select>
             </Field>

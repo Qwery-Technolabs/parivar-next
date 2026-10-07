@@ -7,7 +7,8 @@ import { memo } from './memo';
 // `position` is the person's current post (Talati, ward member, trustee…) — free text,
 // deliberately separate from the app role, which only decides permissions.
 export const MEMBER_META_KEYS = ['position', 'address', 'occupation', 'education', 'email', 'alt_phone', 'bio'];
-const STATUSES = ['active', 'inactive', 'deceased'];
+// 'archived' is a filter only administrators get (the Members page downgrades it for everyone else).
+const STATUSES = ['active', 'inactive', 'deceased', 'archived'];
 const GENDERS = ['male', 'female', 'other'];
 
 /**
@@ -32,7 +33,7 @@ export function resolveMemberFilters(sp = {}) {
         ...ageRange(sp1(sp.age_min), sp1(sp.age_max)),
         // A sub-caste only means something inside its caste.
         subcaste: posInt(sp.caste) ? posInt(sp.subcaste) : null,
-        // Default view is active members; `status=all` shows everyone.
+        // Default view is active members; `status=all` shows everyone except archived members.
         status: sp1(sp.status) === 'all' ? 'all' : pick(sp.status, STATUSES) || 'active',
         // Default view is people who have signed in at least once; reg=unregistered / all to see the rest.
         reg: pick(sp.reg, ['unregistered', 'all']) || 'registered',
@@ -59,6 +60,9 @@ function whereFor(f) {
     if (f.status !== 'all') {
         where.push('u.status = :status');
         params.status = f.status;
+    } else {
+        // Archived members are seen only on their own filter (administrators).
+        where.push("u.status <> 'archived'");
     }
     // Registered = has signed in at least once; the others were invited or added from a family tree.
     if (f.reg === 'registered') where.push('u.last_login_at IS NOT NULL');
