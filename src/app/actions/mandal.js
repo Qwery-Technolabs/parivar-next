@@ -83,10 +83,10 @@ export async function saveMandalMeeting(prev, fd) {
     const campaign = await loadMandal(id(fd, 'campaign_id'));
     if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
     const eventId = id(fd, 'event_id');
-    const meeting = await queryOne(
-        "SELECT id, title, start_date FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c",
-        { eventId, c: campaign.id },
-    );
+    const meeting = await queryOne("SELECT id, title, start_date FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", {
+        eventId,
+        c: campaign.id,
+    });
     if (!meeting) return FORBIDDEN;
     if ((await getMeta('events_list', eventId)).archived === '1') return { error: 'mandal.errors.archived' };
     const collect = fd.get('collect') === '1';
@@ -94,11 +94,16 @@ export async function saveMandalMeeting(prev, fd) {
     const installment = rawAmount ? Number(rawAmount) : 0;
     if (collect && (!Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
     const existing = new Map(
-        (await query('SELECT user_id, contribution_id FROM fundraise_mandal_marks WHERE event_id = :eventId', { eventId })).map((r) => [r.user_id, r.contribution_id]),
+        (await query('SELECT user_id, contribution_id FROM fundraise_mandal_marks WHERE event_id = :eventId', { eventId })).map((r) => [
+            r.user_id,
+            r.contribution_id,
+        ]),
     );
     const target = (await mandalMeetings(campaign.id, 0)).find((e) => e.id === eventId);
     const members = (
-        await query(`SELECT s.user_id, u.full_name FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id WHERE s.campaign_id = :c`, { c: campaign.id })
+        await query(`SELECT s.user_id, u.full_name FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id WHERE s.campaign_id = :c`, {
+            c: campaign.id,
+        })
     ).filter((m) => !target || isFor(target, m.user_id) || existing.has(m.user_id));
     const fieldErrors = {};
     const rows = members.map((m) => {
@@ -109,6 +114,9 @@ export async function saveMandalMeeting(prev, fd) {
         return { ...m, present: fd.get(`present_${m.user_id}`) === '1', paid: paid && paid > 0 ? Math.round(paid * 100) / 100 : null, mode };
     });
     if (Object.keys(fieldErrors).length) return { fieldErrors };
+    // Who keeps this day's money: the schedule's money keeper (held_by), else whoever records it —
+    // so the Savings tab's Holdings card can say who holds how much.
+    const keeper = target?.holder?.id ?? actor.id;
 
     await withTransaction(async (q) => {
         await setMeta('events_list', eventId, { collect: collect ? '1' : '0', installment: collect ? String(installment) : '' }, q);
@@ -120,20 +128,33 @@ export async function saveMandalMeeting(prev, fd) {
                         'SELECT donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at FROM fundraise_contributions WHERE id = :id',
                         { id: contributionId },
                     );
-                    await q('UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, deleted_at = NULL, deleted_by = NULL WHERE id = :id', {
-                        amount: r.paid,
-                        mode: r.mode,
-                        day: meeting.start_date,
-                        id: contributionId,
-                    });
+                    // A keeper set since (e.g. edited on the entry) stays; a missing one gets the schedule's.
+                    await q(
+                        'UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = COALESCE(kept_by, :keeper), deleted_at = NULL, deleted_by = NULL WHERE id = :id',
+                        { amount: r.paid, mode: r.mode, day: meeting.start_date, keeper, id: contributionId },
+                    );
                     if (old?.deleted_at) await payHistory(q, campaign.id, contributionId, 'add', actor.id);
                     else if (old && (Number(old.amount) !== r.paid || old.mode !== r.mode || String(old.paid_on) !== String(meeting.start_date)))
-                        await payHistory(q, campaign.id, contributionId, 'edit', actor.id, { ...old, amount: Number(old.amount), is_anonymous: Number(old.is_anonymous) });
+                        await payHistory(q, campaign.id, contributionId, 'edit', actor.id, {
+                            ...old,
+                            amount: Number(old.amount),
+                            is_anonymous: Number(old.is_anonymous),
+                        });
                 } else {
                     const ins = await q(
-                        `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by)
-                         VALUES (:c, :u, :name, :amount, :day, :mode, :ref, :by)`,
-                        { c: campaign.id, u: r.user_id, name: r.full_name, amount: r.paid, mode: r.mode, day: meeting.start_date, ref: `Mandal ${meeting.start_date}`.slice(0, 100), by: actor.id },
+                        `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by, kept_by, handed_over)
+                         VALUES (:c, :u, :name, :amount, :day, :mode, :ref, :by, :keeper, 0)`,
+                        {
+                            c: campaign.id,
+                            u: r.user_id,
+                            name: r.full_name,
+                            amount: r.paid,
+                            mode: r.mode,
+                            day: meeting.start_date,
+                            ref: `Mandal ${meeting.start_date}`.slice(0, 100),
+                            by: actor.id,
+                            keeper,
+                        },
                     );
                     contributionId = ins.insertId;
                     await payHistory(q, campaign.id, contributionId, 'add', actor.id);
@@ -180,7 +201,10 @@ export async function saveMandalSchedule(prev, fd) {
     if (heldBy && !(await queryOne('SELECT id FROM users_list WHERE id = :heldBy', { heldBy }))) fieldErrors.held_by = 'common.required';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
     if (eventId) {
-        const ev = await queryOne("SELECT id FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", { eventId, c: campaign.id });
+        const ev = await queryOne("SELECT id FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", {
+            eventId,
+            c: campaign.id,
+        });
         if (!ev) return FORBIDDEN;
         if ((await getMeta('events_list', eventId)).archived === '1') return { error: 'mandal.errors.archived' };
     }
@@ -209,7 +233,12 @@ export async function saveMandalSchedule(prev, fd) {
                 c: campaign.id,
             });
         }
-        await setMeta('events_list', evId, { collect: '1', installment: amount, held_by: heldBy ? String(heldBy) : '', ...(eventId ? {} : { audience: 'all' }) }, q);
+        await setMeta(
+            'events_list',
+            evId,
+            { collect: '1', installment: amount, held_by: heldBy ? String(heldBy) : '', ...(eventId ? {} : { audience: 'all' }) },
+            q,
+        );
         return evId;
     });
     await audit(actor.id, eventId ? 'mandal.schedule.update' : 'mandal.schedule.create', 'fundraise', campaign.id, { event: saved, day, installment: amount });

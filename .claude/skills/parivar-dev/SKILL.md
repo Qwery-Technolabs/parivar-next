@@ -233,7 +233,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   feed, both with a "Mandal" badge. Its pending
   (summary) = members' dues.
   lib/mandal.js + actions/mandal.js + components/mandal/*. Tabs: Discussion, Meetings, **Savings** (the Mandal's Income/Expense:
-  `MandalTab section="savings"` — latest Mandal, every schedule with its money + "Attendance & money" sheet, who has the money;
+  `MandalTab section="savings"` — latest Mandal, every schedule with its money + "Attendance & money" sheet, and the fundraise
+  Holdings card (listHoldings: per person, Income / Expense switch; sheet payments save kept_by = the schedule's held_by,
+  else the recorder, handed_over 0);
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,
   Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history)
   (?tab=mandal → About). No place of its own (per schedule). On its group's Fundraises list an

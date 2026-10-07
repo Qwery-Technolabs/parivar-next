@@ -2,6 +2,7 @@ import { UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { addMandalMember, removeMandalMember } from '@/app/actions/mandal';
 import ActionButton from '@/components/fundraise/action-button';
+import HoldingsCard from '@/components/fundraise/holdings-card';
 import MandalAddMember from '@/components/mandal/mandal-add-member';
 import MandalSheet from '@/components/mandal/mandal-sheet';
 import ScheduleActions from '@/components/mandal/schedule-actions';
@@ -10,6 +11,7 @@ import Badge from '@/components/ui/badge';
 import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
 import { query } from '@/lib/db';
+import { listHoldings } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
 import PendingList from '@/components/mandal/pending-list';
@@ -47,18 +49,8 @@ export default async function MandalTab({ campaign, user, today, t, locale, sect
             got: Object.values(sheet).reduce((s, x) => s + Number(x.paid || 0), 0),
         };
     });
-    // Who keeps the money: each schedule's collection, added up per person ("not set" last).
-    const byHolder = new Map();
-    for (const r of rows) {
-        if (!r.got) continue;
-        const key = r.e.holder?.id ?? 0;
-        const h = byHolder.get(key) ?? { key, person: r.e.holder, amount: 0 };
-        h.amount += r.got;
-        byHolder.set(key, h);
-    }
-    const holders = [...byHolder.values()].sort((x, y) => (x.key === 0) - (y.key === 0) || y.amount - x.amount);
-    const collected = Number(campaign.collected) || 0;
-    const spent = Number(campaign.spent) || 0;
+    // Savings: who holds the money, per person (the fundraise Holdings card's data).
+    const holdings = section === 'savings' ? await listHoldings(campaign) : null;
     // The schedule money is entered for: the most recent one not archived (the "last made Mandal").
     const current = rows.find((r) => !r.e.archived) ?? null;
     // Each member's unpaid schedules (held so far), for "pending since …" under their name.
@@ -149,28 +141,10 @@ export default async function MandalTab({ campaign, user, today, t, locale, sect
                             <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, true))}</ul>
                         )}
                     </Card>
-                    <Card title={t('mandal.whoHasMoney')} bodyClass="">
-                        <ul className="divide-y divide-surface-border text-sm">
-                            {holders.map((h) => (
-                                <li key={h.key} className="flex items-center justify-between gap-3 px-4 py-2">
-                                    <span className={h.person ? 'font-medium text-primary' : 'text-ink-gray'}>
-                                        {h.person ? name(h.person) : t('mandal.notSet')}
-                                    </span>
-                                    <span className="tabular-nums text-income">{money(h.amount)}</span>
-                                </li>
-                            ))}
-                            {spent > 0 && (
-                                <li className="flex items-center justify-between gap-3 px-4 py-2">
-                                    <span className="text-ink-gray">{t('mandal.commonExpenses')}</span>
-                                    <span className="tabular-nums text-expense">− {money(spent)}</span>
-                                </li>
-                            )}
-                            <li className="flex items-center justify-between gap-3 bg-card-head px-4 py-2 font-semibold">
-                                <span className="text-primary">{t('fundraise.balance')}</span>
-                                <span className={`tabular-nums ${collected - spent < 0 ? 'text-rose-700' : 'text-primary'}`}>{money(collected - spent)}</span>
-                            </li>
-                        </ul>
-                    </Card>
+                    {/* Who holds the money — the same Holdings card as any fundraise (Income / Expense
+                        switch, per person, the treasurer tagged): sheet payments carry their schedule's
+                        money keeper (kept_by), the rest as recorded. */}
+                    <HoldingsCard holdings={holdings} />
                 </div>
             </div>
         );

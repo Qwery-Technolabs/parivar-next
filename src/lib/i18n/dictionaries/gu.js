@@ -314,8 +314,6 @@ const gu = {
         moneyWithHint: 'તે દિવસની રકમ કોણ રાખે',
         moneyWith: 'રકમ {name} પાસે',
         notSet: 'નક્કી નથી',
-        whoHasMoney: 'રકમ કોની પાસે છે',
-        commonExpenses: 'સામાન્ય ખર્ચ',
         archiveSchedule: 'આર્કાઇવ',
         archiveScheduleConfirm: 'આ તારીખ આર્કાઇવ કરવી છે? રકમ રહેશે; પાછી લાવો ત્યાં સુધી ફેરફાર નહીં થાય.',
         restoreSchedule: 'પાછી લાવો',

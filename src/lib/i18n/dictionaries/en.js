@@ -313,8 +313,6 @@ const en = {
         moneyWithHint: "Who keeps that day's money",
         moneyWith: 'Money with {name}',
         notSet: 'Not set',
-        whoHasMoney: 'Who has the money',
-        commonExpenses: 'Common expenses',
         archiveSchedule: 'Archive',
         archiveScheduleConfirm: 'Archive this schedule? Its money stays; it can no longer be changed until restored.',
         restoreSchedule: 'Restore',

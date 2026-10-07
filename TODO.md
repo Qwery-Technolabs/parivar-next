@@ -342,3 +342,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Invite by phone: one line per person on phones (mobile · name · ×), + Add another on the right
 - [x] Members: Archive first, then Delete (administrators); archived = hidden + no sign-in, Restore keeps the old status (live: users_list.status + 'archived')
 - [x] Mandal: Savings tab (schedules + Attendance & money + who has the money) replaces Income/Expense; About keeps schedules to create, Members scroll in a fixed-height card
+- [x] Mandal Savings: Holdings card replaces "Who has the money"; sheet payments record kept_by (schedule's money keeper)
