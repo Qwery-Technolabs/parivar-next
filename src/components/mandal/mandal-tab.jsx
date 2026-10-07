@@ -15,12 +15,14 @@ import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBe
 import PendingList from '@/components/mandal/pending-list';
 
 /**
- * The Mandal tab (server component): a summary, the members — with what each still owes and how
- * long they have been away — and its Schedules (one per Mandal day: date, place, amount per person,
- * who keeps the money), each with its "Attendance & money" sheet; then who has the money. Income is
- * per schedule; expenses are common to the whole Mandal (Money tab).
+ * A Mandal, in two places (server component), sharing one data load:
+ *   section="about"   — About tab: a summary, the members (what each still owes, how long away) in a
+ *                        fixed-height scrolling card, and the Schedules to create / edit / archive.
+ *   section="savings" — Savings tab (a Mandal's Income/Expense): the latest Mandal, every schedule with
+ *                        its numbers and its "Attendance & money" sheet — money is always taken against a
+ *                        schedule, never the Mandal as a whole — and who has the money.
  */
-export default async function MandalTab({ campaign, user, today, t, locale }) {
+export default async function MandalTab({ campaign, user, today, t, locale, section = 'about' }) {
     const installment = Number(campaign.meta?.installment) || 0;
     await syncMandalMembers(campaign);
     const [meetings, canRun, marks] = await Promise.all([mandalMeetings(campaign.id, installment), canRunMandal(user, campaign), allMarks(campaign.id)]);
@@ -72,27 +74,110 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
         />
     );
 
+    // The latest Mandal, ready for money straight away (Savings).
+    const latestBanner = current && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-4 py-2.5 shadow-sm">
+            <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-gray">{t('mandal.latest')}</p>
+                <p className="font-semibold text-primary">
+                    {date(current.e.start_date, locale)} - {t('mandal.word')}
+                    <span className="ml-2 text-sm font-normal text-ink-gray tabular-nums">
+                        {[
+                            current.e.location,
+                            t('mandal.perPersonAmount', { amount: money(current.e.installment) }),
+                            t('mandal.cameCount', { came: current.came, total: current.forThem.length }),
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </span>
+                </p>
+            </div>
+            <span className="font-semibold text-income tabular-nums">{money(current.got)}/-</span>
+            {canRun && sheetFor(current)}
+        </div>
+    );
+
+    // One schedule row: date, place, amount per person, who keeps the money. Savings adds what came in
+    // and the "Attendance & money" sheet; About adds edit / archive.
+    const scheduleRow = ({ e, sheet, forThem, came, got }, savings) => (
+        <li key={e.id} className={`flex items-start gap-3 px-4 py-2.5 ${e.archived ? 'bg-surface-bggray/40' : ''}`}>
+            <div className="min-w-0 flex-1">
+                <p className="font-medium text-primary">
+                    {date(e.start_date, locale)} - {t('mandal.word')}
+                    {e.archived && (
+                        <Badge tone="gray" className="ml-1.5 align-middle">
+                            {t('fundraise.archivedBadge')}
+                        </Badge>
+                    )}
+                </p>
+                <p className="text-xs text-ink-gray tabular-nums">
+                    {[
+                        e.location,
+                        e.collect ? t('mandal.perPersonAmount', { amount: money(e.installment) }) : t('mandal.notCollecting'),
+                        e.holder ? t('mandal.moneyWith', { name: name(e.holder) }) : null,
+                    ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                </p>
+                {savings && Object.keys(sheet).length > 0 && (
+                    <p className="text-xs text-ink-gray tabular-nums">{t('mandal.cameCount', { came, total: forThem.length })}</p>
+                )}
+            </div>
+            {savings ? (
+                <>
+                    <span className="shrink-0 pt-0.5 font-semibold text-income tabular-nums">{money(got)}/-</span>
+                    {canRun && !e.archived && sheetFor({ e, sheet, forThem })}
+                </>
+            ) : (
+                canRun && (
+                    <ScheduleActions campaignId={campaign.id} schedule={e} received={got} members={plain} defaultInstallment={latest || ''} today={today} />
+                )
+            )}
+        </li>
+    );
+
+    if (section === 'savings') {
+        return (
+            <div className="space-y-4">
+                {latestBanner}
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
+                    {/* Money comes in against a schedule: pick its date, then "Attendance & money". */}
+                    <Card title={t('mandal.schedules')} bodyClass="">
+                        {meetings.length === 0 ? (
+                            <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedulesSavings')}</p>
+                        ) : (
+                            <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, true))}</ul>
+                        )}
+                    </Card>
+                    <Card title={t('mandal.whoHasMoney')} bodyClass="">
+                        <ul className="divide-y divide-surface-border text-sm">
+                            {holders.map((h) => (
+                                <li key={h.key} className="flex items-center justify-between gap-3 px-4 py-2">
+                                    <span className={h.person ? 'font-medium text-primary' : 'text-ink-gray'}>
+                                        {h.person ? name(h.person) : t('mandal.notSet')}
+                                    </span>
+                                    <span className="tabular-nums text-income">{money(h.amount)}</span>
+                                </li>
+                            ))}
+                            {spent > 0 && (
+                                <li className="flex items-center justify-between gap-3 px-4 py-2">
+                                    <span className="text-ink-gray">{t('mandal.commonExpenses')}</span>
+                                    <span className="tabular-nums text-expense">− {money(spent)}</span>
+                                </li>
+                            )}
+                            <li className="flex items-center justify-between gap-3 bg-card-head px-4 py-2 font-semibold">
+                                <span className="text-primary">{t('fundraise.balance')}</span>
+                                <span className={`tabular-nums ${collected - spent < 0 ? 'text-rose-700' : 'text-primary'}`}>{money(collected - spent)}</span>
+                            </li>
+                        </ul>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-4">
-            {/* Latest Mandal: money is entered here, straight away. */}
-            {current && (
-                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-4 py-2.5 shadow-sm">
-                    <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-gray">{t('mandal.latest')}</p>
-                        <p className="font-semibold text-primary">
-                            {date(current.e.start_date, locale)} - {t('mandal.word')}
-                            <span className="ml-2 text-sm font-normal text-ink-gray tabular-nums">
-                                {[current.e.location, t('mandal.perPersonAmount', { amount: money(current.e.installment) }), t('mandal.cameCount', { came: current.came, total: current.forThem.length })]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                            </span>
-                        </p>
-                    </div>
-                    <span className="font-semibold text-income tabular-nums">{money(current.got)}/-</span>
-                    {canRun && sheetFor(current)}
-                </div>
-            )}
-
             <div className="grid grid-cols-3 gap-2">
                 {[
                     [t('mandal.members'), members.length],
@@ -106,8 +191,14 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                 ))}
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-                <Card title={t('mandal.members')} bodyClass="" actions={canRun && <MandalAddMember campaignId={campaign.id} action={addMandalMember} exclude={members.map((m) => m.id)} />}>
+            {/* Two parts side by side: Members (fixed height, scrolls inside — a long list never pushes the
+                cards below) and Schedules. */}
+            <div className="grid items-start gap-4 lg:grid-cols-2">
+                <Card
+                    title={t('mandal.members')}
+                    bodyClass="max-h-[26rem] overflow-y-auto"
+                    actions={canRun && <MandalAddMember campaignId={campaign.id} action={addMandalMember} exclude={members.map((m) => m.id)} />}
+                >
                     {members.length === 0 ? (
                         <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noMembers')}</p>
                     ) : (
@@ -119,7 +210,11 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                                             {name(m)}
                                         </Link>
                                         <p className="text-xs text-ink-gray tabular-nums">
-                                            {m.due > 0 ? <span className="font-semibold text-destructive">{t('mandal.pending', { amount: money(m.due) })}</span> : t('mandal.upToDate')}
+                                            {m.due > 0 ? (
+                                                <span className="font-semibold text-destructive">{t('mandal.pending', { amount: money(m.due) })}</span>
+                                            ) : (
+                                                t('mandal.upToDate')
+                                            )}
                                             {m.missed > 0 && (
                                                 <>
                                                     {' · '}
@@ -145,78 +240,18 @@ export default async function MandalTab({ campaign, user, today, t, locale }) {
                     )}
                 </Card>
 
-                <div className="space-y-4">
-                    <Card
-                        title={t('mandal.schedules')}
-                        bodyClass=""
-                        actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} today={today} />}
-                    >
-                        {meetings.length === 0 ? (
-                            <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
-                        ) : (
-                            <ul className="divide-y divide-surface-border">
-                                {rows.map(({ e, sheet, forThem, came, got }) => (
-                                    <li key={e.id} className={`flex items-start gap-3 px-4 py-2.5 ${e.archived ? 'bg-surface-bggray/40' : ''}`}>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium text-primary">
-                                                {date(e.start_date, locale)} - {t('mandal.word')}
-                                                {e.archived && (
-                                                    <Badge tone="gray" className="ml-1.5 align-middle">
-                                                        {t('fundraise.archivedBadge')}
-                                                    </Badge>
-                                                )}
-                                            </p>
-                                            <p className="text-xs text-ink-gray tabular-nums">
-                                                {[
-                                                    e.location,
-                                                    e.collect ? t('mandal.perPersonAmount', { amount: money(e.installment) }) : t('mandal.notCollecting'),
-                                                    e.holder ? t('mandal.moneyWith', { name: name(e.holder) }) : null,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(' · ')}
-                                            </p>
-                                            {Object.keys(sheet).length > 0 && (
-                                                <p className="text-xs text-ink-gray tabular-nums">{t('mandal.cameCount', { came, total: forThem.length })}</p>
-                                            )}
-                                        </div>
-                                        <span className="shrink-0 pt-0.5 font-semibold text-income tabular-nums">{money(got)}/-</span>
-                                        {canRun && !e.archived && sheetFor({ e, sheet, forThem })}
-                                        {canRun && (
-                                            <ScheduleActions
-                                                campaignId={campaign.id}
-                                                schedule={e}
-                                                received={got}
-                                                members={plain}
-                                                defaultInstallment={latest || ''}
-                                                today={today}
-                                            />
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </Card>
-
-                    {/* One Mandal, many schedules: income per schedule, expenses common (Money tab). */}
-                    <Card title={t('mandal.whoHasMoney')} bodyClass="">
-                        <ul className="divide-y divide-surface-border text-sm">
-                            {holders.map((h) => (
-                                <li key={h.key} className="flex items-center justify-between gap-3 px-4 py-2">
-                                    <span className={h.person ? 'font-medium text-primary' : 'text-ink-gray'}>{h.person ? name(h.person) : t('mandal.notSet')}</span>
-                                    <span className="tabular-nums text-income">{money(h.amount)}</span>
-                                </li>
-                            ))}
-                            <li className="flex items-center justify-between gap-3 px-4 py-2">
-                                <span className="text-ink-gray">{t('mandal.commonExpenses')}</span>
-                                <span className="tabular-nums text-expense">− {money(spent)}</span>
-                            </li>
-                            <li className="flex items-center justify-between gap-3 bg-card-head px-4 py-2 font-semibold">
-                                <span className="text-primary">{t('fundraise.balance')}</span>
-                                <span className={`tabular-nums ${collected - spent < 0 ? 'text-rose-700' : 'text-primary'}`}>{money(collected - spent)}</span>
-                            </li>
-                        </ul>
-                    </Card>
-                </div>
+                {/* Schedules are made here; their money is taken on the Savings tab. */}
+                <Card
+                    title={t('mandal.schedules')}
+                    bodyClass="max-h-[26rem] overflow-y-auto"
+                    actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} today={today} />}
+                >
+                    {meetings.length === 0 ? (
+                        <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
+                    ) : (
+                        <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, false))}</ul>
+                    )}
+                </Card>
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown } from 'lucide-react';
+import { Archive, ArchiveRestore, CalendarClock, Info, MapPin, MessageCircle, Pencil, Wallet, FileDown, PiggyBank } from 'lucide-react';
 import { setCampaignArchived } from '@/app/actions/fundraise';
 import SubmitButton from '@/components/ui/submit-button';
 import { cookies } from 'next/headers';
@@ -126,12 +126,17 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
     const tabs = [
         { key: 'discussion', label: t('fundraise.tabs.discussion'), href: base, icon: MessageCircle },
         { key: 'meetings', label: t('fundraise.tabs.meetings'), href: `${base}?tab=meetings`, icon: CalendarClock },
-        { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money`, icon: Wallet },
+        // A Mandal's money lives on its schedules: the tab is "Savings" (schedules + their sheets), not Income/Expense.
+        campaign.kind === 'mandal'
+            ? { key: 'money', label: t('mandal.savings'), href: `${base}?tab=money`, icon: PiggyBank }
+            : { key: 'money', label: t('fundraise.tabs.money'), href: `${base}?tab=money`, icon: Wallet },
         { key: 'details', label: t('fundraise.tabs.details'), href: `${base}?tab=details`, icon: Info },
     ];
 
     let body;
-    if (tab === 'money') {
+    if (tab === 'money' && campaign.kind === 'mandal') {
+        body = <MandalTab section="savings" campaign={campaign} user={user} today={today} t={t} locale={locale} />;
+    } else if (tab === 'money') {
         const page = normalizePage(sp1(sp.page));
         const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
         const offset = (page - 1) * perPage;
@@ -196,7 +201,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
         body = (
             <>
                 {/* A Mandal: its members, schedules (with the money sheet) and who has the money, above the usual About. */}
-                {campaign.kind === 'mandal' && <MandalTab campaign={campaign} user={user} today={today} t={t} locale={locale} />}
+                {campaign.kind === 'mandal' && <MandalTab section="about" campaign={campaign} user={user} today={today} t={t} locale={locale} />}
                 <DetailsTab
                     campaign={campaign}
                     audience={audience}

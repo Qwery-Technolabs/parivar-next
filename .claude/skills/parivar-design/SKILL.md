@@ -158,7 +158,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - WhatsApp-style `WaTabs` on navy headers (icon over label, count bubble, orange bar). Tab links use
   `replace`, so the browser Back leaves the page rather than stepping through tabs. Group tabs:
   Discussion · Meetings · Fundraise · Members · About. Fundraise tabs: Discussion · Meetings ·
-  Income/Expense · About (same order as a group: Discussion, then Meetings). Phones: labels `text-[10px]` without tracking, icons `size-4` (from `sm`: 11px tracked, 18px).
+  Income/Expense · About (same order as a group: Discussion, then Meetings); a Mandal shows **Savings** instead of
+  Income/Expense (PiggyBank icon). Phones: labels `text-[10px]` without tracking, icons `size-4` (from `sm`: 11px tracked, 18px).
 - Fundraise navy header: row 1 = picture + title (left) · Add to group, PDF, Edit pinned top-right. **Status is
   a dot on the picture's bottom-right** (green active, grey draft, red closed; title + aria-label) — no status
   badge. Row 2 only when needed: Archived badge (left) · "Your role" (right, sm and up only). Phones see

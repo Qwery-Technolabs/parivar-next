@@ -232,9 +232,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   seen only by its group's members, its members and team (AUDIENCE_OK) — in its group's list and in the /fundraise
   feed, both with a "Mandal" badge. Its pending
   (summary) = members' dues.
-  lib/mandal.js + actions/mandal.js + components/mandal/*. Same tabs as a fundraise (Discussion, Money, Meetings,
-  About — team roles + history included); the Mandal part (members, Schedules with the money sheet, who has the money)
-  sits at the top of About (?tab=mandal → About). No place of its own (per schedule). On its group's Fundraises list an
+  lib/mandal.js + actions/mandal.js + components/mandal/*. Tabs: Discussion, Meetings, **Savings** (the Mandal's Income/Expense:
+  `MandalTab section="savings"` — latest Mandal, every schedule with its money + "Attendance & money" sheet, who has the money;
+  money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,
+  Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history)
+  (?tab=mandal → About). No place of its own (per schedule). On its group's Fundraises list an
   active Mandal (not archived/closed, not past end date) is pinned on top (groupFundraises `pinned`). Sheet payments
   write fundraise_history (add / edit / delete) like ledger entries. Members =
   fundraise_subscribers, chosen on the form like a meeting's attendees (PeopleChoice: meta members_mode 'all' = whole
