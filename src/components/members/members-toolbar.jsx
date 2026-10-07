@@ -57,6 +57,7 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
                     cities={cities}
                     roles={roles}
                     castes={castes}
+                    seesArchived={seesArchived}
                     onApply={navigate}
                     disabled={pending}
                 />
@@ -65,7 +66,7 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
     );
 }
 
-function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, onApply, disabled }) {
+function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, seesArchived = false, onApply, disabled }) {
     const { t } = useT();
     // Ids travel as strings in the draft so they match <option value>.
     const initial = () => ({

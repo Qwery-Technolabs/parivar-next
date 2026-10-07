@@ -292,7 +292,9 @@ Full rules and the Gujarati glossary: the **parivar-i18n** skill.
 
 ## Verification before saying "done"
 
-1. `npx eslint src --quiet` clean; en/gu parity clean.
+1. `npx eslint src --quiet` clean; en/gu parity clean. The project config does NOT flag undefined names (a prop used
+   in a child component it was never passed to built and linted clean, then crashed /members) — also run
+   `npx eslint --rule '{"no-undef":"error"}' <changed files>` (ignore 'process' hits).
 2. Render-check changed routes on the dev server as super admin with a **temporary session**
    (`users_sessions` row, `user_agent='node'`, expiry `INTERVAL 1 DAY` because the probe connection is
    UTC while the app is IST) and **delete it in a finally block with a fresh connection**.
