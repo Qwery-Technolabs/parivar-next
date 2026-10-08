@@ -89,10 +89,6 @@ export async function saveMandalMeeting(prev, fd) {
     });
     if (!meeting) return FORBIDDEN;
     if ((await getMeta('events_list', eventId)).archived === '1') return { error: 'mandal.errors.archived' };
-    const collect = fd.get('collect') === '1';
-    const rawAmount = str(fd, 'installment', 12);
-    const installment = rawAmount ? Number(rawAmount) : 0;
-    if (collect && (!Number.isFinite(installment) || installment <= 0)) return { fieldErrors: { installment: 'mandal.errors.amount' } };
     const existing = new Map(
         (await query('SELECT user_id, contribution_id FROM fundraise_mandal_marks WHERE event_id = :eventId', { eventId })).map((r) => [
             r.user_id,
@@ -119,7 +115,6 @@ export async function saveMandalMeeting(prev, fd) {
     const keeper = target?.holder?.id ?? actor.id;
 
     await withTransaction(async (q) => {
-        await setMeta('events_list', eventId, { collect: collect ? '1' : '0', installment: collect ? String(installment) : '' }, q);
         for (const r of rows) {
             let contributionId = existing.get(r.user_id) ?? null;
             if (r.paid) {
@@ -173,7 +168,12 @@ export async function saveMandalMeeting(prev, fd) {
             );
         }
     });
-    await audit(actor.id, 'mandal.meeting.save', 'fundraise', campaign.id, { eventId, collect, installment, present: rows.filter((r) => r.present).length });
+    await audit(actor.id, 'mandal.meeting.save', 'fundraise', campaign.id, {
+        eventId,
+        collect: Boolean(target?.collect),
+        installment: target?.installment ?? 0,
+        present: rows.filter((r) => r.present).length,
+    });
     refresh(campaign.id);
     return { ok: true, message: 'mandal.sheetSaved' };
 }
@@ -192,12 +192,14 @@ export async function saveMandalSchedule(prev, fd) {
     const eventId = id(fd, 'event_id');
     const day = date(fd, 'start_date');
     const place = strOrNull(fd, 'location', 200);
+    // Collect money this time? (default yes) — and how much per member — are set on the schedule.
+    const collect = fd.get('collect') !== '0';
     const rawAmount = str(fd, 'installment', 12);
     const installment = rawAmount ? Number(rawAmount) : NaN;
     const heldBy = id(fd, 'held_by');
     const fieldErrors = {};
     if (!day) fieldErrors.start_date = 'meetings.errors.date';
-    if (!Number.isFinite(installment) || installment <= 0) fieldErrors.installment = 'mandal.errors.amount';
+    if (collect && (!Number.isFinite(installment) || installment <= 0)) fieldErrors.installment = 'mandal.errors.amount';
     if (heldBy && !(await queryOne('SELECT id FROM users_list WHERE id = :heldBy', { heldBy }))) fieldErrors.held_by = 'common.required';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
     if (eventId) {
@@ -210,7 +212,7 @@ export async function saveMandalSchedule(prev, fd) {
     }
     const title = `${formatDate(day, 'en')} - Mandal`;
     const titleLocal = `${formatDate(day, 'gu')} - મંડળ`;
-    const amount = String(Math.round(installment * 100) / 100);
+    const amount = collect ? String(Math.round(installment * 100) / 100) : '';
     const saved = await withTransaction(async (q) => {
         let evId = eventId;
         if (evId) {
@@ -236,7 +238,7 @@ export async function saveMandalSchedule(prev, fd) {
         await setMeta(
             'events_list',
             evId,
-            { collect: '1', installment: amount, held_by: heldBy ? String(heldBy) : '', ...(eventId ? {} : { audience: 'all' }) },
+            { collect: collect ? '1' : '0', installment: amount, held_by: heldBy ? String(heldBy) : '', ...(eventId ? {} : { audience: 'all' }) },
             q,
         );
         return evId;

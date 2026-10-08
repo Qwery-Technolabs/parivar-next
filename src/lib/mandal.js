@@ -1,6 +1,7 @@
 import 'server-only';
 import { fundraisePermissions, isLeaderOfFundraiseGroup } from './access';
 import { getMeta, getMetaMany, inList, query } from './db';
+import { listContributions, listExpenses } from './fundraise';
 
 // Mandal (savings circle) — a fundraise of kind 'mandal' inside a group. Its members
 // (fundraise_subscribers) pay a fixed amount at its meetings (the fundraise's own meetings).
@@ -33,7 +34,11 @@ export async function mandalMeetings(campaignId, defaultInstallment) {
           WHERE event_type = 'meeting' AND campaign_id = :campaignId ORDER BY start_date DESC, start_time DESC LIMIT 100`,
         { campaignId },
     );
-    const meta = await getMetaMany('events_list', rows.map((r) => r.id), ['collect', 'installment', 'audience', 'archived', 'held_by']);
+    const meta = await getMetaMany(
+        'events_list',
+        rows.map((r) => r.id),
+        ['collect', 'installment', 'audience', 'archived', 'held_by'],
+    );
     // Who keeps the money collected at each schedule (events_listmeta held_by = a user id).
     const holderIds = [...new Set(rows.map((r) => Number(meta[r.id]?.held_by) || 0).filter(Boolean))];
     const holders = holderIds.length
@@ -205,4 +210,31 @@ export async function mandalChoice(groupId, campaignId = null) {
 export async function subscriberIds(campaignId) {
     const l = inList([campaignId], 's');
     return (await query(`SELECT user_id FROM fundraise_subscribers WHERE campaign_id IN (${l.sql})`, l.params)).map((r) => r.user_id);
+}
+
+/**
+ * The public ledger of a Mandal (the /p/[token] page and its print): its schedules for the filter,
+ * and the received income + expenses — all, ONE schedule (`schedule` = events_list id: that day's
+ * sheet payments + expenses named for it), or a date range (`from` / `to`, YYYY-MM-DD, either end
+ * open). Newest first; the page groups them by date.
+ */
+export async function mandalLedger(campaignId, { schedule = null, from = '', to = '' } = {}) {
+    const [schedules, incomeAll, expenseAll] = await Promise.all([
+        query("SELECT id, start_date FROM events_list WHERE campaign_id = :c AND event_type = 'meeting' ORDER BY start_date DESC, id DESC", { c: campaignId }),
+        listContributions(campaignId),
+        listExpenses(campaignId),
+    ]);
+    const received = incomeAll.filter((r) => r.mode !== 'unpaid');
+    const day = (v) => String(v ?? '').slice(0, 10);
+    const chosen = schedule ? schedules.find((s) => s.id === schedule) : null;
+    if (chosen) {
+        const ids = new Set(
+            (await query('SELECT contribution_id FROM fundraise_mandal_marks WHERE event_id = :e AND contribution_id IS NOT NULL', { e: chosen.id })).map(
+                (r) => r.contribution_id,
+            ),
+        );
+        return { schedules, schedule: chosen.id, incomes: received.filter((r) => ids.has(r.id)), expenses: expenseAll.filter((x) => x.event_id === chosen.id) };
+    }
+    const inRange = (d) => (!from || day(d) >= from) && (!to || day(d) <= to);
+    return { schedules, schedule: null, incomes: received.filter((r) => inRange(r.paid_on)), expenses: expenseAll.filter((x) => inRange(x.spent_on)) };
 }

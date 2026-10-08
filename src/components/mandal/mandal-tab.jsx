@@ -2,7 +2,9 @@ import { FileDown, UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { addMandalMember, removeMandalMember } from '@/app/actions/mandal';
 import ActionButton from '@/components/fundraise/action-button';
+import ExpenseDialog from '@/components/fundraise/expense-dialog';
 import HoldingsCard from '@/components/fundraise/holdings-card';
+import RowActions from '@/components/fundraise/row-actions';
 import MandalAddMember from '@/components/mandal/mandal-add-member';
 import MandalSheet from '@/components/mandal/mandal-sheet';
 import ScheduleActions from '@/components/mandal/schedule-actions';
@@ -11,7 +13,9 @@ import Badge from '@/components/ui/badge';
 import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
 import { query } from '@/lib/db';
-import { listHoldings } from '@/lib/fundraise';
+import { fundraisePeople, listExpenses, listHoldings } from '@/lib/fundraise';
+import { fundraisePermissions } from '@/lib/access';
+import { getSettings } from '@/lib/settings';
 import { localized } from '@/lib/i18n/config';
 import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
 import PendingList from '@/components/mandal/pending-list';
@@ -61,6 +65,21 @@ async function buildMandal({ campaign, user, today, t, locale, section }) {
     });
     // Savings: who holds the money, per person (the fundraise Holdings card's data).
     const holdings = section === 'savings' ? await listHoldings(campaign) : null;
+    // Savings: the Mandal's expenses (common savings, optionally for one schedule) and who may add them.
+    const spend =
+        section === 'savings'
+            ? await (async () => {
+                  const [perms, rows, people, settings] = await Promise.all([
+                      fundraisePermissions(user, campaign),
+                      listExpenses(campaign.id),
+                      fundraisePeople(campaign.id),
+                      getSettings('fundraise'),
+                  ]);
+                  return { perms, rows, people: perms.expense ? people : [], categories: settings.expense_categories ?? [] };
+              })()
+            : null;
+    const scheduleOptions = meetings.map((e) => ({ value: e.id, label: `${date(e.start_date, locale)} - ${t('mandal.word')}` }));
+    const scheduleLabel = new Map(scheduleOptions.map((s) => [s.value, s.label]));
     // The schedule money is entered for: the most recent one not archived (the "last made Mandal").
     const current = rows.find((r) => !r.e.archived) ?? null;
     // Each member's unpaid schedules (held so far), for "pending since …" under their name.
@@ -153,29 +172,88 @@ async function buildMandal({ campaign, user, today, t, locale, section }) {
             <div className="space-y-4">
                 {latestBanner}
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-                    {/* Money comes in against a schedule: pick its date, then "Attendance & money". */}
-                    <Card
-                        title={t('mandal.schedules')}
-                        bodyClass=""
-                        actions={
-                            // Every schedule in one printout / PDF (one date: the icon on its row).
-                            meetings.length > 0 && (
-                                <Link
-                                    href={`/fundraise/${campaign.id}/print`}
-                                    target="_blank"
-                                    className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
-                                >
-                                    <FileDown className="size-3.5" /> {t('mandal.printAll')}
-                                </Link>
-                            )
-                        }
-                    >
-                        {meetings.length === 0 ? (
-                            <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedulesSavings')}</p>
-                        ) : (
-                            <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, true))}</ul>
-                        )}
-                    </Card>
+                    <div className="min-w-0 space-y-4">
+                        {/* Money comes in against a schedule: pick its date, then "Attendance & money". */}
+                        <Card
+                            title={t('mandal.schedules')}
+                            bodyClass=""
+                            actions={
+                                // Every schedule in one printout / PDF (one date: the icon on its row).
+                                meetings.length > 0 && (
+                                    <Link
+                                        href={`/fundraise/${campaign.id}/print`}
+                                        target="_blank"
+                                        className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
+                                    >
+                                        <FileDown className="size-3.5" /> {t('mandal.printAll')}
+                                    </Link>
+                                )
+                            }
+                        >
+                            {meetings.length === 0 ? (
+                                <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedulesSavings')}</p>
+                            ) : (
+                                <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, true))}</ul>
+                            )}
+                        </Card>
+                        {/* Expenses: income comes in per schedule, spending comes out of the common savings —
+                        optionally naming the schedule it was for. */}
+                        <Card
+                            title={t('fundraise.expenses')}
+                            bodyClass=""
+                            actions={
+                                spend.perms.expense && (
+                                    <ExpenseDialog
+                                        campaignId={campaign.id}
+                                        today={today}
+                                        categories={spend.categories}
+                                        people={spend.people}
+                                        meId={user.id}
+                                        schedules={scheduleOptions}
+                                    />
+                                )
+                            }
+                        >
+                            {spend.rows.length === 0 ? (
+                                <p className="px-4 py-5 text-sm text-ink-gray">{t('fundraise.noExpenses')}</p>
+                            ) : (
+                                <ul className="divide-y divide-surface-border">
+                                    {spend.rows.map((x) => (
+                                        <li key={x.id} className="flex items-start gap-3 px-4 py-2.5">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium text-primary break-words">{[x.title, x.place].filter(Boolean).join(' — ')}</p>
+                                                <p className="text-xs text-ink-gray tabular-nums">
+                                                    {[
+                                                        date(x.spent_on, locale),
+                                                        scheduleLabel.get(x.event_id) ?? t('mandal.commonSavings'),
+                                                        x.paid_by_name
+                                                            ? t('fundraise.paidByName', {
+                                                                  name: localized({ n: x.paid_by_name, n_local: x.paid_by_name_local }, 'n', locale),
+                                                              })
+                                                            : null,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
+                                                </p>
+                                            </div>
+                                            <span className="shrink-0 pt-0.5 font-semibold text-expense tabular-nums">{money(x.amount)}</span>
+                                            <RowActions
+                                                kind="expense"
+                                                campaignId={campaign.id}
+                                                row={x}
+                                                canManage={spend.perms.expense}
+                                                today={today}
+                                                categories={spend.categories}
+                                                people={spend.people}
+                                                meId={user.id}
+                                                schedules={scheduleOptions}
+                                            />
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </Card>
+                    </div>
                     {/* Who holds the money — the same Holdings card as any fundraise (Income / Expense
                         switch, per person, the treasurer tagged): sheet payments carry their schedule's
                         money keeper (kept_by), the rest as recorded. */}

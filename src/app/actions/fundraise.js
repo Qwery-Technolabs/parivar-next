@@ -188,7 +188,8 @@ async function writeMandalSchedules(q, campaignId, groupId, rows, userId) {
                 place: r.place,
                 id: r.id,
             });
-            await setMeta('events_list', r.id, { collect: '1', installment: String(r.amount), held_by: holder, archived: r.archived ? '1' : '' }, q);
+            // Collect yes / no is the schedule's own (About → Schedules → edit): left as it is here.
+            await setMeta('events_list', r.id, { installment: String(r.amount), held_by: holder, archived: r.archived ? '1' : '' }, q);
         } else {
             const ins = await q(
                 `INSERT INTO events_list (title, title_local, event_type, start_date, location, group_id, campaign_id, created_by)
@@ -768,6 +769,14 @@ export async function saveExpense(prev, fd) {
     const paidBy = id(fd, 'paid_by') || user.id;
     if (!(await queryOne('SELECT id FROM users_list WHERE id = :paidBy', { paidBy }))) return { fieldErrors: { paid_by: 'fundraise.errors.member' } };
     const meta = { notes: str(fd, 'notes', 5000), bill_ref: str(fd, 'bill_ref', 100), paid_by: String(paidBy), repaid: bool(fd, 'repaid') ? '1' : '' };
+    // A Mandal's expense comes out of the common savings; it may name the schedule (date) it was for.
+    if (campaign.kind === 'mandal' && fd.has('event_id')) {
+        const eventId = id(fd, 'event_id');
+        const ok = eventId
+            ? await queryOne("SELECT id FROM events_list WHERE id = :eventId AND campaign_id = :c AND event_type = 'meeting'", { eventId, c: campaignId })
+            : null;
+        meta.event_id = ok ? String(eventId) : '';
+    }
 
     const result = await withTransaction(async (q) => {
         if (expenseId) {

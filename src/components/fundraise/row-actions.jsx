@@ -17,7 +17,19 @@ import { describeHistory, historyWhen } from './history-format';
  * Kebab on a contribution / expense row: Edit and Delete for managers, History for everyone.
  * Destructive item last, after a separator (design-system.md §6).
  */
-export default function RowActions({ kind, campaignId, row, canManage, today, allowAnonymous, categories, people = [], meId = null, handDefault = false }) {
+export default function RowActions({
+    kind,
+    campaignId,
+    row,
+    canManage,
+    today,
+    allowAnonymous,
+    categories,
+    people = [],
+    meId = null,
+    handDefault = false,
+    schedules = null,
+}) {
     const { t } = useT();
     const [pending, startTransition] = useTransition();
     const [editKey, setEditKey] = useState(0);
@@ -102,6 +114,7 @@ export default function RowActions({ kind, campaignId, row, canManage, today, al
                     categories={categories}
                     people={people}
                     meId={meId}
+                    schedules={kind === 'expense' ? schedules : undefined}
                     trigger={({ open }) => <OpenOnMount open={open} />}
                 />
             )}

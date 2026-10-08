@@ -20,7 +20,9 @@ export const AUDIENCE_KINDS = ['surname', 'caste', 'subcaste', 'city', 'village'
  * city = where the member lives now (users_list.city); village = their native village.
  * caste/subcaste values are admin_castes ids stored as text; the int side is cast to match.
  */
-const FOR_YOU = `EXISTS (
+// "For you": an audience rule matches the viewer — or it is a Mandal the viewer is a member of
+// (Mandals are assigned to people, so they always lead the list for their members).
+const FOR_YOU = `(EXISTS (
     SELECT 1 FROM fundraise_audience a
       JOIN users_list me ON me.id = :viewerId
      WHERE a.campaign_id = c.id AND (
@@ -29,7 +31,8 @@ const FOR_YOU = `EXISTS (
         OR (a.kind = 'subcaste' AND a.value = CAST(me.subcaste_id AS CHAR))
         OR (a.kind = 'city' AND a.value = me.city)
         OR (a.kind = 'village' AND a.value = me.village)
-     ))`;
+     ))
+  OR (c.kind = 'mandal' AND EXISTS (SELECT 1 FROM fundraise_subscribers fs WHERE fs.campaign_id = c.id AND fs.user_id = :viewerId)))`;
 
 /**
  * Audience = WHO SEES IT. No rows → everyone. With rows → only matching members, unless the
@@ -223,7 +226,7 @@ export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
     const meta = await getMetaMany(
         'fundraise_expenses',
         rows.map((r) => r.id),
-        ['notes', 'bill_ref', 'paid_by', 'repaid'],
+        ['notes', 'bill_ref', 'paid_by', 'repaid', 'event_id'],
     );
     const payerIds = [...new Set(rows.map((r) => Number(meta[r.id]?.paid_by) || 0).filter(Boolean))];
     const payers = payerIds.length
@@ -247,6 +250,8 @@ export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
             paid_by_name: payer?.full_name ?? null,
             paid_by_name_local: payer?.full_name_local ?? null,
             repaid: meta[r.id]?.repaid === '1',
+            // A Mandal expense may name the schedule (events_list id) it was for.
+            event_id: Number(meta[r.id]?.event_id) || null,
         };
     });
 }

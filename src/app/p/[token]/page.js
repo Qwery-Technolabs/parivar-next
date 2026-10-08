@@ -4,11 +4,14 @@ import { notFound } from 'next/navigation';
 import FundraiseSummary from '@/components/fundraise/summary';
 import GroupAvatar from '@/components/groups/group-avatar';
 import Statement from '@/components/fundraise/statement';
+import MandalLedger from '@/components/mandal/mandal-ledger';
 import Badge from '@/components/ui/badge';
 import { date } from '@/lib/format';
 import { contributorTotals, getCampaignByToken, listContributions, listExpenses } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
+import { mandalLedger } from '@/lib/mandal';
+import { mandalFilters } from '@/lib/mandal-filters';
 
 // A leaked link must not be indexed; the committee can kill it with "New link".
 export async function generateMetadata({ params }) {
@@ -18,17 +21,22 @@ export async function generateMetadata({ params }) {
     return { title: c ? localized(c, 'title', locale) : undefined, robots: { index: false, follow: false } };
 }
 
-export default async function PublicFundraisePage({ params }) {
+export default async function PublicFundraisePage({ params, searchParams }) {
     const { token } = await params;
     const campaign = await getCampaignByToken(token);
     if (!campaign) notFound();
 
     const { t, locale } = await getT();
-    const [contributors, contributions, expenses] = await Promise.all([
-        contributorTotals(campaign.id, { publicView: true }),
-        listContributions(campaign.id),
-        listExpenses(campaign.id),
+    // A Mandal: its income and expenses by date — all, one schedule, or a date range.
+    const isMandal = campaign.kind === 'mandal';
+    const filters = isMandal ? mandalFilters(await searchParams) : null;
+    const [contributors, contributions, expenses, ledger] = await Promise.all([
+        isMandal ? [] : contributorTotals(campaign.id, { publicView: true }),
+        isMandal ? [] : listContributions(campaign.id),
+        isMandal ? [] : listExpenses(campaign.id),
+        isMandal ? mandalLedger(campaign.id, filters) : null,
     ]);
+    const query = filters?.query ? `?${filters.query}` : '';
     const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale) : '';
     const dates = campaign.start_date || campaign.end_date ? `${date(campaign.start_date, locale)} – ${date(campaign.end_date, locale)}` : '';
 
@@ -58,7 +66,7 @@ export default async function PublicFundraisePage({ params }) {
                     <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
                     {/* Icon only; the label stays as tooltip and screen-reader name. */}
                     <Link
-                        href={`/p/${token}/print`}
+                        href={`/p/${token}/print${query}`}
                         aria-label={t('common.downloadPdf')}
                         title={t('common.downloadPdf')}
                         className="ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 sm:ml-0"
@@ -71,15 +79,19 @@ export default async function PublicFundraisePage({ params }) {
             <FundraiseSummary campaign={campaign} t={t} />
 
             <div className="rounded-lg border border-surface-border bg-white p-4 shadow-sm sm:p-6">
-                <Statement
-                    campaign={campaign}
-                    contributors={contributors}
-                    contributions={contributions}
-                    expenses={expenses}
-                    t={t}
-                    locale={locale}
-                    publicView
-                />
+                {isMandal ? (
+                    <MandalLedger ledger={ledger} filters={filters} t={t} locale={locale} basePath={`/p/${token}`} printHref={`/p/${token}/print${query}`} />
+                ) : (
+                    <Statement
+                        campaign={campaign}
+                        contributors={contributors}
+                        contributions={contributions}
+                        expenses={expenses}
+                        t={t}
+                        locale={locale}
+                        publicView
+                    />
+                )}
             </div>
             <p className="text-center text-xs text-ink-gray">{t('fundraise.poweredBy')}</p>
         </main>

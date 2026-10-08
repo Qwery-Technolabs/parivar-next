@@ -232,6 +232,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   DetailsTab's two columns (no separate block → no gaps). **Attendance & money** has a member search (rows hidden, still posted).
   **PDF**: /fundraise/[id]/print for a Mandal = MandalPrint — all schedules or `?schedule=<id>` (chips; Savings: "All schedules"
   button + icon per schedule). Data stays in fundraise_campaigns (kind) + events_list (schedules = meetings linked by campaign_id).
+  **Schedules own collect yes/no + amount per member** (ScheduleDialog, About); the attendance sheet only shows it (read-only,
+  list in a max-h-[50vh] scrolling box) and never writes it; the Mandal edit form keeps each schedule's collect. **Expenses**:
+  Savings → Expenses card (ExpenseDialog / RowActions with `schedules` → optional "For schedule", meta event_id on
+  fundraise_expensesmeta; empty = common savings). **For you** on /fundraise includes Mandals the viewer is a member of.
+  **Public link** of a Mandal: MandalLedger — filter (one schedule | from–to, lib/mandal-filters.js, GET) + income and
+  expenses grouped by date, day totals, balance; /p/[token]/print = MandalLedgerPrint with the same filter.
+  Header Edit / PDF buttons always point at /fundraise/[id]/edit|print (there is no /mandal/[id]/edit|print).
   A Mandal is its group's own: the form shows its home group only (no other groups, no "Add to group") and no audience (server forces both);
   the public link works as for any fundraise;
   seen only by its group's members, its members and team (AUDIENCE_OK) — in its group's list and in the /fundraise

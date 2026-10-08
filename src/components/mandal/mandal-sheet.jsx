@@ -2,7 +2,7 @@
 import { ClipboardCheck, Save, Search } from 'lucide-react';
 import { useState } from 'react';
 import { saveMandalMeeting } from '@/app/actions/mandal';
-import { Field, selectInput, textInput } from '@/components/ui/field';
+import { selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 import { money } from '@/lib/format';
@@ -20,8 +20,9 @@ const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
  */
 export default function MandalSheet({ campaignId, meeting, members, marks, pending, pendingList = {} }) {
     const { t, locale } = useT();
-    const [collect, setCollect] = useState(meeting.collect);
-    const [amount, setAmount] = useState(String(meeting.installment || ''));
+    // Collect yes / no and the amount per member come from the schedule (About → Schedules → edit).
+    const collect = Boolean(meeting.collect);
+    const amount = String(meeting.installment || '');
     const [present, setPresent] = useState(() => Object.fromEntries(members.map((m) => [m.id, marks[m.id]?.present ?? false])));
     const name = (m) => (locale !== 'en' && m.full_name_local) || m.full_name;
     const each = Number(amount) || 0;
@@ -54,46 +55,15 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
         >
             {({ fieldError }) => (
                 <>
-                    <input type="hidden" name="collect" value={collect ? '1' : '0'} />
-                    <div className="flex flex-wrap items-end gap-3">
-                        <div>
-                            <p className="mb-1 text-xs font-medium text-ink">{t('mandal.collect')}</p>
-                            <div role="radiogroup" className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
-                                {[true, false].map((v) => (
-                                    <button
-                                        key={String(v)}
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={collect === v}
-                                        onClick={() => setCollect(v)}
-                                        className={`h-8 rounded px-3 text-xs font-medium ${collect === v ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-primary'}`}
-                                    >
-                                        {t(v ? 'common.yes' : 'common.no')}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        {collect && (
-                            <Field label={t('mandal.amountThisTime')} error={fieldError('installment')}>
-                                <input
-                                    name="installment"
-                                    type="number"
-                                    inputMode="decimal"
-                                    min="0"
-                                    step="0.01"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    className={`${textInput(!!fieldError('installment'))} w-32 tabular-nums`}
-                                />
-                            </Field>
-                        )}
-                    </div>
+                    <p className="rounded-md bg-accent px-3 py-2 text-sm text-primary tabular-nums">
+                        {collect ? t('mandal.collectingEach', { amount: money(each) }) : t('mandal.notCollecting')}
+                    </p>
                     {members.length === 0 ? (
                         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{t('mandal.noMembers')}</p>
                     ) : (
                         <>
                             {/* Search first, then came / paid on the row found — no scrolling through everyone. */}
-                            <div className="sticky -top-4 z-10 -mx-1 bg-white px-1 pb-2 pt-1">
+                            <div>
                                 <div className="relative">
                                     <Search aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-ink-gray" />
                                     <input
@@ -110,7 +80,8 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                                     <p className="mt-1 text-xs text-ink-gray tabular-nums">{t('mandal.searchShown', { shown, total: members.length })}</p>
                                 )}
                             </div>
-                            <ul className="divide-y divide-surface-border rounded-md border border-surface-border">
+                            {/* A box of its own that scrolls, not a dialog as long as the member list. */}
+                            <ul className="max-h-[50vh] divide-y divide-surface-border overflow-y-auto rounded-md border border-surface-border">
                                 {members.map((m) => {
                                     const owed = pending[m.id] ?? 0;
                                     const expected = (collect ? each : 0) + owed;

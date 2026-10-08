@@ -292,7 +292,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                             {addableGroups.length > 0 && <AddToGroups campaignId={campaign.id} groups={addableGroups} />}
                             {/* Print / PDF: the statement, for anyone who can see the fundraise. */}
                             <Link
-                                href={`${base}/print`}
+                                href={`/fundraise/${campaign.id}/print`}
                                 aria-label={t('common.downloadPdf')}
                                 title={t('common.downloadPdf')}
                                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white hover:bg-white/20"
@@ -301,7 +301,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                             </Link>
                             {perms.manage && (
                                 <Link
-                                    href={`${base}/edit`}
+                                    href={`/fundraise/${campaign.id}/edit`}
                                     // Same as the group page's Edit on navy: icon only on phones.
                                     aria-label={t('common.edit')}
                                     title={t('common.edit')}
