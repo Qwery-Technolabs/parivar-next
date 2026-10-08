@@ -147,17 +147,6 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
 
     if (section === 'money') {
         const at = (id) => `${base}?tab=money&schedule=${id}`;
-        const pdf = (id) => (
-            <Link
-                href={`/fundraise/${campaign.id}/print${id ? `?schedule=${id}` : ''}`}
-                target="_blank"
-                title={id ? t('mandal.printSchedule') : t('mandal.printAll')}
-                aria-label={id ? t('mandal.printSchedule') : t('mandal.printAll')}
-                className="btn-secondary inline-flex size-8 shrink-0 items-center justify-center rounded-md"
-            >
-                <FileDown className="size-3.5" />
-            </Link>
-        );
         // The overview's table: one row per schedule — open it to see / add its money.
         const scheduleTable = (
             <TableShell>
@@ -259,11 +248,12 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                             .join(' · ')}
                     </p>
                 </div>
-                {/* Sheet + PDF stay on the right, on one line, on phones too. */}
-                <span className="flex shrink-0 items-center gap-1.5">
-                    {sheetFor(chosen)}
-                    {pdf(chosen.e.id)}
-                </span>
+                {/* ⋮ like the schedules table: Attendance & money, PDF, Edit / Archive (already on it: no "Open"). */}
+                <ScheduleRowMenu
+                    pdfHref={`/fundraise/${campaign.id}/print?schedule=${chosen.e.id}`}
+                    sheet={sheetProps(chosen)}
+                    manage={canRun ? { campaignId: campaign.id, schedule: chosen.e, members: plain, defaultInstallment: latest || '', today } : null}
+                />
             </div>
         );
         // The short "+ Contribution": this Mandal's members, its open (not archived) schedules — newest first.

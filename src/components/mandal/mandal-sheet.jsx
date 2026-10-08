@@ -1,5 +1,5 @@
 'use client';
-import { Check, ClipboardCheck, Search } from 'lucide-react';
+import { ClipboardCheck, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { textInput } from '@/components/ui/field';
@@ -90,7 +90,6 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                     <div className="space-y-3">
                         <p className="rounded-md bg-accent px-3 py-2 text-sm text-primary tabular-nums">
                             {collect ? t('mandal.collectingEach', { amount: money(each) }) : t('mandal.notCollecting')}
-                            <span className="mt-0.5 block text-xs text-ink-gray">{t('mandal.sheetViewNote')}</span>
                         </p>
                         {members.length === 0 ? (
                             <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{t('mandal.noMembers')}</p>
@@ -134,15 +133,6 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                                 </ul>
                             </>
                         )}
-                        <div className="flex justify-end border-t border-surface-border pt-3">
-                            <button
-                                type="button"
-                                onClick={close}
-                                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                            >
-                                <Check className="size-4" /> {t('common.close')}
-                            </button>
-                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

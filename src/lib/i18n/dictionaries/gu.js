@@ -366,7 +366,6 @@ const gu = {
         collectingEach: 'આ વખતે સભ્ય દીઠ {amount} ઉઘરાવવાના (તારીખમાં નક્કી)',
         sheet: 'હાજરી અને રકમ',
         sheetTitle: 'હાજરી અને રકમ',
-        sheetViewNote: 'ફક્ત જોવા માટે — રકમ અને હાજરી “+ ફાળો” થી ઉમેરો.',
         printAll: 'બધી તારીખો (PDF)',
         printSchedule: 'આ તારીખ PDF માં',
         searchMember: 'સભ્ય શોધો…',

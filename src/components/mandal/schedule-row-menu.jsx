@@ -16,7 +16,7 @@ import ScheduleDialog from './schedule-dialog';
  * unmounts when it closes, which would take a dialog with it — and open from the items.
  * `sheet`: the MandalSheet props; `manage`: { campaignId, schedule, members, defaultInstallment, today } | null.
  */
-export default function ScheduleRowMenu({ openHref, pdfHref, sheet = null, manage = null }) {
+export default function ScheduleRowMenu({ openHref = null, pdfHref, sheet = null, manage = null }) {
     const { t } = useT();
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editKey, setEditKey] = useState(0);
@@ -49,9 +49,12 @@ export default function ScheduleRowMenu({ openHref, pdfHref, sheet = null, manag
                                 {t('mandal.sheet')}
                             </MenuItem>
                         )}
-                        <MenuItem icon={ExternalLink} href={openHref}>
-                            {t('mandal.openSchedule')}
-                        </MenuItem>
+                        {/* Not on the schedule's own strip (already there). */}
+                        {openHref && (
+                            <MenuItem icon={ExternalLink} href={openHref}>
+                                {t('mandal.openSchedule')}
+                            </MenuItem>
+                        )}
                         <MenuItem
                             icon={FileDown}
                             onClick={() => {

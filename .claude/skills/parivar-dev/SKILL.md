@@ -243,7 +243,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   place (listCampaigns `latest_place`).
   **Schedule pickers** (contribution / expense / edit): ScheduleSelect — searchable, two lines: date + place · per person · keeper.
   **Schedules table rows**: one ⋮ (ScheduleRowMenu: Attendance & money — sheet opened from the item, mounted outside the menu —,
-  Open this schedule, PDF; + for those who run it: Edit, Archive / Restore — delete stays on About). **Money kept by**
+  Open this schedule, PDF; + for those who run it: Edit, Archive / Restore — delete stays on About; the same ⋮ sits on the
+  schedule strip, without "Open"). **Money kept by**
   (ScheduleDialog): searchable en/gu Combobox; a new schedule defaults to the last
   schedule's keeper, else the team treasurer.
   **Schedules own collect yes/no + amount per member** (ScheduleDialog, About); the attendance sheet only shows it (read-only,

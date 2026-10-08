@@ -362,3 +362,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Members list: one name in the viewer's language
 - [x] Savings schedule ⋮: Edit and Archive / Restore
 - [x] Mandal About Members: per-row ⋮ (View profile, Remove) instead of the bare remove icon
+- [x] Attendance & money: no view-only note, no bottom Close (× closes)
+- [x] Schedule strip: ⋮ instead of Attendance & money + PDF buttons
