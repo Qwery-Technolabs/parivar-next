@@ -41,6 +41,7 @@ export default function MoneyTab({
     scheduleTable = null,
     banner = null,
     mandalAdd = null,
+    absentTable = null,
 }) {
     // A treasurer or admin recording money already holds it for the fundraise: "handed to treasurer" starts on.
     const handDefault = Boolean(perms.manage || perms.teamRoles?.includes('treasurer'));
@@ -57,6 +58,7 @@ export default function MoneyTab({
     };
     const labels = {
         schedules: t('mandal.schedules'),
+        absent: t('mandal.absent'),
         contributions: t('fundraise.contributions'),
         expenses: t('fundraise.expenses'),
         contributors: t('fundraise.byContributor'),
@@ -122,6 +124,8 @@ export default function MoneyTab({
 
             {/* A Mandal's overview: its schedules, each opening its own money view. */}
             {view === 'schedules' && scheduleTable}
+            {/* One Mandal schedule: who did not come (nothing recorded counts as absent). */}
+            {view === 'absent' && absentTable}
 
             {view === 'contributions' && (
                 <TableShell>
@@ -254,7 +258,7 @@ export default function MoneyTab({
                 </TableShell>
             )}
 
-            {view !== 'contributors' && view !== 'schedules' && (
+            {view !== 'contributors' && view !== 'schedules' && view !== 'absent' && (
                 <Pagination pathname={base} searchParams={sp} page={page} perPage={perPage} total={total} t={t} />
             )}
         </div>

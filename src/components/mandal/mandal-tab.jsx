@@ -282,7 +282,65 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                 }),
             ),
         };
-        return { scheduleTable, banner, chosen: chosen?.e ?? null, scheduleOptions, money: moneyBy, mandalAdd, canRun };
+        // One schedule's "Absent" view: everyone it was for who is not marked as came — nothing recorded
+        // counts as absent — with what they owe from before and their run of absences (incl. this one).
+        const absent = chosen ? chosen.forThem.filter((m) => !chosen.sheet[m.id]?.present) : [];
+        const owedBefore = chosen ? pendingBefore(chosen.forThem, meetings, marks, chosen.e.id) : {};
+        const absentTable = chosen && (
+            <TableShell>
+                <THead>
+                    <Th>{t('mandal.member')}</Th>
+                    <Th numeric className="hidden sm:table-cell">
+                        {t('mandal.absentRunHead')}
+                    </Th>
+                    <Th numeric>{t('mandal.owedBefore')}</Th>
+                    <Th numeric className="hidden sm:table-cell">
+                        {t('mandal.paid')}
+                    </Th>
+                </THead>
+                <tbody>
+                    {absent.length === 0 ? (
+                        <EmptyRow colSpan={4}>{t('mandal.noneAbsent')}</EmptyRow>
+                    ) : (
+                        absent.map((m) => {
+                            const info = mandalAdd.info[chosen.e.id]?.[m.id];
+                            const paidNow = Number(chosen.sheet[m.id]?.paid || 0);
+                            const owed = owedBefore[m.id] ?? 0;
+                            return (
+                                <Tr key={m.id}>
+                                    <Td>
+                                        <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
+                                            {name(m)}
+                                        </Link>
+                                        {!chosen.sheet[m.id] && <span className="block text-xs text-ink-gray">{t('mandal.notRecorded')}</span>}
+                                    </Td>
+                                    <Td numeric className="hidden text-amber-800 sm:table-cell">
+                                        {(info?.missed ?? 0) + 1}
+                                    </Td>
+                                    <Td numeric className={owed > 0 ? 'font-medium text-destructive' : 'text-ink-gray'}>
+                                        {owed > 0 ? money(owed) : '–'}
+                                    </Td>
+                                    <Td numeric className={`hidden sm:table-cell ${paidNow > 0 ? 'font-medium text-income' : 'text-ink-gray'}`}>
+                                        {paidNow > 0 ? money(paidNow) : '–'}
+                                    </Td>
+                                </Tr>
+                            );
+                        })
+                    )}
+                </tbody>
+            </TableShell>
+        );
+        return {
+            scheduleTable,
+            banner,
+            absentTable,
+            absentCount: absent.length,
+            chosen: chosen?.e ?? null,
+            scheduleOptions,
+            money: moneyBy,
+            mandalAdd,
+            canRun,
+        };
     }
 
     const main = (

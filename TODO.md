@@ -351,3 +351,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal + Contribution: member record (absent N in a row since …, owed), amount = per member + owed, rows member / amount+mode / schedule+came; unrecorded = absent
 - [x] Attendance & money autosaves per row (no Save), Done refreshes once; + Contribution: one payment per member per schedule, paid members hidden
 - [x] Mandal + Contribution: dues / absences shown in the member list itself (no box after picking)
+- [x] Mandal schedule view: Absent tab (not marked came, nothing recorded = absent) with owed / run / paid

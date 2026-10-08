@@ -148,7 +148,8 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         const isMandal = campaign.kind === 'mandal';
         const parts = isMandal ? await mandalMoneyParts({ campaign, user, today, t, locale, scheduleId: Number(sp1(sp.schedule)) || null, base }) : null;
         const sid = parts?.chosen?.id ?? null;
-        const views = isMandal && !sid ? ['schedules', ...MONEY_VIEWS] : MONEY_VIEWS;
+        // One schedule adds 'absent': who did not come (nothing recorded counts as absent).
+        const views = isMandal ? (sid ? [...MONEY_VIEWS, 'absent'] : ['schedules', ...MONEY_VIEWS]) : MONEY_VIEWS;
         const mview = views.includes(rawView) ? rawView : views[0];
         const page = normalizePage(sp1(sp.page));
         const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
@@ -190,7 +191,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 views={views}
                 counts={
                     sid
-                        ? { contributions: inc.length, expenses: out.length }
+                        ? { contributions: inc.length, expenses: out.length, absent: parts.absentCount }
                         : isMandal
                           ? { schedules: parts.scheduleOptions.length, contributions: campaign.contribution_count, expenses: campaign.expense_count }
                           : null
@@ -198,6 +199,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 scheduling={isMandal ? { schedules: parts.scheduleOptions, defaultSchedule: sid ?? parts.scheduleOptions[0]?.value ?? null } : null}
                 scheduleTable={parts?.scheduleTable ?? null}
                 banner={parts?.banner ?? null}
+                absentTable={parts?.absentTable ?? null}
                 mandalAdd={mandalAdd}
                 view={mview}
                 rows={shown}

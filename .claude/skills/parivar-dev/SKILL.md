@@ -251,7 +251,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Schedules (default) · Contributions · Expenses · By contributor; the Schedules table (mandalMoneyParts: date opens
   ?tab=money&schedule=<id>; place, per person, came, received, spent, Attendance & money, PDF). One schedule: exactly the
   fundraise views limited to it (listContributions / listExpenses / contributorTotals take eventId; boxes = its totals) with
-  the strip on top (back, details, sheet, PDF). fundraise_contributions.event_id = the schedule (sheet payments, and the
+  the strip on top (back, details, sheet, PDF) + an **Absent** view (everyone it was for not marked came — nothing recorded =
+  absent; owed before, run of absences, anything paid anyway). fundraise_contributions.event_id = the schedule (sheet payments, and the
   short Mandal "+ Contribution" — MandalContributionDialog → saveMandalContribution: member (this Mandal's members only),
   schedule (default the open one, else the latest open), came, amount (starts at its per-member amount), mode; written like one
   sheet row (mark + contribution, kept_by = schedule keeper) — no Kept by / handed over / donor name / anonymous / reference;
