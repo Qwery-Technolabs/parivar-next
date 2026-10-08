@@ -149,15 +149,11 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
             <TableShell>
                 <THead>
                     <Th>{t('common.date')}</Th>
-                    <Th className="hidden md:table-cell">{t('fundraise.place')}</Th>
-                    <Th className="hidden sm:table-cell">{t('mandal.perMeeting')}</Th>
-                    <Th numeric className="hidden sm:table-cell">
-                        {t('mandal.present')}
-                    </Th>
+                    <Th>{t('fundraise.place')}</Th>
+                    <Th className="whitespace-nowrap">{t('mandal.perMeeting')}</Th>
+                    <Th numeric>{t('mandal.present')}</Th>
                     <Th numeric>{t('fundraise.collected')}</Th>
-                    <Th numeric className="hidden sm:table-cell">
-                        {t('fundraise.spent')}
-                    </Th>
+                    <Th numeric>{t('fundraise.spent')}</Th>
                     <Th className="w-12" />
                 </THead>
                 <tbody>
@@ -179,17 +175,17 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                                         )}
                                         {r.e.holder && <span className="block text-xs text-ink-gray">{t('mandal.moneyWith', { name: name(r.e.holder) })}</span>}
                                     </Td>
-                                    <Td className="hidden text-ink-gray md:table-cell">{r.e.location || null}</Td>
-                                    <Td className="hidden whitespace-nowrap tabular-nums sm:table-cell">
+                                    <Td className="min-w-40 text-ink-gray">{r.e.location || null}</Td>
+                                    <Td className="whitespace-nowrap tabular-nums">
                                         {r.e.collect ? money(r.e.installment) : <span className="text-ink-gray">{t('mandal.notCollecting')}</span>}
                                     </Td>
-                                    <Td numeric className="hidden text-ink-gray sm:table-cell">
+                                    <Td numeric className="text-ink-gray">
                                         {Object.keys(r.sheet).length ? `${r.came}/${r.forThem.length}` : '–'}
                                     </Td>
                                     <Td numeric className="font-medium text-income">
                                         {money(m.received)}
                                     </Td>
-                                    <Td numeric className="hidden font-medium text-expense sm:table-cell">
+                                    <Td numeric className="font-medium text-expense">
                                         {money(m.spent)}
                                     </Td>
                                     {/* ⋮: Attendance & money, open this schedule, its PDF. */}

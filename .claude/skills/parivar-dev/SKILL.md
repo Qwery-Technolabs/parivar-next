@@ -272,7 +272,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   lib/mandal.js + actions/mandal.js + components/mandal/*. Tabs: Discussion, Meetings, **Savings** (the Mandal's Income/Expense:
   the SAME MoneyTab as a fundraise (summary, view switch, + Contribution / + Expense, Copy / PDF). Overview: views
   Schedules (default) · Contributions · Expenses · By contributor; the Schedules table (mandalMoneyParts: date opens
-  ?tab=money&schedule=<id>; place, per person, came, received, spent, Attendance & money, PDF). One schedule: exactly the
+  ?tab=money&schedule=<id>; place, per person, came, received, spent — ALL columns on phones too, the table scrolls sideways). One schedule: exactly the
   fundraise views limited to it (listContributions / listExpenses / contributorTotals take eventId; boxes = its totals) with
   the strip on top (back, details, sheet, PDF) + an **Absent** view (everyone it was for not marked came — nothing recorded =
   absent; owed before, run of absences, anything paid anyway). fundraise_contributions.event_id = the schedule (sheet payments, and the

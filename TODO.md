@@ -371,3 +371,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Attendance & money: All / Present / Absent filter beside the search
 - [x] Schedule strip: per-person amount beside the date; details line wraps (keeper never cut off)
 - [x] Schedule pickers: place · per person only (no Money with …)
+- [x] Savings schedules table: every column on phones (scrolls sideways)
