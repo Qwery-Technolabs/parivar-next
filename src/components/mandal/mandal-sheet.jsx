@@ -60,12 +60,19 @@ export default function MandalSheet({
     // Find a member by name (English or local); non-matching rows are only hidden (still saved).
     const [q, setQ] = useState('');
     const needle = q.trim().toLowerCase();
-    const matches = (m) => !needle || [m.full_name, m.full_name_local].some((n) => (n ?? '').toLowerCase().includes(needle));
-    const shown = members.filter(matches).length;
     // Edit mode: a draft of every row, from the saved marks.
     const [draft, setDraft] = useState(null); // null = viewing
     const [saving, startSaving] = useTransition();
     const editing = draft !== null;
+    // Present / absent filter (beside the search): the saved marks, or the draft while editing.
+    const [who, setWho] = useState('all'); // all | present | absent
+    const came = (m) => (editing ? Boolean(draft[m.id]?.present) : Boolean(marks[m.id]?.present));
+    const presentCount = members.filter(came).length;
+    const matches = (m) =>
+        (!needle || [m.full_name, m.full_name_local].some((n) => (n ?? '').toLowerCase().includes(needle))) &&
+        (who === 'all' || (who === 'present') === came(m));
+    const shown = members.filter(matches).length;
+    const filtered = Boolean(needle) || who !== 'all';
     const startEdit = () =>
         setDraft(
             Object.fromEntries(
@@ -82,6 +89,7 @@ export default function MandalSheet({
     const close = () => {
         setOpen(false);
         setQ('');
+        setWho('all');
         setDraft(null);
     };
     const save = () =>
@@ -122,7 +130,17 @@ export default function MandalSheet({
             )}
             <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
                 <DialogContent className="max-h-[92vh] overflow-y-auto bg-white sm:max-w-2xl">
-                    <DialogHeader>
+                    {/* The one Edit for attendance & money (whole list, for backfilling): top right, left of ×. */}
+                    {canEdit && !editing && members.length > 0 && (
+                        <button
+                            type="button"
+                            onClick={startEdit}
+                            className="btn-secondary absolute right-11 top-2 inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
+                        >
+                            <Pencil className="size-3.5" /> {t('common.edit')}
+                        </button>
+                    )}
+                    <DialogHeader className={canEdit && !editing ? 'pr-24' : ''}>
                         <DialogTitle className="text-base font-semibold text-primary">{t('mandal.sheetTitle')}</DialogTitle>
                         <DialogDescription className="text-xs text-ink-gray">
                             {[meeting.title_local && locale !== 'en' ? meeting.title_local : meeting.title, meeting.location].filter(Boolean).join(' · ')}
@@ -152,22 +170,23 @@ export default function MandalSheet({
                                                 className={`${textInput()} w-full pl-8`}
                                             />
                                         </div>
-                                        {needle && (
+                                        {filtered && (
                                             <p className="mt-1 text-xs text-ink-gray tabular-nums">
                                                 {t('mandal.searchShown', { shown, total: members.length })}
                                             </p>
                                         )}
                                     </div>
-                                    {/* The one Edit for attendance & money: the whole list, for backfilling. */}
-                                    {canEdit && !editing && (
-                                        <button
-                                            type="button"
-                                            onClick={startEdit}
-                                            className="btn-secondary inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-sm font-medium"
-                                        >
-                                            <Pencil className="size-4" /> {t('common.edit')}
-                                        </button>
-                                    )}
+                                    {/* Present / absent only (with counts) — combines with the search. */}
+                                    <select
+                                        value={who}
+                                        onChange={(e) => setWho(e.target.value)}
+                                        aria-label={t('mandal.attendanceFilter')}
+                                        className={`${selectInput()} w-36 shrink-0`}
+                                    >
+                                        <option value="all">{t('mandal.filterAll', { count: members.length })}</option>
+                                        <option value="present">{t('mandal.filterPresent', { count: presentCount })}</option>
+                                        <option value="absent">{t('mandal.filterAbsent', { count: members.length - presentCount })}</option>
+                                    </select>
                                 </div>
                                 {editing && <p className="text-xs text-amber-800">{t('mandal.sheetEditing')}</p>}
                                 {/* A box of its own that scrolls, not a dialog as long as the member list. */}
@@ -239,7 +258,7 @@ export default function MandalSheet({
                                             </li>
                                         );
                                     })}
-                                    {needle && shown === 0 && <li className="px-3 py-4 text-center text-sm text-ink-gray">{t('mandal.searchNone')}</li>}
+                                    {filtered && shown === 0 && <li className="px-3 py-4 text-center text-sm text-ink-gray">{t('mandal.searchNone')}</li>}
                                 </ul>
                                 {editing && (
                                     <div className="flex justify-end gap-2 border-t border-surface-border pt-3">

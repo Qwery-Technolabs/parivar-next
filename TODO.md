@@ -368,3 +368,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Members list: position line light grey under the name
 - [x] /fundraise: For you (your groups / added) · Recommended (audience match) · others
 - [x] Attendance & money: one Edit inside the pop-up — whole list editable for backfill, Save all / Cancel
+- [x] Attendance & money: All / Present / Absent filter beside the search
