@@ -72,15 +72,10 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
     });
     // Savings: each schedule's money in / out (contributions with its event_id, expenses named for it).
     const moneyBy = section === 'money' ? await scheduleMoney(campaign.id) : null;
-    // A schedule as a picker option: its date, and in grey its place · amount per person · money keeper.
+    // A schedule as a picker option: its date, and in grey its place · amount per person.
+    // (No "Money with …" in a picker — it made the option too long; the keeper shows on the schedule itself.)
     const scheduleHint = (e) =>
-        [
-            e.location,
-            e.collect ? t('mandal.perPersonAmount', { amount: money(e.installment) }) : t('mandal.notCollecting'),
-            e.holder ? t('mandal.moneyWith', { name: localized(e.holder, 'full_name', locale) }) : null,
-        ]
-            .filter(Boolean)
-            .join(' · ');
+        [e.location, e.collect ? t('mandal.perPersonAmount', { amount: money(e.installment) }) : t('mandal.notCollecting')].filter(Boolean).join(' · ');
     const scheduleOptions = meetings.map((e) => ({ value: e.id, label: `${date(e.start_date, locale)} - ${t('mandal.word')}`, hint: scheduleHint(e) }));
     // The schedule money is entered for: the most recent one not archived (the "last made Mandal").
     const current = rows.find((r) => !r.e.archived) ?? null;

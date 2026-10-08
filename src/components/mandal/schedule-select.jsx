@@ -5,7 +5,7 @@ import { useT } from '@/lib/i18n/client';
 
 /**
  * Pick a Mandal schedule — a searchable list like the member picker, each option on two lines:
- * "11 Jul 2026 - Mandal" and, in grey, its place · amount per person · who keeps the money. Posts the
+ * "11 Jul 2026 - Mandal" and, in grey, its place · amount per person. Posts the
  * schedule id as `name` ('' = none). `allowEmpty`: clearable, and empty shows `emptyLabel` (e.g.
  * "Common savings"). `onChange(value)` tells the form which schedule is chosen.
  * @param {{ name: string, options: Array<{ value: number|string, label: string, hint?: string }>, defaultValue?: number|string|null,

@@ -249,7 +249,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   never touched), Cancel drops the draft;
   money + attendance are entered with "+ Contribution". /fundraise list: a Mandal's Place = its latest-created schedule's
   place (listCampaigns `latest_place`).
-  **Schedule pickers** (contribution / expense / edit): ScheduleSelect — searchable, two lines: date + place · per person · keeper.
+  **Schedule pickers** (contribution / expense / edit): ScheduleSelect — searchable, two lines: date + place · per person (no "Money with" in pickers).
   **Schedules table rows**: one ⋮ (ScheduleRowMenu: Attendance & money — sheet opened from the item, mounted outside the menu —,
   PDF; + for those who run it: Edit, Archive / Restore — delete stays on About; the date link opens a schedule; the same ⋮ sits on the
   schedule strip). **Money kept by**
