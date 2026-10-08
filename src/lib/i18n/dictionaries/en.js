@@ -872,7 +872,9 @@ const en = {
         place: 'Place',
         placeHint: 'Village, town or venue',
         forYou: 'For you',
-        forYouHint: 'Meant for your surname, caste, city or native village',
+        forYouHint: 'Your groups’, and ones you were added to',
+        recommended: 'Recommended',
+        recommendedHint: 'Meant for your surname, caste, city or native village',
         otherFundraises: 'Other fundraises',
         audience: {
             title: 'Who should see this',

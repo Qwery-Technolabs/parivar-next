@@ -20,9 +20,9 @@ export const AUDIENCE_KINDS = ['surname', 'caste', 'subcaste', 'city', 'village'
  * city = where the member lives now (users_list.city); village = their native village.
  * caste/subcaste values are admin_castes ids stored as text; the int side is cast to match.
  */
-// "For you": an audience rule matches the viewer — or it is a Mandal the viewer is a member of
-// or of its group (Mandals are assigned to people, so they always lead the list for them).
-const FOR_YOU = `(EXISTS (
+// An audience rule (surname, caste, sub-caste, current city, native village) matches the viewer.
+// Used for WHO SEES IT (AUDIENCE_OK) and for the feed's "Recommended" section.
+const AUDIENCE_MATCH = `EXISTS (
     SELECT 1 FROM fundraise_audience a
       JOIN users_list me ON me.id = :viewerId
      WHERE a.campaign_id = c.id AND (
@@ -31,10 +31,17 @@ const FOR_YOU = `(EXISTS (
         OR (a.kind = 'subcaste' AND a.value = CAST(me.subcaste_id AS CHAR))
         OR (a.kind = 'city' AND a.value = me.city)
         OR (a.kind = 'village' AND a.value = me.village)
-     ))
-  OR (c.kind = 'mandal' AND (
-        EXISTS (SELECT 1 FROM fundraise_subscribers fs WHERE fs.campaign_id = c.id AND fs.user_id = :viewerId)
-        OR EXISTS (SELECT 1 FROM admin_group_members fg WHERE fg.group_id = c.group_id AND fg.user_id = :viewerId))))`;
+     ))`;
+
+// "For you": fundraises and Mandals the viewer BELONGS to — a group of theirs is linked to it (a
+// fundraise's groups, a Mandal's own group), or they were added to it directly (its team, a Mandal's
+// members). Matching an audience rule alone is "Recommended", not "For you".
+const FOR_YOU = `(
+    EXISTS (SELECT 1 FROM fundraise_groups fyg JOIN admin_group_members fym ON fym.group_id = fyg.group_id AND fym.user_id = :viewerId WHERE fyg.campaign_id = c.id)
+    OR EXISTS (SELECT 1 FROM admin_group_members fyo WHERE fyo.group_id = c.group_id AND fyo.user_id = :viewerId)
+    OR EXISTS (SELECT 1 FROM fundraise_members fyt WHERE fyt.campaign_id = c.id AND fyt.user_id = :viewerId)
+    OR EXISTS (SELECT 1 FROM fundraise_subscribers fys WHERE fys.campaign_id = c.id AND fys.user_id = :viewerId)
+)`;
 
 /**
  * Audience = WHO SEES IT. No rows → everyone. With rows → only matching members, unless the
@@ -52,7 +59,7 @@ const AUDIENCE_OK = `(
     OR (c.kind <> 'mandal' AND (
     NOT EXISTS (SELECT 1 FROM fundraise_audience ax WHERE ax.campaign_id = c.id)
     OR EXISTS (SELECT 1 FROM fundraise_campaignsmeta mx WHERE mx.campaign_id = c.id AND mx.meta_key = 'audience_others' AND mx.meta_value = '1')
-    OR ${FOR_YOU}
+    OR ${AUDIENCE_MATCH}
     OR EXISTS (SELECT 1 FROM fundraise_members tx WHERE tx.campaign_id = c.id AND tx.user_id = :viewerId)
     OR EXISTS (SELECT 1 FROM fundraise_groups gx JOIN admin_group_members gmx ON gmx.group_id = gx.group_id AND gmx.user_id = :viewerId
                 AND gmx.member_role IN ('admin', 'sub_admin') WHERE gx.campaign_id = c.id)
@@ -103,7 +110,8 @@ async function visibilityClause(user) {
 /**
  * @param {{id: number, role: string}} user
  * @param {{ status?: string, groupId?: number|null, page: number, perPage: number }} f
- * Campaigns with an audience rule matching the viewer sort first and carry for_you = 1.
+ * "For you" (for_you = 1: a group of theirs is linked, or they were added to it) sorts first, then
+ * "Recommended" (recommended = 1: an audience rule matches them), then the rest.
  */
 export async function listCampaigns(user, { status, groupId, q = '', archived = false, page, perPage }) {
     const vis = await visibilityClause(user);
@@ -128,13 +136,13 @@ export async function listCampaigns(user, { status, groupId, q = '', archived = 
     const [rows, count] = await Promise.all([
         query(
             // latest_place: a Mandal has no place of its own — the place of its most recently created schedule.
-            `SELECT ${COLS}, ${TOTALS}, ${FOR_YOU} AS for_you,
+            `SELECT ${COLS}, ${TOTALS}, ${FOR_YOU} AS for_you, ${AUDIENCE_MATCH} AS recommended,
                     CASE WHEN c.kind = 'mandal' THEN (SELECT e.location FROM events_list e
                        WHERE e.campaign_id = c.id AND e.event_type = 'meeting' AND e.location IS NOT NULL AND e.location <> ''
                        ORDER BY e.id DESC LIMIT 1) END AS latest_place
                FROM fundraise_campaigns c LEFT JOIN admin_groups g ON g.id = c.group_id
               WHERE ${whereSql}
-              ORDER BY for_you DESC, FIELD(c.status, 'active', 'draft', 'closed'), c.start_date IS NULL, c.start_date DESC, c.id DESC
+              ORDER BY for_you DESC, recommended DESC, FIELD(c.status, 'active', 'draft', 'closed'), c.start_date IS NULL, c.start_date DESC, c.id DESC
               LIMIT ${perPage} OFFSET ${offset}`,
             { ...params, viewerId: user.id },
         ),

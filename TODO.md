@@ -366,3 +366,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Schedule strip: ⋮ instead of Attendance & money + PDF buttons
 - [x] Schedule ⋮: no "Open this schedule" (the date link opens it)
 - [x] Members list: position line light grey under the name
+- [x] /fundraise: For you (your groups / added) · Recommended (audience match) · others

@@ -226,6 +226,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Meeting audience**: saved as events_listmeta `audience` = 'all' | 'selected'. 'all' = everyone, **including people who
   join later**: `syncEveryoneMeetings` (lib/meetings.js) adds current group / fundraise members to upcoming 'all' meetings when a
   meeting list opens and before reminders are sent. 'selected' stays a fixed list.
+- **/fundraise sections** (listCampaigns): **For you** = you BELONG (FOR_YOU: a group of yours is linked — fundraise_groups or a
+  Mandal's own group — or you're on its team / a Mandal member) · **Recommended** = an audience rule matches you (AUDIENCE_MATCH:
+  surname, caste, sub-caste, city, native village) and not For you · then the rest. AUDIENCE_MATCH (not FOR_YOU) is what
+  AUDIENCE_OK uses for who may see it.
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
   **Address: /mandal/[id]** (route renders the fundraise page with `asMandal`; /fundraise/[id] of a Mandal redirects there, query kept;
   revalidate both paths). **About**: `mandalAboutParts()` → { main: summary + Members (scrolls), side: Schedules } placed INTO
@@ -250,7 +254,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   **Schedules own collect yes/no + amount per member** (ScheduleDialog, About); the attendance sheet only shows it (read-only,
   list in a max-h-[50vh] scrolling box) and never writes it; the Mandal edit form keeps each schedule's collect. **Expenses**:
   Savings → Expenses card (ExpenseDialog / RowActions with `schedules` → optional "For schedule", meta event_id on
-  fundraise_expensesmeta; empty = common savings). **For you** on /fundraise includes Mandals the viewer is a member of OR whose group they are in.
+  fundraise_expensesmeta; empty = common savings).
   **Public link** of a Mandal: the normal Statement card (By contributor · Contributions · Expenses) from the FILTERED rows
   (mandalLedger + mandalStatement: one schedule | from–to, lib/mandal-filters.js, GET) behind ONE "Filters" button
   (MandalFilterButton pop-over); totals follow the filter. /p/[token]/print = PrintSheet with the same section chips, the

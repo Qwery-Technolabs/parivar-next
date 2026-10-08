@@ -1,4 +1,4 @@
-import { Sparkles, Plus } from 'lucide-react';
+import { Sparkles, Plus, ThumbsUp } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import FilterBar from '@/components/ui/filter-bar';
@@ -11,14 +11,7 @@ import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { requireUser } from '@/lib/auth';
 import { date, money } from '@/lib/format';
-import {
-    CAMPAIGN_STATUSES,
-    listCampaigns,
-    listGroupsForSelect,
-    myContributions,
-    myTeamCampaigns,
-    progressPct,
-} from '@/lib/fundraise';
+import { CAMPAIGN_STATUSES, listCampaigns, listGroupsForSelect, myContributions, myTeamCampaigns, progressPct } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { canManageAllFundraises } from '@/lib/roles';
 import { getT } from '@/lib/i18n/server';
@@ -40,7 +33,9 @@ function resolveFilters(sp) {
         view: VIEWS.includes(sp1(sp.view)) ? sp1(sp.view) : '',
         status,
         groupId: Number.isInteger(g) && g > 0 ? g : null,
-        q: String(sp1(sp.q) ?? '').trim().slice(0, 100),
+        q: String(sp1(sp.q) ?? '')
+            .trim()
+            .slice(0, 100),
         page: normalizePage(sp1(sp.page)),
     };
 }
@@ -120,9 +115,12 @@ export default async function FundraiseListPage({ searchParams }) {
 async function Feed({ user, sp, f, perPage, t, locale }) {
     const adminMenu = canManageAllFundraises(user.role);
     const { rows, total } = await listCampaigns(user, { ...f, perPage });
-    // "For you": any audience rule (surname, caste, sub-caste, village, native place) matches the viewer.
+    // "For you": the ones you belong to (a group of yours is linked, or you were added). "Recommended":
+    // an audience rule (surname, caste, sub-caste, city, native village) matches you. Then the rest.
     const forYou = rows.filter((r) => r.for_you);
-    const rest = rows.filter((r) => !r.for_you);
+    const recommended = rows.filter((r) => !r.for_you && r.recommended);
+    const rest = rows.filter((r) => !r.for_you && !r.recommended);
+    const sections = forYou.length > 0 || recommended.length > 0;
 
     return (
         <>
@@ -133,10 +131,19 @@ async function Feed({ user, sp, f, perPage, t, locale }) {
                     </h2>
                     <p className="-mt-1 mb-2 text-xs text-ink-gray">{t('fundraise.forYouHint')}</p>
                     <CampaignTable rows={forYou} t={t} locale={locale} className="mb-5" adminMenu={adminMenu} />
-                    {rest.length > 0 && <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.otherFundraises')}</h2>}
                 </>
             )}
-            {(rest.length > 0 || forYou.length === 0) && (
+            {recommended.length > 0 && (
+                <>
+                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-primary">
+                        <ThumbsUp className="size-4" /> {t('fundraise.recommended')}
+                    </h2>
+                    <p className="-mt-1 mb-2 text-xs text-ink-gray">{t('fundraise.recommendedHint')}</p>
+                    <CampaignTable rows={recommended} t={t} locale={locale} className="mb-5" adminMenu={adminMenu} />
+                </>
+            )}
+            {sections && rest.length > 0 && <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.otherFundraises')}</h2>}
+            {(rest.length > 0 || !sections) && (
                 <CampaignTable
                     rows={rest}
                     t={t}
@@ -180,35 +187,47 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                             <Tr key={c.id}>
                                 <Td>
                                     <div className="flex items-start gap-2.5">
-                                    {/* Status dot, as on the fundraise page: green active, grey draft, red closed. */}
-                                    <span className="relative shrink-0" title={t(`fundraise.${c.status}`)}>
-                                        <GroupAvatar id={c.id} name={c.title} kind={c.avatar?.avatar_kind} value={c.avatar?.avatar_value} color={c.avatar?.avatar_color} size="sm" />
-                                        <span
-                                            role="img"
-                                            aria-label={t(`fundraise.${c.status}`)}
-                                            className={`absolute -right-px -bottom-px ${DOT_SIZE_SM} rounded-full ring-2 ring-white ${FUNDRAISE_STATUS_DOT[c.status] ?? FUNDRAISE_STATUS_DOT.draft}`}
-                                        />
-                                    </span>
-                                    <div className="min-w-0">
-                                    <Link href={`/${c.kind === 'mandal' ? 'mandal' : 'fundraise'}/${c.id}`} className="font-medium text-primary hover:underline">
-                                        {localized(c, 'title', locale)}
-                                    </Link>
-                                    {c.kind === 'mandal' && (
-                                        <Badge tone="orange" className="ml-1.5 align-middle">
-                                            {t('mandal.badge')}
-                                        </Badge>
-                                    )}
-                                    {/* Location repeats here for phones, where its column is hidden. */}
-                                    <span className="block text-xs text-ink-gray">{[groupName, c.location || c.latest_place].filter(Boolean).join(' · ')}</span>
-                                    {pct != null && (
-                                        <div className="mt-1.5 flex items-center gap-2">
-                                            <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-bggray">
-                                                <div className="h-full bg-brand-orange" style={{ width: `${pct}%` }} />
-                                            </div>
-                                            <span className="text-xs text-ink-gray tabular-nums">{pct}%</span>
+                                        {/* Status dot, as on the fundraise page: green active, grey draft, red closed. */}
+                                        <span className="relative shrink-0" title={t(`fundraise.${c.status}`)}>
+                                            <GroupAvatar
+                                                id={c.id}
+                                                name={c.title}
+                                                kind={c.avatar?.avatar_kind}
+                                                value={c.avatar?.avatar_value}
+                                                color={c.avatar?.avatar_color}
+                                                size="sm"
+                                            />
+                                            <span
+                                                role="img"
+                                                aria-label={t(`fundraise.${c.status}`)}
+                                                className={`absolute -right-px -bottom-px ${DOT_SIZE_SM} rounded-full ring-2 ring-white ${FUNDRAISE_STATUS_DOT[c.status] ?? FUNDRAISE_STATUS_DOT.draft}`}
+                                            />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <Link
+                                                href={`/${c.kind === 'mandal' ? 'mandal' : 'fundraise'}/${c.id}`}
+                                                className="font-medium text-primary hover:underline"
+                                            >
+                                                {localized(c, 'title', locale)}
+                                            </Link>
+                                            {c.kind === 'mandal' && (
+                                                <Badge tone="orange" className="ml-1.5 align-middle">
+                                                    {t('mandal.badge')}
+                                                </Badge>
+                                            )}
+                                            {/* Location repeats here for phones, where its column is hidden. */}
+                                            <span className="block text-xs text-ink-gray">
+                                                {[groupName, c.location || c.latest_place].filter(Boolean).join(' · ')}
+                                            </span>
+                                            {pct != null && (
+                                                <div className="mt-1.5 flex items-center gap-2">
+                                                    <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-bggray">
+                                                        <div className="h-full bg-brand-orange" style={{ width: `${pct}%` }} />
+                                                    </div>
+                                                    <span className="text-xs text-ink-gray tabular-nums">{pct}%</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                    </div>
                                     </div>
                                 </Td>
                                 <Td className="hidden md:table-cell">{c.location || c.latest_place || null}</Td>
@@ -223,14 +242,21 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                 </Td>
                                 <Td>
                                     {roleColumn ? (
-                                        <Badge tone="orange">{(c.roles?.length ? c.roles : [c.member_role]).map((r) => t(`fundraise.teamRoles.${r}`)).join(', ')}</Badge>
+                                        <Badge tone="orange">
+                                            {(c.roles?.length ? c.roles : [c.member_role]).map((r) => t(`fundraise.teamRoles.${r}`)).join(', ')}
+                                        </Badge>
                                     ) : (
                                         <Badge status={c.status}>{t(`fundraise.${c.status}`)}</Badge>
                                     )}
                                 </Td>
                                 {adminMenu && (
                                     <Td className="text-right">
-                                        <CampaignRowMenu id={c.id} publicToken={c.public_token} isPublic={Boolean(c.is_public)} archived={Boolean(c.archived_at)} />
+                                        <CampaignRowMenu
+                                            id={c.id}
+                                            publicToken={c.public_token}
+                                            isPublic={Boolean(c.is_public)}
+                                            archived={Boolean(c.archived_at)}
+                                        />
                                     </Td>
                                 )}
                             </Tr>

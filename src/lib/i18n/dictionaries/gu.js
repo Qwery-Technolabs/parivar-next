@@ -873,7 +873,9 @@ const gu = {
         place: 'સ્થળ',
         placeHint: 'ગામ, શહેર કે સ્થળ',
         forYou: 'તમારા માટે',
-        forYouHint: 'તમારી અટક, જ્ઞાતિ, શહેર કે મૂળ ગામ માટે',
+        forYouHint: 'તમારા ગ્રુપના, અને જેમાં તમને ઉમેર્યા છે',
+        recommended: 'ભલામણ',
+        recommendedHint: 'તમારી અટક, જ્ઞાતિ, શહેર કે મૂળ ગામ માટે',
         otherFundraises: 'અન્ય ફંડ ફાળા',
         audience: {
             title: 'આ કોને દેખાવું જોઈએ',
