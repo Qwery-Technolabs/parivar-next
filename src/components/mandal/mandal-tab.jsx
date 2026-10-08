@@ -1,36 +1,32 @@
-import { FileDown, UserMinus } from 'lucide-react';
+import { ArrowLeft, FileDown, UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { addMandalMember, removeMandalMember } from '@/app/actions/mandal';
 import ActionButton from '@/components/fundraise/action-button';
-import ExpenseDialog from '@/components/fundraise/expense-dialog';
-import HoldingsCard from '@/components/fundraise/holdings-card';
-import RowActions from '@/components/fundraise/row-actions';
 import MandalAddMember from '@/components/mandal/mandal-add-member';
 import MandalSheet from '@/components/mandal/mandal-sheet';
 import ScheduleActions from '@/components/mandal/schedule-actions';
 import ScheduleDialog from '@/components/mandal/schedule-dialog';
 import Badge from '@/components/ui/badge';
+import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
 import { query } from '@/lib/db';
-import { fundraisePeople, listExpenses, listHoldings } from '@/lib/fundraise';
-import { fundraisePermissions } from '@/lib/access';
-import { getSettings } from '@/lib/settings';
+import { scheduleMoney } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
 import PendingList from '@/components/mandal/pending-list';
 
 /**
  * A Mandal, in two places (server components), sharing one data load:
- *   <MandalTab /> — Savings tab (a Mandal's Income/Expense): the latest Mandal, every schedule with its
- *                   numbers and its "Attendance & money" sheet — money is always taken against a
- *                   schedule, never the Mandal as a whole — and the Holdings card.
+ *   mandalMoneyParts() — its Savings tab, which IS the fundraise money tab (MoneyTab): the overview's
+ *                   schedules table (each date opens its own money view: ?tab=money&schedule=<id>), and
+ *                   for one schedule the strip on top (back, its details, Attendance & money, PDF).
  *   mandalAboutParts() — About tab, as { main, side } that DetailsTab places INTO its own two columns
  *                   (main: the summary + Members in a fixed-height scrolling card; side: the Schedules
  *                   to create / edit / archive, above Team) — one grid, so no blank gaps between blocks.
  */
-export default async function MandalTab(props) {
-    return buildMandal({ ...props, section: 'savings' });
+export async function mandalMoneyParts(props) {
+    return buildMandal({ ...props, section: 'money' });
 }
 
 /** The About tab's Mandal blocks: { main, side } for DetailsTab's two columns. */
@@ -38,7 +34,7 @@ export async function mandalAboutParts(props) {
     return buildMandal({ ...props, section: 'about' });
 }
 
-async function buildMandal({ campaign, user, today, t, locale, section }) {
+async function buildMandal({ campaign, user, today, t, locale, section, scheduleId = null, base = '' }) {
     const installment = Number(campaign.meta?.installment) || 0;
     await syncMandalMembers(campaign);
     const [meetings, canRun, marks] = await Promise.all([mandalMeetings(campaign.id, installment), canRunMandal(user, campaign), allMarks(campaign.id)]);
@@ -63,23 +59,9 @@ async function buildMandal({ campaign, user, today, t, locale, section }) {
             got: Object.values(sheet).reduce((s, x) => s + Number(x.paid || 0), 0),
         };
     });
-    // Savings: who holds the money, per person (the fundraise Holdings card's data).
-    const holdings = section === 'savings' ? await listHoldings(campaign) : null;
-    // Savings: the Mandal's expenses (common savings, optionally for one schedule) and who may add them.
-    const spend =
-        section === 'savings'
-            ? await (async () => {
-                  const [perms, rows, people, settings] = await Promise.all([
-                      fundraisePermissions(user, campaign),
-                      listExpenses(campaign.id),
-                      fundraisePeople(campaign.id),
-                      getSettings('fundraise'),
-                  ]);
-                  return { perms, rows, people: perms.expense ? people : [], categories: settings.expense_categories ?? [] };
-              })()
-            : null;
+    // Savings: each schedule's money in / out (contributions with its event_id, expenses named for it).
+    const moneyBy = section === 'money' ? await scheduleMoney(campaign.id) : null;
     const scheduleOptions = meetings.map((e) => ({ value: e.id, label: `${date(e.start_date, locale)} - ${t('mandal.word')}` }));
-    const scheduleLabel = new Map(scheduleOptions.map((s) => [s.value, s.label]));
     // The schedule money is entered for: the most recent one not archived (the "last made Mandal").
     const current = rows.find((r) => !r.e.archived) ?? null;
     // Each member's unpaid schedules (held so far), for "pending since …" under their name.
@@ -93,29 +75,6 @@ async function buildMandal({ campaign, user, today, t, locale, section }) {
             pending={pendingBefore(r.forThem, meetings, marks, r.e.id)}
             pendingList={Object.fromEntries(r.forThem.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { before: r.e.start_date })]))}
         />
-    );
-
-    // The latest Mandal, ready for money straight away (Savings).
-    const latestBanner = current && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-4 py-2.5 shadow-sm">
-            <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-gray">{t('mandal.latest')}</p>
-                <p className="font-semibold text-primary">
-                    {date(current.e.start_date, locale)} - {t('mandal.word')}
-                    <span className="ml-2 text-sm font-normal text-ink-gray tabular-nums">
-                        {[
-                            current.e.location,
-                            t('mandal.perPersonAmount', { amount: money(current.e.installment) }),
-                            t('mandal.cameCount', { came: current.came, total: current.forThem.length }),
-                        ]
-                            .filter(Boolean)
-                            .join(' · ')}
-                    </span>
-                </p>
-            </div>
-            <span className="font-semibold text-income tabular-nums">{money(current.got)}/-</span>
-            {canRun && sheetFor(current)}
-        </div>
     );
 
     // One schedule row: date, place, amount per person, who keeps the money. Savings adds what came in
@@ -167,100 +126,112 @@ async function buildMandal({ campaign, user, today, t, locale, section }) {
         </li>
     );
 
-    if (section === 'savings') {
-        return (
-            <div className="space-y-4">
-                {latestBanner}
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-                    <div className="min-w-0 space-y-4">
-                        {/* Money comes in against a schedule: pick its date, then "Attendance & money". */}
-                        <Card
-                            title={t('mandal.schedules')}
-                            bodyClass=""
-                            actions={
-                                // Every schedule in one printout / PDF (one date: the icon on its row).
-                                meetings.length > 0 && (
-                                    <Link
-                                        href={`/fundraise/${campaign.id}/print`}
-                                        target="_blank"
-                                        className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
-                                    >
-                                        <FileDown className="size-3.5" /> {t('mandal.printAll')}
-                                    </Link>
-                                )
-                            }
-                        >
-                            {meetings.length === 0 ? (
-                                <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedulesSavings')}</p>
-                            ) : (
-                                <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, true))}</ul>
-                            )}
-                        </Card>
-                        {/* Expenses: income comes in per schedule, spending comes out of the common savings —
-                        optionally naming the schedule it was for. */}
-                        <Card
-                            title={t('fundraise.expenses')}
-                            bodyClass=""
-                            actions={
-                                spend.perms.expense && (
-                                    <ExpenseDialog
-                                        campaignId={campaign.id}
-                                        today={today}
-                                        categories={spend.categories}
-                                        people={spend.people}
-                                        meId={user.id}
-                                        schedules={scheduleOptions}
-                                    />
-                                )
-                            }
-                        >
-                            {spend.rows.length === 0 ? (
-                                <p className="px-4 py-5 text-sm text-ink-gray">{t('fundraise.noExpenses')}</p>
-                            ) : (
-                                <ul className="divide-y divide-surface-border">
-                                    {spend.rows.map((x) => (
-                                        <li key={x.id} className="flex items-start gap-3 px-4 py-2.5">
-                                            <div className="min-w-0 flex-1">
-                                                <p className="font-medium text-primary break-words">{[x.title, x.place].filter(Boolean).join(' — ')}</p>
-                                                <p className="text-xs text-ink-gray tabular-nums">
-                                                    {[
-                                                        date(x.spent_on, locale),
-                                                        scheduleLabel.get(x.event_id) ?? t('mandal.commonSavings'),
-                                                        x.paid_by_name
-                                                            ? t('fundraise.paidByName', {
-                                                                  name: localized({ n: x.paid_by_name, n_local: x.paid_by_name_local }, 'n', locale),
-                                                              })
-                                                            : null,
-                                                    ]
-                                                        .filter(Boolean)
-                                                        .join(' · ')}
-                                                </p>
-                                            </div>
-                                            <span className="shrink-0 pt-0.5 font-semibold text-expense tabular-nums">{money(x.amount)}</span>
-                                            <RowActions
-                                                kind="expense"
-                                                campaignId={campaign.id}
-                                                row={x}
-                                                canManage={spend.perms.expense}
-                                                today={today}
-                                                categories={spend.categories}
-                                                people={spend.people}
-                                                meId={user.id}
-                                                schedules={scheduleOptions}
-                                            />
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </Card>
-                    </div>
-                    {/* Who holds the money — the same Holdings card as any fundraise (Income / Expense
-                        switch, per person, the treasurer tagged): sheet payments carry their schedule's
-                        money keeper (kept_by), the rest as recorded. */}
-                    <HoldingsCard holdings={holdings} />
+    if (section === 'money') {
+        const at = (id) => `${base}?tab=money&schedule=${id}`;
+        const pdf = (id) => (
+            <Link
+                href={`/fundraise/${campaign.id}/print${id ? `?schedule=${id}` : ''}`}
+                target="_blank"
+                title={id ? t('mandal.printSchedule') : t('mandal.printAll')}
+                aria-label={id ? t('mandal.printSchedule') : t('mandal.printAll')}
+                className="btn-secondary inline-flex size-8 shrink-0 items-center justify-center rounded-md"
+            >
+                <FileDown className="size-3.5" />
+            </Link>
+        );
+        // The overview's table: one row per schedule — open it to see / add its money.
+        const scheduleTable = (
+            <TableShell>
+                <THead>
+                    <Th>{t('common.date')}</Th>
+                    <Th className="hidden md:table-cell">{t('fundraise.place')}</Th>
+                    <Th className="hidden sm:table-cell">{t('mandal.perMeeting')}</Th>
+                    <Th numeric className="hidden sm:table-cell">
+                        {t('mandal.present')}
+                    </Th>
+                    <Th numeric>{t('fundraise.collected')}</Th>
+                    <Th numeric className="hidden sm:table-cell">
+                        {t('fundraise.spent')}
+                    </Th>
+                    <Th className="w-24" />
+                </THead>
+                <tbody>
+                    {rows.length === 0 ? (
+                        <EmptyRow colSpan={7}>{t('mandal.noSchedulesSavings')}</EmptyRow>
+                    ) : (
+                        rows.map((r) => {
+                            const m = moneyBy.get(r.e.id) ?? { received: 0, spent: 0 };
+                            return (
+                                <Tr key={r.e.id} className={r.e.archived ? 'bg-surface-bggray/40' : ''}>
+                                    <Td className="whitespace-nowrap">
+                                        <Link href={at(r.e.id)} className="font-medium text-primary hover:underline">
+                                            {date(r.e.start_date, locale)} - {t('mandal.word')}
+                                        </Link>
+                                        {r.e.archived && (
+                                            <Badge tone="gray" className="ml-1.5 align-middle">
+                                                {t('fundraise.archivedBadge')}
+                                            </Badge>
+                                        )}
+                                        {r.e.holder && <span className="block text-xs text-ink-gray">{t('mandal.moneyWith', { name: name(r.e.holder) })}</span>}
+                                    </Td>
+                                    <Td className="hidden text-ink-gray md:table-cell">{r.e.location || null}</Td>
+                                    <Td className="hidden whitespace-nowrap tabular-nums sm:table-cell">
+                                        {r.e.collect ? money(r.e.installment) : <span className="text-ink-gray">{t('mandal.notCollecting')}</span>}
+                                    </Td>
+                                    <Td numeric className="hidden text-ink-gray sm:table-cell">
+                                        {Object.keys(r.sheet).length ? `${r.came}/${r.forThem.length}` : '–'}
+                                    </Td>
+                                    <Td numeric className="font-medium text-income">
+                                        {money(m.received)}
+                                    </Td>
+                                    <Td numeric className="hidden font-medium text-expense sm:table-cell">
+                                        {money(m.spent)}
+                                    </Td>
+                                    <Td className="py-1">
+                                        <span className="flex items-center justify-end gap-1.5">
+                                            {canRun && !r.e.archived && sheetFor(r)}
+                                            {pdf(r.e.id)}
+                                        </span>
+                                    </Td>
+                                </Tr>
+                            );
+                        })
+                    )}
+                </tbody>
+            </TableShell>
+        );
+        // One schedule open: the strip above its money view.
+        const chosen = scheduleId ? (rows.find((r) => r.e.id === scheduleId) ?? null) : null;
+        const banner = chosen && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-4 py-2.5 shadow-sm">
+                <Link href={`${base}?tab=money`} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                    <ArrowLeft className="size-4" /> {t('mandal.allSchedules')}
+                </Link>
+                <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-primary">
+                        {date(chosen.e.start_date, locale)} - {t('mandal.word')}
+                        {chosen.e.archived && (
+                            <Badge tone="gray" className="ml-1.5 align-middle">
+                                {t('fundraise.archivedBadge')}
+                            </Badge>
+                        )}
+                    </p>
+                    <p className="text-xs text-ink-gray tabular-nums">
+                        {[
+                            chosen.e.location,
+                            chosen.e.collect ? t('mandal.perPersonAmount', { amount: money(chosen.e.installment) }) : t('mandal.notCollecting'),
+                            chosen.e.holder ? t('mandal.moneyWith', { name: name(chosen.e.holder) }) : null,
+                            Object.keys(chosen.sheet).length ? t('mandal.cameCount', { came: chosen.came, total: chosen.forThem.length }) : null,
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </p>
                 </div>
+                {canRun && !chosen.e.archived && sheetFor(chosen)}
+                {pdf(chosen.e.id)}
             </div>
         );
+        return { scheduleTable, banner, chosen: chosen?.e ?? null, scheduleOptions, money: moneyBy };
     }
 
     const main = (

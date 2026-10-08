@@ -13,10 +13,34 @@ export const MONEY_VIEWS = ['contributions', 'expenses', 'contributors'];
 
 /**
  * Income / Expense tab (server component): totals + progress, a segmented switch between
- * contributions / expenses / by-contributor (?view=, default = contributions = absence),
+ * contributions / expenses / by-contributor (?view=, default = the first view = absence),
  * the add buttons the viewer's permissions allow, and the table.
+ * A Mandal reuses it as is: its overview passes `views` starting with 'schedules' and the
+ * `scheduleTable`; one schedule (?schedule=) passes the `banner` and that schedule's rows / counts.
+ * `scheduling` ({ schedules, defaultSchedule }) makes the add / edit dialogs ask which schedule.
  */
-export default function MoneyTab({ campaign, view, rows, total, page, perPage, perms, settings, today, base, sp, t, locale, people = [], meId = null }) {
+export default function MoneyTab({
+    campaign,
+    view,
+    rows,
+    total,
+    page,
+    perPage,
+    perms,
+    settings,
+    today,
+    base,
+    sp,
+    t,
+    locale,
+    people = [],
+    meId = null,
+    views = MONEY_VIEWS,
+    counts: countsIn = null,
+    scheduling = null,
+    scheduleTable = null,
+    banner = null,
+}) {
     // A treasurer or admin recording money already holds it for the fundraise: "handed to treasurer" starts on.
     const handDefault = Boolean(perms.manage || perms.teamRoles?.includes('treasurer'));
     // Every viewer gets the row menu (History); Edit / Delete for whoever may record that kind
@@ -28,28 +52,31 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
         people,
         meId,
         handDefault,
+        schedules: scheduling?.schedules ?? null,
     };
     const labels = {
+        schedules: t('mandal.schedules'),
         contributions: t('fundraise.contributions'),
         expenses: t('fundraise.expenses'),
         contributors: t('fundraise.byContributor'),
     };
-    const counts = { contributions: campaign.contribution_count, expenses: campaign.expense_count };
+    const counts = countsIn ?? { contributions: campaign.contribution_count, expenses: campaign.expense_count };
     const givers = view === 'contributors' ? rows.filter((c) => Number(c.total) > 0) : [];
     const ledgerKind = view === 'contributions' ? 'income' : view === 'expenses' ? 'expense' : 'both';
 
     return (
         <div className="space-y-4">
+            {banner}
             <FundraiseSummary campaign={campaign} t={t} compact />
 
             {/* Phones: one row — the view switch (scrolls if the words are long), Share, and a single "+".
                 From sm up: the switch, then both labelled add buttons; the share buttons below. */}
             <div className="flex items-center gap-2 sm:flex-wrap sm:justify-between sm:gap-3">
                 <div className="inline-flex min-w-0 flex-1 overflow-x-auto rounded-md bg-surface-bggray/70 p-0.5 sm:flex-none sm:flex-wrap">
-                    {MONEY_VIEWS.map((k) => (
+                    {views.map((k) => (
                         <Link
                             key={k}
-                            href={buildHref(base, sp, { tab: 'money', view: k === 'contributions' ? null : k, page: null })}
+                            href={buildHref(base, sp, { tab: 'money', view: k === views[0] ? null : k, page: null })}
                             scroll={false}
                             aria-current={view === k ? 'true' : undefined}
                             className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded px-2.5 text-xs font-medium ${
@@ -78,6 +105,7 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                             people={people}
                             meId={meId}
                             handDefault={handDefault}
+                            scheduling={scheduling ?? {}}
                         />
                     )}
                 </div>
@@ -89,6 +117,9 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
             </div>
 
             {!perms.contribution && !perms.expense && <p className="text-xs text-ink-gray">{t('fundraise.viewOnly')}</p>}
+
+            {/* A Mandal's overview: its schedules, each opening its own money view. */}
+            {view === 'schedules' && scheduleTable}
 
             {view === 'contributions' && (
                 <TableShell>
@@ -117,7 +148,9 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                         {c.kept_by_name && c.mode !== 'unpaid' && (
                                             <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-gray">
                                                 {t('fundraise.keptByName', { name: (locale !== 'en' && c.kept_by_name_local) || c.kept_by_name })}
-                                                <Badge tone={c.handed_over ? 'green' : 'amber'}>{c.handed_over ? t('fundraise.withTreasurer') : t('fundraise.notHandedOver')}</Badge>
+                                                <Badge tone={c.handed_over ? 'green' : 'amber'}>
+                                                    {c.handed_over ? t('fundraise.withTreasurer') : t('fundraise.notHandedOver')}
+                                                </Badge>
                                             </span>
                                         )}
                                     </Td>
@@ -164,7 +197,9 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                                         {e.paid_by_name && (
                                             <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-ink-gray">
                                                 {t('fundraise.paidByName', { name: (locale !== 'en' && e.paid_by_name_local) || e.paid_by_name })}
-                                                <Badge tone={e.repaid ? 'green' : 'amber'}>{e.repaid ? t('fundraise.repaidBadge') : t('fundraise.toRepayBadge')}</Badge>
+                                                <Badge tone={e.repaid ? 'green' : 'amber'}>
+                                                    {e.repaid ? t('fundraise.repaidBadge') : t('fundraise.toRepayBadge')}
+                                                </Badge>
                                             </span>
                                         )}
                                         {(e.bill_ref || e.notes) && (
@@ -217,7 +252,9 @@ export default function MoneyTab({ campaign, view, rows, total, page, perPage, p
                 </TableShell>
             )}
 
-            {view !== 'contributors' && <Pagination pathname={base} searchParams={sp} page={page} perPage={perPage} total={total} t={t} />}
+            {view !== 'contributors' && view !== 'schedules' && (
+                <Pagination pathname={base} searchParams={sp} page={page} perPage={perPage} total={total} t={t} />
+            )}
         </div>
     );
 }

@@ -28,6 +28,7 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
 - `matrimony_profiles` (PK user_id): is_active, height_cm, income_range, contact_name / contact_phone, pref_* ,
   about, listed_by. Module prefix `matrimony_`.
 - fundraise_contributions.kept_by (→ users_list, SET NULL) + handed_over TINYINT — who holds the money / given to treasurer.
+- fundraise_contributions.event_id INT NULL (indexed, no FK) — a Mandal: the schedule (events_list id) the money came in at.
 - fundraise_members: PK (campaign_id, user_id, member_role) — several roles per person; member_role adds 'expenser'.
 - fundraise_campaigns.kind ENUM('fundraise','mandal'); `fundraise_subscribers` (campaign_id, user_id); `fundraise_mandal_marks`
   (event_id, user_id, campaign_id, present, paid, contribution_id → fundraise_contributions).

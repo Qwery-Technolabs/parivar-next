@@ -114,7 +114,7 @@ export default function RowActions({
                     categories={categories}
                     people={people}
                     meId={meId}
-                    schedules={kind === 'expense' ? schedules : undefined}
+                    schedules={schedules ?? undefined}
                     trigger={({ open }) => <OpenOnMount open={open} />}
                 />
             )}

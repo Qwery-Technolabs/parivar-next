@@ -11,7 +11,7 @@ import DetailsTab from '@/components/fundraise/details-tab';
 import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
-import MandalTab, { mandalAboutParts } from '@/components/mandal/mandal-tab';
+import { mandalAboutParts, mandalMoneyParts } from '@/components/mandal/mandal-tab';
 import { mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
@@ -101,7 +101,6 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
     if ((campaign.status === 'draft' || campaign.archived_at) && !perms.manage) notFound();
 
     const { tab, view: rawView } = resolveTab(sp);
-    const view = MONEY_VIEWS.includes(rawView) ? rawView : 'contributions';
     const base = `/${isMandal ? 'mandal' : 'fundraise'}/${campaign.id}`;
     // Started now, awaited after the tab's own data (they run side by side).
     // A Mandal's pending money = what its members still owe (missed / short payments).
@@ -143,29 +142,61 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
     ];
 
     let body;
-    if (tab === 'money' && campaign.kind === 'mandal') {
-        body = <MandalTab campaign={campaign} user={user} today={today} t={t} locale={locale} />;
-    } else if (tab === 'money') {
+    if (tab === 'money') {
+        // A Mandal's Savings tab IS this money tab: its overview leads with the schedules table, and one
+        // schedule (?schedule=<id>) shows exactly the fundraise views, limited to that schedule's money.
+        const isMandal = campaign.kind === 'mandal';
+        const parts = isMandal ? await mandalMoneyParts({ campaign, user, today, t, locale, scheduleId: Number(sp1(sp.schedule)) || null, base }) : null;
+        const sid = parts?.chosen?.id ?? null;
+        const views = isMandal && !sid ? ['schedules', ...MONEY_VIEWS] : MONEY_VIEWS;
+        const mview = views.includes(rawView) ? rawView : views[0];
         const page = normalizePage(sp1(sp.page));
         const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
         const offset = (page - 1) * perPage;
-        const [rows, settings, people] = await Promise.all([
-            view === 'contributions'
-                ? listContributions(campaign.id, { limit: perPage, offset })
-                : view === 'expenses'
-                  ? listExpenses(campaign.id, { limit: perPage, offset })
-                  : contributorTotals(campaign.id, { publicView: !perms.manage }),
+        // One schedule: all its rows (a single day — no paging needed).
+        const paging = sid ? { eventId: sid } : { limit: perPage, offset };
+        const [rows, settings, people, stats] = await Promise.all([
+            mview === 'contributions'
+                ? listContributions(campaign.id, paging)
+                : mview === 'expenses'
+                  ? listExpenses(campaign.id, paging)
+                  : mview === 'contributors'
+                    ? contributorTotals(campaign.id, { publicView: !perms.manage, eventId: sid })
+                    : [],
             getSettings('fundraise'),
             // "Paid by" (expenses) and "Kept by" (contributions) choices.
             perms.expense || perms.contribution ? fundraisePeople(campaign.id) : [],
+            // One schedule: its own totals and counts for the boxes and the view switch.
+            sid ? Promise.all([listContributions(campaign.id, { eventId: sid }), listExpenses(campaign.id, { eventId: sid })]) : null,
         ]);
         // Anonymous gifts: only managers see who gave (they get the name + an "Anonymous" badge).
-        const shown = perms.manage || view === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));
-        const total = view === 'contributions' ? campaign.contribution_count : view === 'expenses' ? campaign.expense_count : rows.length;
+        const shown = perms.manage || mview === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));
+        const total = sid ? rows.length : mview === 'contributions' ? campaign.contribution_count : mview === 'expenses' ? campaign.expense_count : rows.length;
+        const [inc, out] = stats ?? [[], []];
+        const shownCampaign = sid
+            ? {
+                  ...campaign,
+                  collected: inc.filter((r) => r.mode !== 'unpaid').reduce((a, r) => a + Number(r.amount), 0),
+                  pending: inc.filter((r) => r.mode === 'unpaid').reduce((a, r) => a + Number(r.amount), 0),
+                  spent: out.reduce((a, x) => a + Number(x.amount), 0),
+                  target_amount: null,
+              }
+            : campaign;
         body = (
             <MoneyTab
-                campaign={campaign}
-                view={view}
+                campaign={shownCampaign}
+                views={views}
+                counts={
+                    sid
+                        ? { contributions: inc.length, expenses: out.length }
+                        : isMandal
+                          ? { schedules: parts.scheduleOptions.length, contributions: campaign.contribution_count, expenses: campaign.expense_count }
+                          : null
+                }
+                scheduling={isMandal ? { schedules: parts.scheduleOptions, defaultSchedule: sid ?? parts.scheduleOptions[0]?.value ?? null } : null}
+                scheduleTable={parts?.scheduleTable ?? null}
+                banner={parts?.banner ?? null}
+                view={mview}
                 rows={shown}
                 total={total}
                 page={page}
@@ -174,7 +205,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 settings={settings}
                 today={today}
                 base={base}
-                sp={{ ...sp, tab: 'money', view: view === 'contributions' ? undefined : view }}
+                sp={{ ...sp, tab: 'money', view: mview === views[0] ? undefined : mview }}
                 t={t}
                 locale={locale}
                 people={people}
@@ -200,8 +231,8 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         const [audience, team, holdings, updates, history, messageCount, editCount, mandalParts] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
-            // Holdings card (everyone who sees the fundraise); a Mandal shows who has its money in its own tab.
-            campaign.kind === 'mandal' ? null : listHoldings(campaign),
+            // Holdings card (everyone who sees the fundraise or Mandal), under Team.
+            listHoldings(campaign),
             listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),

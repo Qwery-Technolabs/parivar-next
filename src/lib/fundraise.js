@@ -185,15 +185,16 @@ export async function getCampaignByToken(token) {
 
 /** @param {{ limit?: number, offset?: number }} [opts] omit for all rows (statement / print). */
 /** Contributions, newest first — with who keeps the money (kept_by → name) and whether it was handed to the treasurer. */
-export async function listContributions(campaignId, { limit, offset = 0 } = {}) {
+export async function listContributions(campaignId, { limit, offset = 0, eventId = null } = {}) {
     const page = limit ? `LIMIT ${Number(limit)} OFFSET ${Number(offset)}` : '';
+    // eventId: a Mandal schedule — only the money that came in at it.
     const rows = await query(
         `SELECT f.id, f.user_id, f.donor_name, f.amount, f.paid_on, f.mode, f.reference, f.is_anonymous, f.created_at,
-                f.kept_by, f.handed_over, k.full_name AS kept_by_name, k.full_name_local AS kept_by_name_local
+                f.kept_by, f.handed_over, f.event_id, k.full_name AS kept_by_name, k.full_name_local AS kept_by_name_local
            FROM fundraise_contributions f LEFT JOIN users_list k ON k.id = f.kept_by
-          WHERE f.campaign_id = :campaignId AND f.deleted_at IS NULL
+          WHERE f.campaign_id = :campaignId AND f.deleted_at IS NULL ${eventId ? 'AND f.event_id = :eventId' : ''}
           ORDER BY f.paid_on DESC, f.id DESC ${page}`,
-        { campaignId },
+        { campaignId, eventId },
     );
     return rows.map((r) => ({ ...r, handed_over: Boolean(r.handed_over) }));
 }
@@ -214,13 +215,15 @@ export async function fundraisePeople(campaignId) {
     );
 }
 
-export async function listExpenses(campaignId, { limit, offset = 0 } = {}) {
+export async function listExpenses(campaignId, { limit, offset = 0, eventId = null } = {}) {
     const page = limit ? `LIMIT ${Number(limit)} OFFSET ${Number(offset)}` : '';
+    // eventId: a Mandal schedule — only the expenses named for it (meta event_id).
     const rows = await query(
         `SELECT id, title, place, category, amount, spent_on, created_at
            FROM fundraise_expenses WHERE campaign_id = :campaignId AND deleted_at IS NULL
+           ${eventId ? "AND id IN (SELECT expense_id FROM fundraise_expensesmeta WHERE meta_key = 'event_id' AND meta_value = :ev)" : ''}
           ORDER BY spent_on DESC, id DESC ${page}`,
-        { campaignId },
+        { campaignId, ev: eventId ? String(eventId) : null },
     );
     // Who paid out of pocket (meta paid_by = user id) and whether the treasurer has paid them back (meta repaid = '1').
     const meta = await getMetaMany(
@@ -336,7 +339,7 @@ export async function listHoldings(campaign) {
  * One row per contributor: a member is keyed by user_id (so name edits do not split
  * them), a free-text donor by name. The public view folds anonymous gifts into one row.
  */
-export async function contributorTotals(campaignId, { publicView = false } = {}) {
+export async function contributorTotals(campaignId, { publicView = false, eventId = null } = {}) {
     const key = publicView ? PUBLIC_KEY : CONTRIB_KEY;
     return query(
         `SELECT ${key} AS k, MAX(donor_name) AS donor_name, MAX(user_id) AS user_id,
@@ -344,11 +347,36 @@ export async function contributorTotals(campaignId, { publicView = false } = {})
                 SUM(CASE WHEN mode = 'unpaid' THEN amount ELSE 0 END) AS pending, COUNT(*) AS entries,
                 SUM(CASE WHEN mode <> 'unpaid' THEN 1 ELSE 0 END) AS paid_entries,
                 MAX(CASE WHEN mode <> 'unpaid' THEN paid_on END) AS last_paid
-           FROM fundraise_contributions WHERE campaign_id = :campaignId AND deleted_at IS NULL
+           FROM fundraise_contributions WHERE campaign_id = :campaignId AND deleted_at IS NULL ${eventId ? 'AND event_id = :eventId' : ''}
           GROUP BY ${key}
           ORDER BY total DESC, donor_name`,
-        { campaignId },
+        { campaignId, eventId },
     );
+}
+
+/**
+ * Per Mandal schedule: what came in (received contributions with that event_id), what went out
+ * (expenses named for it), and how many of each — Map eventId → { received, spent, contributions, expenses }.
+ */
+export async function scheduleMoney(campaignId) {
+    const [inc, out] = await Promise.all([
+        query(
+            `SELECT event_id, SUM(amount) AS s, COUNT(*) AS n FROM fundraise_contributions
+              WHERE campaign_id = :campaignId AND deleted_at IS NULL AND mode <> 'unpaid' AND event_id IS NOT NULL GROUP BY event_id`,
+            { campaignId },
+        ),
+        query(
+            `SELECT CAST(m.meta_value AS UNSIGNED) AS event_id, SUM(e.amount) AS s, COUNT(*) AS n
+               FROM fundraise_expenses e JOIN fundraise_expensesmeta m ON m.expense_id = e.id AND m.meta_key = 'event_id' AND m.meta_value <> ''
+              WHERE e.campaign_id = :campaignId AND e.deleted_at IS NULL GROUP BY event_id`,
+            { campaignId },
+        ),
+    ]);
+    const out_ = new Map();
+    const row = (id) => out_.get(id) ?? out_.set(id, { received: 0, spent: 0, contributions: 0, expenses: 0 }).get(id);
+    for (const r of inc) Object.assign(row(Number(r.event_id)), { received: Number(r.s), contributions: Number(r.n) });
+    for (const r of out) Object.assign(row(Number(r.event_id)), { spent: Number(r.s), expenses: Number(r.n) });
+    return out_;
 }
 
 /**

@@ -14,13 +14,30 @@ const SECTION_LABEL = { contributors: 'fundraise.byContributor', contributions: 
  * A4 statement page. Rendered outside the app shell, because the shell's
  * h-dvh overflow-hidden frame would clip everything past the first printed page.
  */
-export default async function PrintSheet({ campaign, contributors, contributions, expenses, t, locale, backHref, publicView, basePath, sections }) {
+/**
+ * `query` (a Mandal's filter, e.g. "schedule=42") rides along on every section chip; `period` names it
+ * under the title ("11 Jul 2026 - Mandal", "1 Jul – 31 Jul").
+ */
+export default async function PrintSheet({
+    campaign,
+    contributors,
+    contributions,
+    expenses,
+    t,
+    locale,
+    backHref,
+    publicView,
+    basePath,
+    sections,
+    query = '',
+    period = '',
+}) {
     // The Samaj name (Settings → General) heads the printout; the app name only when none is set.
     const brand = samajName(await getSettings('admin'), locale) || t('app.name');
     // Each chip links to the same page with that section switched on / off (at least one stays on).
     const toggled = (s) => {
         const next = sections.includes(s) ? sections.filter((x) => x !== s) : STATEMENT_SECTIONS.filter((x) => x === s || sections.includes(x));
-        return next.length ? `${basePath}?show=${next.join(',')}` : null;
+        return next.length ? `${basePath}?show=${next.join(',')}${query ? `&${query}` : ''}` : null;
     };
     const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale) : '';
     const dates = campaign.start_date || campaign.end_date ? `${date(campaign.start_date, locale)} – ${date(campaign.end_date, locale)}` : '';
@@ -76,7 +93,7 @@ export default async function PrintSheet({ campaign, contributors, contributions
                         </p>
                         <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
                         <p className="mt-0.5 text-xs text-ink-gray">
-                            {[groupName, campaign.location, dates, t('fundraise.generatedOn', { date: date(todayLocal(), locale) })]
+                            {[groupName, campaign.location, period || dates, t('fundraise.generatedOn', { date: date(todayLocal(), locale) })]
                                 .filter(Boolean)
                                 .join(' · ')}
                         </p>

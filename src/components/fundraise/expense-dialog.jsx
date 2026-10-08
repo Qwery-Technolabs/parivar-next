@@ -59,7 +59,17 @@ function PaidBy({ people, entry, meId, fieldError }) {
 
 /** Add an expense, or edit one when `entry` (the row, with notes / bill_ref / paid_by / repaid) is given. */
 /** `schedules` (a Mandal only): [{ value: eventId, label }] — adds the optional "For schedule" choice. */
-export default function ExpenseDialog({ campaignId, today, categories = [], entry = null, trigger, people = [], meId = null, schedules = null }) {
+export default function ExpenseDialog({
+    campaignId,
+    today,
+    categories = [],
+    entry = null,
+    trigger,
+    people = [],
+    meId = null,
+    schedules = null,
+    defaultSchedule = null,
+}) {
     const { t } = useT();
     const editing = Boolean(entry);
     // A stored category removed from settings since still shows, so editing never drops it.
@@ -112,7 +122,11 @@ export default function ExpenseDialog({ campaignId, today, categories = [], entr
                         {/* A Mandal: the expense comes out of the common savings, optionally for one schedule. */}
                         {schedules && (
                             <Field label={`${t('mandal.forSchedule')} (${t('common.optional')})`} className="mt-3">
-                                <select name="event_id" defaultValue={entry?.event_id ?? ''} className={`${selectInput()} w-full`}>
+                                <select
+                                    name="event_id"
+                                    defaultValue={entry ? (entry.event_id ?? '') : (defaultSchedule ?? '')}
+                                    className={`${selectInput()} w-full`}
+                                >
                                     <option value="">{t('mandal.commonSavings')}</option>
                                     {schedules.map((s) => (
                                         <option key={s.value} value={s.value}>

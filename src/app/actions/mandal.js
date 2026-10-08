@@ -125,8 +125,8 @@ export async function saveMandalMeeting(prev, fd) {
                     );
                     // A keeper set since (e.g. edited on the entry) stays; a missing one gets the schedule's.
                     await q(
-                        'UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = COALESCE(kept_by, :keeper), deleted_at = NULL, deleted_by = NULL WHERE id = :id',
-                        { amount: r.paid, mode: r.mode, day: meeting.start_date, keeper, id: contributionId },
+                        'UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = COALESCE(kept_by, :keeper), event_id = :ev, deleted_at = NULL, deleted_by = NULL WHERE id = :id',
+                        { amount: r.paid, mode: r.mode, day: meeting.start_date, keeper, ev: eventId, id: contributionId },
                     );
                     if (old?.deleted_at) await payHistory(q, campaign.id, contributionId, 'add', actor.id);
                     else if (old && (Number(old.amount) !== r.paid || old.mode !== r.mode || String(old.paid_on) !== String(meeting.start_date)))
@@ -137,8 +137,8 @@ export async function saveMandalMeeting(prev, fd) {
                         });
                 } else {
                     const ins = await q(
-                        `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by, kept_by, handed_over)
-                         VALUES (:c, :u, :name, :amount, :day, :mode, :ref, :by, :keeper, 0)`,
+                        `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by, kept_by, handed_over, event_id)
+                         VALUES (:c, :u, :name, :amount, :day, :mode, :ref, :by, :keeper, 0, :ev)`,
                         {
                             c: campaign.id,
                             u: r.user_id,
@@ -149,6 +149,7 @@ export async function saveMandalMeeting(prev, fd) {
                             ref: `Mandal ${meeting.start_date}`.slice(0, 100),
                             by: actor.id,
                             keeper,
+                            ev: eventId,
                         },
                     );
                     contributionId = ins.insertId;

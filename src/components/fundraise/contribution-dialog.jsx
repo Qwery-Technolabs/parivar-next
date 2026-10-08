@@ -17,7 +17,19 @@ const MODES = ['cash', 'upi', 'bank', 'cheque', 'other', 'unpaid'];
  * Add a contribution, or edit one when `entry` (the row) is given. `trigger` overrides the
  * default button — the row menu passes one that opens the dialog as soon as it mounts.
  */
-export default function ContributionDialog({ campaignId, today, allowAnonymous = true, entry = null, trigger, people = [], meId = null, handDefault = false }) {
+/** `schedules` (a Mandal): [{ value, label }] + `defaultSchedule` — which schedule the money came in at. */
+export default function ContributionDialog({
+    campaignId,
+    today,
+    allowAnonymous = true,
+    entry = null,
+    trigger,
+    people = [],
+    meId = null,
+    handDefault = false,
+    schedules = null,
+    defaultSchedule = null,
+}) {
     const { t } = useT();
     const editing = Boolean(entry);
     return (
@@ -50,6 +62,8 @@ export default function ContributionDialog({ campaignId, today, allowAnonymous =
                     people={people}
                     meId={meId}
                     handDefault={handDefault}
+                    schedules={schedules}
+                    defaultSchedule={defaultSchedule}
                 />
             )}
         </FormDialog>
@@ -102,7 +116,7 @@ export function KeptBy({ people, entry, meId, handDefault, fieldError }) {
     );
 }
 
-function ContributionFields({ fieldError, today, allowAnonymous, entry, people, meId, handDefault }) {
+function ContributionFields({ fieldError, today, allowAnonymous, entry, people, meId, handDefault, schedules = null, defaultSchedule = null }) {
     const { t } = useT();
     const [name, setName] = useState(entry?.donor_name ?? '');
     const [anon, setAnon] = useState(Boolean(Number(entry?.is_anonymous ?? 0)));
@@ -148,6 +162,23 @@ function ContributionFields({ fieldError, today, allowAnonymous, entry, people, 
                 </div>
             </FormPart>
             <FormPart title={t('fundraise.parts.amount')} icon={Wallet}>
+                {/* A Mandal: the money comes in at a schedule (default: the one open, else the latest). */}
+                {schedules && (
+                    <Field label={t('mandal.schedule')} className="mb-3">
+                        <select
+                            name="event_id"
+                            defaultValue={entry ? (entry.event_id ?? '') : (defaultSchedule ?? schedules[0]?.value ?? '')}
+                            className={`${selectInput()} w-full`}
+                        >
+                            <option value="">{t('mandal.noSchedule')}</option>
+                            {schedules.map((s) => (
+                                <option key={s.value} value={s.value}>
+                                    {s.label}
+                                </option>
+                            ))}
+                        </select>
+                    </Field>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field label={t('fundraise.amount')} error={fieldError('amount')} required>
                         <input

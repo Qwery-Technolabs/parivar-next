@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation';
 import PrintSheet from '@/components/fundraise/print-sheet';
-import MandalLedgerPrint from '@/components/mandal/mandal-ledger-print';
 import { statementSections } from '@/components/fundraise/statement';
 import { contributorTotals, getCampaignByToken, listContributions, listExpenses } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { mandalLedger } from '@/lib/mandal';
+import { mandalLedger, mandalPeriod, mandalStatement } from '@/lib/mandal';
 import { mandalFilters } from '@/lib/mandal-filters';
 import { sp1 } from '@/lib/url';
 
@@ -27,18 +26,27 @@ export default async function PublicFundraisePrintPage({ params, searchParams })
     if (!campaign) notFound();
 
     const { t, locale } = await getT();
-    // A Mandal prints the same ledger as its public page: all, one schedule, or a date range.
+    // A Mandal prints like a fundraise (By contributor · Contributions · Expenses chips), from the
+    // rows of its filter — one schedule or a date range — which every chip keeps.
     if (campaign.kind === 'mandal') {
         const filters = mandalFilters(sp);
         const ledger = await mandalLedger(campaign.id, filters);
+        const { contributors, contributions, expenses, shownCampaign } = mandalStatement(campaign, ledger);
+        const back = `/p/${token}${filters.query ? `?${filters.query}` : ''}`;
         return (
-            <MandalLedgerPrint
-                campaign={campaign}
-                ledger={ledger}
-                filters={filters}
+            <PrintSheet
+                campaign={shownCampaign}
+                contributors={contributors}
+                contributions={contributions}
+                expenses={expenses}
                 t={t}
                 locale={locale}
-                backHref={`/p/${token}${filters.query ? `?${filters.query}` : ''}`}
+                backHref={back}
+                basePath={`/p/${token}/print`}
+                sections={sections}
+                query={filters.query}
+                period={mandalPeriod(ledger, filters, t, locale)}
+                publicView
             />
         );
     }

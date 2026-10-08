@@ -2,6 +2,7 @@ import 'server-only';
 import { fundraisePermissions, isLeaderOfFundraiseGroup } from './access';
 import { getMeta, getMetaMany, inList, query } from './db';
 import { listContributions, listExpenses } from './fundraise';
+import { date as formatDate } from './format';
 
 // Mandal (savings circle) — a fundraise of kind 'mandal' inside a group. Its members
 // (fundraise_subscribers) pay a fixed amount at its meetings (the fundraise's own meetings).
@@ -228,13 +229,42 @@ export async function mandalLedger(campaignId, { schedule = null, from = '', to 
     const day = (v) => String(v ?? '').slice(0, 10);
     const chosen = schedule ? schedules.find((s) => s.id === schedule) : null;
     if (chosen) {
-        const ids = new Set(
-            (await query('SELECT contribution_id FROM fundraise_mandal_marks WHERE event_id = :e AND contribution_id IS NOT NULL', { e: chosen.id })).map(
-                (r) => r.contribution_id,
-            ),
-        );
-        return { schedules, schedule: chosen.id, incomes: received.filter((r) => ids.has(r.id)), expenses: expenseAll.filter((x) => x.event_id === chosen.id) };
+        return {
+            schedules,
+            schedule: chosen.id,
+            incomes: received.filter((r) => r.event_id === chosen.id),
+            expenses: expenseAll.filter((x) => x.event_id === chosen.id),
+        };
     }
     const inRange = (d) => (!from || day(d) >= from) && (!to || day(d) <= to);
     return { schedules, schedule: null, incomes: received.filter((r) => inRange(r.paid_on)), expenses: expenseAll.filter((x) => inRange(x.spent_on)) };
+}
+
+/**
+ * The statement tables of a filtered Mandal ledger (public page / its print): contributions and
+ * expenses as filtered, "by contributor" rebuilt from them (anonymous gifts folded into one row,
+ * as on any public page), and the campaign with collected / spent of THIS selection.
+ */
+export function mandalStatement(campaign, ledger) {
+    const byKey = new Map();
+    for (const r of ledger.incomes) {
+        const k = r.is_anonymous ? 'anon' : r.user_id ? `u${r.user_id}` : `n${r.donor_name}`;
+        const c = byKey.get(k) ?? { k, donor_name: r.donor_name, user_id: r.user_id, is_anonymous: r.is_anonymous, total: 0, paid_entries: 0, entries: 0 };
+        c.total += Number(r.amount);
+        c.paid_entries += 1;
+        c.entries += 1;
+        byKey.set(k, c);
+    }
+    const contributors = [...byKey.values()].sort((a, b) => b.total - a.total || String(a.donor_name).localeCompare(String(b.donor_name)));
+    const collected = ledger.incomes.reduce((s, r) => s + Number(r.amount), 0);
+    const spent = ledger.expenses.reduce((s, x) => s + Number(x.amount), 0);
+    return { contributors, contributions: ledger.incomes, expenses: ledger.expenses, shownCampaign: { ...campaign, collected, spent } };
+}
+
+/** The filter in words, for the printout's sub-title: a schedule, a date range, or '' for all. */
+export function mandalPeriod(ledger, filters, t, locale) {
+    const chosen = filters.schedule ? ledger.schedules.find((s) => s.id === filters.schedule) : null;
+    if (chosen) return `${formatDate(chosen.start_date, locale)} - ${t('mandal.word')}`;
+    if (filters.from || filters.to) return `${filters.from ? formatDate(filters.from, locale) : '…'} – ${filters.to ? formatDate(filters.to, locale) : '…'}`;
+    return '';
 }

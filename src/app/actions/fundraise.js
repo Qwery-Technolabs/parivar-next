@@ -29,10 +29,9 @@ const newToken = () => randomBytes(18).toString('base64url'); // 24 url-safe cha
 async function authorize(campaignId, perm = 'manage') {
     const user = await getCurrentUser();
     if (!user || !campaignId) return { user: null, campaign: null };
-    const campaign = await queryOne(
-        'SELECT id, group_id, kind, title, title_local, is_public, public_token FROM fundraise_campaigns WHERE id = :campaignId',
-        { campaignId },
-    );
+    const campaign = await queryOne('SELECT id, group_id, kind, title, title_local, is_public, public_token FROM fundraise_campaigns WHERE id = :campaignId', {
+        campaignId,
+    });
     if (!campaign) return { user: null, campaign: null };
     const perms = await fundraisePermissions(user, campaign);
     if (!perms[perm]) return { user: null, campaign: null };
@@ -75,7 +74,10 @@ async function parseAudience(fd) {
     const casteRows = rows.filter((r) => r.kind === 'caste' || r.kind === 'subcaste');
     if (casteRows.length) {
         if (casteRows.some((r) => !/^\d+$/.test(r.value))) return null;
-        const l = inList(casteRows.map((r) => Number(r.value)), 'ca');
+        const l = inList(
+            casteRows.map((r) => Number(r.value)),
+            'ca',
+        );
         const found = await query(`SELECT id, parent_id FROM admin_castes WHERE id IN (${l.sql})`, l.params);
         const byId = new Map(found.map((r) => [String(r.id), r]));
         for (const r of casteRows) {
@@ -116,7 +118,9 @@ async function planCampaignGroups(user, campaignId, homeId, extraIds) {
     }
     const dropAllowed = [];
     for (const g of drop) if (await canCreateFundraiseIn(user, g)) dropAllowed.push(g);
-    const exists = add.length ? await query(`SELECT id FROM admin_groups WHERE id IN (${add.map((_, i) => `:g${i}`).join(',')})`, Object.fromEntries(add.map((g, i) => [`g${i}`, g]))) : [];
+    const exists = add.length
+        ? await query(`SELECT id FROM admin_groups WHERE id IN (${add.map((_, i) => `:g${i}`).join(',')})`, Object.fromEntries(add.map((g, i) => [`g${i}`, g])))
+        : [];
     if (exists.length !== add.length) return { error: 'fundraise.errors.extraGroup' };
     return { add, drop: dropAllowed };
 }
@@ -143,7 +147,10 @@ function readSchedules(fd) {
         rows.push({
             id: Number(ids[i]) > 0 ? Number(ids[i]) : null,
             day,
-            place: String(places[i] ?? '').trim().slice(0, 200) || null,
+            place:
+                String(places[i] ?? '')
+                    .trim()
+                    .slice(0, 200) || null,
             amount: Math.round(amount * 100) / 100,
             holder: Number(holders[i]) > 0 ? Number(holders[i]) : null,
             archived: archived[i] === '1',
@@ -169,7 +176,14 @@ async function writeMandalSchedules(q, campaignId, groupId, rows, userId) {
             )
         ).map((r) => r.id),
     );
-    const people = new Set((await q('SELECT id FROM users_list WHERE id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c UNION SELECT user_id FROM admin_group_members WHERE group_id = :g)', { c: campaignId, g: groupId })).map((r) => r.id));
+    const people = new Set(
+        (
+            await q(
+                'SELECT id FROM users_list WHERE id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c UNION SELECT user_id FROM admin_group_members WHERE group_id = :g)',
+                { c: campaignId, g: groupId },
+            )
+        ).map((r) => r.id),
+    );
     const kept = new Set();
     for (const r of rows) {
         const title = `${formatDate(r.day, 'en')} - Mandal`;
@@ -219,10 +233,10 @@ async function writeMandalSchedules(q, campaignId, groupId, rows, userId) {
 async function writeMandalMembers(q, campaignId, groupId, mode, chosen, userId) {
     const people = new Set(
         (
-            await q(
-                `SELECT user_id FROM admin_group_members WHERE group_id = :g UNION SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c`,
-                { g: groupId, c: campaignId },
-            )
+            await q(`SELECT user_id FROM admin_group_members WHERE group_id = :g UNION SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c`, {
+                g: groupId,
+                c: campaignId,
+            })
         ).map((r) => r.user_id),
     );
     if (mode === 'all') {
@@ -234,7 +248,8 @@ async function writeMandalMembers(q, campaignId, groupId, mode, chosen, userId) 
         return;
     }
     const keep = chosen.filter((u) => people.has(u));
-    for (const u of keep) await q('INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by) VALUES (:c, :u, :by)', { c: campaignId, u, by: userId });
+    for (const u of keep)
+        await q('INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by) VALUES (:c, :u, :by)', { c: campaignId, u, by: userId });
     const now = (await q('SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c', { c: campaignId })).map((r) => r.user_id);
     for (const u of now) if (!keep.includes(u)) await q('DELETE FROM fundraise_subscribers WHERE campaign_id = :c AND user_id = :u', { c: campaignId, u });
 }
@@ -244,15 +259,20 @@ async function writeMandalMembers(q, campaignId, groupId, mode, chosen, userId) 
  * so it is part of the total and the ledger. Changing it updates that row; 0 / empty removes it.
  */
 async function writeOpeningBalance(q, campaignId, amount, userId) {
-    const [m] = await q("SELECT meta_value FROM fundraise_campaignsmeta WHERE campaign_id = :campaignId AND meta_key = 'opening_contribution_id'", { campaignId });
+    const [m] = await q("SELECT meta_value FROM fundraise_campaignsmeta WHERE campaign_id = :campaignId AND meta_key = 'opening_contribution_id'", {
+        campaignId,
+    });
     const rowId = Number(m?.meta_value) || null;
     if (amount > 0) {
         if (rowId) {
-            await q('UPDATE fundraise_contributions SET amount = :amount, deleted_at = NULL, deleted_by = NULL WHERE id = :rowId AND campaign_id = :campaignId', {
-                amount,
-                rowId,
-                campaignId,
-            });
+            await q(
+                'UPDATE fundraise_contributions SET amount = :amount, deleted_at = NULL, deleted_by = NULL WHERE id = :rowId AND campaign_id = :campaignId',
+                {
+                    amount,
+                    rowId,
+                    campaignId,
+                },
+            );
         } else {
             const r = await q(
                 `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by)
@@ -353,8 +373,7 @@ export async function saveCampaign(prev, fd) {
         if (!campaign) return FORBIDDEN;
         if (kind === 'mandal' && groupId !== campaign.group_id) return { fieldErrors: { group_id: 'mandal.errors.group' } };
         // Moving a fundraise into another group needs the right to create there too.
-        if (groupId !== campaign.group_id && !(await canCreateFundraiseIn(user, groupId)))
-            return { fieldErrors: { group_id: 'fundraise.errors.group' } };
+        if (groupId !== campaign.group_id && !(await canCreateFundraiseIn(user, groupId))) return { fieldErrors: { group_id: 'fundraise.errors.group' } };
         const plan = await planCampaignGroups(user, campaignId, groupId, extraGroupIds);
         if (plan.error) return { fieldErrors: { extra_group_ids: plan.error } };
         await withTransaction(async (q) => {
@@ -515,10 +534,7 @@ async function contributionSnapshot(q, contributionId) {
 }
 
 async function expenseSnapshot(q, expenseId) {
-    const [row] = await q(
-        `SELECT id, title, place, category, amount, spent_on, deleted_at FROM fundraise_expenses WHERE id = :expenseId`,
-        { expenseId },
-    );
+    const [row] = await q(`SELECT id, title, place, category, amount, spent_on, deleted_at FROM fundraise_expenses WHERE id = :expenseId`, { expenseId });
     if (!row) return null;
     const meta = await q(
         `SELECT meta_key, meta_value FROM fundraise_expensesmeta WHERE expense_id = :expenseId AND meta_key IN ('notes', 'bill_ref', 'paid_by', 'repaid')`,
@@ -557,7 +573,11 @@ export async function markContributionPaid(prev, fd) {
     const { user, campaign } = await authorize(campaignId, 'contribution');
     if (!campaign) return FORBIDDEN;
     const contributionId = id(fd, 'contribution_id');
-    const mode = oneOf(fd, 'mode', PAY_MODES.filter((m) => m !== 'unpaid'));
+    const mode = oneOf(
+        fd,
+        'mode',
+        PAY_MODES.filter((m) => m !== 'unpaid'),
+    );
     const paidOn = date(fd, 'paid_on');
     const keptBy = id(fd, 'kept_by') || user.id;
     const handed = bool(fd, 'handed_over') ? 1 : 0;
@@ -575,7 +595,14 @@ export async function markContributionPaid(prev, fd) {
         );
         if (!r.affectedRows) return false;
         const after = await contributionSnapshot(q, contributionId);
-        await writeHistory(q, { campaignId, entity: 'contribution', entityId: contributionId, action: 'edit', actorId: user.id, snapshot: { ...after, before } });
+        await writeHistory(q, {
+            campaignId,
+            entity: 'contribution',
+            entityId: contributionId,
+            action: 'edit',
+            actorId: user.id,
+            snapshot: { ...after, before },
+        });
         return true;
     });
     if (!done) return { error: 'fundraise.errors.notPending' };
@@ -645,8 +672,22 @@ export async function saveContribution(prev, fd) {
         values.handed = 0;
     } else {
         values.keptBy = id(fd, 'kept_by') || user.id;
-        if (!(await queryOne('SELECT id FROM users_list WHERE id = :keptBy', { keptBy: values.keptBy }))) return { fieldErrors: { kept_by: 'fundraise.errors.member' } };
+        if (!(await queryOne('SELECT id FROM users_list WHERE id = :keptBy', { keptBy: values.keptBy })))
+            return { fieldErrors: { kept_by: 'fundraise.errors.member' } };
         values.handed = bool(fd, 'handed_over') ? 1 : 0;
+    }
+    // A Mandal: the schedule this money came in at (posted only from a Mandal's forms; kept as-is otherwise).
+    const scheduled = campaign.kind === 'mandal' && fd.has('event_id');
+    if (scheduled) {
+        const eventId = id(fd, 'event_id');
+        values.eventId = eventId
+            ? ((
+                  await queryOne("SELECT id FROM events_list WHERE id = :eventId AND campaign_id = :campaignId AND event_type = 'meeting'", {
+                      eventId,
+                      campaignId,
+                  })
+              )?.id ?? null)
+            : null;
     }
 
     const result = await withTransaction(async (q) => {
@@ -662,6 +703,7 @@ export async function saveContribution(prev, fd) {
                 `UPDATE fundraise_contributions
                     SET user_id = :userId, donor_name = :donorName, amount = :amount, paid_on = :paidOn,
                         mode = :mode, reference = :reference, is_anonymous = :anon, kept_by = :keptBy, handed_over = :handed
+                        ${scheduled ? ', event_id = :eventId' : ''}
                   WHERE id = :contributionId AND campaign_id = :campaignId`,
                 { ...values, contributionId },
             );
@@ -678,9 +720,9 @@ export async function saveContribution(prev, fd) {
         }
         const r = await q(
             `INSERT INTO fundraise_contributions
-                (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, recorded_by, kept_by, handed_over)
-             VALUES (:campaignId, :userId, :donorName, :amount, :paidOn, :mode, :reference, :anon, :by, :keptBy, :handed)`,
-            { ...values, by: user.id },
+                (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, is_anonymous, recorded_by, kept_by, handed_over, event_id)
+             VALUES (:campaignId, :userId, :donorName, :amount, :paidOn, :mode, :reference, :anon, :by, :keptBy, :handed, :eventId)`,
+            { eventId: null, ...values, by: user.id },
         );
         await writeHistory(q, {
             campaignId,
@@ -780,10 +822,10 @@ export async function saveExpense(prev, fd) {
 
     const result = await withTransaction(async (q) => {
         if (expenseId) {
-            const [owner] = await q(
-                'SELECT 1 AS ok FROM fundraise_expenses WHERE id = :expenseId AND campaign_id = :campaignId AND deleted_at IS NULL',
-                { expenseId, campaignId },
-            );
+            const [owner] = await q('SELECT 1 AS ok FROM fundraise_expenses WHERE id = :expenseId AND campaign_id = :campaignId AND deleted_at IS NULL', {
+                expenseId,
+                campaignId,
+            });
             if (!owner) return null;
             const before = await expenseSnapshot(q, expenseId);
             await q(
@@ -905,7 +947,11 @@ export async function saveTeamMember(prev, fd) {
             });
         }
         for (const role of removed) {
-            await q('DELETE FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId AND member_role = :role', { campaignId, userId, role });
+            await q('DELETE FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId AND member_role = :role', {
+                campaignId,
+                userId,
+                role,
+            });
         }
     });
     if (!before.length) await syncEveryoneMeetings({ scope: 'fundraise', scopeId: campaignId }); // its upcoming "Everyone" meetings
@@ -935,7 +981,6 @@ export async function removeTeamMember(campaignId, userId) {
 
 // ── meetings ──────────────────────────────────────────────────────────────────
 
-
 /** Post an update, or minutes when meeting_id is given. Needs perms.post (manage or any team member). */
 export async function postUpdate(prev, fd) {
     const campaignId = id(fd, 'campaign_id');
@@ -947,10 +992,10 @@ export async function postUpdate(prev, fd) {
 
     const meetingId = id(fd, 'meeting_id');
     if (meetingId) {
-        const m = await queryOne(
-            `SELECT id FROM events_list WHERE id = :meetingId AND campaign_id = :campaignId AND event_type = 'meeting'`,
-            { meetingId, campaignId },
-        );
+        const m = await queryOne(`SELECT id FROM events_list WHERE id = :meetingId AND campaign_id = :campaignId AND event_type = 'meeting'`, {
+            meetingId,
+            campaignId,
+        });
         if (!m) return FORBIDDEN;
     }
     const type = meetingId ? 'minutes' : 'update';
@@ -979,10 +1024,10 @@ export async function postUpdate(prev, fd) {
 export async function deleteUpdate(campaignId, updateId) {
     const { user, campaign, perms } = await authorize(campaignId, 'post');
     if (!campaign) return FORBIDDEN;
-    const row = await queryOne(
-        'SELECT created_by, update_type FROM fundraise_updates WHERE id = :updateId AND campaign_id = :campaignId',
-        { updateId, campaignId },
-    );
+    const row = await queryOne('SELECT created_by, update_type FROM fundraise_updates WHERE id = :updateId AND campaign_id = :campaignId', {
+        updateId,
+        campaignId,
+    });
     if (!row || (!perms.manage && row.created_by !== user.id)) return FORBIDDEN;
     await query('DELETE FROM fundraise_updates WHERE id = :updateId AND campaign_id = :campaignId', { updateId, campaignId });
     await audit(user.id, `fundraise.${row.update_type}.delete`, 'fundraise', campaignId, { update: updateId });

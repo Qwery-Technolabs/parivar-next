@@ -40,15 +40,24 @@ function PlusTrigger({ label, tone }) {
  * From sm up: both labelled buttons. Phones: two round "+" buttons — blue adds a contribution,
  * orange an expense (the same colours as the amounts and the tabs).
  */
-export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories, people = [], meId = null, handDefault = false }) {
+/** `scheduling` (a Mandal): { schedules, defaultSchedule } — both dialogs ask which schedule. */
+export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories, people = [], meId = null, handDefault = false, scheduling = {} }) {
     const { t } = useT();
     return (
         <>
             <span className="hidden sm:contents">
                 {perms.contribution && (
-                    <ContributionDialog campaignId={campaignId} today={today} allowAnonymous={allowAnonymous} people={people} meId={meId} handDefault={handDefault} />
+                    <ContributionDialog
+                        campaignId={campaignId}
+                        today={today}
+                        allowAnonymous={allowAnonymous}
+                        people={people}
+                        meId={meId}
+                        {...scheduling}
+                        handDefault={handDefault}
+                    />
                 )}
-                {perms.expense && <ExpenseDialog campaignId={campaignId} today={today} categories={categories} people={people} meId={meId} />}
+                {perms.expense && <ExpenseDialog campaignId={campaignId} today={today} categories={categories} people={people} meId={meId} {...scheduling} />}
             </span>
             <span className="contents sm:hidden">
                 {perms.contribution && (
@@ -58,6 +67,7 @@ export default function EntryButtons({ campaignId, today, perms, allowAnonymous,
                         allowAnonymous={allowAnonymous}
                         people={people}
                         meId={meId}
+                        {...scheduling}
                         handDefault={handDefault}
                         trigger={PlusTrigger({ label: t('fundraise.addContribution'), tone: 'income' })}
                     />
@@ -69,6 +79,7 @@ export default function EntryButtons({ campaignId, today, perms, allowAnonymous,
                         categories={categories}
                         people={people}
                         meId={meId}
+                        {...scheduling}
                         trigger={PlusTrigger({ label: t('fundraise.addExpense'), tone: 'expense' })}
                     />
                 )}

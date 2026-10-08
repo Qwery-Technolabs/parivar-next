@@ -331,12 +331,14 @@ CREATE TABLE IF NOT EXISTS fundraise_contributions (
     recorded_by  INT UNSIGNED  NULL,
     kept_by      INT UNSIGNED  NULL,             -- who holds the money now (default: whoever recorded it); NULL for a pledge
     handed_over  TINYINT(1)    NOT NULL DEFAULT 0,  -- 1 = handed to the treasurer
+    event_id     INT UNSIGNED  NULL,             -- a Mandal: the schedule (events_list id) this money came in at; no FK (events_list is defined later)
     deleted_at   DATETIME      NULL,             -- soft delete: hidden and out of totals, kept for history
     deleted_by   INT UNSIGNED  NULL,
     created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_fundraise_contrib_camp (campaign_id, paid_on),
     KEY idx_fundraise_contrib_user (user_id),
+    KEY idx_fundraise_contrib_event (event_id),
     CONSTRAINT fk_fundraise_contrib_camp FOREIGN KEY (campaign_id) REFERENCES fundraise_campaigns (id) ON DELETE CASCADE,
     CONSTRAINT fk_fundraise_contrib_user FOREIGN KEY (user_id)     REFERENCES users_list (id)          ON DELETE SET NULL,
     CONSTRAINT fk_fundraise_contrib_kept FOREIGN KEY (kept_by)     REFERENCES users_list (id)          ON DELETE SET NULL
