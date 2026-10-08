@@ -230,18 +230,22 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                     <ArrowLeft className="size-4" />
                 </Link>
                 <div className="min-w-0 flex-1">
+                    {/* Date, then the amount per person beside it — so the line below never hides the keeper. */}
                     <p className="font-semibold text-primary">
                         {date(chosen.e.start_date, locale)} - {t('mandal.word')}
+                        <span className="ml-1.5 text-xs font-medium text-income tabular-nums">
+                            {chosen.e.collect ? t('mandal.perPersonAmount', { amount: money(chosen.e.installment) }) : t('mandal.notCollecting')}
+                        </span>
                         {chosen.e.archived && (
                             <Badge tone="gray" className="ml-1.5 align-middle">
                                 {t('fundraise.archivedBadge')}
                             </Badge>
                         )}
                     </p>
-                    <p className="truncate text-xs text-ink-gray tabular-nums sm:whitespace-normal">
+                    {/* Place · money keeper · came — wraps on a phone instead of being cut off. */}
+                    <p className="text-xs text-ink-gray tabular-nums break-words">
                         {[
                             chosen.e.location,
-                            chosen.e.collect ? t('mandal.perPersonAmount', { amount: money(chosen.e.installment) }) : t('mandal.notCollecting'),
                             chosen.e.holder ? t('mandal.moneyWith', { name: name(chosen.e.holder) }) : null,
                             Object.keys(chosen.sheet).length ? t('mandal.cameCount', { came: chosen.came, total: chosen.forThem.length }) : null,
                         ]
