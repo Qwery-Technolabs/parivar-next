@@ -255,6 +255,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   short Mandal "+ Contribution" — MandalContributionDialog → saveMandalContribution: member (this Mandal's members only),
   schedule (default the open one, else the latest open), came, amount (starts at its per-member amount), mode; written like one
   sheet row (mark + contribution, kept_by = schedule keeper) — no Kept by / handed over / donor name / anonymous / reference;
+  rows: member · amount + mode · schedule + came; picking a member shows their record before that schedule (absences in a
+  row since added, owed) and the amount starts at per-member + owed (mandalAdd.info). Nothing recorded on a schedule = ABSENT
+  (mandalMembers `missed` counts unmarked schedules too). One payment per member per schedule via "+ Contribution" (server
+  refuses a second: mandal.errors.alreadyPaid; members who paid there are left out of its picker — mandalAdd.paid).
+  **Attendance & money AUTOSAVES per row** (no Save button): Came on tick, Mode on change, Paid ~0.9s after typing / on blur —
+  each row = saveMandalContribution(sheet=1, queued per row, Saving…/Saved/error mark; no page refresh per row, one
+  router.refresh() on Done / close). saveMandalMeeting (whole-sheet save) is no longer used by the UI;
   only for those who run the sheet, while a schedule is open); expenses: meta event_id ("For schedule").
   Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over 0;
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,

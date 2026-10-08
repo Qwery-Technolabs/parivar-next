@@ -312,8 +312,18 @@ export async function saveMandalContribution(prev, fd) {
     if (!target) fieldErrors.event_id = 'common.required';
     else if (target.archived) return { error: 'mandal.errors.archived' };
     if (raw && (!Number.isFinite(paid) || paid < 0)) fieldErrors.amount = 'mandal.errors.amount';
-    if (!present && !(paid > 0)) fieldErrors.amount = 'mandal.errors.nothing';
+    // The "+ Contribution" form needs something to record; a sheet row may be set back to absent / unpaid.
+    if (!present && !(paid > 0) && fd.get('sheet') !== '1') fieldErrors.amount = 'mandal.errors.nothing';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
+    // "+ Contribution" takes one payment per member per schedule; changing it is the sheet's job.
+    if (fd.get('sheet') !== '1') {
+        const already = await queryOne(
+            `SELECT 1 AS yes FROM fundraise_mandal_marks m JOIN fundraise_contributions fc ON fc.id = m.contribution_id AND fc.deleted_at IS NULL
+              WHERE m.event_id = :e AND m.user_id = :u`,
+            { e: eventId, u: member.id },
+        );
+        if (already) return { fieldErrors: { user_id: 'mandal.errors.alreadyPaid' } };
+    }
     const keeper = target.holder?.id ?? actor.id;
 
     await withTransaction(async (q) => {
@@ -375,6 +385,7 @@ export async function saveMandalContribution(prev, fd) {
         );
     });
     await audit(actor.id, 'mandal.contribution', 'fundraise', campaign.id, { eventId, userId: member.id, present, paid });
-    refresh(campaign.id);
+    // A sheet row saves on its own as it changes; the sheet refreshes the page once, when it is closed.
+    if (fd.get('sheet') !== '1') refresh(campaign.id);
     return { ok: true, message: 'mandal.contributionSaved' };
 }

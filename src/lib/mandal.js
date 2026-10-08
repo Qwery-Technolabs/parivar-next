@@ -92,13 +92,11 @@ export async function mandalMembers(campaignId, meetings, today) {
         const theirs = held.filter((e) => (e.start_date >= m.joined && isFor(e, m.id)) || mine.has(e.id));
         const owed = theirs.filter((e) => e.collect).reduce((s, e) => s + e.installment, 0);
         const paid = [...mine.values()].reduce((s, x) => s + Number(x.paid || 0), 0);
-        // Missed in a row: marked meetings since the last one they came to (unmarked ones are unknown).
+        // Missed in a row: their meetings since the last one they came to. Nothing recorded = absent.
         let missed = 0;
         let lastPresent = null;
         for (const e of [...theirs].reverse()) {
-            const mk = mine.get(e.id);
-            if (!mk) continue;
-            if (mk.present) {
+            if (mine.get(e.id)?.present) {
                 lastPresent = e.start_date;
                 break;
             }

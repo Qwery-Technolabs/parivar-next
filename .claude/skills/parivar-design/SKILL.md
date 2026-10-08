@@ -121,6 +121,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   rule needs it ("Skips higher roles and yourself. An empty value clears it."). Same length in gu.
 - EXCEPT Danger zone rows (every danger card in the app): a full explaining sentence, up to ~20 words, keeping the
   "Action: …" prefix — what happens, who can still see / undo it, or "This cannot be undone."
+- Long entry sheets (Mandal Attendance & money) **save each row as it changes** — no Save button to forget; a small
+  Saving… / ✓ / ! mark per row and a "Done" button that only closes.
 - Repeater rows (Bulk edit, Invite by phone): small uppercase column headings, plain rows (no box per row), a bordered square × at the
   right of each row, "+ Add …" as an outlined button bottom-right. Short rows (Invite: mobile · full name · ×) stay ONE
   line on phones too (grid minmax(0,1fr) / minmax(0,1.4fr) / 2.25rem).

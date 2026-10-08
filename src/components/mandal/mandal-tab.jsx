@@ -242,6 +242,45 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                 collect: Boolean(r.e.collect),
             })),
             defaultSchedule: chosen && !chosen.e.archived ? chosen.e.id : (open[0]?.e.id ?? null),
+            // Who already paid at each open schedule: left out of the member list there (one payment each).
+            paid: Object.fromEntries(
+                open.map((r) => [
+                    r.e.id,
+                    Object.entries(r.sheet)
+                        .filter(([, x]) => Number(x.paid) > 0)
+                        .map(([uid]) => Number(uid)),
+                ]),
+            ),
+            // Per open schedule and member, what to show once a member is picked: still owed from the
+            // schedules before it, and their run of absences before it (since they were added; nothing
+            // recorded = absent) — info[eventId][memberId] = { owed, missed, since, lastCame, held }.
+            info: Object.fromEntries(
+                open.map((r) => {
+                    const owed = pendingBefore(plain, meetings, marks, r.e.id);
+                    return [
+                        r.e.id,
+                        Object.fromEntries(
+                            plain.map((p) => {
+                                const earlier = rows.filter(
+                                    (x) => x.e.start_date < r.e.start_date && ((x.e.start_date >= p.joined && isFor(x.e, p.id)) || x.sheet[p.id]),
+                                );
+                                let missed = 0;
+                                let since = null;
+                                let lastCame = null;
+                                for (const x of earlier) {
+                                    if (x.sheet[p.id]?.present) {
+                                        lastCame = x.e.start_date;
+                                        break;
+                                    }
+                                    missed++;
+                                    since = x.e.start_date;
+                                }
+                                return [p.id, { owed: owed[p.id] ?? 0, missed, since, lastCame, held: earlier.length }];
+                            }),
+                        ),
+                    ];
+                }),
+            ),
         };
         return { scheduleTable, banner, chosen: chosen?.e ?? null, scheduleOptions, money: moneyBy, mandalAdd, canRun };
     }
