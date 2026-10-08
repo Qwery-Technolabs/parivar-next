@@ -132,15 +132,18 @@ export default function MandalSheet({
                 <DialogContent className="max-h-[92vh] overflow-y-auto bg-white sm:max-w-2xl">
                     {/* The one Edit for attendance & money (whole list, for backfilling): top right, left of ×. */}
                     {canEdit && !editing && members.length > 0 && (
+                        // Icon only, like the × beside it — a blue pencil; "Edit" is its tooltip / screen-reader name.
                         <button
                             type="button"
                             onClick={startEdit}
-                            className="btn-secondary absolute right-11 top-2 inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
+                            aria-label={t('common.edit')}
+                            title={t('common.edit')}
+                            className="absolute right-10 top-2 inline-flex size-7 items-center justify-center rounded-md text-income hover:bg-accent"
                         >
-                            <Pencil className="size-3.5" /> {t('common.edit')}
+                            <Pencil className="size-4" />
                         </button>
                     )}
-                    <DialogHeader className={canEdit && !editing ? 'pr-24' : ''}>
+                    <DialogHeader className={canEdit && !editing ? 'pr-14' : ''}>
                         <DialogTitle className="text-base font-semibold text-primary">{t('mandal.sheetTitle')}</DialogTitle>
                         <DialogDescription className="text-xs text-ink-gray">
                             {[meeting.title_local && locale !== 'en' ? meeting.title_local : meeting.title, meeting.location].filter(Boolean).join(' · ')}

@@ -243,7 +243,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   records of payments once added there and later removed, and those removed rows. Always: marks cascade, expenses named
   for it fall back to common savings. Public page filter uses the same ScheduleSelect (place under each date).
   **Attendance & money is VIEW ONLY** (came ✓/–, paid, mode, owed; anyone who sees the Mandal, archived schedules too) —
-  except its ONE in-pop-up **Edit** (top right, left of ×; who runs the Mandal, open schedules; nowhere else): the whole list
+  except its ONE in-pop-up **Edit** (icon-only blue pencil, top right, left of ×; who runs the Mandal, open schedules; nowhere else): the whole list
   becomes editable (came / paid / mode) for backfilling; beside the search an All / Present / Absent filter (counts; follows
   the draft while editing); Save posts every row to saveMandalMeeting (members not posted are
   never touched), Cancel drops the draft;
