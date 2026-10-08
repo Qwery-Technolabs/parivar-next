@@ -255,7 +255,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   short Mandal "+ Contribution" — MandalContributionDialog → saveMandalContribution: member (this Mandal's members only),
   schedule (default the open one, else the latest open), came, amount (starts at its per-member amount), mode; written like one
   sheet row (mark + contribution, kept_by = schedule keeper) — no Kept by / handed over / donor name / anonymous / reference;
-  rows: member · amount + mode · schedule + came; picking a member shows their record before that schedule (absences in a
+  rows: member · amount + mode · schedule + came; the member LIST shows each one's record before that schedule (absences in a
   row since added, owed) and the amount starts at per-member + owed (mandalAdd.info). Nothing recorded on a schedule = ABSENT
   (mandalMembers `missed` counts unmarked schedules too). One payment per member per schedule via "+ Contribution" (server
   refuses a second: mandal.errors.alreadyPaid; members who paid there are left out of its picker — mandalAdd.paid).
