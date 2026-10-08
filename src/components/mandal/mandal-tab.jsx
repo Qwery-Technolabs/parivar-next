@@ -198,7 +198,6 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                                     {/* ⋮: Attendance & money, open this schedule, its PDF. */}
                                     <Td className="w-12 py-1">
                                         <ScheduleRowMenu
-                                            openHref={at(r.e.id)}
                                             pdfHref={`/fundraise/${campaign.id}/print?schedule=${r.e.id}`}
                                             sheet={sheetProps(r)}
                                             manage={

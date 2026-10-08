@@ -156,7 +156,7 @@ export default async function MembersPage({ searchParams }) {
                                             {primary}
                                         </Link>
                                         {/* Occupation: from sm up only — on phones the name alone. */}
-                                        {m.position && <span className="hidden text-xs font-medium text-brand-navy sm:block">{m.position}</span>}
+                                        {m.position && <span className="hidden text-xs text-ink-gray sm:block">{m.position}</span>}
                                         {m.status !== 'active' && (
                                             <Badge status={m.status} className="mt-1">
                                                 {t(`status.${m.status}`)}

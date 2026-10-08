@@ -370,7 +370,6 @@ const gu = {
         printSchedule: 'આ તારીખ PDF માં',
         searchMember: 'સભ્ય શોધો…',
         searchSchedule: 'તારીખ શોધો…',
-        openSchedule: 'આ તારીખ ખોલો',
         searchShown: '{total} માંથી {shown}',
         searchNone: 'એ નામનું કોઈ નથી.',
         sheetSummary: '{total} માંથી {came} આવ્યા · {amount} ભેગા',

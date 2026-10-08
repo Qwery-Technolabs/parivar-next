@@ -1,5 +1,5 @@
 'use client';
-import { Archive, ArchiveRestore, ClipboardCheck, ExternalLink, FileDown, Pencil } from 'lucide-react';
+import { Archive, ArchiveRestore, ClipboardCheck, FileDown, Pencil } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { setMandalScheduleArchived } from '@/app/actions/mandal';
@@ -10,13 +10,13 @@ import MandalSheet from './mandal-sheet';
 import ScheduleDialog from './schedule-dialog';
 
 /**
- * A schedule row's ⋮ (Savings → Schedules table): Attendance & money (view only), Open this schedule,
- * its PDF — and, for those who run the Mandal (`manage`), Edit and Archive (an archived one: Restore).
+ * A schedule's ⋮ (Savings → Schedules table, and its own strip — the date opens it): Attendance & money
+ * (view only), its PDF — and, for those who run the Mandal (`manage`), Edit and Archive (an archived one: Restore).
  * Deleting stays on About → Schedules. The sheet and the edit dialog live OUTSIDE the menu — a menu
  * unmounts when it closes, which would take a dialog with it — and open from the items.
  * `sheet`: the MandalSheet props; `manage`: { campaignId, schedule, members, defaultInstallment, today } | null.
  */
-export default function ScheduleRowMenu({ openHref = null, pdfHref, sheet = null, manage = null }) {
+export default function ScheduleRowMenu({ pdfHref, sheet = null, manage = null }) {
     const { t } = useT();
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editKey, setEditKey] = useState(0);
@@ -47,12 +47,6 @@ export default function ScheduleRowMenu({ openHref = null, pdfHref, sheet = null
                                 }}
                             >
                                 {t('mandal.sheet')}
-                            </MenuItem>
-                        )}
-                        {/* Not on the schedule's own strip (already there). */}
-                        {openHref && (
-                            <MenuItem icon={ExternalLink} href={openHref}>
-                                {t('mandal.openSchedule')}
                             </MenuItem>
                         )}
                         <MenuItem

@@ -115,7 +115,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
 - People lists (Members) show ONE name, in the viewer's language (`localized`: Gujarati app → Gujarati, else English;
-  falls back to English) — no second-language line under it; search still matches both spellings.
+  falls back to English) — no second-language line under it; search still matches both spellings. The line under the name
+  (position / education) is light grey `text-xs text-ink-gray`, not bold navy, so the name stays the one strong line.
 - Optional fields say so IN THE LABEL — "Reference (optional)" (`${t(label)} (${t('common.optional')})`) — never as a hint
   line under the field (also when only SOME users may leave it empty: label switches, e.g. relative phone, new-member
   password). A hint is only for a real requirement or a needed explanation.

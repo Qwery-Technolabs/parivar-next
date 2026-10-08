@@ -369,7 +369,6 @@ const en = {
         printSchedule: 'This schedule as PDF',
         searchMember: 'Search a member…',
         searchSchedule: 'Search a schedule…',
-        openSchedule: 'Open this schedule',
         searchShown: '{shown} of {total}',
         searchNone: 'Nobody by that name.',
         sheetSummary: '{came} of {total} came · {amount} collected',

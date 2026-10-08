@@ -364,3 +364,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal About Members: per-row ⋮ (View profile, Remove) instead of the bare remove icon
 - [x] Attendance & money: no view-only note, no bottom Close (× closes)
 - [x] Schedule strip: ⋮ instead of Attendance & money + PDF buttons
+- [x] Schedule ⋮: no "Open this schedule" (the date link opens it)
+- [x] Members list: position line light grey under the name
