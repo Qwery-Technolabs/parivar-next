@@ -365,6 +365,7 @@ const en = {
         collectingEach: 'Collecting {amount} per member this time (set on the schedule)',
         sheet: 'Attendance & money',
         sheetTitle: 'Attendance & money',
+        sheetEditing: 'Editing the whole list — Save keeps every row; Cancel drops the changes.',
         printAll: 'All schedules (PDF)',
         printSchedule: 'This schedule as PDF',
         searchMember: 'Search a member…',

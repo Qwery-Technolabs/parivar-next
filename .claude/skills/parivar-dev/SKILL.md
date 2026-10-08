@@ -242,7 +242,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   The delete is a pop-up (deleteMandalScheduleForm) with "Also delete its history" (off by default): removes the history
   records of payments once added there and later removed, and those removed rows. Always: marks cascade, expenses named
   for it fall back to common savings. Public page filter uses the same ScheduleSelect (place under each date).
-  **Attendance & money is VIEW ONLY** (came ✓/–, paid, mode, owed; anyone who sees the Mandal, archived schedules too);
+  **Attendance & money is VIEW ONLY** (came ✓/–, paid, mode, owed; anyone who sees the Mandal, archived schedules too) —
+  except its ONE in-pop-up **Edit** (who runs the Mandal, open schedules; no Edit for this anywhere else): the whole list
+  becomes editable (came / paid / mode) for backfilling, Save posts every row to saveMandalMeeting (members not posted are
+  never touched), Cancel drops the draft;
   money + attendance are entered with "+ Contribution". /fundraise list: a Mandal's Place = its latest-created schedule's
   place (listCampaigns `latest_place`).
   **Schedule pickers** (contribution / expense / edit): ScheduleSelect — searchable, two lines: date + place · per person · keeper.
@@ -281,7 +284,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   refuses a second: mandal.errors.alreadyPaid; members who paid there are left out of its picker — mandalAdd.paid).
   **Attendance & money AUTOSAVES per row** (no Save button): Came on tick, Mode on change, Paid ~0.9s after typing / on blur —
   each row = saveMandalContribution(sheet=1, queued per row, Saving…/Saved/error mark; no page refresh per row, one
-  router.refresh() on Done / close). saveMandalMeeting (whole-sheet save) is no longer used by the UI;
+  router.refresh() on Done / close). (superseded: the sheet is view-only with its own Edit — see below);
   only for those who run the sheet, while a schedule is open); expenses: meta event_id ("For schedule").
   Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over 0;
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,

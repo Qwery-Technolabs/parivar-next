@@ -93,6 +93,8 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
         marks: r.sheet,
         pending: pendingBefore(r.forThem, meetings, marks, r.e.id),
         pendingList: Object.fromEntries(r.forThem.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { before: r.e.start_date })])),
+        // The sheet's Edit (whole list, for backfilling): who runs the Mandal, open schedules only.
+        canEdit: canRun && !r.e.archived,
     });
     const sheetFor = (r) => <MandalSheet {...sheetProps(r)} />;
 

@@ -102,13 +102,16 @@ export async function saveMandalMeeting(prev, fd) {
         })
     ).filter((m) => !target || isFor(target, m.user_id) || existing.has(m.user_id));
     const fieldErrors = {};
-    const rows = members.map((m) => {
-        const raw = str(fd, `paid_${m.user_id}`, 12);
-        const paid = raw ? Number(raw) : null;
-        if (raw && (!Number.isFinite(paid) || paid < 0)) fieldErrors[`paid_${m.user_id}`] = 'mandal.errors.amount';
-        const mode = MODES.includes(String(fd.get(`mode_${m.user_id}`))) ? String(fd.get(`mode_${m.user_id}`)) : 'cash';
-        return { ...m, present: fd.get(`present_${m.user_id}`) === '1', paid: paid && paid > 0 ? Math.round(paid * 100) / 100 : null, mode };
-    });
+    // Only members the form actually posted: one missing (added meanwhile, another tab) is left as it is, never wiped.
+    const rows = members
+        .filter((m) => fd.has(`present_${m.user_id}`))
+        .map((m) => {
+            const raw = str(fd, `paid_${m.user_id}`, 12);
+            const paid = raw ? Number(raw) : null;
+            if (raw && (!Number.isFinite(paid) || paid < 0)) fieldErrors[`paid_${m.user_id}`] = 'mandal.errors.amount';
+            const mode = MODES.includes(String(fd.get(`mode_${m.user_id}`))) ? String(fd.get(`mode_${m.user_id}`)) : 'cash';
+            return { ...m, present: fd.get(`present_${m.user_id}`) === '1', paid: paid && paid > 0 ? Math.round(paid * 100) / 100 : null, mode };
+        });
     if (Object.keys(fieldErrors).length) return { fieldErrors };
     // Who keeps this day's money: the schedule's money keeper (held_by), else whoever records it —
     // so the Savings tab's Holdings card can say who holds how much.

@@ -366,6 +366,7 @@ const gu = {
         collectingEach: 'આ વખતે સભ્ય દીઠ {amount} ઉઘરાવવાના (તારીખમાં નક્કી)',
         sheet: 'હાજરી અને રકમ',
         sheetTitle: 'હાજરી અને રકમ',
+        sheetEditing: 'આખી યાદી બદલાય છે — સેવથી બધી લીટી સેવ થશે; રદ કરવાથી ફેરફાર જશે.',
         printAll: 'બધી તારીખો (PDF)',
         printSchedule: 'આ તારીખ PDF માં',
         searchMember: 'સભ્ય શોધો…',
