@@ -144,7 +144,7 @@ export default async function GroupPage({ params, searchParams }) {
                         <ul className="divide-y divide-surface-border overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
                             {fundraises.map((f) => (
                                 <li key={f.id}>
-                                    <Link href={`/fundraise/${f.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/60">
+                                    <Link href={`/${f.kind === 'mandal' ? 'mandal' : 'fundraise'}/${f.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/60">
                                         <GroupAvatar id={f.id} name={f.title} kind={f.avatar?.avatar_kind} value={f.avatar?.avatar_value} color={f.avatar?.avatar_color} />
                                         <span className="min-w-0 flex-1">
                                             <span className="flex items-center gap-1.5">

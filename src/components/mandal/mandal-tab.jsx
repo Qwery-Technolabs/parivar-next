@@ -1,4 +1,4 @@
-import { UserMinus } from 'lucide-react';
+import { FileDown, UserMinus } from 'lucide-react';
 import Link from 'next/link';
 import { addMandalMember, removeMandalMember } from '@/app/actions/mandal';
 import ActionButton from '@/components/fundraise/action-button';
@@ -17,14 +17,24 @@ import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBe
 import PendingList from '@/components/mandal/pending-list';
 
 /**
- * A Mandal, in two places (server component), sharing one data load:
- *   section="about"   — About tab: a summary, the members (what each still owes, how long away) in a
- *                        fixed-height scrolling card, and the Schedules to create / edit / archive.
- *   section="savings" — Savings tab (a Mandal's Income/Expense): the latest Mandal, every schedule with
- *                        its numbers and its "Attendance & money" sheet — money is always taken against a
- *                        schedule, never the Mandal as a whole — and who has the money.
+ * A Mandal, in two places (server components), sharing one data load:
+ *   <MandalTab /> — Savings tab (a Mandal's Income/Expense): the latest Mandal, every schedule with its
+ *                   numbers and its "Attendance & money" sheet — money is always taken against a
+ *                   schedule, never the Mandal as a whole — and the Holdings card.
+ *   mandalAboutParts() — About tab, as { main, side } that DetailsTab places INTO its own two columns
+ *                   (main: the summary + Members in a fixed-height scrolling card; side: the Schedules
+ *                   to create / edit / archive, above Team) — one grid, so no blank gaps between blocks.
  */
-export default async function MandalTab({ campaign, user, today, t, locale, section = 'about' }) {
+export default async function MandalTab(props) {
+    return buildMandal({ ...props, section: 'savings' });
+}
+
+/** The About tab's Mandal blocks: { main, side } for DetailsTab's two columns. */
+export async function mandalAboutParts(props) {
+    return buildMandal({ ...props, section: 'about' });
+}
+
+async function buildMandal({ campaign, user, today, t, locale, section }) {
     const installment = Number(campaign.meta?.installment) || 0;
     await syncMandalMembers(campaign);
     const [meetings, canRun, marks] = await Promise.all([mandalMeetings(campaign.id, installment), canRunMandal(user, campaign), allMarks(campaign.id)]);
@@ -118,6 +128,16 @@ export default async function MandalTab({ campaign, user, today, t, locale, sect
             {savings ? (
                 <>
                     <span className="shrink-0 pt-0.5 font-semibold text-income tabular-nums">{money(got)}/-</span>
+                    {/* This schedule alone, as a printout / PDF. */}
+                    <Link
+                        href={`/fundraise/${campaign.id}/print?schedule=${e.id}`}
+                        target="_blank"
+                        title={t('mandal.printSchedule')}
+                        aria-label={t('mandal.printSchedule')}
+                        className="btn-secondary inline-flex size-8 shrink-0 items-center justify-center rounded-md"
+                    >
+                        <FileDown className="size-3.5" />
+                    </Link>
                     {canRun && !e.archived && sheetFor({ e, sheet, forThem })}
                 </>
             ) : (
@@ -134,7 +154,22 @@ export default async function MandalTab({ campaign, user, today, t, locale, sect
                 {latestBanner}
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
                     {/* Money comes in against a schedule: pick its date, then "Attendance & money". */}
-                    <Card title={t('mandal.schedules')} bodyClass="">
+                    <Card
+                        title={t('mandal.schedules')}
+                        bodyClass=""
+                        actions={
+                            // Every schedule in one printout / PDF (one date: the icon on its row).
+                            meetings.length > 0 && (
+                                <Link
+                                    href={`/fundraise/${campaign.id}/print`}
+                                    target="_blank"
+                                    className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
+                                >
+                                    <FileDown className="size-3.5" /> {t('mandal.printAll')}
+                                </Link>
+                            )
+                        }
+                    >
                         {meetings.length === 0 ? (
                             <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedulesSavings')}</p>
                         ) : (
@@ -150,8 +185,8 @@ export default async function MandalTab({ campaign, user, today, t, locale, sect
         );
     }
 
-    return (
-        <div className="space-y-4">
+    const main = (
+        <>
             <div className="grid grid-cols-3 gap-2">
                 {[
                     [t('mandal.members'), members.length],
@@ -165,68 +200,67 @@ export default async function MandalTab({ campaign, user, today, t, locale, sect
                 ))}
             </div>
 
-            {/* Two parts side by side: Members (fixed height, scrolls inside — a long list never pushes the
-                cards below) and Schedules. */}
-            <div className="grid items-start gap-4 lg:grid-cols-2">
-                <Card
-                    title={t('mandal.members')}
-                    bodyClass="max-h-[26rem] overflow-y-auto"
-                    actions={canRun && <MandalAddMember campaignId={campaign.id} action={addMandalMember} exclude={members.map((m) => m.id)} />}
-                >
-                    {members.length === 0 ? (
-                        <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noMembers')}</p>
-                    ) : (
-                        <ul className="divide-y divide-surface-border">
-                            {members.map((m) => (
-                                <li key={m.id} className="flex items-center gap-3 px-4 py-2.5">
-                                    <div className="min-w-0 flex-1">
-                                        <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
-                                            {name(m)}
-                                        </Link>
-                                        <p className="text-xs text-ink-gray tabular-nums">
-                                            {m.due > 0 ? (
-                                                <span className="font-semibold text-destructive">{t('mandal.pending', { amount: money(m.due) })}</span>
-                                            ) : (
-                                                t('mandal.upToDate')
-                                            )}
-                                            {m.missed > 0 && (
-                                                <>
-                                                    {' · '}
-                                                    <span className="text-amber-800">{t('mandal.missed', { count: m.missed, days: m.daysAway ?? 0 })}</span>
-                                                </>
-                                            )}
-                                        </p>
-                                        <PendingList items={unpaid[m.id]} />
-                                    </div>
-                                    {canRun && !inGroup.has(m.id) && (
-                                        <ActionButton
-                                            action={removeMandalMember.bind(null, campaign.id, m.id)}
-                                            confirm={t('mandal.removeConfirm', { name: name(m) })}
-                                            icon={<UserMinus className="size-4" />}
-                                            label={t('mandal.remove')}
-                                            plain
-                                            className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
-                                        />
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </Card>
-
-                {/* Schedules are made here; their money is taken on the Savings tab. */}
-                <Card
-                    title={t('mandal.schedules')}
-                    bodyClass="max-h-[26rem] overflow-y-auto"
-                    actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} today={today} />}
-                >
-                    {meetings.length === 0 ? (
-                        <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
-                    ) : (
-                        <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, false))}</ul>
-                    )}
-                </Card>
-            </div>
-        </div>
+            {/* Members: fixed height, scrolls inside — a long list never pushes the cards below. */}
+            <Card
+                title={t('mandal.members')}
+                bodyClass="max-h-[26rem] overflow-y-auto"
+                actions={canRun && <MandalAddMember campaignId={campaign.id} action={addMandalMember} exclude={members.map((m) => m.id)} />}
+            >
+                {members.length === 0 ? (
+                    <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noMembers')}</p>
+                ) : (
+                    <ul className="divide-y divide-surface-border">
+                        {members.map((m) => (
+                            <li key={m.id} className="flex items-center gap-3 px-4 py-2.5">
+                                <div className="min-w-0 flex-1">
+                                    <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
+                                        {name(m)}
+                                    </Link>
+                                    <p className="text-xs text-ink-gray tabular-nums">
+                                        {m.due > 0 ? (
+                                            <span className="font-semibold text-destructive">{t('mandal.pending', { amount: money(m.due) })}</span>
+                                        ) : (
+                                            t('mandal.upToDate')
+                                        )}
+                                        {m.missed > 0 && (
+                                            <>
+                                                {' · '}
+                                                <span className="text-amber-800">{t('mandal.missed', { count: m.missed, days: m.daysAway ?? 0 })}</span>
+                                            </>
+                                        )}
+                                    </p>
+                                    <PendingList items={unpaid[m.id]} />
+                                </div>
+                                {canRun && !inGroup.has(m.id) && (
+                                    <ActionButton
+                                        action={removeMandalMember.bind(null, campaign.id, m.id)}
+                                        confirm={t('mandal.removeConfirm', { name: name(m) })}
+                                        icon={<UserMinus className="size-4" />}
+                                        label={t('mandal.remove')}
+                                        plain
+                                        className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
+                                    />
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </Card>
+        </>
     );
+    // Schedules are made here; their money is taken on the Savings tab.
+    const side = (
+        <Card
+            title={t('mandal.schedules')}
+            bodyClass="max-h-[26rem] overflow-y-auto"
+            actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} today={today} />}
+        >
+            {meetings.length === 0 ? (
+                <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedules')}</p>
+            ) : (
+                <ul className="divide-y divide-surface-border">{rows.map((r) => scheduleRow(r, false))}</ul>
+            )}
+        </Card>
+    );
+    return { main, side };
 }

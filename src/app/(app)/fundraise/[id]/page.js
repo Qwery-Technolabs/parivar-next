@@ -4,14 +4,14 @@ import SubmitButton from '@/components/ui/submit-button';
 import { cookies } from 'next/headers';
 import HeaderBack from '@/components/shell/header-back';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import ChatPanel from '@/components/chat/chat-panel';
 import WaTabs from '@/components/ui/wa-tabs';
 import DetailsTab from '@/components/fundraise/details-tab';
 import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
-import MandalTab from '@/components/mandal/mandal-tab';
+import MandalTab, { mandalAboutParts } from '@/components/mandal/mandal-tab';
 import { mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
@@ -71,12 +71,21 @@ export async function generateMetadata({ params }) {
     return { title: c ? localized(c, 'title', locale) : undefined };
 }
 
-export default async function FundraiseDetailPage({ params, searchParams }) {
+/**
+ * One page for both: a fundraise at /fundraise/[id], a Mandal at /mandal/[id] (that route renders
+ * this with `asMandal`). The wrong address for the kind redirects to the right one, query kept.
+ */
+export default async function FundraiseDetailPage({ params, searchParams, asMandal = false }) {
     const [{ id }, sp] = await Promise.all([params, searchParams]);
     // Independent work runs together (speed): who is asking + the fundraise, then the checks, the
     // texts and the next meeting; the Mandal total and "Add to group" list load while the tab does.
     const [user, campaign] = await Promise.all([requireUser(), getCampaign(Number(id))]);
     if (!campaign) notFound();
+    const isMandal = campaign.kind === 'mandal';
+    if (isMandal !== asMandal) {
+        const qs = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (Array.isArray(v) ? v.map((x) => [k, x]) : [[k, v]]))).toString();
+        redirect(`/${isMandal ? 'mandal' : 'fundraise'}/${campaign.id}${qs ? `?${qs}` : ''}`);
+    }
 
     const today = todayLocal();
     const [perms, visible, { t, locale }, upNext] = await Promise.all([
@@ -93,7 +102,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
 
     const { tab, view: rawView } = resolveTab(sp);
     const view = MONEY_VIEWS.includes(rawView) ? rawView : 'contributions';
-    const base = `/fundraise/${campaign.id}`;
+    const base = `/${isMandal ? 'mandal' : 'fundraise'}/${campaign.id}`;
     // Started now, awaited after the tab's own data (they run side by side).
     // A Mandal's pending money = what its members still owe (missed / short payments).
     const mandalDueP =
@@ -135,7 +144,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
 
     let body;
     if (tab === 'money' && campaign.kind === 'mandal') {
-        body = <MandalTab section="savings" campaign={campaign} user={user} today={today} t={t} locale={locale} />;
+        body = <MandalTab campaign={campaign} user={user} today={today} t={t} locale={locale} />;
     } else if (tab === 'money') {
         const page = normalizePage(sp1(sp.page));
         const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
@@ -188,7 +197,7 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             />
         );
     } else if (tab === 'details') {
-        const [audience, team, holdings, updates, history, messageCount, editCount] = await Promise.all([
+        const [audience, team, holdings, updates, history, messageCount, editCount, mandalParts] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
             // Holdings card (everyone who sees the fundraise); a Mandal shows who has its money in its own tab.
@@ -197,16 +206,18 @@ export default async function FundraiseDetailPage({ params, searchParams }) {
             listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),
             historyCount(campaign.id),
+            // A Mandal: its summary + Members and Schedules, placed into About's own two columns.
+            campaign.kind === 'mandal' ? mandalAboutParts({ campaign, user, today, t, locale }) : null,
         ]);
         body = (
             <>
                 {/* A Mandal: its members, schedules (with the money sheet) and who has the money, above the usual About. */}
-                {campaign.kind === 'mandal' && <MandalTab section="about" campaign={campaign} user={user} today={today} t={t} locale={locale} />}
                 <DetailsTab
                     campaign={campaign}
                     audience={audience}
                     team={team}
                     holdings={holdings}
+                    mandal={mandalParts}
                     updates={updates}
                     history={history}
                     perms={perms}

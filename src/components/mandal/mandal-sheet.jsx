@@ -1,5 +1,5 @@
 'use client';
-import { ClipboardCheck, Save } from 'lucide-react';
+import { ClipboardCheck, Save, Search } from 'lucide-react';
 import { useState } from 'react';
 import { saveMandalMeeting } from '@/app/actions/mandal';
 import { Field, selectInput, textInput } from '@/components/ui/field';
@@ -25,6 +25,11 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
     const [present, setPresent] = useState(() => Object.fromEntries(members.map((m) => [m.id, marks[m.id]?.present ?? false])));
     const name = (m) => (locale !== 'en' && m.full_name_local) || m.full_name;
     const each = Number(amount) || 0;
+    // Find a member by name (English or local); non-matching rows are only hidden, so every row still posts.
+    const [q, setQ] = useState('');
+    const needle = q.trim().toLowerCase();
+    const matches = (m) => !needle || [m.full_name, m.full_name_local].some((n) => (n ?? '').toLowerCase().includes(needle));
+    const shown = members.filter(matches).length;
     return (
         <FormDialog
             title={t('mandal.sheetTitle')}
@@ -86,64 +91,85 @@ export default function MandalSheet({ campaignId, meeting, members, marks, pendi
                     {members.length === 0 ? (
                         <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{t('mandal.noMembers')}</p>
                     ) : (
-                        <ul className="divide-y divide-surface-border rounded-md border border-surface-border">
-                            {members.map((m) => {
-                                const owed = pending[m.id] ?? 0;
-                                const expected = (collect ? each : 0) + owed;
-                                return (
-                                    <li
-                                        key={m.id}
-                                        className="grid items-center gap-2 px-3 py-2 grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_auto_7rem_7rem]"
-                                    >
-                                        <div className="col-span-3 min-w-0 sm:col-span-1">
-                                            <p className="truncate text-sm font-medium text-primary">{name(m)}</p>
-                                            <p className="text-xs text-ink-gray tabular-nums">
-                                                {owed > 0 ? (
-                                                    <span className="font-medium text-destructive">{t('mandal.pendingFrom', { amount: money(owed) })}</span>
-                                                ) : (
-                                                    t('mandal.noPending')
-                                                )}
-                                                {expected > 0 && <> · {t('mandal.expected', { amount: money(expected) })}</>}
-                                            </p>
-                                            <PendingList items={pendingList[m.id]} />
-                                        </div>
-                                        <label className="inline-flex items-center gap-1.5 text-xs font-medium text-ink">
-                                            <input type="hidden" name={`present_${m.id}`} value={present[m.id] ? '1' : '0'} />
-                                            <input
-                                                type="checkbox"
-                                                checked={present[m.id]}
-                                                onChange={(e) => setPresent((p) => ({ ...p, [m.id]: e.target.checked }))}
-                                                className="size-4 accent-brand-orange-strong"
-                                            />
-                                            {t('mandal.present')}
-                                        </label>
-                                        <input
-                                            name={`paid_${m.id}`}
-                                            type="number"
-                                            inputMode="decimal"
-                                            min="0"
-                                            step="0.01"
-                                            placeholder={t('mandal.paid')}
-                                            aria-label={`${t('mandal.paid')} — ${name(m)}`}
-                                            defaultValue={marks[m.id]?.paid ?? ''}
-                                            className={`${textInput(!!fieldError(`paid_${m.id}`))} w-full tabular-nums`}
-                                        />
-                                        <select
-                                            name={`mode_${m.id}`}
-                                            aria-label={`${t('fundraise.mode')} — ${name(m)}`}
-                                            defaultValue={marks[m.id]?.mode && MODES.includes(marks[m.id].mode) ? marks[m.id].mode : 'cash'}
-                                            className={`${selectInput()} w-full`}
+                        <>
+                            {/* Search first, then came / paid on the row found — no scrolling through everyone. */}
+                            <div className="sticky -top-4 z-10 -mx-1 bg-white px-1 pb-2 pt-1">
+                                <div className="relative">
+                                    <Search aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-ink-gray" />
+                                    <input
+                                        type="search"
+                                        value={q}
+                                        onChange={(e) => setQ(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+                                        placeholder={t('mandal.searchMember')}
+                                        aria-label={t('mandal.searchMember')}
+                                        className={`${textInput()} w-full pl-8`}
+                                    />
+                                </div>
+                                {needle && (
+                                    <p className="mt-1 text-xs text-ink-gray tabular-nums">{t('mandal.searchShown', { shown, total: members.length })}</p>
+                                )}
+                            </div>
+                            <ul className="divide-y divide-surface-border rounded-md border border-surface-border">
+                                {members.map((m) => {
+                                    const owed = pending[m.id] ?? 0;
+                                    const expected = (collect ? each : 0) + owed;
+                                    return (
+                                        <li
+                                            key={m.id}
+                                            className={`${matches(m) ? 'grid' : 'hidden'} items-center gap-2 px-3 py-2 grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_auto_7rem_7rem]`}
                                         >
-                                            {MODES.map((x) => (
-                                                <option key={x} value={x}>
-                                                    {t(`fundraise.modes.${x}`)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                                            <div className="col-span-3 min-w-0 sm:col-span-1">
+                                                <p className="truncate text-sm font-medium text-primary">{name(m)}</p>
+                                                <p className="text-xs text-ink-gray tabular-nums">
+                                                    {owed > 0 ? (
+                                                        <span className="font-medium text-destructive">{t('mandal.pendingFrom', { amount: money(owed) })}</span>
+                                                    ) : (
+                                                        t('mandal.noPending')
+                                                    )}
+                                                    {expected > 0 && <> · {t('mandal.expected', { amount: money(expected) })}</>}
+                                                </p>
+                                                <PendingList items={pendingList[m.id]} />
+                                            </div>
+                                            <label className="inline-flex items-center gap-1.5 text-xs font-medium text-ink">
+                                                <input type="hidden" name={`present_${m.id}`} value={present[m.id] ? '1' : '0'} />
+                                                <input
+                                                    type="checkbox"
+                                                    checked={present[m.id]}
+                                                    onChange={(e) => setPresent((p) => ({ ...p, [m.id]: e.target.checked }))}
+                                                    className="size-4 accent-brand-orange-strong"
+                                                />
+                                                {t('mandal.present')}
+                                            </label>
+                                            <input
+                                                name={`paid_${m.id}`}
+                                                type="number"
+                                                inputMode="decimal"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder={t('mandal.paid')}
+                                                aria-label={`${t('mandal.paid')} — ${name(m)}`}
+                                                defaultValue={marks[m.id]?.paid ?? ''}
+                                                className={`${textInput(!!fieldError(`paid_${m.id}`))} w-full tabular-nums`}
+                                            />
+                                            <select
+                                                name={`mode_${m.id}`}
+                                                aria-label={`${t('fundraise.mode')} — ${name(m)}`}
+                                                defaultValue={marks[m.id]?.mode && MODES.includes(marks[m.id].mode) ? marks[m.id].mode : 'cash'}
+                                                className={`${selectInput()} w-full`}
+                                            >
+                                                {MODES.map((x) => (
+                                                    <option key={x} value={x}>
+                                                        {t(`fundraise.modes.${x}`)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </li>
+                                    );
+                                })}
+                                {needle && shown === 0 && <li className="px-3 py-4 text-center text-sm text-ink-gray">{t('mandal.searchNone')}</li>}
+                            </ul>
+                        </>
                     )}
                 </>
             )}

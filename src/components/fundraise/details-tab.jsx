@@ -28,6 +28,7 @@ export default function DetailsTab({
     audience,
     team,
     holdings = null,
+    mandal = null,
     updates,
     history,
     perms,
@@ -45,6 +46,8 @@ export default function DetailsTab({
         // (contents) into one list, so History can sit just before the Danger zone on a phone (order).
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
             <div className="contents lg:block lg:min-w-0 lg:space-y-4">
+                {/* A Mandal: its summary and Members lead the main column (mandalAboutParts). */}
+                {mandal?.main}
                 {(description || audience.length > 0) && (
                     <Card title={t('fundraise.description')}>
                         {description && <p className="whitespace-pre-line text-sm text-ink break-words">{description}</p>}
@@ -109,6 +112,8 @@ export default function DetailsTab({
             </div>
 
             <div className="contents lg:block lg:min-w-0 lg:space-y-4">
+                {/* A Mandal: its Schedules lead the side column, above Team. */}
+                {mandal?.side}
                 <section id="team" className="scroll-mt-4">
                     <Card
                         title={t('fundraise.tabs.team')}

@@ -32,7 +32,7 @@ async function loadMandal(campaignId) {
     return queryOne("SELECT id, group_id, title, kind FROM fundraise_campaigns WHERE id = :campaignId AND kind = 'mandal'", { campaignId });
 }
 const refresh = (campaignId) => {
-    revalidatePath(`/fundraise/${campaignId}`);
+    revalidatePath(`/mandal/${campaignId}`);
     revalidatePath('/fundraise');
 };
 

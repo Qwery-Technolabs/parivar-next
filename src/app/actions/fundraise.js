@@ -42,6 +42,7 @@ async function authorize(campaignId, perm = 'manage') {
 function refreshCampaign(campaignId) {
     revalidatePath('/fundraise');
     revalidatePath(`/fundraise/${campaignId}`);
+    revalidatePath(`/mandal/${campaignId}`); // a Mandal is served at /mandal/[id]
 }
 
 // ── campaign ──────────────────────────────────────────────────────────────────

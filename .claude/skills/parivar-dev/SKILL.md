@@ -227,6 +227,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   join later**: `syncEveryoneMeetings` (lib/meetings.js) adds current group / fundraise members to upcoming 'all' meetings when a
   meeting list opens and before reminders are sent. 'selected' stays a fixed list.
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
+  **Address: /mandal/[id]** (route renders the fundraise page with `asMandal`; /fundraise/[id] of a Mandal redirects there, query kept;
+  revalidate both paths). **About**: `mandalAboutParts()` → { main: summary + Members (scrolls), side: Schedules } placed INTO
+  DetailsTab's two columns (no separate block → no gaps). **Attendance & money** has a member search (rows hidden, still posted).
+  **PDF**: /fundraise/[id]/print for a Mandal = MandalPrint — all schedules or `?schedule=<id>` (chips; Savings: "All schedules"
+  button + icon per schedule). Data stays in fundraise_campaigns (kind) + events_list (schedules = meetings linked by campaign_id).
   A Mandal is its group's own: the form shows its home group only (no other groups, no "Add to group") and no audience (server forces both);
   the public link works as for any fundraise;
   seen only by its group's members, its members and team (AUDIENCE_OK) — in its group's list and in the /fundraise

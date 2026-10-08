@@ -190,7 +190,7 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                         />
                                     </span>
                                     <div className="min-w-0">
-                                    <Link href={`/fundraise/${c.id}`} className="font-medium text-primary hover:underline">
+                                    <Link href={`/${c.kind === 'mandal' ? 'mandal' : 'fundraise'}/${c.id}`} className="font-medium text-primary hover:underline">
                                         {localized(c, 'title', locale)}
                                     </Link>
                                     {c.kind === 'mandal' && (
