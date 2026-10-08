@@ -21,7 +21,7 @@ export const AUDIENCE_KINDS = ['surname', 'caste', 'subcaste', 'city', 'village'
  * caste/subcaste values are admin_castes ids stored as text; the int side is cast to match.
  */
 // "For you": an audience rule matches the viewer — or it is a Mandal the viewer is a member of
-// (Mandals are assigned to people, so they always lead the list for their members).
+// or of its group (Mandals are assigned to people, so they always lead the list for them).
 const FOR_YOU = `(EXISTS (
     SELECT 1 FROM fundraise_audience a
       JOIN users_list me ON me.id = :viewerId
@@ -32,7 +32,9 @@ const FOR_YOU = `(EXISTS (
         OR (a.kind = 'city' AND a.value = me.city)
         OR (a.kind = 'village' AND a.value = me.village)
      ))
-  OR (c.kind = 'mandal' AND EXISTS (SELECT 1 FROM fundraise_subscribers fs WHERE fs.campaign_id = c.id AND fs.user_id = :viewerId)))`;
+  OR (c.kind = 'mandal' AND (
+        EXISTS (SELECT 1 FROM fundraise_subscribers fs WHERE fs.campaign_id = c.id AND fs.user_id = :viewerId)
+        OR EXISTS (SELECT 1 FROM admin_group_members fg WHERE fg.group_id = c.group_id AND fg.user_id = :viewerId))))`;
 
 /**
  * Audience = WHO SEES IT. No rows → everyone. With rows → only matching members, unless the
@@ -125,7 +127,11 @@ export async function listCampaigns(user, { status, groupId, q = '', archived = 
     const offset = (page - 1) * perPage;
     const [rows, count] = await Promise.all([
         query(
-            `SELECT ${COLS}, ${TOTALS}, ${FOR_YOU} AS for_you
+            // latest_place: a Mandal has no place of its own — the place of its most recently created schedule.
+            `SELECT ${COLS}, ${TOTALS}, ${FOR_YOU} AS for_you,
+                    CASE WHEN c.kind = 'mandal' THEN (SELECT e.location FROM events_list e
+                       WHERE e.campaign_id = c.id AND e.event_type = 'meeting' AND e.location IS NOT NULL AND e.location <> ''
+                       ORDER BY e.id DESC LIMIT 1) END AS latest_place
                FROM fundraise_campaigns c LEFT JOIN admin_groups g ON g.id = c.group_id
               WHERE ${whereSql}
               ORDER BY for_you DESC, FIELD(c.status, 'active', 'draft', 'closed'), c.start_date IS NULL, c.start_date DESC, c.id DESC

@@ -142,8 +142,8 @@ export default async function MembersPage({ searchParams }) {
                     <tbody>
                         {rows.length === 0 && <EmptyRow colSpan={bulk ? 9 : 8}>{t('common.noResults')}</EmptyRow>}
                         {rows.map((m) => {
+                            // One name, in the viewer's language (Gujarati app → Gujarati, else English) — search still finds both.
                             const primary = localized(m, 'full_name', locale);
-                            const secondary = locale === 'gu' ? m.full_name : m.full_name_local;
                             return (
                                 <Tr key={m.id}>
                                     {bulk && (
@@ -155,7 +155,6 @@ export default async function MembersPage({ searchParams }) {
                                         <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
                                             {primary}
                                         </Link>
-                                        {secondary && secondary !== primary && <span className="block text-xs text-ink-gray">{secondary}</span>}
                                         {/* Occupation: from sm up only — on phones the name alone. */}
                                         {m.position && <span className="hidden text-xs font-medium text-brand-navy sm:block">{m.position}</span>}
                                         {m.status !== 'active' && (

@@ -5,6 +5,7 @@ import { saveContribution } from '@/app/actions/fundraise';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import FormPart from '@/components/ui/form-part';
+import ScheduleSelect from '@/components/mandal/schedule-select';
 import Combobox from '@/components/ui/combobox';
 import MemberPicker from '@/components/ui/member-picker';
 import Switch from '@/components/ui/switch';
@@ -165,18 +166,13 @@ function ContributionFields({ fieldError, today, allowAnonymous, entry, people, 
                 {/* A Mandal: the money comes in at a schedule (default: the one open, else the latest). */}
                 {schedules && (
                     <Field label={t('mandal.schedule')} className="mb-3">
-                        <select
+                        <ScheduleSelect
                             name="event_id"
+                            options={schedules}
                             defaultValue={entry ? (entry.event_id ?? '') : (defaultSchedule ?? schedules[0]?.value ?? '')}
-                            className={`${selectInput()} w-full`}
-                        >
-                            <option value="">{t('mandal.noSchedule')}</option>
-                            {schedules.map((s) => (
-                                <option key={s.value} value={s.value}>
-                                    {s.label}
-                                </option>
-                            ))}
-                        </select>
+                            allowEmpty
+                            emptyLabel={t('mandal.noSchedule')}
+                        />
                     </Field>
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">

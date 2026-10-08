@@ -232,10 +232,24 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   DetailsTab's two columns (no separate block → no gaps). **Attendance & money** has a member search (rows hidden, still posted).
   **PDF**: /fundraise/[id]/print for a Mandal = MandalPrint — all schedules or `?schedule=<id>` (chips; Savings: "All schedules"
   button + icon per schedule). Data stays in fundraise_campaigns (kind) + events_list (schedules = meetings linked by campaign_id).
+  **Schedule lifecycle** (About → Schedules ⋮, ScheduleActions): Edit · Archive → (archived) Restore · Delete permanently.
+  deleteMandalSchedule requires archived (mandal.errors.archiveFirst) AND no money (sheet marks + contributions.event_id,
+  mandal.errors.hasMoney — it stays archived). Archived schedules are left out of every picker and take no money.
+  The delete is a pop-up (deleteMandalScheduleForm) with "Also delete its history" (off by default): removes the history
+  records of payments once added there and later removed, and those removed rows. Always: marks cascade, expenses named
+  for it fall back to common savings. Public page filter uses the same ScheduleSelect (place under each date).
+  **Attendance & money is VIEW ONLY** (came ✓/–, paid, mode, owed; anyone who sees the Mandal, archived schedules too);
+  money + attendance are entered with "+ Contribution". /fundraise list: a Mandal's Place = its latest-created schedule's
+  place (listCampaigns `latest_place`).
+  **Schedule pickers** (contribution / expense / edit): ScheduleSelect — searchable, two lines: date + place · per person · keeper.
+  **Schedules table rows**: one ⋮ (ScheduleRowMenu: Attendance & money — sheet opened from the item, mounted outside the menu —,
+  Open this schedule, PDF; + for those who run it: Edit, Archive / Restore — delete stays on About). **Money kept by**
+  (ScheduleDialog): searchable en/gu Combobox; a new schedule defaults to the last
+  schedule's keeper, else the team treasurer.
   **Schedules own collect yes/no + amount per member** (ScheduleDialog, About); the attendance sheet only shows it (read-only,
   list in a max-h-[50vh] scrolling box) and never writes it; the Mandal edit form keeps each schedule's collect. **Expenses**:
   Savings → Expenses card (ExpenseDialog / RowActions with `schedules` → optional "For schedule", meta event_id on
-  fundraise_expensesmeta; empty = common savings). **For you** on /fundraise includes Mandals the viewer is a member of.
+  fundraise_expensesmeta; empty = common savings). **For you** on /fundraise includes Mandals the viewer is a member of OR whose group they are in.
   **Public link** of a Mandal: the normal Statement card (By contributor · Contributions · Expenses) from the FILTERED rows
   (mandalLedger + mandalStatement: one schedule | from–to, lib/mandal-filters.js, GET) behind ONE "Filters" button
   (MandalFilterButton pop-over); totals follow the filter. /p/[token]/print = PrintSheet with the same section chips, the
@@ -266,7 +280,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   only for those who run the sheet, while a schedule is open); expenses: meta event_id ("For schedule").
   Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over 0;
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,
-  Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history)
+  Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history;
+  each member row has a ⋮ (MandalMemberMenu: View profile; Remove — red, confirm — for those who run it, phone-added only))
   (?tab=mandal → About). No place of its own (per schedule). On its group's Fundraises list an
   active Mandal (not archived/closed, not past end date) is pinned on top (groupFundraises `pinned`). Sheet payments
   write fundraise_history (add / edit / delete) like ledger entries. Members =

@@ -352,3 +352,13 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Attendance & money autosaves per row (no Save), Done refreshes once; + Contribution: one payment per member per schedule, paid members hidden
 - [x] Mandal + Contribution: dues / absences shown in the member list itself (no box after picking)
 - [x] Mandal schedule view: Absent tab (not marked came, nothing recorded = absent) with owed / run / paid
+- [x] Public Mandal page: PDF then icon-only blue Filter at the right; schedule strip back = round ← button
+- [x] For you: Mandals of groups the viewer is in
+- [x] Mandal: schedule pickers show place/amount/keeper (searchable), schedule rows use a ⋮ menu, Money kept by searchable + defaults to last keeper / treasurer
+- [x] Mandal schedules: Edit / Archive, then Restore / Delete permanently (archived + no money only)
+- [x] Schedule delete pop-up asks to also delete its history; public filter has the searchable schedule picker with place
+- [x] Attendance & money view-only (entry via + Contribution); /fundraise Place for a Mandal = latest schedule's place
+- [x] Statement (public page / PDF): pending contributions say "Pending" / "બાકી"
+- [x] Members list: one name in the viewer's language
+- [x] Savings schedule ⋮: Edit and Archive / Restore
+- [x] Mandal About Members: per-row ⋮ (View profile, Remove) instead of the bare remove icon

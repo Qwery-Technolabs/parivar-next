@@ -199,7 +199,7 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                         </Badge>
                                     )}
                                     {/* Location repeats here for phones, where its column is hidden. */}
-                                    <span className="block text-xs text-ink-gray">{[groupName, c.location].filter(Boolean).join(' · ')}</span>
+                                    <span className="block text-xs text-ink-gray">{[groupName, c.location || c.latest_place].filter(Boolean).join(' · ')}</span>
                                     {pct != null && (
                                         <div className="mt-1.5 flex items-center gap-2">
                                             <div className="h-1.5 w-24 overflow-hidden rounded-full bg-surface-bggray">
@@ -211,7 +211,7 @@ function CampaignTable({ rows, t, locale, empty, className = '', roleColumn = fa
                                     </div>
                                     </div>
                                 </Td>
-                                <Td className="hidden md:table-cell">{c.location || null}</Td>
+                                <Td className="hidden md:table-cell">{c.location || c.latest_place || null}</Td>
                                 <Td className="hidden text-xs text-ink-gray lg:table-cell">
                                     {c.start_date || c.end_date ? `${date(c.start_date, locale)} – ${date(c.end_date, locale)}` : null}
                                 </Td>

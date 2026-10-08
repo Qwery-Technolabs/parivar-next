@@ -114,6 +114,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   with its icon (GROUP_ICONS: samaj, signup, language, sharing, expenses) — logo alone in the left column for General.
 - Lists of many editable rows (e.g. Surnames): compact one-line rows + an Edit button that opens a small popup —
   never inline edit forms per row.
+- People lists (Members) show ONE name, in the viewer's language (`localized`: Gujarati app → Gujarati, else English;
+  falls back to English) — no second-language line under it; search still matches both spellings.
 - Optional fields say so IN THE LABEL — "Reference (optional)" (`${t(label)} (${t('common.optional')})`) — never as a hint
   line under the field (also when only SOME users may leave it empty: label switches, e.g. relative phone, new-member
   password). A hint is only for a real requirement or a needed explanation.
@@ -121,8 +123,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   rule needs it ("Skips higher roles and yourself. An empty value clears it."). Same length in gu.
 - EXCEPT Danger zone rows (every danger card in the app): a full explaining sentence, up to ~20 words, keeping the
   "Action: …" prefix — what happens, who can still see / undo it, or "This cannot be undone."
-- Long entry sheets (Mandal Attendance & money) **save each row as it changes** — no Save button to forget; a small
-  Saving… / ✓ / ! mark per row and a "Done" button that only closes.
+- Mandal Attendance & money is a view-only sheet (came / paid / mode per member, search); entry happens in "+ Contribution".
 - Repeater rows (Bulk edit, Invite by phone): small uppercase column headings, plain rows (no box per row), a bordered square × at the
   right of each row, "+ Add …" as an outlined button bottom-right. Short rows (Invite: mobile · full name · ×) stay ONE
   line on phones too (grid minmax(0,1fr) / minmax(0,1.4fr) / 2.25rem).
@@ -245,6 +246,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 ## Public & print
 
 - Public pages: navy header, Samaj logo + name, language toggle on navy.
+- Public fundraise / Mandal page actions: icon-only blue squares (bg-primary, size-9), Download PDF then (a Mandal) Filters at
+  the far right; a filter count sits as an orange dot on the corner. A "back to the list" inside a strip is a round ← button
+  (tooltip = its label), never a text link squeezed beside the title.
 - PDF/print is an **icon-only** button (`FileDown`) wherever it appears; print CSS keeps background
   colours (`print-color-adjust: exact`).
 - Fundraise print pages (/fundraise/[id]/print, /p/[token]/print): a no-print "Include in print" chip row under

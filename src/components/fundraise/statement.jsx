@@ -63,8 +63,12 @@ export default function Statement({ campaign, contributors, contributions, expen
                         rows={contributions.map((c) => [
                             date(c.paid_on, locale),
                             name(c),
-                            <span key="m" className={`inline-block rounded-full px-2 py-px text-xs font-medium ring-1 ring-inset ${MODE_TONE[c.mode] ?? MODE_TONE.other}`}>
-                                {t(`fundraise.modes.${c.mode}`)}
+                            <span
+                                key="m"
+                                className={`inline-block rounded-full px-2 py-px text-xs font-medium ring-1 ring-inset ${MODE_TONE[c.mode] ?? MODE_TONE.other}`}
+                            >
+                                {/* Short on the statement: "Pending" / "બાકી" (the form keeps "Not paid (pending)"). */}
+                                {c.mode === 'unpaid' ? t('fundraise.pendingBadge') : t(`fundraise.modes.${c.mode}`)}
                             </span>,
                             <span key="a" className={c.mode === 'unpaid' ? 'font-semibold text-rose-700' : ''}>
                                 {money(c.amount)}

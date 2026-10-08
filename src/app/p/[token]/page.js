@@ -66,14 +66,8 @@ export default async function PublicFundraisePage({ params, searchParams }) {
                 </div>
                 <div className="flex w-full items-center gap-2 sm:w-auto">
                     <Badge status={campaign.status}>{t(`fundraise.${campaign.status}`)}</Badge>
-                    {isMandal && (
-                        <MandalFilterButton
-                            basePath={`/p/${token}`}
-                            filters={filters}
-                            schedules={ledger.schedules.map((s) => ({ id: s.id, label: `${date(s.start_date, locale)} - ${t('mandal.word')}` }))}
-                        />
-                    )}
-                    {/* Icon only; the label stays as tooltip and screen-reader name. */}
+                    {/* Icon only; the label stays as tooltip and screen-reader name. Download, then (a Mandal)
+                        the filter at the far right. */}
                     <Link
                         href={`/p/${token}/print${query}`}
                         aria-label={t('common.downloadPdf')}
@@ -82,6 +76,17 @@ export default async function PublicFundraisePage({ params, searchParams }) {
                     >
                         <FileDown className="size-4" />
                     </Link>
+                    {isMandal && (
+                        <MandalFilterButton
+                            basePath={`/p/${token}`}
+                            filters={filters}
+                            schedules={ledger.schedules.map((s) => ({
+                                id: s.id,
+                                label: `${date(s.start_date, locale)} - ${t('mandal.word')}`,
+                                hint: s.location || undefined,
+                            }))}
+                        />
+                    )}
                 </div>
             </div>
 

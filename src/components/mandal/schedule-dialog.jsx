@@ -2,19 +2,52 @@
 import { CalendarPlus, Plus, Save } from 'lucide-react';
 import { useState } from 'react';
 import { saveMandalSchedule } from '@/app/actions/mandal';
-import { Field, selectInput, textInput } from '@/components/ui/field';
+import Combobox from '@/components/ui/combobox';
+import { Field, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 
 /**
+ * "Money kept by": type to search (English or Gujarati name) among the Mandal's members — plus the
+ * default keeper if they are not one. Clearable (= not set). Its own component so its state remounts
+ * with the dialog's form.
+ */
+function KeeperField({ members, initial, fieldError }) {
+    const { t, locale } = useT();
+    const name = (m) => (locale !== 'en' && m.full_name_local) || m.full_name;
+    const people = initial && !members.some((m) => m.id === initial.id) ? [initial, ...members] : members;
+    const options = people.map((m) => ({ value: String(m.id), label: name(m), hint: m.full_name !== name(m) ? m.full_name : undefined }));
+    const [keeper, setKeeper] = useState(() => options.find((o) => o.value === String(initial?.id ?? '')) ?? null);
+    const search = async (q) => {
+        const needle = q.trim().toLowerCase();
+        if (!needle) return options;
+        return options.filter((o) => o.label.toLowerCase().includes(needle) || (o.hint ?? '').toLowerCase().includes(needle));
+    };
+    return (
+        <Field label={t('mandal.moneyWithLabel')} hint={t('mandal.moneyWithHint')} error={fieldError('held_by')}>
+            <Combobox
+                name="held_by"
+                value={keeper?.value ?? ''}
+                valueLabel={keeper?.label ?? ''}
+                onSelect={(opt) => setKeeper(opt)}
+                fetchOptions={search}
+                placeholder={t('mandal.notSet')}
+                hasError={!!fieldError('held_by')}
+                emptyText={t('mandal.searchNone')}
+            />
+        </Field>
+    );
+}
+
+/**
  * New / edit one Mandal schedule ("21 Oct 2026 - Mandal"): date, place, whether money is collected
- * that day and how much per member (set HERE, not on the attendance sheet), and who keeps it.
+ * that day and how much per member (set HERE, not on the attendance sheet), and who keeps it — a new
+ * schedule starts with `defaultKeeper` (the last schedule's keeper, else the treasurer).
  * `members`: [{ id, full_name, full_name_local }].
  */
-export default function ScheduleDialog({ campaignId, schedule = null, members, defaultInstallment, today, trigger }) {
-    const { t, locale } = useT();
+export default function ScheduleDialog({ campaignId, schedule = null, members, defaultInstallment, defaultKeeper = null, today, trigger }) {
+    const { t } = useT();
     const [collect, setCollect] = useState(schedule ? Boolean(schedule.collect) : true);
-    const name = (m) => (locale !== 'en' && m.full_name_local) || m.full_name;
     return (
         <FormDialog
             title={schedule ? t('mandal.editSchedule') : t('mandal.newSchedule')}
@@ -85,16 +118,7 @@ export default function ScheduleDialog({ campaignId, schedule = null, members, d
                     <Field label={t('fundraise.place')}>
                         <input name="location" maxLength={200} defaultValue={schedule?.location ?? ''} className={`${textInput()} w-full`} />
                     </Field>
-                    <Field label={t('mandal.moneyWithLabel')} hint={t('mandal.moneyWithHint')} error={fieldError('held_by')}>
-                        <select name="held_by" defaultValue={schedule?.holder?.id ?? ''} className={`${selectInput(!!fieldError('held_by'))} w-full`}>
-                            <option value="">{t('mandal.notSet')}</option>
-                            {members.map((m) => (
-                                <option key={m.id} value={m.id}>
-                                    {name(m)}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
+                    <KeeperField members={members} initial={schedule ? schedule.holder : defaultKeeper} fieldError={fieldError} />
                 </div>
             )}
         </FormDialog>

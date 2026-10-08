@@ -249,8 +249,14 @@ export async function saveMandalSchedule(prev, fd) {
     return { ok: true, message: 'mandal.scheduleSaved' };
 }
 
-/** Delete a schedule added by mistake — only while no money was received at it. */
-export async function deleteMandalSchedule(campaignId, eventId) {
+/**
+ * Delete a schedule for good — two steps, like members and groups: only an ARCHIVED schedule, and only
+ * while no money was received at it (payments must never lose their schedule; with money it stays archived).
+ * `withHistory` (asked in the delete pop-up): also remove its history — the edit-history records of
+ * payments once added there and later removed, and those removed payment rows. Its attendance marks
+ * always go with it; expenses named for it fall back to the common savings.
+ */
+export async function deleteMandalSchedule(campaignId, eventId, withHistory = false) {
     const actor = await getCurrentUser();
     const campaign = await loadMandal(Number(campaignId));
     if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
@@ -259,12 +265,49 @@ export async function deleteMandalSchedule(campaignId, eventId) {
         c: campaign.id,
     });
     if (!ev) return FORBIDDEN;
-    const got = await queryOne('SELECT COALESCE(SUM(paid), 0) AS s FROM fundraise_mandal_marks WHERE event_id = :id', { id: ev.id });
+    if ((await getMeta('events_list', ev.id)).archived !== '1') return { error: 'mandal.errors.archiveFirst' };
+    const got = await queryOne(
+        `SELECT (SELECT COALESCE(SUM(paid), 0) FROM fundraise_mandal_marks WHERE event_id = :id)
+              + (SELECT COALESCE(SUM(amount), 0) FROM fundraise_contributions WHERE event_id = :id AND deleted_at IS NULL) AS s`,
+        { id: ev.id },
+    );
     if (Number(got.s) > 0) return { error: 'mandal.errors.hasMoney' };
-    await query('DELETE FROM events_list WHERE id = :id', { id: ev.id });
-    await audit(actor.id, 'mandal.schedule.delete', 'fundraise', campaign.id, { event: ev.id, title: ev.title });
+    let historyRemoved = 0;
+    await withTransaction(async (q) => {
+        if (withHistory) {
+            // Only removed payments can be left here (money received blocks the delete above).
+            const ids = (
+                await q(
+                    `SELECT id FROM fundraise_contributions WHERE campaign_id = :c AND event_id = :id
+                     UNION SELECT contribution_id FROM fundraise_mandal_marks WHERE event_id = :id AND contribution_id IS NOT NULL`,
+                    { c: campaign.id, id: ev.id },
+                )
+            ).map((r) => r.id);
+            if (ids.length) {
+                const list = ids.map(Number).filter(Boolean).join(',');
+                const h = await q(`DELETE FROM fundraise_history WHERE campaign_id = :c AND entity = 'contribution' AND entity_id IN (${list})`, {
+                    c: campaign.id,
+                });
+                historyRemoved = h.affectedRows;
+                await q(`DELETE FROM fundraise_contributions WHERE campaign_id = :c AND deleted_at IS NOT NULL AND id IN (${list})`, { c: campaign.id });
+            }
+        }
+        // Expenses named for it now count against the common savings.
+        await q(
+            `DELETE m FROM fundraise_expensesmeta m JOIN fundraise_expenses e ON e.id = m.expense_id
+              WHERE e.campaign_id = :c AND m.meta_key = 'event_id' AND m.meta_value = :ev`,
+            { c: campaign.id, ev: String(ev.id) },
+        );
+        await q('DELETE FROM events_list WHERE id = :id', { id: ev.id });
+    });
+    await audit(actor.id, 'mandal.schedule.delete', 'fundraise', campaign.id, { event: ev.id, title: ev.title, withHistory, historyRemoved });
     refresh(campaign.id);
     return { ok: true, message: 'common.deleted' };
+}
+
+/** The delete pop-up's form: campaign_id, event_id, with_history ('1' = also remove its history). */
+export async function deleteMandalScheduleForm(prev, fd) {
+    return deleteMandalSchedule(id(fd, 'campaign_id'), id(fd, 'event_id'), fd.get('with_history') === '1');
 }
 
 /** Archive a schedule whose money is in (closed: no more changes), or bring it back. */

@@ -219,7 +219,9 @@ export async function subscriberIds(campaignId) {
  */
 export async function mandalLedger(campaignId, { schedule = null, from = '', to = '' } = {}) {
     const [schedules, incomeAll, expenseAll] = await Promise.all([
-        query("SELECT id, start_date FROM events_list WHERE campaign_id = :c AND event_type = 'meeting' ORDER BY start_date DESC, id DESC", { c: campaignId }),
+        query("SELECT id, start_date, location FROM events_list WHERE campaign_id = :c AND event_type = 'meeting' ORDER BY start_date DESC, id DESC", {
+            c: campaignId,
+        }),
         listContributions(campaignId),
         listExpenses(campaignId),
     ]);

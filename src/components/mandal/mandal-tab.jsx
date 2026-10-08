@@ -1,16 +1,17 @@
-import { ArrowLeft, FileDown, UserMinus } from 'lucide-react';
+import { ArrowLeft, FileDown } from 'lucide-react';
 import Link from 'next/link';
-import { addMandalMember, removeMandalMember } from '@/app/actions/mandal';
-import ActionButton from '@/components/fundraise/action-button';
+import { addMandalMember } from '@/app/actions/mandal';
+import MandalMemberMenu from '@/components/mandal/member-menu';
 import MandalAddMember from '@/components/mandal/mandal-add-member';
 import MandalSheet from '@/components/mandal/mandal-sheet';
 import ScheduleActions from '@/components/mandal/schedule-actions';
+import ScheduleRowMenu from '@/components/mandal/schedule-row-menu';
 import ScheduleDialog from '@/components/mandal/schedule-dialog';
 import Badge from '@/components/ui/badge';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { Card } from '@/components/shell/page-header';
 import { date, money } from '@/lib/format';
-import { query } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import { scheduleMoney } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
@@ -42,6 +43,16 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
     // Amount per person is set on each schedule; the latest one is the usual amount.
     const latest = meetings[0]?.installment || installment;
     // "Everyone in the group": group members come back on their own, so only people added by phone can be removed here.
+    // New schedule's "Money kept by": the last schedule's keeper, else the Mandal's treasurer.
+    const treasurer =
+        section === 'about' && !meetings[0]?.holder
+            ? await queryOne(
+                  `SELECT u.id, u.full_name, u.full_name_local FROM fundraise_members fm JOIN users_list u ON u.id = fm.user_id
+                    WHERE fm.campaign_id = :c AND fm.member_role = 'treasurer' ORDER BY fm.added_at, fm.user_id LIMIT 1`,
+                  { c: campaign.id },
+              )
+            : null;
+    const defaultKeeper = meetings[0]?.holder ?? treasurer ?? null;
     const inGroup =
         campaign.meta?.members_mode === 'all'
             ? new Set((await query('SELECT user_id FROM admin_group_members WHERE group_id = :g', { g: campaign.group_id })).map((r) => r.user_id))
@@ -61,21 +72,29 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
     });
     // Savings: each schedule's money in / out (contributions with its event_id, expenses named for it).
     const moneyBy = section === 'money' ? await scheduleMoney(campaign.id) : null;
-    const scheduleOptions = meetings.map((e) => ({ value: e.id, label: `${date(e.start_date, locale)} - ${t('mandal.word')}` }));
+    // A schedule as a picker option: its date, and in grey its place · amount per person · money keeper.
+    const scheduleHint = (e) =>
+        [
+            e.location,
+            e.collect ? t('mandal.perPersonAmount', { amount: money(e.installment) }) : t('mandal.notCollecting'),
+            e.holder ? t('mandal.moneyWith', { name: localized(e.holder, 'full_name', locale) }) : null,
+        ]
+            .filter(Boolean)
+            .join(' · ');
+    const scheduleOptions = meetings.map((e) => ({ value: e.id, label: `${date(e.start_date, locale)} - ${t('mandal.word')}`, hint: scheduleHint(e) }));
     // The schedule money is entered for: the most recent one not archived (the "last made Mandal").
     const current = rows.find((r) => !r.e.archived) ?? null;
     // Each member's unpaid schedules (held so far), for "pending since …" under their name.
     const unpaid = Object.fromEntries(members.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { upTo: today })]));
-    const sheetFor = (r) => (
-        <MandalSheet
-            campaignId={campaign.id}
-            meeting={r.e}
-            members={r.forThem}
-            marks={r.sheet}
-            pending={pendingBefore(r.forThem, meetings, marks, r.e.id)}
-            pendingList={Object.fromEntries(r.forThem.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { before: r.e.start_date })]))}
-        />
-    );
+    const sheetProps = (r) => ({
+        campaignId: campaign.id,
+        meeting: r.e,
+        members: r.forThem,
+        marks: r.sheet,
+        pending: pendingBefore(r.forThem, meetings, marks, r.e.id),
+        pendingList: Object.fromEntries(r.forThem.map((m) => [m.id, unpaidBySchedule(m, meetings, marks, { before: r.e.start_date })])),
+    });
+    const sheetFor = (r) => <MandalSheet {...sheetProps(r)} />;
 
     // One schedule row: date, place, amount per person, who keeps the money. Savings adds what came in
     // and the "Attendance & money" sheet; About adds edit / archive.
@@ -153,7 +172,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                     <Th numeric className="hidden sm:table-cell">
                         {t('fundraise.spent')}
                     </Th>
-                    <Th className="w-24" />
+                    <Th className="w-12" />
                 </THead>
                 <tbody>
                     {rows.length === 0 ? (
@@ -187,11 +206,18 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                                     <Td numeric className="hidden font-medium text-expense sm:table-cell">
                                         {money(m.spent)}
                                     </Td>
-                                    <Td className="py-1">
-                                        <span className="flex items-center justify-end gap-1.5">
-                                            {canRun && !r.e.archived && sheetFor(r)}
-                                            {pdf(r.e.id)}
-                                        </span>
+                                    {/* ⋮: Attendance & money, open this schedule, its PDF. */}
+                                    <Td className="w-12 py-1">
+                                        <ScheduleRowMenu
+                                            openHref={at(r.e.id)}
+                                            pdfHref={`/fundraise/${campaign.id}/print?schedule=${r.e.id}`}
+                                            sheet={sheetProps(r)}
+                                            manage={
+                                                canRun
+                                                    ? { campaignId: campaign.id, schedule: r.e, members: plain, defaultInstallment: latest || '', today }
+                                                    : null
+                                            }
+                                        />
                                     </Td>
                                 </Tr>
                             );
@@ -203,9 +229,15 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
         // One schedule open: the strip above its money view.
         const chosen = scheduleId ? (rows.find((r) => r.e.id === scheduleId) ?? null) : null;
         const banner = chosen && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-4 py-2.5 shadow-sm">
-                <Link href={`${base}?tab=money`} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                    <ArrowLeft className="size-4" /> {t('mandal.allSchedules')}
+            <div className="flex items-center gap-3 rounded-lg border border-brand-orange/40 bg-orange-50 px-3 py-2.5 shadow-sm sm:px-4">
+                {/* Back to all schedules: a round ← before the date (label as tooltip / screen-reader name). */}
+                <Link
+                    href={`${base}?tab=money`}
+                    aria-label={t('mandal.allSchedules')}
+                    title={t('mandal.allSchedules')}
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-surface-border bg-white text-primary shadow-sm hover:bg-accent"
+                >
+                    <ArrowLeft className="size-4" />
                 </Link>
                 <div className="min-w-0 flex-1">
                     <p className="font-semibold text-primary">
@@ -216,7 +248,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                             </Badge>
                         )}
                     </p>
-                    <p className="text-xs text-ink-gray tabular-nums">
+                    <p className="truncate text-xs text-ink-gray tabular-nums sm:whitespace-normal">
                         {[
                             chosen.e.location,
                             chosen.e.collect ? t('mandal.perPersonAmount', { amount: money(chosen.e.installment) }) : t('mandal.notCollecting'),
@@ -227,8 +259,11 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                             .join(' · ')}
                     </p>
                 </div>
-                {canRun && !chosen.e.archived && sheetFor(chosen)}
-                {pdf(chosen.e.id)}
+                {/* Sheet + PDF stay on the right, on one line, on phones too. */}
+                <span className="flex shrink-0 items-center gap-1.5">
+                    {sheetFor(chosen)}
+                    {pdf(chosen.e.id)}
+                </span>
             </div>
         );
         // The short "+ Contribution": this Mandal's members, its open (not archived) schedules — newest first.
@@ -238,6 +273,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
             schedules: open.map((r) => ({
                 value: r.e.id,
                 label: `${date(r.e.start_date, locale)} - ${t('mandal.word')}`,
+                hint: scheduleHint(r.e),
                 installment: r.e.installment || 0,
                 collect: Boolean(r.e.collect),
             })),
@@ -389,16 +425,8 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                                     </p>
                                     <PendingList items={unpaid[m.id]} />
                                 </div>
-                                {canRun && !inGroup.has(m.id) && (
-                                    <ActionButton
-                                        action={removeMandalMember.bind(null, campaign.id, m.id)}
-                                        confirm={t('mandal.removeConfirm', { name: name(m) })}
-                                        icon={<UserMinus className="size-4" />}
-                                        label={t('mandal.remove')}
-                                        plain
-                                        className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
-                                    />
-                                )}
+                                {/* ⋮: View profile; Remove (who runs it, added-by-phone members only). */}
+                                <MandalMemberMenu campaignId={campaign.id} member={{ id: m.id, name: name(m) }} canRemove={canRun && !inGroup.has(m.id)} />
                             </li>
                         ))}
                     </ul>
@@ -411,7 +439,11 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
         <Card
             title={t('mandal.schedules')}
             bodyClass="max-h-[26rem] overflow-y-auto"
-            actions={canRun && <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} today={today} />}
+            actions={
+                canRun && (
+                    <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} defaultKeeper={defaultKeeper} today={today} />
+                )
+            }
         >
             {meetings.length === 0 ? (
                 <p className="px-4 py-5 text-sm text-ink-gray">{t('mandal.noSchedules')}</p>

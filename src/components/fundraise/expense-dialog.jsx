@@ -7,6 +7,7 @@ import Switch from '@/components/ui/switch';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import FormPart from '@/components/ui/form-part';
+import ScheduleSelect from '@/components/mandal/schedule-select';
 import { useT } from '@/lib/i18n/client';
 
 /**
@@ -122,18 +123,13 @@ export default function ExpenseDialog({
                         {/* A Mandal: the expense comes out of the common savings, optionally for one schedule. */}
                         {schedules && (
                             <Field label={`${t('mandal.forSchedule')} (${t('common.optional')})`} className="mt-3">
-                                <select
+                                <ScheduleSelect
                                     name="event_id"
+                                    options={schedules}
                                     defaultValue={entry ? (entry.event_id ?? '') : (defaultSchedule ?? '')}
-                                    className={`${selectInput()} w-full`}
-                                >
-                                    <option value="">{t('mandal.commonSavings')}</option>
-                                    {schedules.map((s) => (
-                                        <option key={s.value} value={s.value}>
-                                            {s.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    allowEmpty
+                                    emptyLabel={t('mandal.commonSavings')}
+                                />
                             </Field>
                         )}
                     </FormPart>

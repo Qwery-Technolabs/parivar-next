@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { saveMandalContribution } from '@/app/actions/mandal';
 import Combobox from '@/components/ui/combobox';
+import ScheduleSelect from '@/components/mandal/schedule-select';
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import Switch from '@/components/ui/switch';
@@ -118,18 +119,13 @@ export default function MandalContributionDialog({ campaignId, members, schedule
 
                     {/* Row 3: which schedule (default: the latest) and attendance. */}
                     <Field label={t('mandal.schedule')} error={fieldError('event_id')} required>
-                        <select
+                        <ScheduleSelect
                             name="event_id"
-                            value={schedule}
-                            onChange={(e) => setSchedule(e.target.value)}
-                            className={`${selectInput(!!fieldError('event_id'))} w-full`}
-                        >
-                            {schedules.map((s) => (
-                                <option key={s.value} value={s.value}>
-                                    {s.label}
-                                </option>
-                            ))}
-                        </select>
+                            options={schedules}
+                            defaultValue={schedule}
+                            onChange={(v) => setSchedule(v)}
+                            hasError={!!fieldError('event_id')}
+                        />
                     </Field>
                     <div className="sm:pt-7">
                         <Switch checked={came} onChange={setCame} name="present" label={t('mandal.present')} />
