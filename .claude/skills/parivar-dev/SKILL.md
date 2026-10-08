@@ -252,7 +252,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   ?tab=money&schedule=<id>; place, per person, came, received, spent, Attendance & money, PDF). One schedule: exactly the
   fundraise views limited to it (listContributions / listExpenses / contributorTotals take eventId; boxes = its totals) with
   the strip on top (back, details, sheet, PDF). fundraise_contributions.event_id = the schedule (sheet payments, and the
-  "+ Contribution" Schedule choice — default the open one, else the latest); expenses: meta event_id ("For schedule").
+  short Mandal "+ Contribution" — MandalContributionDialog → saveMandalContribution: member (this Mandal's members only),
+  schedule (default the open one, else the latest open), came, amount (starts at its per-member amount), mode; written like one
+  sheet row (mark + contribution, kept_by = schedule keeper) — no Kept by / handed over / donor name / anonymous / reference;
+  only for those who run the sheet, while a schedule is open); expenses: meta event_id ("For schedule").
   Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over 0;
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,
   Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history)

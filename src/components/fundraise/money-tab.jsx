@@ -40,6 +40,7 @@ export default function MoneyTab({
     scheduling = null,
     scheduleTable = null,
     banner = null,
+    mandalAdd = null,
 }) {
     // A treasurer or admin recording money already holds it for the fundraise: "handed to treasurer" starts on.
     const handDefault = Boolean(perms.manage || perms.teamRoles?.includes('treasurer'));
@@ -106,6 +107,7 @@ export default function MoneyTab({
                             meId={meId}
                             handDefault={handDefault}
                             scheduling={scheduling ?? {}}
+                            mandalAdd={mandalAdd}
                         />
                     )}
                 </div>

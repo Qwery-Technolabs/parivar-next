@@ -15,6 +15,7 @@ function Placeholder() {
 
 const ContributionDialog = dynamic(() => import('./contribution-dialog'), { ssr: false, loading: Placeholder });
 const ExpenseDialog = dynamic(() => import('./expense-dialog'), { ssr: false, loading: Placeholder });
+const MandalContributionDialog = dynamic(() => import('@/components/mandal/mandal-contribution-dialog'), { ssr: false, loading: Placeholder });
 
 /** Phones: a round "+" in the entry's colour (blue contribution, orange expense). */
 function PlusTrigger({ label, tone }) {
@@ -40,38 +41,47 @@ function PlusTrigger({ label, tone }) {
  * From sm up: both labelled buttons. Phones: two round "+" buttons — blue adds a contribution,
  * orange an expense (the same colours as the amounts and the tabs).
  */
-/** `scheduling` (a Mandal): { schedules, defaultSchedule } — both dialogs ask which schedule. */
-export default function EntryButtons({ campaignId, today, perms, allowAnonymous, categories, people = [], meId = null, handDefault = false, scheduling = {} }) {
+/**
+ * `scheduling` (a Mandal): { schedules, defaultSchedule } — the expense dialog asks which schedule.
+ * `mandalAdd` (a Mandal): { members, schedules, defaultSchedule } — "+ Contribution" is the short Mandal
+ * form (member, schedule, came, amount, mode) instead of the fundraise one.
+ */
+export default function EntryButtons({
+    campaignId,
+    today,
+    perms,
+    allowAnonymous,
+    categories,
+    people = [],
+    meId = null,
+    handDefault = false,
+    scheduling = {},
+    mandalAdd = null,
+}) {
     const { t } = useT();
+    const addContribution = (trigger) =>
+        mandalAdd ? (
+            <MandalContributionDialog campaignId={campaignId} {...mandalAdd} trigger={trigger} />
+        ) : (
+            <ContributionDialog
+                campaignId={campaignId}
+                today={today}
+                allowAnonymous={allowAnonymous}
+                people={people}
+                meId={meId}
+                {...scheduling}
+                handDefault={handDefault}
+                trigger={trigger}
+            />
+        );
     return (
         <>
             <span className="hidden sm:contents">
-                {perms.contribution && (
-                    <ContributionDialog
-                        campaignId={campaignId}
-                        today={today}
-                        allowAnonymous={allowAnonymous}
-                        people={people}
-                        meId={meId}
-                        {...scheduling}
-                        handDefault={handDefault}
-                    />
-                )}
+                {perms.contribution && addContribution(undefined)}
                 {perms.expense && <ExpenseDialog campaignId={campaignId} today={today} categories={categories} people={people} meId={meId} {...scheduling} />}
             </span>
             <span className="contents sm:hidden">
-                {perms.contribution && (
-                    <ContributionDialog
-                        campaignId={campaignId}
-                        today={today}
-                        allowAnonymous={allowAnonymous}
-                        people={people}
-                        meId={meId}
-                        {...scheduling}
-                        handDefault={handDefault}
-                        trigger={PlusTrigger({ label: t('fundraise.addContribution'), tone: 'income' })}
-                    />
-                )}
+                {perms.contribution && addContribution(PlusTrigger({ label: t('fundraise.addContribution'), tone: 'income' }))}
                 {perms.expense && (
                     <ExpenseDialog
                         campaignId={campaignId}

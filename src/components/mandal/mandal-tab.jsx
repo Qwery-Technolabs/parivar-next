@@ -231,7 +231,19 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                 {pdf(chosen.e.id)}
             </div>
         );
-        return { scheduleTable, banner, chosen: chosen?.e ?? null, scheduleOptions, money: moneyBy };
+        // The short "+ Contribution": this Mandal's members, its open (not archived) schedules — newest first.
+        const open = rows.filter((r) => !r.e.archived);
+        const mandalAdd = {
+            members: plain.map((p) => ({ id: p.id, full_name: p.full_name, full_name_local: p.full_name_local })),
+            schedules: open.map((r) => ({
+                value: r.e.id,
+                label: `${date(r.e.start_date, locale)} - ${t('mandal.word')}`,
+                installment: r.e.installment || 0,
+                collect: Boolean(r.e.collect),
+            })),
+            defaultSchedule: chosen && !chosen.e.archived ? chosen.e.id : (open[0]?.e.id ?? null),
+        };
+        return { scheduleTable, banner, chosen: chosen?.e ?? null, scheduleOptions, money: moneyBy, mandalAdd, canRun };
     }
 
     const main = (

@@ -307,6 +307,7 @@ const en = {
         forSchedule: 'For schedule',
         commonSavings: 'Common savings',
         allSchedules: 'All schedules',
+        member: 'Member',
         noSchedule: 'No schedule (common)',
         schedule: 'Schedule',
         printAllShort: 'All schedules',
@@ -369,7 +370,8 @@ const en = {
         memberAdded: 'Added to the Mandal.',
         memberRemoved: 'Removed from the Mandal.',
         sheetSaved: 'Attendance and payments saved.',
-        errors: { amount: 'Enter a valid amount.', group: 'A Mandal belongs to a group — choose one.', members: 'Choose at least one person.', hasMoney: 'Money was received at this schedule — archive it instead.', archived: 'This schedule is archived — restore it to make changes.' },
+        errors: { amount: 'Enter a valid amount.', group: 'A Mandal belongs to a group — choose one.', members: 'Choose at least one person.', hasMoney: 'Money was received at this schedule — archive it instead.', archived: 'This schedule is archived — restore it to make changes.', nothing: 'Tick “Came” or enter an amount.' },
+        contributionSaved: 'Saved.',
     },
     matrimony: {
         title: 'Matrimony',

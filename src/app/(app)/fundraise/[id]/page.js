@@ -173,6 +173,8 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         const shown = perms.manage || mview === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));
         const total = sid ? rows.length : mview === 'contributions' ? campaign.contribution_count : mview === 'expenses' ? campaign.expense_count : rows.length;
         const [inc, out] = stats ?? [[], []];
+        // A Mandal's "+ Contribution" is the short form, for those who run its sheet, while a schedule is open.
+        const mandalAdd = isMandal && parts.canRun && parts.mandalAdd.schedules.length ? parts.mandalAdd : null;
         const shownCampaign = sid
             ? {
                   ...campaign,
@@ -196,12 +198,13 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 scheduling={isMandal ? { schedules: parts.scheduleOptions, defaultSchedule: sid ?? parts.scheduleOptions[0]?.value ?? null } : null}
                 scheduleTable={parts?.scheduleTable ?? null}
                 banner={parts?.banner ?? null}
+                mandalAdd={mandalAdd}
                 view={mview}
                 rows={shown}
                 total={total}
                 page={page}
                 perPage={perPage}
-                perms={perms}
+                perms={isMandal ? { ...perms, contribution: Boolean(mandalAdd) } : perms}
                 settings={settings}
                 today={today}
                 base={base}

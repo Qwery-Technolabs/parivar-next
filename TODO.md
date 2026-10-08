@@ -347,3 +347,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal: expenses (common, optional schedule), collect + amount on the schedule, sheet list scrolls, For you for members, public ledger filters (schedule / date range) by date, Edit/PDF header links fixed; target box only when a target is set
 - [x] Mandal Savings = the fundraise money tab: Schedules table overview, one schedule = fundraise views for it (live: fundraise_contributions.event_id)
 - [x] Mandal Savings = the fundraise money tab: Schedules table overview, one schedule = fundraise views for it (live: fundraise_contributions.event_id)
+- [x] Mandal + Contribution: short form (member of this Mandal, schedule = latest, came, amount, mode), saved like a sheet row

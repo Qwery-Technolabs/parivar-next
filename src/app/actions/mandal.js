@@ -282,3 +282,99 @@ export async function setMandalScheduleArchived(campaignId, eventId, archived) {
     refresh(campaign.id);
     return { ok: true, message: archived ? 'mandal.scheduleArchived' : 'mandal.scheduleRestored' };
 }
+
+/**
+ * A Mandal's "+ Contribution": ONE member on ONE schedule — came?, amount, mode (no keeper / handed
+ * over / donor name: the schedule's money keeper keeps it). The same row the attendance sheet writes:
+ * the mark (present, paid) and its contribution (kept_by = the schedule's keeper, event_id), edited in
+ * place if that member already has one there. Amount empty / 0 = attendance only (an earlier payment
+ * there is removed, as on the sheet). Fields: campaign_id, user_id, event_id, present, amount, mode.
+ */
+export async function saveMandalContribution(prev, fd) {
+    const actor = await getCurrentUser();
+    const campaign = await loadMandal(id(fd, 'campaign_id'));
+    if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
+    const userId = id(fd, 'user_id');
+    const eventId = id(fd, 'event_id');
+    const raw = str(fd, 'amount', 12);
+    const paid = raw ? Math.round(Number(raw) * 100) / 100 : 0;
+    const mode = MODES.includes(String(fd.get('mode'))) ? String(fd.get('mode')) : 'cash';
+    const present = fd.get('present') === '1';
+    const fieldErrors = {};
+    const member = userId
+        ? await queryOne(
+              'SELECT u.id, u.full_name FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id WHERE s.campaign_id = :c AND s.user_id = :userId',
+              { c: campaign.id, userId },
+          )
+        : null;
+    if (!member) fieldErrors.user_id = 'common.required';
+    const target = eventId ? (await mandalMeetings(campaign.id, 0)).find((e) => e.id === eventId) : null;
+    if (!target) fieldErrors.event_id = 'common.required';
+    else if (target.archived) return { error: 'mandal.errors.archived' };
+    if (raw && (!Number.isFinite(paid) || paid < 0)) fieldErrors.amount = 'mandal.errors.amount';
+    if (!present && !(paid > 0)) fieldErrors.amount = 'mandal.errors.nothing';
+    if (Object.keys(fieldErrors).length) return { fieldErrors };
+    const keeper = target.holder?.id ?? actor.id;
+
+    await withTransaction(async (q) => {
+        const [mark] = await q('SELECT contribution_id, present FROM fundraise_mandal_marks WHERE event_id = :e AND user_id = :u', {
+            e: eventId,
+            u: member.id,
+        });
+        let contributionId = mark?.contribution_id ?? null;
+        if (paid > 0) {
+            if (contributionId) {
+                const [old] = await q(
+                    'SELECT donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at FROM fundraise_contributions WHERE id = :id',
+                    {
+                        id: contributionId,
+                    },
+                );
+                await q(
+                    'UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = COALESCE(kept_by, :keeper), event_id = :ev, deleted_at = NULL, deleted_by = NULL WHERE id = :id',
+                    { amount: paid, mode, day: target.start_date, keeper, ev: eventId, id: contributionId },
+                );
+                if (old?.deleted_at) await payHistory(q, campaign.id, contributionId, 'add', actor.id);
+                else if (old && (Number(old.amount) !== paid || old.mode !== mode))
+                    await payHistory(q, campaign.id, contributionId, 'edit', actor.id, {
+                        ...old,
+                        amount: Number(old.amount),
+                        is_anonymous: Number(old.is_anonymous),
+                    });
+            } else {
+                const ins = await q(
+                    `INSERT INTO fundraise_contributions (campaign_id, user_id, donor_name, amount, paid_on, mode, reference, recorded_by, kept_by, handed_over, event_id)
+                     VALUES (:c, :u, :name, :amount, :day, :mode, :ref, :by, :keeper, 0, :ev)`,
+                    {
+                        c: campaign.id,
+                        u: member.id,
+                        name: member.full_name,
+                        amount: paid,
+                        mode,
+                        day: target.start_date,
+                        ref: `Mandal ${target.start_date}`.slice(0, 100),
+                        by: actor.id,
+                        keeper,
+                        ev: eventId,
+                    },
+                );
+                contributionId = ins.insertId;
+                await payHistory(q, campaign.id, contributionId, 'add', actor.id);
+            }
+        } else if (contributionId) {
+            const [was] = await q('SELECT deleted_at FROM fundraise_contributions WHERE id = :id', { id: contributionId });
+            await q('UPDATE fundraise_contributions SET deleted_at = NOW(), deleted_by = :by WHERE id = :id', { by: actor.id, id: contributionId });
+            if (was && !was.deleted_at) await payHistory(q, campaign.id, contributionId, 'delete', actor.id);
+            contributionId = null;
+        }
+        await q(
+            `INSERT INTO fundraise_mandal_marks (event_id, user_id, campaign_id, present, paid, contribution_id, marked_by)
+             VALUES (:e, :u, :c, :present, :paid, :cid, :by)
+             ON DUPLICATE KEY UPDATE present = VALUES(present), paid = VALUES(paid), contribution_id = VALUES(contribution_id), marked_by = VALUES(marked_by)`,
+            { e: eventId, u: member.id, c: campaign.id, present: present ? 1 : 0, paid: paid > 0 ? paid : null, cid: contributionId, by: actor.id },
+        );
+    });
+    await audit(actor.id, 'mandal.contribution', 'fundraise', campaign.id, { eventId, userId: member.id, present, paid });
+    refresh(campaign.id);
+    return { ok: true, message: 'mandal.contributionSaved' };
+}
