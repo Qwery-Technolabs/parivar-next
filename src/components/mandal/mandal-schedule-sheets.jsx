@@ -35,49 +35,55 @@ export default function MandalScheduleSheets({ shown, show = 'all', t, locale })
                                         .filter(Boolean)
                                         .join(' · ')}
                                 </p>
-                                <table className="w-full border-collapse text-sm">
-                                    <thead>
-                                        <tr className="border-b border-surface-border text-left text-[11px] uppercase tracking-wide text-ink-gray">
-                                            <th className="w-8 py-1.5 pr-2 font-medium">#</th>
-                                            <th className="py-1.5 pr-2 font-medium">{t('mandal.members')}</th>
-                                            <th className="w-20 py-1.5 pr-2 text-center font-medium">{t('mandal.present')}</th>
-                                            <th className="w-24 py-1.5 pr-2 text-right font-medium">{t('mandal.paid')}</th>
-                                            <th className="w-24 py-1.5 font-medium">{t('fundraise.mode')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {forThem
-                                            .filter((m) => keep(sheet, m))
-                                            .map((m, i) => {
-                                                const mark = sheet[m.id] ?? {};
-                                                const paid = Number(mark.paid || 0);
-                                                return (
-                                                    <tr key={m.id} className="border-b border-surface-border/60">
-                                                        <td className="py-1.5 pr-2 text-ink-gray tabular-nums">{i + 1}</td>
-                                                        <td className="py-1.5 pr-2 text-primary">{name(m)}</td>
-                                                        <td className="py-1.5 pr-2 text-center">{mark.present ? '✓' : '–'}</td>
-                                                        <td
-                                                            className={`py-1.5 pr-2 text-right tabular-nums ${paid > 0 ? 'font-medium text-income' : 'text-ink-gray'}`}
-                                                        >
-                                                            {paid > 0 ? money(paid) : '–'}
-                                                        </td>
-                                                        <td className="py-1.5 text-ink-gray">
-                                                            {paid > 0 && mark.mode ? t(`fundraise.modes.${mark.mode}`) : ''}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="border-t-2 border-primary font-semibold">
-                                            <td />
-                                            <td className="py-1.5 pr-2 text-primary">{t('common.total')}</td>
-                                            <td className="py-1.5 pr-2 text-center tabular-nums">{t('mandal.cameCount', { came, total: forThem.length })}</td>
-                                            <td className="py-1.5 pr-2 text-right text-income tabular-nums">{money(paidTotal)}</td>
-                                            <td />
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                <div className="overflow-hidden rounded-lg border border-surface-border bg-white print:overflow-visible print:rounded-none">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-surface-border bg-surface-login text-left text-xs uppercase tracking-wide text-ink-gray">
+                                                <th className="w-10 px-4 py-2.5 font-semibold">#</th>
+                                                <th className="px-4 py-2.5 font-semibold">{t('mandal.members')}</th>
+                                                <th className="w-24 px-4 py-2.5 text-center font-semibold">{t('mandal.present')}</th>
+                                                <th className="w-28 px-4 py-2.5 text-right font-semibold">{t('mandal.paid')}</th>
+                                                <th className="w-28 px-4 py-2.5 font-semibold">{t('fundraise.mode')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {forThem
+                                                .filter((m) => keep(sheet, m))
+                                                .map((m, i) => {
+                                                    const mark = sheet[m.id] ?? {};
+                                                    const paid = Number(mark.paid || 0);
+                                                    return (
+                                                        <tr key={m.id} className="border-b border-surface-border last:border-0">
+                                                            <td className="px-4 py-2 text-ink-gray tabular-nums">{i + 1}</td>
+                                                            <td className="px-4 py-2 text-primary">{name(m)}</td>
+                                                            <td className={`px-4 py-2 text-center ${mark.present ? 'text-emerald-700' : 'text-ink-gray'}`}>
+                                                                {mark.present ? '✓' : '–'}
+                                                            </td>
+                                                            <td
+                                                                className={`px-4 py-2 text-right tabular-nums ${paid > 0 ? 'font-medium text-income' : 'text-ink-gray'}`}
+                                                            >
+                                                                {paid > 0 ? money(paid) : '–'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-ink-gray">
+                                                                {paid > 0 && mark.mode ? t(`fundraise.modes.${mark.mode}`) : ''}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="border-t border-surface-border bg-surface-login font-semibold">
+                                                <td />
+                                                <td className="px-4 py-2 text-primary">{t('common.total')}</td>
+                                                <td className="px-4 py-2 text-center text-primary tabular-nums">
+                                                    {t('mandal.cameCount', { came, total: forThem.length })}
+                                                </td>
+                                                <td className="px-4 py-2 text-right text-income tabular-nums">{money(paidTotal)}</td>
+                                                <td />
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </section>
                         );
                     })}

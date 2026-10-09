@@ -8,7 +8,8 @@ import { requireUser } from '@/lib/auth';
 import { canSeeCampaign, contributorTotals, getCampaign, listContributions, listExpenses } from '@/lib/fundraise';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
-import { mandalSheets } from '@/lib/mandal';
+import { mandalLedger, mandalSheets, mandalStatement } from '@/lib/mandal';
+import { mandalFilters } from '@/lib/mandal-filters';
 import { getT } from '@/lib/i18n/server';
 import { sp1 } from '@/lib/url';
 
@@ -38,20 +39,23 @@ export default async function FundraisePrintPage({ params, searchParams }) {
 
     // A Mandal prints its schedules — all of them, or one (?schedule=<id>) — never the fundraise statement.
     if (campaign.kind === 'mandal') {
-        const [, schedules, allExpenses] = await Promise.all([allowed(), mandalSheets(campaign, todayLocal()), listExpenses(campaign.id)]);
-        const asked = Number(sp1(sp.schedule)) || null;
-        const selected = schedules.some((x) => x.e.id === asked) ? asked : null;
+        // By contributors (default) · By schedules · Expenses, over all schedules (default) or the chosen ones.
+        const filters = mandalFilters(sp, 'app');
+        const today = todayLocal();
+        const [manage, ledger, sheets] = await Promise.all([allowed(), mandalLedger(campaign.id, filters, today), mandalSheets(campaign, today)]);
         return (
             <MandalPrint
                 campaign={campaign}
-                schedules={schedules}
-                selected={selected}
-                expenses={selected ? allExpenses.filter((x) => x.event_id === selected) : allExpenses}
-                show={['present', 'absent'].includes(sp1(sp.show)) ? sp1(sp.show) : 'all'}
+                filters={filters}
+                selected={ledger.ids}
+                sheets={sheets}
+                statement={mandalStatement(campaign, ledger)}
                 t={t}
                 locale={locale}
                 backHref={`/mandal/${campaign.id}?tab=money`}
                 basePath={`/fundraise/${campaign.id}/print`}
+                // Anonymous gifts show the donor's name to managers only.
+                publicView={!manage}
             />
         );
     }

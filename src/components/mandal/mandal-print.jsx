@@ -1,47 +1,58 @@
 import { ArrowLeft } from 'lucide-react';
-import ChipLink from '@/components/ui/chip-link';
 import Link from 'next/link';
 import GroupAvatar from '@/components/groups/group-avatar';
 import PrintButton from '@/components/fundraise/print-button';
-import { date, money } from '@/lib/format';
-import MandalScheduleSheets from './mandal-schedule-sheets';
+import Statement from '@/components/fundraise/statement';
+import ChipLink from '@/components/ui/chip-link';
+import { textInput } from '@/components/ui/field';
+import { date } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
+import { MANDAL_MODES, MANDAL_VIEWS, mandalQuery } from '@/lib/mandal-filters';
 import { getSettings, samajName } from '@/lib/settings';
+import MandalScheduleSheets from './mandal-schedule-sheets';
+
+const VIEW_LABEL = { contributors: 'fundraise.byContributor', schedules: 'mandal.bySchedules', expenses: 'fundraise.expenses' };
+const SHOWS = ['all', 'present', 'absent'];
+const SHOW_LABEL = { all: 'mandal.printEveryone', present: 'mandal.onlyPresent', absent: 'mandal.onlyAbsent' };
 
 /**
- * A Mandal's printout / PDF (server component, outside the app shell) — the app's and the public link's:
- * ALL schedules, or ONE (`selected` = a schedule id), and Everyone / Came only / Absent only (`show`) —
- * chosen with the chips on top; the sheets themselves are MandalScheduleSheets.
- * `schedules`: [{ e, sheet, forThem }] (lib/mandal `mandalSheets`).
+ * A Mandal's printout / PDF (server component, outside the app shell) — the app's and the public link's.
+ * Chips on top (each a link with a mini loader):
+ *   View (one): By contributors (default) · By schedules · Expenses
+ *   Print includes: All, or one or more schedule dates (multi-select; All clears them); with All, a From–To range
+ *   Show (By schedules only): Everyone · Came only · Absent only
+ * By contributors / Expenses are the fundraise statement's tables (Statement) over the chosen money; By
+ * schedules is MandalScheduleSheets. `filters` from lib/mandal-filters (its mode sets the defaults),
+ * `selected` the resolved schedule ids ([] = all), `sheets` every schedule's sheet, `statement` =
+ * lib/mandal mandalStatement over the chosen ledger.
  */
-export default async function MandalPrint({
-    campaign,
-    schedules,
-    selected = null,
-    show = 'all',
-    expenses = null,
-    t,
-    locale,
-    backHref,
-    basePath,
-    keep = {},
-    allToken = null,
-    defaultShow = 'all',
-}) {
+export default async function MandalPrint({ campaign, filters, selected, sheets, statement, t, locale, backHref, basePath, publicView = false }) {
     const brand = samajName(await getSettings('admin'), locale) || t('app.name');
-    const shown = selected ? schedules.filter((s) => s.e.id === selected) : schedules;
-    const href = (sched, sh) => {
-        // `keep`: other filters the links carry along (the public link's date range).
-        const q = new URLSearchParams(sched ? {} : keep);
-        // "All schedules": no parameter (the app), or `allToken` where no parameter means the latest (public link).
-        if (sched) q.set('schedule', String(sched));
-        else if (allToken) q.set('schedule', allToken);
-        if (sh !== defaultShow) q.set('show', sh);
-        return q.size ? `${basePath}?${q}` : basePath;
+    const mode = MANDAL_MODES[filters.mode] ?? MANDAL_MODES.public;
+    const now = { ...filters, ids: selected, all: !selected.length };
+    const href = (over) => {
+        const q = mandalQuery(now, over);
+        return q ? `${basePath}?${q}` : basePath;
     };
+    const toggle = (id) => {
+        const ids = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
+        return href(ids.length ? { ids, all: false } : { ids: [], all: true });
+    };
+    const inRange = (d) => (!filters.from || d >= filters.from) && (!filters.to || d <= filters.to);
+    const shown = selected.length ? sheets.filter((s) => selected.includes(s.e.id)) : sheets.filter((s) => inRange(s.e.start_date));
+    const period = selected.length
+        ? sheets
+              .filter((s) => selected.includes(s.e.id))
+              .map((s) => date(s.e.start_date, locale))
+              .join(', ')
+        : filters.from || filters.to
+          ? `${filters.from ? date(filters.from, locale) : '…'} – ${filters.to ? date(filters.to, locale) : '…'}`
+          : t('mandal.printAllShort');
     const chip = (on) =>
         `inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-primary bg-primary text-white' : 'border-surface-border bg-white text-ink-gray hover:text-primary'}`;
+    const row = 'mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pb-2';
+    const label = 'mr-1 text-xs font-medium text-ink-gray';
     return (
         <div className="min-h-dvh bg-surface-login print:bg-white">
             <style>{'@page { size: A4; margin: 12mm; } @media print { body { font-size: 11px; } }'}</style>
@@ -52,27 +63,56 @@ export default async function MandalPrint({
                     </Link>
                     <PrintButton label={t('common.downloadPdf')} />
                 </div>
-                {/* What to print: everything, or one schedule (date). */}
-                <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pb-2">
-                    <span className="mr-1 text-xs font-medium text-ink-gray">{t('fundraise.printInclude')}</span>
-                    <ChipLink href={href(null, show)} on={!selected} className={chip(!selected)}>
-                        {t('mandal.printAll')}
+                {/* What to print — one view. */}
+                <div className={row}>
+                    <span className={label}>{t('mandal.printView')}</span>
+                    {MANDAL_VIEWS.map((v) => (
+                        <ChipLink key={v} href={href({ view: v })} on={filters.view === v} className={chip(filters.view === v)}>
+                            {t(VIEW_LABEL[v])}
+                        </ChipLink>
+                    ))}
+                </div>
+                {/* Which money / schedules: all, or any of the dates. */}
+                <div className={row}>
+                    <span className={label}>{t('fundraise.printInclude')}</span>
+                    <ChipLink href={href({ ids: [], all: true })} on={!selected.length} className={chip(!selected.length)}>
+                        {t('mandal.printAllShort')}
                     </ChipLink>
-                    {schedules.map(({ e }) => (
-                        <ChipLink key={e.id} href={href(e.id, show)} on={selected === e.id} className={chip(selected === e.id)}>
+                    {sheets.map(({ e }) => (
+                        <ChipLink key={e.id} href={toggle(e.id)} on={selected.includes(e.id)} className={chip(selected.includes(e.id))}>
                             {date(e.start_date, locale)}
                         </ChipLink>
                     ))}
                 </div>
-                {/* Whom to list: everyone, only those who came, or only the absent — a shorter printout. */}
-                <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pb-2">
-                    <span className="mr-1 text-xs font-medium text-ink-gray">{t('mandal.printShow')}</span>
-                    {['all', 'present', 'absent'].map((k) => (
-                        <ChipLink key={k} href={href(selected, k)} on={show === k} className={chip(show === k)}>
-                            {t(k === 'all' ? 'mandal.printEveryone' : k === 'present' ? 'mandal.onlyPresent' : 'mandal.onlyAbsent')}
-                        </ChipLink>
-                    ))}
-                </div>
+                {/* All: optionally a date range. */}
+                {!selected.length && (
+                    <form action={basePath} className={row}>
+                        {filters.view !== MANDAL_VIEWS[0] && <input type="hidden" name="view" value={filters.view} />}
+                        {mode.allToken && <input type="hidden" name="schedule" value={mode.allToken} />}
+                        {filters.show !== mode.show && <input type="hidden" name="show" value={filters.show} />}
+                        <span className={label}>{t('mandal.from')}</span>
+                        <input type="date" name="from" defaultValue={filters.from} className={`${textInput()} h-7 w-36 text-xs`} />
+                        <span className={label}>{t('mandal.to')}</span>
+                        <input type="date" name="to" defaultValue={filters.to} className={`${textInput()} h-7 w-36 text-xs`} />
+                        <button
+                            type="submit"
+                            className="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                        >
+                            {t('common.apply')}
+                        </button>
+                    </form>
+                )}
+                {/* By schedules: whom to list. */}
+                {filters.view === 'schedules' && (
+                    <div className={row}>
+                        <span className={label}>{t('mandal.printShow')}</span>
+                        {SHOWS.map((k) => (
+                            <ChipLink key={k} href={href({ show: k })} on={filters.show === k} className={chip(filters.show === k)}>
+                                {t(SHOW_LABEL[k])}
+                            </ChipLink>
+                        ))}
+                    </div>
+                )}
             </div>
             <article className="theme-fundraise mx-auto my-4 max-w-4xl rounded-lg border border-surface-border bg-white p-6 shadow-sm print:my-0 print:max-w-none print:rounded-none print:border-0 print:p-0 print:shadow-none sm:p-8">
                 <header className="mb-5 flex items-start gap-3 border-b-2 border-primary pb-3">
@@ -90,56 +130,28 @@ export default async function MandalPrint({
                             {brand} · {t('mandal.badge')}
                         </p>
                         <h1 className="mt-1 text-lg font-semibold text-primary break-words">{localized(campaign, 'title', locale)}</h1>
-                        <p className="mt-0.5 text-xs text-ink-gray">{t('fundraise.generatedOn', { date: date(todayLocal(), locale) })}</p>
+                        <p className="mt-0.5 text-xs text-ink-gray">
+                            {t(VIEW_LABEL[filters.view])} · {period} · {t('fundraise.generatedOn', { date: date(todayLocal(), locale) })}
+                        </p>
                     </div>
                 </header>
 
-                <MandalScheduleSheets shown={shown} show={show} t={t} locale={locale} />
-                {/* The money spent — at the chosen schedule, or all of it. */}
-                {expenses && <MandalExpenses rows={expenses} t={t} locale={locale} />}
+                {filters.view === 'schedules' ? (
+                    <MandalScheduleSheets shown={shown} show={filters.show} t={t} locale={locale} />
+                ) : (
+                    // The fundraise statement's own tables: By contributor, or Expenses — of the chosen money.
+                    <Statement
+                        campaign={statement.shownCampaign}
+                        contributors={statement.contributors}
+                        contributions={statement.contributions}
+                        expenses={statement.expenses}
+                        t={t}
+                        locale={locale}
+                        publicView={publicView}
+                        sections={[filters.view]}
+                    />
+                )}
             </article>
         </div>
-    );
-}
-
-/** Expenses under the sheets: date, what (category), amount, and the total. */
-function MandalExpenses({ rows, t, locale }) {
-    const total = rows.reduce((a, r) => a + Number(r.amount), 0);
-    return (
-        <section className="mt-6">
-            <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.expenses')}</h2>
-            {rows.length === 0 ? (
-                <p className="text-sm text-ink-gray">{t('fundraise.noExpenses')}</p>
-            ) : (
-                <table className="w-full border-collapse text-sm">
-                    <thead>
-                        <tr className="border-b border-surface-border text-left text-[11px] uppercase tracking-wide text-ink-gray">
-                            <th className="w-28 py-1.5 pr-2 font-medium">{t('fundraise.spentOn')}</th>
-                            <th className="py-1.5 pr-2 font-medium">{t('fundraise.expenseWhat')}</th>
-                            <th className="w-28 py-1.5 text-right font-medium">{t('fundraise.amount')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id} className="border-b border-surface-border/60">
-                                <td className="py-1.5 pr-2 text-ink-gray tabular-nums">{date(r.spent_on, locale)}</td>
-                                <td className="py-1.5 pr-2 text-primary">
-                                    {r.title}
-                                    {r.category && <span className="text-ink-gray"> · {r.category}</span>}
-                                </td>
-                                <td className="py-1.5 text-right font-medium text-expense tabular-nums">{money(r.amount)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr className="border-t-2 border-primary font-semibold">
-                            <td />
-                            <td className="py-1.5 pr-2 text-primary">{t('common.total')}</td>
-                            <td className="py-1.5 text-right text-expense tabular-nums">{money(total)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            )}
-        </section>
     );
 }

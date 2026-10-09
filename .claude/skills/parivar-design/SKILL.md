@@ -260,14 +260,15 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   on a section / table / wrapper (Chrome then moved the whole table and left a blank first page), and no scroll box
   around a printed table (`print:overflow-visible` — a scroll container cannot split). Rows never split (`tr`),
   headings and `.print-keep-next` stay with what follows, `thead` repeats on every page.
-- Mandal print (/fundraise/[id]/print of a Mandal): chips Schedule (All / one date) + Show (Everyone / Came only /
-  Absent only, `?show=present|absent`; nothing recorded = absent); totals stay for the whole schedule.
-- Mandal public link (/p/[token]) and its PDF (/p/[token]/print): open on the **latest schedule held + Came only**
-  (lib/mandal-filters: no `schedule` = latest, `schedule=all` [+ from/to], `show=all|absent`; `mandalQuery` builds links,
-  defaults left out) — a light page; all / any date / Everyone / Absent only stay selectable. Page = Show chips + the
-  schedule sheets (components/mandal/mandal-schedule-sheets.jsx, data lib/mandal `mandalSheets`) + totals & Expenses of
-  the same schedule; PDF = MandalPrint (`allToken="all"`, `defaultShow="present"`) with an Expenses table of the
-  same selection. The app's /fundraise/[id]/print keeps all + Everyone as default (+ expenses of the selection).
+- **Mandal print** (MandalPrint — the app's /fundraise/[id]/print and the public /p/[token]/print): chip rows
+  Print (one): By contributors (default) · By schedules · Expenses; Print includes: All or any schedule dates
+  (multi-select, `?schedule=4,7`; All clears them) + a From–To range under All; Show (By schedules only): Everyone ·
+  Came only · Absent only. By contributors / Expenses = the fundraise Statement tables over the chosen money
+  (mandalLedger + mandalStatement); By schedules = MandalScheduleSheets (tables styled like the Statement: rounded
+  border, grey bg-surface-login head and total row, px-4 cells). Defaults by mode (lib/mandal-filters MANDAL_MODES):
+  public = latest schedule + Came only, app = all + Everyone.
+- Mandal public page (/p/[token]): Show chips + the schedule sheets of the filter (latest schedule by default) +
+  totals & Expenses of the same selection; its Filter pop-over picks one schedule or all + a range.
 - **Filter loaders**: filter chips that are links use `ChipLink` (components/ui/chip-link.jsx — ✓ when on, a spinner via
   `useLinkStatus` while loading); the Mandal Filter pop-over navigates in a transition with a spinner on Apply / the button.
 - Fundraise print pages (/fundraise/[id]/print, /p/[token]/print): a no-print "Include in print" chip row under

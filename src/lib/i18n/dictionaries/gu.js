@@ -417,6 +417,8 @@ const gu = {
         filterAbsent: 'ગેરહાજર ({count})',
         printAll: 'બધી તારીખો (PDF)',
         printShow: 'બતાવો:',
+        printView: 'પ્રિન્ટ:',
+        bySchedules: 'તારીખ મુજબ',
         printEveryone: 'બધા',
         onlyPresent: 'ફક્ત હાજર',
         onlyAbsent: 'ફક્ત ગેરહાજર',

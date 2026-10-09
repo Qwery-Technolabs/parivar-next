@@ -299,7 +299,7 @@ export async function subscriberIds(campaignId) {
  * sheet payments + expenses named for it), or a date range (`from` / `to`, YYYY-MM-DD, either end
  * open). Newest first; the page groups them by date.
  */
-export async function mandalLedger(campaignId, { schedule = null, latest = false, from = '', to = '' } = {}, today = '') {
+export async function mandalLedger(campaignId, { ids = [], latest = false, from = '', to = '' } = {}, today = '') {
     const [schedules, incomeAll, expenseAll] = await Promise.all([
         query("SELECT id, start_date, location FROM events_list WHERE campaign_id = :c AND event_type = 'meeting' ORDER BY start_date DESC, id DESC", {
             c: campaignId,
@@ -309,19 +309,22 @@ export async function mandalLedger(campaignId, { schedule = null, latest = false
     ]);
     const received = incomeAll.filter((r) => r.mode !== 'unpaid');
     const day = (v) => String(v ?? '').slice(0, 10);
-    // One schedule: the one asked for, or (`latest` — the public page's default) the latest one held.
-    const chosen = schedule ? schedules.find((s) => s.id === schedule) : latest ? latestSchedule(schedules, today) : null;
-    if (chosen) {
+    // Chosen schedules: those asked for, or (`latest` — the public link's default) the latest one held.
+    const chosen = ids.length ? schedules.filter((s) => ids.includes(s.id)) : latest ? [latestSchedule(schedules, today)].filter(Boolean) : [];
+    if (chosen.length) {
+        const set = new Set(chosen.map((s) => s.id));
         return {
             schedules,
-            schedule: chosen.id,
-            incomes: received.filter((r) => r.event_id === chosen.id),
-            expenses: expenseAll.filter((x) => x.event_id === chosen.id),
+            ids: [...set],
+            schedule: set.size === 1 ? chosen[0].id : null,
+            incomes: received.filter((r) => set.has(r.event_id)),
+            expenses: expenseAll.filter((x) => set.has(x.event_id)),
         };
     }
     const inRange = (d) => (!from || day(d) >= from) && (!to || day(d) <= to);
     return {
         schedules,
+        ids: [],
         schedule: null,
         incomes: received.filter((r) => inRange(r.paid_on)),
         expenses: expenseAll.filter((x) => inRange(x.spent_on)),

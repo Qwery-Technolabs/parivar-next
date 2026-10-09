@@ -423,6 +423,8 @@ const en = {
         filterAbsent: 'Absent ({count})',
         printAll: 'All schedules (PDF)',
         printShow: 'Show:',
+        printView: 'Print:',
+        bySchedules: 'By schedules',
         printEveryone: 'Everyone',
         onlyPresent: 'Came only',
         onlyAbsent: 'Absent only',
