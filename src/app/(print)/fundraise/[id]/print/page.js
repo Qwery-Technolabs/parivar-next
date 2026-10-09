@@ -38,13 +38,15 @@ export default async function FundraisePrintPage({ params, searchParams }) {
 
     // A Mandal prints its schedules — all of them, or one (?schedule=<id>) — never the fundraise statement.
     if (campaign.kind === 'mandal') {
-        const [, schedules] = await Promise.all([allowed(), mandalSheets(campaign, todayLocal())]);
-        const selected = Number(sp1(sp.schedule)) || null;
+        const [, schedules, allExpenses] = await Promise.all([allowed(), mandalSheets(campaign, todayLocal()), listExpenses(campaign.id)]);
+        const asked = Number(sp1(sp.schedule)) || null;
+        const selected = schedules.some((x) => x.e.id === asked) ? asked : null;
         return (
             <MandalPrint
                 campaign={campaign}
                 schedules={schedules}
-                selected={schedules.some((x) => x.e.id === selected) ? selected : null}
+                selected={selected}
+                expenses={selected ? allExpenses.filter((x) => x.event_id === selected) : allExpenses}
                 show={['present', 'absent'].includes(sp1(sp.show)) ? sp1(sp.show) : 'all'}
                 t={t}
                 locale={locale}

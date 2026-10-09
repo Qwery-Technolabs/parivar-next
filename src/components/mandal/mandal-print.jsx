@@ -1,8 +1,9 @@
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import ChipLink from '@/components/ui/chip-link';
 import Link from 'next/link';
 import GroupAvatar from '@/components/groups/group-avatar';
 import PrintButton from '@/components/fundraise/print-button';
-import { date } from '@/lib/format';
+import { date, money } from '@/lib/format';
 import MandalScheduleSheets from './mandal-schedule-sheets';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
@@ -14,14 +15,29 @@ import { getSettings, samajName } from '@/lib/settings';
  * chosen with the chips on top; the sheets themselves are MandalScheduleSheets.
  * `schedules`: [{ e, sheet, forThem }] (lib/mandal `mandalSheets`).
  */
-export default async function MandalPrint({ campaign, schedules, selected = null, show = 'all', t, locale, backHref, basePath, keep = {} }) {
+export default async function MandalPrint({
+    campaign,
+    schedules,
+    selected = null,
+    show = 'all',
+    expenses = null,
+    t,
+    locale,
+    backHref,
+    basePath,
+    keep = {},
+    allToken = null,
+    defaultShow = 'all',
+}) {
     const brand = samajName(await getSettings('admin'), locale) || t('app.name');
     const shown = selected ? schedules.filter((s) => s.e.id === selected) : schedules;
     const href = (sched, sh) => {
         // `keep`: other filters the links carry along (the public link's date range).
-        const q = new URLSearchParams(keep);
+        const q = new URLSearchParams(sched ? {} : keep);
+        // "All schedules": no parameter (the app), or `allToken` where no parameter means the latest (public link).
         if (sched) q.set('schedule', String(sched));
-        if (sh !== 'all') q.set('show', sh);
+        else if (allToken) q.set('schedule', allToken);
+        if (sh !== defaultShow) q.set('show', sh);
         return q.size ? `${basePath}?${q}` : basePath;
     };
     const chip = (on) =>
@@ -39,25 +55,22 @@ export default async function MandalPrint({ campaign, schedules, selected = null
                 {/* What to print: everything, or one schedule (date). */}
                 <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pb-2">
                     <span className="mr-1 text-xs font-medium text-ink-gray">{t('fundraise.printInclude')}</span>
-                    <Link href={href(null, show)} replace scroll={false} aria-pressed={!selected} className={chip(!selected)}>
-                        {!selected && <Check className="size-3.5" />}
+                    <ChipLink href={href(null, show)} on={!selected} className={chip(!selected)}>
                         {t('mandal.printAll')}
-                    </Link>
+                    </ChipLink>
                     {schedules.map(({ e }) => (
-                        <Link key={e.id} href={href(e.id, show)} replace scroll={false} aria-pressed={selected === e.id} className={chip(selected === e.id)}>
-                            {selected === e.id && <Check className="size-3.5" />}
+                        <ChipLink key={e.id} href={href(e.id, show)} on={selected === e.id} className={chip(selected === e.id)}>
                             {date(e.start_date, locale)}
-                        </Link>
+                        </ChipLink>
                     ))}
                 </div>
                 {/* Whom to list: everyone, only those who came, or only the absent — a shorter printout. */}
                 <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-1.5 px-4 pb-2">
                     <span className="mr-1 text-xs font-medium text-ink-gray">{t('mandal.printShow')}</span>
                     {['all', 'present', 'absent'].map((k) => (
-                        <Link key={k} href={href(selected, k)} replace scroll={false} aria-pressed={show === k} className={chip(show === k)}>
-                            {show === k && <Check className="size-3.5" />}
+                        <ChipLink key={k} href={href(selected, k)} on={show === k} className={chip(show === k)}>
                             {t(k === 'all' ? 'mandal.printEveryone' : k === 'present' ? 'mandal.onlyPresent' : 'mandal.onlyAbsent')}
-                        </Link>
+                        </ChipLink>
                     ))}
                 </div>
             </div>
@@ -82,7 +95,51 @@ export default async function MandalPrint({ campaign, schedules, selected = null
                 </header>
 
                 <MandalScheduleSheets shown={shown} show={show} t={t} locale={locale} />
+                {/* The money spent — at the chosen schedule, or all of it. */}
+                {expenses && <MandalExpenses rows={expenses} t={t} locale={locale} />}
             </article>
         </div>
+    );
+}
+
+/** Expenses under the sheets: date, what (category), amount, and the total. */
+function MandalExpenses({ rows, t, locale }) {
+    const total = rows.reduce((a, r) => a + Number(r.amount), 0);
+    return (
+        <section className="mt-6">
+            <h2 className="mb-2 text-sm font-semibold text-primary">{t('fundraise.expenses')}</h2>
+            {rows.length === 0 ? (
+                <p className="text-sm text-ink-gray">{t('fundraise.noExpenses')}</p>
+            ) : (
+                <table className="w-full border-collapse text-sm">
+                    <thead>
+                        <tr className="border-b border-surface-border text-left text-[11px] uppercase tracking-wide text-ink-gray">
+                            <th className="w-28 py-1.5 pr-2 font-medium">{t('fundraise.spentOn')}</th>
+                            <th className="py-1.5 pr-2 font-medium">{t('fundraise.expenseWhat')}</th>
+                            <th className="w-28 py-1.5 text-right font-medium">{t('fundraise.amount')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((r) => (
+                            <tr key={r.id} className="border-b border-surface-border/60">
+                                <td className="py-1.5 pr-2 text-ink-gray tabular-nums">{date(r.spent_on, locale)}</td>
+                                <td className="py-1.5 pr-2 text-primary">
+                                    {r.title}
+                                    {r.category && <span className="text-ink-gray"> · {r.category}</span>}
+                                </td>
+                                <td className="py-1.5 text-right font-medium text-expense tabular-nums">{money(r.amount)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr className="border-t-2 border-primary font-semibold">
+                            <td />
+                            <td className="py-1.5 pr-2 text-primary">{t('common.total')}</td>
+                            <td className="py-1.5 text-right text-expense tabular-nums">{money(total)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            )}
+        </section>
     );
 }

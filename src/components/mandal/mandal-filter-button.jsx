@@ -1,20 +1,34 @@
 'use client';
-import { Filter } from 'lucide-react';
-import Link from 'next/link';
+import { Filter, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
 import { Popover } from '@/components/ui/popover';
 import { textInput } from '@/components/ui/field';
+import { mandalQuery } from '@/lib/mandal-filters';
 import ScheduleSelect from './schedule-select';
 import { useT } from '@/lib/i18n/client';
 
 /**
- * One "Filter" button for a Mandal's public page: a pop-over with Schedule (all / one date) or a
- * From–To range, submitted as GET to `basePath` (the filter lives in the URL, so it is shareable and
- * the PDF link carries it). The badge counts what is applied.
- * @param {{ basePath: string, schedules: Array<{ id: number, label: string, hint?: string }>, filters: { schedule: number|null, from: string, to: string } }} props
+ * One "Filter" button for a Mandal's public page: a pop-over with Schedule (one date, or empty = all) and,
+ * for all, a From–To range. Applied in the URL (shareable; the PDF link carries it) with a mini loader on
+ * Apply until the new view arrives. The page opens on the latest schedule (lib/mandal-filters).
+ * `selected`: the schedule shown now (the latest one by default); `filters.show` is kept.
+ * @param {{ basePath: string, schedules: Array<{ id: number, label: string, hint?: string }>, filters: object, selected: number|null }} props
  */
-export default function MandalFilterButton({ basePath, schedules, filters }) {
+export default function MandalFilterButton({ basePath, schedules, filters, selected }) {
     const { t } = useT();
-    const active = filters.schedule ? 1 : [filters.from, filters.to].filter(Boolean).length;
+    const router = useRouter();
+    const [pending, startTransition] = useTransition();
+    const active = selected ? 1 : [filters.from, filters.to].filter(Boolean).length;
+    const go = (q) => startTransition(() => router.push(q ? `${basePath}?${q}` : basePath, { scroll: false }));
+    const apply = (e, close) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const schedule = Number(fd.get('schedule')) || null;
+        const day = (k) => String(fd.get(k) ?? '');
+        go(mandalQuery({ all: !schedule, schedule, from: schedule ? '' : day('from'), to: schedule ? '' : day('to'), show: filters.show }));
+        close();
+    };
     return (
         <Popover
             align="right"
@@ -32,8 +46,8 @@ export default function MandalFilterButton({ basePath, schedules, filters }) {
                     title={t('common.filters')}
                     className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                    <Filter className="size-4" />
-                    {active > 0 && (
+                    {pending ? <Loader2 className="size-4 animate-spin" /> : <Filter className="size-4" />}
+                    {active > 0 && !pending && (
                         <span className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-brand-orange text-[10px] font-semibold text-white tabular-nums">
                             {active}
                         </span>
@@ -41,15 +55,15 @@ export default function MandalFilterButton({ basePath, schedules, filters }) {
                 </button>
             )}
         >
-            {() => (
-                <form action={basePath} className="space-y-3 p-3">
+            {(close) => (
+                <form onSubmit={(e) => apply(e, close)} className="space-y-3 p-3">
                     {/* A schedule — searchable by date or place, the place under each date; empty = all. */}
                     <div>
                         <span className="mb-1 block text-xs font-medium text-ink-gray">{t('mandal.schedule')}</span>
                         <ScheduleSelect
                             name="schedule"
                             options={schedules.map((x) => ({ value: x.id, label: x.label, hint: x.hint }))}
-                            defaultValue={filters.schedule ?? ''}
+                            defaultValue={selected ?? ''}
                             allowEmpty
                             emptyLabel={t('mandal.printAllShort')}
                         />
@@ -66,15 +80,23 @@ export default function MandalFilterButton({ basePath, schedules, filters }) {
                         </label>
                     </div>
                     <div className="flex items-center justify-end gap-2">
-                        {active > 0 && (
-                            <Link href={basePath} className="inline-flex h-9 items-center px-2 text-sm font-medium text-primary hover:underline">
-                                {t('common.clear')}
-                            </Link>
-                        )}
+                        {/* Back to the default view: the latest schedule. */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                go(mandalQuery({ show: filters.show }));
+                                close();
+                            }}
+                            className="inline-flex h-9 items-center px-2 text-sm font-medium text-primary hover:underline"
+                        >
+                            {t('common.clear')}
+                        </button>
                         <button
                             type="submit"
-                            className="inline-flex h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                            disabled={pending}
+                            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
                         >
+                            {pending && <Loader2 className="size-4 animate-spin" />}
                             {t('common.apply')}
                         </button>
                     </div>

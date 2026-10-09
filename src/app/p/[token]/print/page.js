@@ -6,8 +6,8 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import MandalPrint from '@/components/mandal/mandal-print';
 import { todayLocal } from '@/lib/forms';
-import { mandalSheets } from '@/lib/mandal';
-import { mandalFilters } from '@/lib/mandal-filters';
+import { mandalLedger, mandalSheets } from '@/lib/mandal';
+import { DEFAULT_SHOW, mandalFilters, mandalQuery } from '@/lib/mandal-filters';
 import { sp1 } from '@/lib/url';
 
 export async function generateMetadata({ params }) {
@@ -31,20 +31,26 @@ export default async function PublicFundraisePrintPage({ params, searchParams })
     // A Mandal prints its schedules like the app's Mandal PDF: all or one (chips), Everyone / Came only /
     // Absent only — within the public link's date range, if one is set (kept on every chip).
     if (campaign.kind === 'mandal') {
+        // Default: the latest schedule, those who came — a light page; every chip opens the rest.
         const filters = mandalFilters(sp);
-        const schedules = await mandalSheets(campaign, todayLocal(), filters);
-        const selected = filters.schedule && schedules.some((x) => x.e.id === filters.schedule) ? filters.schedule : null;
+        const today = todayLocal();
+        const [ledger, schedules] = await Promise.all([mandalLedger(campaign.id, filters, today), mandalSheets(campaign, today, filters)]);
+        const selected = ledger.schedule && schedules.some((x) => x.e.id === ledger.schedule) ? ledger.schedule : null;
+        const back = mandalQuery(filters, { schedule: selected });
         return (
             <MandalPrint
                 campaign={campaign}
                 schedules={schedules}
                 selected={selected}
-                show={['present', 'absent'].includes(sp1(sp.show)) ? sp1(sp.show) : 'all'}
+                show={filters.show}
+                expenses={ledger.expenses}
                 t={t}
                 locale={locale}
-                backHref={`/p/${token}${filters.query ? `?${filters.query}` : ''}`}
+                backHref={`/p/${token}${back ? `?${back}` : ''}`}
                 basePath={`/p/${token}/print`}
                 keep={Object.fromEntries(Object.entries({ from: filters.from, to: filters.to }).filter(([, v]) => v))}
+                allToken="all"
+                defaultShow={DEFAULT_SHOW}
             />
         );
     }

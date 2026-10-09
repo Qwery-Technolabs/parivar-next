@@ -262,9 +262,14 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   headings and `.print-keep-next` stay with what follows, `thead` repeats on every page.
 - Mandal print (/fundraise/[id]/print of a Mandal): chips Schedule (All / one date) + Show (Everyone / Came only /
   Absent only, `?show=present|absent`; nothing recorded = absent); totals stay for the whole schedule.
-- Mandal public link (/p/[token]): the schedule sheets (components/mandal/mandal-schedule-sheets.jsx, shared with the
-  print; data lib/mandal `mandalSheets`) above a statement of totals + Expenses only; its PDF (/p/[token]/print) is the
-  same MandalPrint as the app (chips + Show), within the link's schedule / date range (MandalPrint `keep` carries from/to).
+- Mandal public link (/p/[token]) and its PDF (/p/[token]/print): open on the **latest schedule held + Came only**
+  (lib/mandal-filters: no `schedule` = latest, `schedule=all` [+ from/to], `show=all|absent`; `mandalQuery` builds links,
+  defaults left out) — a light page; all / any date / Everyone / Absent only stay selectable. Page = Show chips + the
+  schedule sheets (components/mandal/mandal-schedule-sheets.jsx, data lib/mandal `mandalSheets`) + totals & Expenses of
+  the same schedule; PDF = MandalPrint (`allToken="all"`, `defaultShow="present"`) with an Expenses table of the
+  same selection. The app's /fundraise/[id]/print keeps all + Everyone as default (+ expenses of the selection).
+- **Filter loaders**: filter chips that are links use `ChipLink` (components/ui/chip-link.jsx — ✓ when on, a spinner via
+  `useLinkStatus` while loading); the Mandal Filter pop-over navigates in a transition with a spinner on Apply / the button.
 - Fundraise print pages (/fundraise/[id]/print, /p/[token]/print): a no-print "Include in print" chip row under
   the toolbar — By contributor / Contributions / Expenses, toggled by links to `?show=a,b` (default Contributions only;
   the last one on can't be switched off). Totals always print.

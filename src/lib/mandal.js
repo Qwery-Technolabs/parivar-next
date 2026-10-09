@@ -4,6 +4,7 @@ import { fundraisePermissions } from './access';
 import { getMeta, inList, query } from './db';
 import { listContributions, listExpenses } from './fundraise';
 import { date as formatDate } from './format';
+import { latestSchedule } from './mandal-filters';
 
 // Mandal (savings circle) — a fundraise of kind 'mandal' inside a group. Its members
 // (fundraise_subscribers) pay a fixed amount at its meetings (the fundraise's own meetings).
@@ -298,7 +299,7 @@ export async function subscriberIds(campaignId) {
  * sheet payments + expenses named for it), or a date range (`from` / `to`, YYYY-MM-DD, either end
  * open). Newest first; the page groups them by date.
  */
-export async function mandalLedger(campaignId, { schedule = null, from = '', to = '' } = {}) {
+export async function mandalLedger(campaignId, { schedule = null, latest = false, from = '', to = '' } = {}, today = '') {
     const [schedules, incomeAll, expenseAll] = await Promise.all([
         query("SELECT id, start_date, location FROM events_list WHERE campaign_id = :c AND event_type = 'meeting' ORDER BY start_date DESC, id DESC", {
             c: campaignId,
@@ -308,7 +309,8 @@ export async function mandalLedger(campaignId, { schedule = null, from = '', to 
     ]);
     const received = incomeAll.filter((r) => r.mode !== 'unpaid');
     const day = (v) => String(v ?? '').slice(0, 10);
-    const chosen = schedule ? schedules.find((s) => s.id === schedule) : null;
+    // One schedule: the one asked for, or (`latest` — the public page's default) the latest one held.
+    const chosen = schedule ? schedules.find((s) => s.id === schedule) : latest ? latestSchedule(schedules, today) : null;
     if (chosen) {
         return {
             schedules,

@@ -17,8 +17,8 @@ const POOL_SIZE = Number(process.env.DB_POOL_SIZE || 5);
 // each, and one more against the hourly new-connection limit). The pool closes idle ones itself a bit
 // sooner (IDLE_MS), and a connection idle longer than that is never used (a frozen serverless instance
 // cannot run the pool's timer — the server may already have dropped it): see `connection()`.
-const SESSION_WAIT_S = 300;
-const IDLE_MS = 240 * 1000;
+const SESSION_WAIT_S = 120;
+const IDLE_MS = 100 * 1000;
 // A statement slower than this is logged (Vercel logs) with its first words — to find slow pages.
 const SLOW_MS = 800;
 // Plain queries, not prepared statements: mysql2 escapes the values (named placeholders, same safety;
@@ -38,7 +38,8 @@ function createPool(offset) {
         // Busy pool: wait for a free connection (no error), with no cap on the wait queue.
         waitForConnections: true,
         queueLimit: 0,
-        connectTimeout: 10 * 1000,
+        // A healthy connect takes ~0.2 s; a stuck one is given up after 5 s and tried again (connection()).
+        connectTimeout: 5 * 1000,
         // At most 3 idle connections kept per instance (maxIdle must be below the limit, or mysql2 never
         // closes idle ones), each for IDLE_MS — open slots are shared by every instance (cap 50) and every
         // reconnect counts against the hourly limit. TCP keep-alive stops routers dropping them.
@@ -87,6 +88,7 @@ function currentPool() {
 
 const LOCK_ERRORS = new Set(['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT']);
 const DEAD_CONN = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST']);
+const CONNECT_ERRORS = new Set(['ETIMEDOUT', 'ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH', 'ENETUNREACH', 'EAI_AGAIN', 'PROTOCOL_CONNECTION_LOST']);
 
 /** Conservative: anything not clearly a plain SELECT is treated as a write. */
 function isReadOnly(sql) {
@@ -112,8 +114,18 @@ function checkParams(sql, params) {
  * may have closed it while this instance was frozen) — so a write never goes out on a dead connection.
  */
 async function connection() {
-    for (;;) {
-        const conn = await currentPool().getConnection();
+    for (let attempt = 0; ; attempt++) {
+        let conn;
+        try {
+            conn = await currentPool().getConnection();
+        } catch (err) {
+            // Opening a connection failed (a network blip between Vercel and the host: connect ETIMEDOUT,
+            // refused, reset). Nothing was sent yet, so trying again is safe — for writes too.
+            if (!CONNECT_ERRORS.has(err.code) || attempt >= 2) throw err;
+            console.warn(`[db] connect ${err.code}, retrying (${attempt + 1})`);
+            await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+            continue;
+        }
         if (Date.now() - (conn.connection.lastActiveTime ?? Date.now()) < IDLE_MS) return conn;
         conn.destroy();
     }

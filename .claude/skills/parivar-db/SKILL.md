@@ -12,9 +12,10 @@ backfill rules) get recorded here when applied.
 **Connection pool** (lib/db.js): 5 per instance (DB_POOL_SIZE overrides), waitForConnections, queueLimit 0, keep-alive.
 Hostinger server (read Oct 2026): **wait_timeout = 20 s** (idle connections dropped), **max_user_connections = 50**
 (open, all instances + dev + scripts together), 500 NEW connections/hour per user, ~30 ms round trip from India.
-So: each connection sets `SESSION wait_timeout = 300` (with time_zone + sql_mode, one SET); the pool keeps at most
-3 idle (`maxIdle` must stay below connectionLimit or mysql2 never closes idle ones) for 240 s; `connection()` drops
-any pooled connection idle > 240 s before use (a frozen serverless instance cannot run the pool timer), so no write
+So: each connection sets `SESSION wait_timeout = 120` (with time_zone + sql_mode, one SET); the pool keeps at most
+3 idle (`maxIdle` must stay below connectionLimit or mysql2 never closes idle ones) for 100 s; `connection()` drops
+any pooled connection idle > 100 s before use, and retries OPENING a connection (connect ETIMEDOUT / refused / reset,
+connectTimeout 5 s, up to 3 tries — nothing was sent, safe for writes) (a frozen serverless instance cannot run the pool timer), so no write
 goes out on a dead connection. Never raise the pool far (100 would take the app down).
 Load test (one local instance, live DB, Oct 2026): pool 5 ≈ 9–10 pages/s (DB connections are the limit — queued
 queries log `[db slow]`); pool 10 ≈ 17 pages/s. 0 errors up to 40 simultaneous users; latency grows with the queue. Slow statements (>800 ms, incl. waiting for a connection) log `[db slow]`.
@@ -50,7 +51,7 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
   Test family writes on the throwaway DB (`npm run db:dev` :3307 + `next start -p 3001` with DB_* overrides).
 - **Hosting limit: 500 NEW connections per hour per DB user** (Hostinger `max_connections_per_hour`; error
   `ER_USER_LIMIT_REACHED`, the app then fails until the hour resets). Pool = 5 per instance (never 1: a helper using the pool inside a transaction would deadlock), up to 3 idle
-  connections kept 240 s (see Connection pool above). Every probe script opens fresh connections — reuse ONE
+  connections kept 100 s (see Connection pool above). Every probe script opens fresh connections — reuse ONE
   connection per script, run probes sparingly, and prefer a separate DB user for local dev/scripts.
 - Helpers: `query`, `queryOne`, `withTransaction(q => …)`, `inList(values, prefix)`, `getMeta`,
   `getMetaMany(base, ids, keys)`, `setMeta(base, id, values, q)` (empty value deletes the key).

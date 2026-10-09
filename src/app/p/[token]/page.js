@@ -13,7 +13,8 @@ import { getT } from '@/lib/i18n/server';
 import MandalScheduleSheets from '@/components/mandal/mandal-schedule-sheets';
 import { todayLocal } from '@/lib/forms';
 import { mandalLedger, mandalSheets, mandalStatement } from '@/lib/mandal';
-import { mandalFilters } from '@/lib/mandal-filters';
+import ChipLink from '@/components/ui/chip-link';
+import { MANDAL_SHOWS, mandalFilters, mandalQuery } from '@/lib/mandal-filters';
 
 // A leaked link must not be indexed; the committee can kill it with "New link".
 export async function generateMetadata({ params }) {
@@ -29,21 +30,31 @@ export default async function PublicFundraisePage({ params, searchParams }) {
     const [campaign, { t, locale }] = await Promise.all([getCampaignByToken(token), getT()]);
     if (!campaign) notFound();
 
-    // A Mandal: its income and expenses by date — all, one schedule, or a date range.
+    // A Mandal: by schedule — the latest one by default (those who came), or any one / all / a date range.
     const isMandal = campaign.kind === 'mandal';
     const filters = isMandal ? mandalFilters(await searchParams) : null;
+    const today = todayLocal();
     const [plain, ledger, sheets] = await Promise.all([
         isMandal ? null : Promise.all([contributorTotals(campaign.id, { publicView: true }), listContributions(campaign.id), listExpenses(campaign.id)]),
-        isMandal ? mandalLedger(campaign.id, filters) : null,
-        // A Mandal lists its schedules (who came, who paid) — the filter's schedule or date range.
-        isMandal ? mandalSheets(campaign, todayLocal(), filters) : null,
+        isMandal ? mandalLedger(campaign.id, filters, today) : null,
+        // Its schedules' sheets (who came, who paid).
+        isMandal ? mandalSheets(campaign, today, filters) : null,
     ]);
-    const shownSheets = sheets && filters.schedule ? sheets.filter((x) => x.e.id === filters.schedule) : sheets;
+    // The schedule shown (the one asked for, else the latest); null = all (in the range).
+    const selected = ledger?.schedule ?? null;
+    const shownSheets = sheets && selected ? sheets.filter((x) => x.e.id === selected) : sheets;
+    const showHref = (k) => {
+        const q = mandalQuery(filters, { show: k, schedule: selected, all: !selected });
+        return `/p/${token}${q ? `?${q}` : ''}`;
+    };
     // A Mandal: the same three tables, from the filtered rows (totals follow the filter).
     const { contributors, contributions, expenses, shownCampaign } = isMandal
         ? mandalStatement(campaign, ledger)
         : { contributors: plain[0], contributions: plain[1], expenses: plain[2], shownCampaign: campaign };
-    const query = filters?.query ? `?${filters.query}` : '';
+    const pdfQuery = isMandal ? mandalQuery(filters, { schedule: selected, all: !selected }) : '';
+    const query = pdfQuery ? `?${pdfQuery}` : '';
+    const chip = (on) =>
+        `inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-medium ${on ? 'border-primary bg-primary text-white' : 'border-surface-border bg-white text-ink-gray hover:text-primary'}`;
     const groupName = campaign.group_id ? localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale) : '';
     const dates = campaign.start_date || campaign.end_date ? `${date(campaign.start_date, locale)} – ${date(campaign.end_date, locale)}` : '';
 
@@ -85,6 +96,7 @@ export default async function PublicFundraisePage({ params, searchParams }) {
                         <MandalFilterButton
                             basePath={`/p/${token}`}
                             filters={filters}
+                            selected={selected}
                             schedules={ledger.schedules.map((s) => ({
                                 id: s.id,
                                 label: `${date(s.start_date, locale)} - ${t('mandal.word')}`,
@@ -99,8 +111,17 @@ export default async function PublicFundraisePage({ params, searchParams }) {
 
             {isMandal && (
                 <div className="rounded-lg border border-surface-border bg-white p-4 shadow-sm sm:p-6">
+                    {/* Whom to list — those who came (default), everyone, or the absent; a mini loader on the chip. */}
+                    <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                        <span className="mr-1 text-xs font-medium text-ink-gray">{t('mandal.printShow')}</span>
+                        {MANDAL_SHOWS.map((k) => (
+                            <ChipLink key={k} href={showHref(k)} on={filters.show === k} className={chip(filters.show === k)}>
+                                {t(k === 'all' ? 'mandal.printEveryone' : k === 'present' ? 'mandal.onlyPresent' : 'mandal.onlyAbsent')}
+                            </ChipLink>
+                        ))}
+                    </div>
                     <div className="overflow-x-auto">
-                        <MandalScheduleSheets shown={shownSheets} t={t} locale={locale} />
+                        <MandalScheduleSheets shown={shownSheets} show={filters.show} t={t} locale={locale} />
                     </div>
                 </div>
             )}

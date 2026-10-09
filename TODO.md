@@ -385,3 +385,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] DB connections: survive pauses (session wait_timeout 300 s vs server 20 s), idle ones closed at 240 s, stale ones never used; load-tested 5–40 simultaneous users, 0 errors
 - [x] Print pages: tables flow across pages (no blank first page); Mandal print Came only / Absent only filter; print pages load in parallel
 - [x] Mandal public link: schedule-wise lists (came / paid) + expenses; its PDF = the Mandal schedule printout (chips, Came / Absent filter, date range kept)
+- [x] DB: retry opening a connection on connect ETIMEDOUT / refused (safe, nothing sent); hold idle connections 100 s (session 120 s) to keep open connections low
+- [x] Mandal public page + PDF: default latest schedule + Came only (all selectable), expenses by the same schedule, mini loaders on filter chips / Apply
