@@ -308,7 +308,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   lib/meetings; dues and the sheet count only the members a meeting is for, `isFor`); per meeting meta collect ('1'/'0') + installment (default = campaign meta
   installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a contribution per payment in the chosen mode (cash / UPI / bank / cheque / other) (so the
   ledger / totals include it). Dues = installments of collecting meetings held since joining − paid; missed = absent marks
-  since last present (+ days away). Opening balance = one "Opening balance" contribution (meta opening_contribution_id);
+  since last present ("Missed n meetings · last came n days ago", or "never came"). Opening balance = one "Opening balance" contribution (meta opening_contribution_id);
   when > 0 the Finance card shows "Handed over to the treasurer" (opening_handed, default yes → its handed_over).
   Mandal form: no target, no amount-per-meeting (amount is per schedule), place = plain text (never a suggestion —
   knownLocations skips Mandals); right column: Who is in it, Sharing, Schedules (SchedulesEditor: rows in state,

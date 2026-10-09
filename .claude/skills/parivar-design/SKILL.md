@@ -132,6 +132,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   line on phones too (grid minmax(0,1fr) / minmax(0,1.4fr) / 2.25rem).
 - Money forms are grouped with FormPart: contribution = Contributor · Amount · Holding (Kept by); expense = Details · Amount
   (+ Notes) · Holding (Paid by). What / Where / Notes / Reference carry example placeholders.
+  Mandal Edit / New schedule ends with the same Holding part (HandCoins): Money kept by + "Handed over to the treasurer" on
+  one row (grid sm:grid-cols-2 items-start, switch sm:pt-7).
 - Money / amount inputs: type="number" inputMode="decimal" min="0" step="0.01" everywhere (contribution, expense, Mandal
   sheet + schedules, target, opening balance).
 - Dialog footer (FormDialog) is pinned flush to the bottom edge (sticky -bottom-4, no strip of content under it).

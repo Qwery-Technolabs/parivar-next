@@ -377,3 +377,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal run only by its own people (app admins, its team admin / treasurer / collector) — not group admins
 - [x] Mandal handed over to the treasurer per schedule (Edit schedule switch; badge on the overview table, not per payment)
 - [x] Mandal opening balance: "Handed over to the treasurer" switch when non-zero (default yes)
+- [x] Mandal members: "Missed n meetings · last came n days ago" (was a bare "n days")
+- [x] Mandal Edit schedule: Holding part (icon heading; kept by + handed over on one row)
