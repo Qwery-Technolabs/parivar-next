@@ -116,6 +116,33 @@ export async function mandalMembers(campaignId, meetings, today) {
     });
 }
 
+/**
+ * Who came to each schedule, for the Meetings tab: eventId → { archived, people: [{ id, full_name,
+ * full_name_local, present: true | false | null (not marked) }] } — the members it is for, plus anyone marked there.
+ */
+export async function mandalAttendance(campaignId, meetings) {
+    const [members, marks] = await Promise.all([
+        query(
+            `SELECT u.id, u.full_name, u.full_name_local FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id
+              WHERE s.campaign_id = :campaignId ORDER BY u.full_name`,
+            { campaignId },
+        ),
+        query('SELECT event_id, user_id, present FROM fundraise_mandal_marks WHERE campaign_id = :campaignId', { campaignId }),
+    ]);
+    const mark = new Map(marks.map((x) => [`${x.event_id}:${x.user_id}`, Boolean(x.present)]));
+    return Object.fromEntries(
+        meetings.map((e) => [
+            e.id,
+            {
+                archived: Boolean(e.archived),
+                people: members
+                    .filter((m) => isFor(e, m.id) || mark.has(`${e.id}:${m.id}`))
+                    .map((m) => ({ ...m, present: mark.has(`${e.id}:${m.id}`) ? mark.get(`${e.id}:${m.id}`) : null })),
+            },
+        ]),
+    );
+}
+
 /** Is this meeting for this member: everyone's, or they were chosen? */
 export function isFor(meeting, userId) {
     return meeting.everyone || meeting.invited.includes(userId);

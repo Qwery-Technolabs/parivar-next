@@ -14,7 +14,7 @@ export default function Switch({ checked, onChange, label, title, name, disabled
             title={title}
             disabled={disabled}
             onClick={() => onChange(!checked)}
-            className={`inline-flex cursor-pointer items-center gap-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${color}`}
+            className={`inline-flex cursor-pointer items-center gap-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${color}`}
         >
             <span
                 className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${
@@ -22,9 +22,7 @@ export default function Switch({ checked, onChange, label, title, name, disabled
                 }`}
             >
                 <span
-                    className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
-                        checked ? 'translate-x-3.5' : 'translate-x-0.5'
-                    }`}
+                    className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-3.5' : 'translate-x-0.5'}`}
                 />
             </span>
             {label}

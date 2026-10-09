@@ -11,7 +11,15 @@ import MeetingList from './meeting-list';
  * whether the viewer may schedule. Pages only place it.
  * @param {{ scope: 'group'|'fundraise', scopeId: number, defaultTitle?: string, defaultPlace?: string }} props
  */
-export default async function MeetingsSection({ scope, scopeId, defaultTitle = '', defaultPlace = '', minutes = [], canPostMinutes = false }) {
+export default async function MeetingsSection({
+    scope,
+    scopeId,
+    defaultTitle = '',
+    defaultPlace = '',
+    minutes = [],
+    canPostMinutes = false,
+    attendance = null,
+}) {
     const user = await getCurrentUser();
     const ctx = await meetingScope(user, scope, scopeId);
     if (!ctx) return null;
@@ -44,6 +52,7 @@ export default async function MeetingsSection({ scope, scopeId, defaultTitle = '
             canPostMinutes={canPostMinutes}
             birthdays={birthdays}
             birthdayRoles={birthdayRoles}
+            attendance={attendance}
         />
     );
 }

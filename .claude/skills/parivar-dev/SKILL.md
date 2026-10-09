@@ -236,6 +236,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   sheet Edit, Add members, New schedule, Edit, Danger zone). Chat clearing keeps its own rule (group admins may clear).
   Callers must pass the campaign with `kind` (getCampaign / authorize / loadMandal / meetings already do).
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
+  Meetings tab of a Mandal: each schedule card shows "n came · n absent · n not marked" instead of RSVP counts
+  (meetings/mandal-attendance.jsx; data lib/mandal `mandalAttendance`). Those who run it (canRunMandal) mark each member
+  Came / Absent there, saved at once by `setMandalPresence` (marks.present only — payment untouched); not on an archived
+  or future schedule. No "Are you coming?" on a Mandal schedule.
   **Address: /mandal/[id]** (route renders the fundraise page with `asMandal`; /fundraise/[id] of a Mandal redirects there, query kept;
   revalidate both paths). **About**: `mandalAboutParts()` → { main: summary + Members (scrolls), side: Schedules } placed INTO
   DetailsTab's two columns (no separate block → no gaps). **Attendance & money** has a member search (rows hidden, still posted).

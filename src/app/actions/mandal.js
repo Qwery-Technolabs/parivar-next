@@ -387,6 +387,33 @@ export async function deleteMandalScheduleForm(prev, fd) {
 }
 
 /** Archive a schedule whose money is in (closed: no more changes), or bring it back. */
+/**
+ * Came / absent for ONE member at ONE schedule, straight from the Meetings tab. Only the attendance
+ * changes — a payment already recorded there stays as it is. Not on an archived schedule.
+ */
+export async function setMandalPresence(campaignId, eventId, userId, present) {
+    const actor = await getCurrentUser();
+    const campaign = await loadMandal(Number(campaignId));
+    if (!actor || !campaign || !(await canRunMandal(actor, campaign))) return FORBIDDEN;
+    const ev = await queryOne("SELECT id FROM events_list WHERE id = :eventId AND event_type = 'meeting' AND campaign_id = :c", {
+        eventId: Number(eventId),
+        c: campaign.id,
+    });
+    if (!ev) return FORBIDDEN;
+    if ((await getMeta('events_list', ev.id)).archived === '1') return { error: 'mandal.errors.archived' };
+    const member = await queryOne('SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c AND user_id = :u', { c: campaign.id, u: Number(userId) });
+    if (!member) return FORBIDDEN;
+    await query(
+        `INSERT INTO fundraise_mandal_marks (event_id, user_id, campaign_id, present, marked_by)
+         VALUES (:e, :u, :c, :present, :by)
+         ON DUPLICATE KEY UPDATE present = VALUES(present), marked_by = VALUES(marked_by)`,
+        { e: ev.id, u: member.user_id, c: campaign.id, present: present ? 1 : 0, by: actor.id },
+    );
+    await audit(actor.id, 'mandal.presence', 'fundraise', campaign.id, { event: ev.id, user: member.user_id, present: Boolean(present) });
+    refresh(campaign.id);
+    return { ok: true };
+}
+
 export async function setMandalScheduleArchived(campaignId, eventId, archived) {
     const actor = await getCurrentUser();
     const campaign = await loadMandal(Number(campaignId));

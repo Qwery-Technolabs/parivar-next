@@ -82,7 +82,8 @@ export default function ScheduleDialog({ campaignId, schedule = null, members, d
                 <div className="space-y-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                         <input type="hidden" name="collect" value={collect ? '1' : '0'} />
-                        <div className="sm:col-span-2">
+                        {/* Row 1: collect? + amount per member · row 2: date + place. */}
+                        <div>
                             <p className="mb-1 text-xs font-medium text-ink-gray">{t('mandal.collect')}</p>
                             <div role="radiogroup" className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
                                 {[true, false].map((v) => (
@@ -99,15 +100,6 @@ export default function ScheduleDialog({ campaignId, schedule = null, members, d
                                 ))}
                             </div>
                         </div>
-                        <Field label={t('common.date')} error={fieldError('start_date')} required>
-                            <input
-                                type="date"
-                                name="start_date"
-                                required
-                                defaultValue={schedule?.start_date ?? today}
-                                className={`${textInput(!!fieldError('start_date'))} w-full`}
-                            />
-                        </Field>
                         {collect ? (
                             <Field label={t('mandal.amountThisTime')} error={fieldError('installment')} required>
                                 <input
@@ -122,8 +114,17 @@ export default function ScheduleDialog({ campaignId, schedule = null, members, d
                                 />
                             </Field>
                         ) : (
-                            <div className="hidden sm:block" />
+                            <div className="hidden sm:block" aria-hidden />
                         )}
+                        <Field label={t('common.date')} error={fieldError('start_date')} required>
+                            <input
+                                type="date"
+                                name="start_date"
+                                required
+                                defaultValue={schedule?.start_date ?? today}
+                                className={`${textInput(!!fieldError('start_date'))} w-full`}
+                            />
+                        </Field>
                         <Field label={t('fundraise.place')}>
                             <input name="location" maxLength={200} defaultValue={schedule?.location ?? ''} className={`${textInput()} w-full`} />
                         </Field>

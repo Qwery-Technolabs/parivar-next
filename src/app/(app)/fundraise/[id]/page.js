@@ -12,7 +12,7 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import { mandalAboutParts, mandalMoneyParts } from '@/components/mandal/mandal-tab';
-import { mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
+import { canRunMandal, mandalAttendance, mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
@@ -281,6 +281,13 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
     } else if (tab === 'meetings') {
         // Minutes are updates tied to a meeting; they show under that meeting.
         const updates = await listUpdates(campaign.id);
+        // A Mandal's meetings are its schedules: each card marks who came (those who run it), straight from here.
+        const attendance = isMandal
+            ? {
+                  byEvent: await mandalAttendance(campaign.id, await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0)),
+                  canMark: await canRunMandal(user, campaign),
+              }
+            : null;
         body = (
             <MeetingsSection
                 scope="fundraise"
@@ -297,6 +304,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                         author_local: u.author_local,
                     }))}
                 canPostMinutes={perms.post}
+                attendance={attendance}
             />
         );
     } else if (tab === 'details') {

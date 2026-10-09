@@ -379,3 +379,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal opening balance: "Handed over to the treasurer" switch when non-zero (default yes)
 - [x] Mandal members: "Missed n meetings · last came n days ago" (was a bare "n days")
 - [x] Mandal Edit schedule: Holding part (icon heading; kept by + handed over on one row)
+- [x] Mandal schedule dialog: Collect + Amount in one row, Date + Place in one row; switch labels left-aligned when they wrap
+- [x] Mandal Meetings tab: mark Came / Absent per member right on each schedule card

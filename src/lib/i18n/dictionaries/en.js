@@ -398,6 +398,9 @@ const en = {
         removeConfirm: 'Remove {name} from this Mandal? Their past payments stay.',
         pending: 'Pending {amount}',
         upToDate: 'Up to date',
+        // Meetings tab: a schedule's attendance line.
+        attendanceCounts: '{came} came · {absent} absent · {none} not marked',
+        notMarked: 'Not marked',
         missed: {
             one: 'Missed {count} meeting',
             other: 'Missed {count} meetings',

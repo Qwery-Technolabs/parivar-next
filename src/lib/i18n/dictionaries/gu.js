@@ -394,6 +394,8 @@ const gu = {
         removeConfirm: '{name} ને આ મંડળમાંથી કાઢવા છે? અગાઉની ચુકવણી રહેશે.',
         pending: 'બાકી {amount}',
         upToDate: 'બાકી નથી',
+        attendanceCounts: '{came} હાજર · {absent} ગેરહાજર · {none} બાકી',
+        notMarked: 'નોંધ્યું નથી',
         missed: {
             one: '{count} મીટિંગ ચૂક્યા',
             other: '{count} મીટિંગ ચૂક્યા',
