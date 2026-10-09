@@ -53,7 +53,7 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
                 <ChevronDown className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
-                <ul className="mt-1.5 grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
+                <ul className="mt-1.5 grid gap-x-4 sm:grid-cols-2">
                     {people.map((p) => {
                         const name = (locale !== 'en' && p.full_name_local) || p.full_name;
                         const Icon = p.present === true ? Check : p.present === false ? X : Minus;
@@ -61,14 +61,14 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
                         const state = t(p.present === true ? 'mandal.present' : p.present === false ? 'mandal.absent' : 'mandal.notMarked');
                         // Same ✓ / ✗ / – for everyone; who runs it taps the row to switch (– or ✗ → ✓, ✓ → ✗).
                         return (
-                            <li key={p.id} className="min-w-0 text-xs">
+                            <li key={p.id} className="min-w-0 text-xs leading-5">
                                 {editable ? (
                                     <button
                                         type="button"
                                         disabled={busy === p.id}
                                         onClick={() => mark(p, p.present !== true)}
                                         title={state}
-                                        className="-mx-1 flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-accent disabled:opacity-60"
+                                        className="-mx-1 flex w-full min-w-0 items-center gap-1.5 rounded px-1 text-left hover:bg-accent disabled:opacity-60"
                                     >
                                         <Icon className={`size-3.5 shrink-0 ${tone}`} aria-label={state} />
                                         <span className="truncate text-ink">{name}</span>
