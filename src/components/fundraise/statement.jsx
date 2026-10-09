@@ -117,8 +117,8 @@ export default function Statement({ campaign, contributors, contributions, expen
 
 function Section({ title, note, children }) {
     return (
-        <section className="break-inside-avoid-page">
-            <div className="mb-2 flex items-baseline justify-between gap-2">
+        <section>
+            <div className="print-keep-next mb-2 flex items-baseline justify-between gap-2">
                 <h2 className="text-sm font-semibold text-primary">{title}</h2>
                 <span className="text-xs text-ink-gray">{note}</span>
             </div>
@@ -130,8 +130,8 @@ function Section({ title, note, children }) {
 function Table({ head, rows, foot, numeric, empty, footTone }) {
     const align = (i) => (numeric[i] ? 'text-right tabular-nums' : 'break-words');
     return (
-        <div className="overflow-hidden rounded-lg border border-surface-border bg-white print:rounded-none">
-            <div className="overflow-x-auto">
+        <div className="overflow-hidden rounded-lg border border-surface-border bg-white print:overflow-visible print:rounded-none">
+            <div className="overflow-x-auto print:overflow-visible">
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b border-surface-border bg-surface-login text-left text-xs uppercase tracking-wide text-ink-gray">

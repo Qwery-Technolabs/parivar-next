@@ -256,6 +256,15 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   (tooltip = its label), never a text link squeezed beside the title.
 - PDF/print is an **icon-only** button (`FileDown`) wherever it appears; print CSS keeps background
   colours (`print-color-adjust: exact`).
+- **Page breaks (all print pages, globals.css @media print)**: tables FLOW across pages — never `break-inside: avoid`
+  on a section / table / wrapper (Chrome then moved the whole table and left a blank first page), and no scroll box
+  around a printed table (`print:overflow-visible` — a scroll container cannot split). Rows never split (`tr`),
+  headings and `.print-keep-next` stay with what follows, `thead` repeats on every page.
+- Mandal print (/fundraise/[id]/print of a Mandal): chips Schedule (All / one date) + Show (Everyone / Came only /
+  Absent only, `?show=present|absent`; nothing recorded = absent); totals stay for the whole schedule.
+- Mandal public link (/p/[token]): the schedule sheets (components/mandal/mandal-schedule-sheets.jsx, shared with the
+  print; data lib/mandal `mandalSheets`) above a statement of totals + Expenses only; its PDF (/p/[token]/print) is the
+  same MandalPrint as the app (chips + Show), within the link's schedule / date range (MandalPrint `keep` carries from/to).
 - Fundraise print pages (/fundraise/[id]/print, /p/[token]/print): a no-print "Include in print" chip row under
   the toolbar — By contributor / Contributions / Expenses, toggled by links to `?show=a,b` (default Contributions only;
   the last one on can't be switched off). Totals always print.

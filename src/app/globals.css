@@ -181,6 +181,21 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  /* Long tables flow onto the next page (never "keep the whole table together" — that left a blank
+     first page): a row is never cut in half, a heading stays with what follows, and the column
+     heads repeat on every page. */
+  tr {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3,
+  .print-keep-next {
+    break-after: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
 }
 
 /* Family tree (components/members/family-tree.jsx): nested lists drawn as a tree — each child

@@ -10,7 +10,9 @@ import { date } from '@/lib/format';
 import { contributorTotals, getCampaignByToken, listContributions, listExpenses } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { mandalLedger, mandalStatement } from '@/lib/mandal';
+import MandalScheduleSheets from '@/components/mandal/mandal-schedule-sheets';
+import { todayLocal } from '@/lib/forms';
+import { mandalLedger, mandalSheets, mandalStatement } from '@/lib/mandal';
 import { mandalFilters } from '@/lib/mandal-filters';
 
 // A leaked link must not be indexed; the committee can kill it with "New link".
@@ -23,17 +25,20 @@ export async function generateMetadata({ params }) {
 
 export default async function PublicFundraisePage({ params, searchParams }) {
     const { token } = await params;
-    const campaign = await getCampaignByToken(token);
+    // The campaign and the texts load together.
+    const [campaign, { t, locale }] = await Promise.all([getCampaignByToken(token), getT()]);
     if (!campaign) notFound();
 
-    const { t, locale } = await getT();
     // A Mandal: its income and expenses by date — all, one schedule, or a date range.
     const isMandal = campaign.kind === 'mandal';
     const filters = isMandal ? mandalFilters(await searchParams) : null;
-    const [plain, ledger] = await Promise.all([
+    const [plain, ledger, sheets] = await Promise.all([
         isMandal ? null : Promise.all([contributorTotals(campaign.id, { publicView: true }), listContributions(campaign.id), listExpenses(campaign.id)]),
         isMandal ? mandalLedger(campaign.id, filters) : null,
+        // A Mandal lists its schedules (who came, who paid) — the filter's schedule or date range.
+        isMandal ? mandalSheets(campaign, todayLocal(), filters) : null,
     ]);
+    const shownSheets = sheets && filters.schedule ? sheets.filter((x) => x.e.id === filters.schedule) : sheets;
     // A Mandal: the same three tables, from the filtered rows (totals follow the filter).
     const { contributors, contributions, expenses, shownCampaign } = isMandal
         ? mandalStatement(campaign, ledger)
@@ -92,6 +97,14 @@ export default async function PublicFundraisePage({ params, searchParams }) {
 
             <FundraiseSummary campaign={campaign} t={t} />
 
+            {isMandal && (
+                <div className="rounded-lg border border-surface-border bg-white p-4 shadow-sm sm:p-6">
+                    <div className="overflow-x-auto">
+                        <MandalScheduleSheets shown={shownSheets} t={t} locale={locale} />
+                    </div>
+                </div>
+            )}
+
             <div className="rounded-lg border border-surface-border bg-white p-4 shadow-sm sm:p-6">
                 <Statement
                     campaign={shownCampaign}
@@ -101,6 +114,8 @@ export default async function PublicFundraisePage({ params, searchParams }) {
                     t={t}
                     locale={locale}
                     publicView
+                    // A Mandal's payments are in the schedule lists above: here its totals and expenses.
+                    sections={isMandal ? ['expenses'] : undefined}
                 />
             </div>
             <p className="text-center text-xs text-ink-gray">{t('fundraise.poweredBy')}</p>

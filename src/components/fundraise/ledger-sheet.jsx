@@ -9,7 +9,7 @@ import PrintButton from './print-button';
 function Block({ heading, rows, nameOf, t }) {
     const sum = rows.reduce((acc, r) => acc + Number(r.amount), 0);
     return (
-        <section className="mb-6 break-inside-avoid-page">
+        <section className="mb-6">
             {heading && <h2 className="mb-1 text-sm font-semibold text-ink">{heading}</h2>}
             <table className="w-full text-sm">
                 <tbody>

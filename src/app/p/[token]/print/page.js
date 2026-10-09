@@ -4,7 +4,9 @@ import { statementSections } from '@/components/fundraise/statement';
 import { contributorTotals, getCampaignByToken, listContributions, listExpenses } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { mandalLedger, mandalPeriod, mandalStatement } from '@/lib/mandal';
+import MandalPrint from '@/components/mandal/mandal-print';
+import { todayLocal } from '@/lib/forms';
+import { mandalSheets } from '@/lib/mandal';
 import { mandalFilters } from '@/lib/mandal-filters';
 import { sp1 } from '@/lib/url';
 
@@ -22,31 +24,27 @@ export default async function PublicFundraisePrintPage({ params, searchParams })
     const { token } = await params;
     const sp = await searchParams;
     const sections = statementSections(sp1(sp.show));
-    const campaign = await getCampaignByToken(token);
+    // The campaign and the texts load together.
+    const [campaign, { t, locale }] = await Promise.all([getCampaignByToken(token), getT()]);
     if (!campaign) notFound();
 
-    const { t, locale } = await getT();
-    // A Mandal prints like a fundraise (By contributor · Contributions · Expenses chips), from the
-    // rows of its filter — one schedule or a date range — which every chip keeps.
+    // A Mandal prints its schedules like the app's Mandal PDF: all or one (chips), Everyone / Came only /
+    // Absent only — within the public link's date range, if one is set (kept on every chip).
     if (campaign.kind === 'mandal') {
         const filters = mandalFilters(sp);
-        const ledger = await mandalLedger(campaign.id, filters);
-        const { contributors, contributions, expenses, shownCampaign } = mandalStatement(campaign, ledger);
-        const back = `/p/${token}${filters.query ? `?${filters.query}` : ''}`;
+        const schedules = await mandalSheets(campaign, todayLocal(), filters);
+        const selected = filters.schedule && schedules.some((x) => x.e.id === filters.schedule) ? filters.schedule : null;
         return (
-            <PrintSheet
-                campaign={shownCampaign}
-                contributors={contributors}
-                contributions={contributions}
-                expenses={expenses}
+            <MandalPrint
+                campaign={campaign}
+                schedules={schedules}
+                selected={selected}
+                show={['present', 'absent'].includes(sp1(sp.show)) ? sp1(sp.show) : 'all'}
                 t={t}
                 locale={locale}
-                backHref={back}
+                backHref={`/p/${token}${filters.query ? `?${filters.query}` : ''}`}
                 basePath={`/p/${token}/print`}
-                sections={sections}
-                query={filters.query}
-                period={mandalPeriod(ledger, filters, t, locale)}
-                publicView
+                keep={Object.fromEntries(Object.entries({ from: filters.from, to: filters.to }).filter(([, v]) => v))}
             />
         );
     }

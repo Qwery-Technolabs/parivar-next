@@ -246,6 +246,26 @@ const addGroupPeople = cache(async (c, g) => {
 /** mandalMeetings, once per request for pages (the header total, the tab and the meetings list share it). */
 export const mandalMeetingsOnce = cache((campaignId, installment) => mandalMeetings(campaignId, installment));
 
+/**
+ * Each schedule's sheet for the printout / public page: [{ e, sheet, forThem }] — the schedule, its marks
+ * (user → { present, paid, mode }) and the members it is for (plus anyone marked there). Optional
+ * `from` / `to` (YYYY-MM-DD) keep schedules dated in that range. Everything loads at once.
+ */
+export async function mandalSheets(campaign, today, { from = '', to = '' } = {}) {
+    const installment = Number(campaign.meta?.installment) || 0;
+    const [meetings, marks, members] = await Promise.all([
+        mandalMeetingsOnce(campaign.id, installment),
+        allMarks(campaign.id),
+        mandalMembersOnce(campaign.id, installment, today),
+    ]);
+    return meetings
+        .filter((e) => (!from || e.start_date >= from) && (!to || e.start_date <= to))
+        .map((e) => {
+            const sheet = marks[e.id] ?? {};
+            return { e, sheet, forThem: members.filter((mem) => isFor(e, mem.id) || sheet[mem.id]) };
+        });
+}
+
 /** mandalMembers over mandalMeetingsOnce, once per request (after syncMandalMembers). */
 export const mandalMembersOnce = cache(async (campaignId, installment, today) =>
     mandalMembers(campaignId, await mandalMeetingsOnce(campaignId, installment), today),

@@ -186,7 +186,8 @@ export const getCampaign = cache(async (id) => {
 });
 
 /** Public lookup: only a well-formed token of a campaign that is currently public. */
-export async function getCampaignByToken(token) {
+// Cached per request: the public page and its title share one lookup.
+export const getCampaignByToken = cache(async (token) => {
     if (!TOKEN_RE.test(String(token ?? ''))) return null;
     const row = await queryOne(
         `SELECT ${COLS}, ${TOTALS}
@@ -197,7 +198,7 @@ export async function getCampaignByToken(token) {
     if (!row) return null;
     row.meta = await getMeta('fundraise_campaigns', row.id);
     return row;
-}
+});
 
 /** @param {{ limit?: number, offset?: number }} [opts] omit for all rows (statement / print). */
 /** Contributions, newest first — with who keeps the money (kept_by → name) and whether it was handed to the treasurer. */

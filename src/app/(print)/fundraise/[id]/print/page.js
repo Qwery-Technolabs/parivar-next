@@ -8,7 +8,7 @@ import { requireUser } from '@/lib/auth';
 import { canSeeCampaign, contributorTotals, getCampaign, listContributions, listExpenses } from '@/lib/fundraise';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
-import { allMarks, isFor, mandalMeetings, mandalMembers } from '@/lib/mandal';
+import { mandalSheets } from '@/lib/mandal';
 import { getT } from '@/lib/i18n/server';
 import { sp1 } from '@/lib/url';
 
@@ -23,30 +23,29 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function FundraisePrintPage({ params, searchParams }) {
-    const { id } = await params;
-    const sp = await searchParams;
-    const user = await requireUser();
-    const campaign = await getCampaign(Number(id));
+    // Every lookup that can run at once does (each wait is a round trip to the remote database): who
+    // asks + the fundraise + texts, then the checks together with the rows to print.
+    const [{ id }, sp] = await Promise.all([params, searchParams]);
+    const [user, campaign, { t, locale }] = await Promise.all([requireUser(), getCampaign(Number(id)), getT()]);
     if (!campaign) notFound();
-    if (campaign.status === 'draft' && !(await canManageFundraise(user, campaign))) notFound();
-    if (!(await canSeeCampaign(user, campaign.id))) notFound();
-
-    const { t, locale } = await getT();
+    const manageP = canManageFundraise(user, campaign);
+    const checks = Promise.all([manageP, canSeeCampaign(user, campaign.id)]);
+    const allowed = async () => {
+        const [manage, visible] = await checks;
+        if ((campaign.status === 'draft' && !manage) || !visible) notFound();
+        return manage;
+    };
 
     // A Mandal prints its schedules — all of them, or one (?schedule=<id>) — never the fundraise statement.
     if (campaign.kind === 'mandal') {
-        const [meetings, marks] = await Promise.all([mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0), allMarks(campaign.id)]);
-        const members = await mandalMembers(campaign.id, meetings, todayLocal());
-        const schedules = meetings.map((e) => {
-            const sheet = marks[e.id] ?? {};
-            return { e, sheet, forThem: members.filter((m) => isFor(e, m.id) || sheet[m.id]) };
-        });
+        const [, schedules] = await Promise.all([allowed(), mandalSheets(campaign, todayLocal())]);
         const selected = Number(sp1(sp.schedule)) || null;
         return (
             <MandalPrint
                 campaign={campaign}
                 schedules={schedules}
                 selected={schedules.some((x) => x.e.id === selected) ? selected : null}
+                show={['present', 'absent'].includes(sp1(sp.show)) ? sp1(sp.show) : 'all'}
                 t={t}
                 locale={locale}
                 backHref={`/mandal/${campaign.id}?tab=money`}
@@ -58,7 +57,8 @@ export default async function FundraisePrintPage({ params, searchParams }) {
     // ?format=list — the simple "amount  name / ----- / Total" statement (same as Copy).
     if (sp1(sp.format) === 'list') {
         const kind = ['income', 'expense', 'both'].includes(sp1(sp.kind)) ? sp1(sp.kind) : 'both';
-        const [income, expense] = await Promise.all([
+        const [, income, expense] = await Promise.all([
+            allowed(),
             kind === 'expense' ? [] : listContributions(campaign.id),
             kind === 'income' ? [] : listExpenses(campaign.id),
         ]);
@@ -75,9 +75,9 @@ export default async function FundraisePrintPage({ params, searchParams }) {
         );
     }
 
-    const manage = await canManageFundraise(user, campaign);
-    const [contributors, contributions, expenses] = await Promise.all([
-        contributorTotals(campaign.id, { publicView: !manage }),
+    const [manage, contributors, contributions, expenses] = await Promise.all([
+        allowed(),
+        manageP.then((m) => contributorTotals(campaign.id, { publicView: !m })),
         listContributions(campaign.id),
         listExpenses(campaign.id),
     ]);
