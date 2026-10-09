@@ -230,6 +230,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Mandal's own group — or you're on its team / a Mandal member) · **Recommended** = an audience rule matches you (AUDIENCE_MATCH:
   surname, caste, sub-caste, city, native village) and not For you · then the rest. AUDIENCE_MATCH (not FOR_YOU) is what
   AUDIENCE_OK uses for who may see it.
+- **Who runs a Mandal**: ONLY its own people — app admins / sub-admins (canManageAllFundraises), its team admins (manage),
+  treasurers and collectors (canRunMandal). fundraisePermissions skips the group-admin rule for kind = 'mandal', and
+  canRunMandal has no group-leader path: a group admin / sub-admin with no Mandal role only views it (no + Contribution,
+  sheet Edit, Add members, New schedule, Edit, Danger zone). Chat clearing keeps its own rule (group admins may clear).
+  Callers must pass the campaign with `kind` (getCampaign / authorize / loadMandal / meetings already do).
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
   **Address: /mandal/[id]** (route renders the fundraise page with `asMandal`; /fundraise/[id] of a Mandal redirects there, query kept;
   revalidate both paths). **About**: `mandalAboutParts()` → { main: summary + Members (scrolls), side: Schedules } placed INTO
@@ -287,7 +292,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   each row = saveMandalContribution(sheet=1, queued per row, Saving…/Saved/error mark; no page refresh per row, one
   router.refresh() on Done / close). (superseded: the sheet is view-only with its own Edit — see below);
   only for those who run the sheet, while a schedule is open); expenses: meta event_id ("For schedule").
-  Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over 0;
+  Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over = the
+  schedule's "Handed over to the treasurer" (events_listmeta handed_over='1', set in Edit schedule; saving it updates every
+  contribution of that schedule). Mandal money rows show no per-payment Kept by / badge (MoneyTab holdingPerRow=false); the
+  overview schedules table shows With treasurer / Not handed over per schedule that has money;
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,
   Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history;
   each member row has a ⋮ (MandalMemberMenu: View profile; Remove — red, confirm — for those who run it, phone-added only))
@@ -300,7 +308,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   lib/meetings; dues and the sheet count only the members a meeting is for, `isFor`); per meeting meta collect ('1'/'0') + installment (default = campaign meta
   installment). "Attendance & money" sheet → fundraise_mandal_marks (present, paid) + a contribution per payment in the chosen mode (cash / UPI / bank / cheque / other) (so the
   ledger / totals include it). Dues = installments of collecting meetings held since joining − paid; missed = absent marks
-  since last present (+ days away). Opening balance = one "Opening balance" contribution (meta opening_contribution_id).
+  since last present (+ days away). Opening balance = one "Opening balance" contribution (meta opening_contribution_id);
+  when > 0 the Finance card shows "Handed over to the treasurer" (opening_handed, default yes → its handed_over).
   Mandal form: no target, no amount-per-meeting (amount is per schedule), place = plain text (never a suggestion —
   knownLocations skips Mandals); right column: Who is in it, Sharing, Schedules (SchedulesEditor: rows in state,
   posted with the form as sch_*; writeMandalSchedules creates / updates / archives / deletes-if-no-money).
@@ -332,6 +341,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   revalidatePath('/manifest.webmanifest') so a new Samaj name / logo shows at once. Browser keeps it a day
   (next.config headers). Favicon `/favicon.ico` and unversioned `/api/app-icon` (+ its fallback redirect): 7 days;
   `/api/app-icon?v=…`: a year, immutable.
+- **Offline**: OfflineGuard (root layout) — while navigator says offline, a transparent layer pauses every click and a small
+  amber notice shows; on 'online': toast "Back online" + router.refresh(). (app)/error.js treats network errors (Failed to
+  fetch, network changed, load failed …) as "Connection lost": not reported, retries by itself on 'online'.
 - **No loading.js — ever** (user's choice: no loading screens on navigation). Speed comes from
   `BackgroundPrefetch` (components/shell, in AppShell): once per app load, on idle, router.prefetch of the main menu
   pages + /notifications + /calendar (not the audit log), 300ms apart, skipped on Data Saver / 2G. Prefetched pages

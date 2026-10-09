@@ -204,8 +204,10 @@ export async function listContributions(campaignId, { limit, offset = 0, eventId
     // eventId: a Mandal schedule — only the money that came in at it.
     const rows = await query(
         `SELECT f.id, f.user_id, f.donor_name, f.amount, f.paid_on, f.mode, f.reference, f.is_anonymous, f.created_at,
-                f.kept_by, f.handed_over, f.event_id, k.full_name AS kept_by_name, k.full_name_local AS kept_by_name_local
+                f.kept_by, f.handed_over, f.event_id, k.full_name AS kept_by_name, k.full_name_local AS kept_by_name_local,
+                du.full_name_local AS donor_name_local
            FROM fundraise_contributions f LEFT JOIN users_list k ON k.id = f.kept_by
+           LEFT JOIN users_list du ON du.id = f.user_id
           WHERE f.campaign_id = :campaignId AND f.deleted_at IS NULL ${eventId ? 'AND f.event_id = :eventId' : ''}
           ORDER BY f.paid_on DESC, f.id DESC ${page}`,
         { campaignId, eventId },
@@ -355,7 +357,7 @@ export async function listHoldings(campaign) {
  */
 export async function contributorTotals(campaignId, { publicView = false, eventId = null } = {}) {
     const key = publicView ? PUBLIC_KEY : CONTRIB_KEY;
-    return query(
+    const rows = await query(
         `SELECT ${key} AS k, MAX(donor_name) AS donor_name, MAX(user_id) AS user_id,
                 MAX(is_anonymous) AS is_anonymous, SUM(CASE WHEN mode <> 'unpaid' THEN amount ELSE 0 END) AS total,
                 SUM(CASE WHEN mode = 'unpaid' THEN amount ELSE 0 END) AS pending, COUNT(*) AS entries,
@@ -366,6 +368,13 @@ export async function contributorTotals(campaignId, { publicView = false, eventI
           ORDER BY total DESC, donor_name`,
         { campaignId, eventId },
     );
+    // A member's name in the local script too (the page shows the viewer's language) — never for the
+    // public view's folded "anonymous" row.
+    const ids = [...new Set(rows.filter((r) => r.user_id && !(publicView && r.k === 'anon')).map((r) => r.user_id))];
+    if (!ids.length) return rows;
+    const l = inList(ids, 'cu');
+    const local = new Map((await query(`SELECT id, full_name_local FROM users_list WHERE id IN (${l.sql})`, l.params)).map((u) => [u.id, u.full_name_local]));
+    return rows.map((r) => (r.user_id && !(publicView && r.k === 'anon') ? { ...r, donor_name_local: local.get(r.user_id) ?? null } : r));
 }
 
 /**
@@ -400,7 +409,8 @@ export async function scheduleMoney(campaignId) {
  * @param {string} label t('fundraise.anonymousLabel')
  */
 export function maskAnonymous(rows, label) {
-    return rows.map((r) => (r.is_anonymous ? { ...r, donor_name: label, user_id: null } : r));
+    // The local-script name goes too — otherwise a Gujarati screen would show who gave.
+    return rows.map((r) => (r.is_anonymous ? { ...r, donor_name: label, donor_name_local: null, user_id: null } : r));
 }
 
 /** Active groups for pickers — memoised (forget('groups') on any group change). */

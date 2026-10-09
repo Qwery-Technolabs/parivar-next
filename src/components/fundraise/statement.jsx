@@ -30,7 +30,8 @@ export function statementSections(raw) {
 export default function Statement({ campaign, contributors, contributions, expenses, t, locale, publicView = false, sections = STATEMENT_SECTIONS }) {
     const collected = Number(campaign.collected);
     const spent = Number(campaign.spent);
-    const name = (row) => (publicView && row.is_anonymous ? t('fundraise.anonymousLabel') : row.donor_name);
+    // A member's name in the page language (local script on a Gujarati page); anonymous stays hidden.
+    const name = (row) => (publicView && row.is_anonymous ? t('fundraise.anonymousLabel') : (locale !== 'en' && row.donor_name_local) || row.donor_name);
     const description = localized(campaign.meta ?? {}, 'description', locale);
     // "By contributor" lists only people who have paid something (pending-only = ₹0 is left out),
     // counting their paid entries; the Contributions table still lists every entry, pending too.

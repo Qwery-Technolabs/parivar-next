@@ -117,6 +117,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - People lists (Members) show ONE name, in the viewer's language (`localized`: Gujarati app → Gujarati, else English;
   falls back to English) — no second-language line under it; search still matches both spellings. The line under the name
   (position / education) is light grey `text-xs text-ink-gray`, not bold navy, so the name stays the one strong line.
+- Contributor / donor names follow the same rule: a member's name from users_list in the viewer's language (donor_name_local,
+  Gujarati screen → local script); a typed non-member name as typed. Anonymous masking clears BOTH names.
 - Optional fields say so IN THE LABEL — "Reference (optional)" (`${t(label)} (${t('common.optional')})`) — never as a hint
   line under the field (also when only SOME users may leave it empty: label switches, e.g. relative phone, new-member
   password). A hint is only for a real requirement or a needed explanation.

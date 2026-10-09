@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono, Noto_Sans_Devanagari, Noto_Sans_Gujarati } from 'next/font/google';
 import TopLoader from '@/components/shell/top-loader';
 import { Toaster } from '@/components/ui/sonner';
+import OfflineGuard from '@/components/shell/offline-guard';
 import { I18nProvider } from '@/lib/i18n/client';
 import { getDictionary, getLocalLanguage, getLocale } from '@/lib/i18n/server';
 import { getSettings, samajName } from '@/lib/settings';
@@ -76,6 +77,8 @@ export default async function RootLayout({ children }) {
                     <TopLoader color={loaderColor} />
                     {children}
                     <Toaster />
+                    {/* Connection lost: clicks paused + a small notice; back online: refresh. */}
+                    <OfflineGuard />
                 </I18nProvider>
             </body>
         </html>

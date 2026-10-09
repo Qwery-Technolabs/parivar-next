@@ -1,5 +1,5 @@
 'use client';
-import { RotateCcw, TriangleAlert } from 'lucide-react';
+import { RotateCcw, TriangleAlert, WifiOff } from 'lucide-react';
 import { unstable_isUnrecognizedActionError as isStaleAction } from 'next/navigation';
 import { useEffect } from 'react';
 import { useT } from '@/lib/i18n/client';
@@ -9,10 +9,24 @@ import { useT } from '@/lib/i18n/client';
 // then fails with "Server Action … was not found on the server". That is not a real error: load the
 // new version once (a page reload), and the person can simply tap again. Guarded so it never loops.
 const RELOAD_KEY = 'pv-stale-reload';
+// A dropped / changed connection ("Failed to fetch", ERR_NETWORK_CHANGED, "Load failed" …) is not a
+// crash: say "Connection lost", don't report it, and load again by itself once back online.
+const NETWORK = /failed to fetch|network|load failed|fetch failed|connection|offline|ERR_INTERNET|timed? ?out/i;
+const isNetworkError = (error) => (typeof navigator !== 'undefined' && !navigator.onLine) || NETWORK.test(String(error?.message ?? ''));
+
 export default function AppError({ error, retry }) {
     const { t } = useT();
     const stale = isStaleAction(error);
+    const network = !stale && isNetworkError(error);
+    // Back online → try again on its own (also right away if the connection is already back).
     useEffect(() => {
+        if (!network) return undefined;
+        const again = () => retry();
+        window.addEventListener('online', again);
+        return () => window.removeEventListener('online', again);
+    }, [network, retry]);
+    useEffect(() => {
+        if (network) return;
         if (stale) {
             let last = 0;
             try {
@@ -37,13 +51,33 @@ export default function AppError({ error, retry }) {
                     path: window.location.pathname + window.location.search,
                     digest: error?.digest ?? '',
                     message: error?.message ?? String(error),
-                    stack: String(error?.stack ?? '').split('\n').slice(0, 6).join(' | '),
+                    stack: String(error?.stack ?? '')
+                        .split('\n')
+                        .slice(0, 6)
+                        .join(' | '),
                 }),
             }).catch(() => {});
         } catch {
             // Reporting is best effort.
         }
-    }, [error, stale]);
+    }, [error, stale, network]);
+
+    if (network) {
+        return (
+            <div className="mx-auto mt-10 max-w-md rounded-lg border border-amber-300 bg-amber-50 p-6 text-center shadow-sm">
+                <WifiOff className="mx-auto size-6 text-amber-800" />
+                <h1 className="mt-2 text-base font-semibold text-amber-900">{t('offline.lostTitle')}</h1>
+                <p className="mt-1 text-sm text-amber-900">{t('offline.lostBody')}</p>
+                <button
+                    type="button"
+                    onClick={() => retry()}
+                    className="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                    <RotateCcw className="size-4" /> {t('common.tryAgain')}
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="mx-auto mt-10 max-w-md rounded-lg border border-surface-border bg-white p-6 text-center shadow-sm">

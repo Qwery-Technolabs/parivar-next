@@ -6,28 +6,22 @@ import { canManageAllFundraises, canManageGroups } from './roles';
 /** Is the user an admin of this specific group (admin_group_members.member_role)? */
 export async function isGroupAdmin(userId, groupId) {
     if (!userId || !groupId) return false;
-    const row = await queryOne(
-        `SELECT 1 AS ok FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId AND member_role = 'admin'`,
-        { groupId, userId },
-    );
+    const row = await queryOne(`SELECT 1 AS ok FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId AND member_role = 'admin'`, {
+        groupId,
+        userId,
+    });
     return Boolean(row);
 }
 
 /** Group ids where this user may start fundraises: its admins and sub-admins. */
 export async function fundraiseGroupIds(userId) {
-    const rows = await query(
-        `SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role IN ('admin', 'sub_admin')`,
-        { userId },
-    );
+    const rows = await query(`SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role IN ('admin', 'sub_admin')`, { userId });
     return rows.map((r) => r.group_id);
 }
 
 /** Group ids this user administers. */
 export async function adminGroupIds(userId) {
-    const rows = await query(
-        `SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role = 'admin'`,
-        { userId },
-    );
+    const rows = await query(`SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role = 'admin'`, { userId });
     return rows.map((r) => r.group_id);
 }
 
@@ -96,7 +90,8 @@ export async function fundraisePermissions(user, campaign) {
     const appLevel = canManageAllFundraises(user.role);
     const [teamRoles, groupAdmin] = await Promise.all([
         fundraiseTeamRoles(user.id, campaign.id),
-        !appLevel ? isAdminOfFundraiseGroup(user.id, campaign.id) : false,
+        // A Mandal is run by its own people only: being an admin of its group does not manage it.
+        !appLevel && campaign.kind !== 'mandal' ? isAdminOfFundraiseGroup(user.id, campaign.id) : false,
     ]);
     // A fundraise admin (its creator, or anyone an admin promoted) manages it even without
     // being a group admin; once demoted, they lose it like anyone else.

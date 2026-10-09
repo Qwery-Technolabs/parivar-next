@@ -372,3 +372,8 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Schedule strip: per-person amount beside the date; details line wraps (keeper never cut off)
 - [x] Schedule pickers: place · per person only (no Money with …)
 - [x] Savings schedules table: every column on phones (scrolls sideways)
+- [x] Contributor names in the app language (money tab, statements, public page); anonymous hides both spellings
+- [x] Offline: clicks paused + notice, auto refresh on reconnect; connection errors retry by themselves
+- [x] Mandal run only by its own people (app admins, its team admin / treasurer / collector) — not group admins
+- [x] Mandal handed over to the treasurer per schedule (Edit schedule switch; badge on the overview table, not per payment)
+- [x] Mandal opening balance: "Handed over to the treasurer" switch when non-zero (default yes)
