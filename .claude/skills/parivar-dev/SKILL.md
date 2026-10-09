@@ -237,7 +237,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Callers must pass the campaign with `kind` (getCampaign / authorize / loadMandal / meetings already do).
 - **Mandal (savings circle)** — a fundraise with `kind = 'mandal'` (started from the group page "+ New ▾" menu → /fundraise/new?group=X&kind=mandal; fixed after).
   Meetings tab of a Mandal: each schedule card shows "n came · n absent · n not marked" instead of RSVP counts
-  (meetings/mandal-attendance.jsx; data lib/mandal `mandalAttendance`). Those who run it (canRunMandal) mark each member
+  (meetings/mandal-attendance.jsx — compact list, 1 / 2 / 3 / 4 columns by width; data lib/mandal `mandalAttendance`). Those who run it (canRunMandal) mark each member
   by tapping the row (same ✓ / ✗ / – icons as viewers; – or ✗ → ✓, ✓ → ✗), saved at once by `setMandalPresence` (marks.present only — payment untouched); not on an archived
   or future schedule. No "Are you coming?" on a Mandal schedule.
   **Address: /mandal/[id]** (route renders the fundraise page with `asMandal`; /fundraise/[id] of a Mandal redirects there, query kept;

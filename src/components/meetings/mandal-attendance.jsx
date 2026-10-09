@@ -53,7 +53,7 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
                 <ChevronDown className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
-                <ul className="mt-1.5 grid gap-x-4 sm:grid-cols-2">
+                <ul className="mt-1.5 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {people.map((p) => {
                         const name = (locale !== 'en' && p.full_name_local) || p.full_name;
                         const Icon = p.present === true ? Check : p.present === false ? X : Minus;
