@@ -7,7 +7,7 @@ import { useT } from '@/lib/i18n/client';
 
 /**
  * A Mandal schedule on the Meetings tab: "n came · n absent · n not marked", opening the members it
- * is for. Those who run the Mandal mark each one Came / Absent right here (saved at once, the same
+ * is for, each with ✓ / ✗ / – (came / absent / not marked). Those who run the Mandal tap a row to switch it (saved at once, the same
  * attendance as the Savings sheet; payments untouched). Not on an archived or future schedule.
  * @param {{ campaignId: number, eventId: number, data: { archived: boolean, people: Array<{ id, full_name, full_name_local, present: boolean|null }> }, canMark: boolean }} props
  */
@@ -53,43 +53,32 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
                 <ChevronDown className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
-                <ul className="mt-1.5 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                <ul className="mt-1.5 grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
                     {people.map((p) => {
                         const name = (locale !== 'en' && p.full_name_local) || p.full_name;
+                        const Icon = p.present === true ? Check : p.present === false ? X : Minus;
+                        const tone = p.present === true ? 'text-emerald-700' : p.present === false ? 'text-rose-700' : 'text-ink-gray';
+                        const state = t(p.present === true ? 'mandal.present' : p.present === false ? 'mandal.absent' : 'mandal.notMarked');
+                        // Same ✓ / ✗ / – for everyone; who runs it taps the row to switch (– or ✗ → ✓, ✓ → ✗).
                         return (
-                            <li key={p.id} className="flex min-w-0 items-center gap-2 text-xs">
+                            <li key={p.id} className="min-w-0 text-xs">
                                 {editable ? (
-                                    <span className="inline-flex shrink-0 rounded-md bg-surface-bggray/70 p-0.5" role="radiogroup" aria-label={name}>
-                                        {[true, false].map((v) => (
-                                            <button
-                                                key={String(v)}
-                                                type="button"
-                                                role="radio"
-                                                aria-checked={p.present === v}
-                                                disabled={busy === p.id}
-                                                onClick={() => mark(p, v)}
-                                                title={t(v ? 'mandal.present' : 'mandal.absent')}
-                                                className={`inline-flex h-6 items-center gap-1 rounded px-1.5 text-[11px] font-medium disabled:opacity-60 ${
-                                                    p.present === v
-                                                        ? v
-                                                            ? 'bg-emerald-700 text-white shadow-sm'
-                                                            : 'bg-rose-700 text-white shadow-sm'
-                                                        : 'text-ink-gray hover:text-primary'
-                                                }`}
-                                            >
-                                                {v ? <Check className="size-3" /> : <X className="size-3" />}
-                                                {t(v ? 'mandal.present' : 'mandal.absent')}
-                                            </button>
-                                        ))}
-                                    </span>
-                                ) : p.present === true ? (
-                                    <Check className="size-3.5 shrink-0 text-emerald-700" aria-label={t('mandal.present')} />
-                                ) : p.present === false ? (
-                                    <X className="size-3.5 shrink-0 text-rose-700" aria-label={t('mandal.absent')} />
+                                    <button
+                                        type="button"
+                                        disabled={busy === p.id}
+                                        onClick={() => mark(p, p.present !== true)}
+                                        title={state}
+                                        className="-mx-1 flex w-full min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-accent disabled:opacity-60"
+                                    >
+                                        <Icon className={`size-3.5 shrink-0 ${tone}`} aria-label={state} />
+                                        <span className="truncate text-ink">{name}</span>
+                                    </button>
                                 ) : (
-                                    <Minus className="size-3.5 shrink-0 text-ink-gray" aria-label={t('mandal.notMarked')} />
+                                    <span className="flex min-w-0 items-center gap-1.5">
+                                        <Icon className={`size-3.5 shrink-0 ${tone}`} aria-label={state} />
+                                        <span className="truncate text-ink">{name}</span>
+                                    </span>
                                 )}
-                                <span className="truncate text-ink">{name}</span>
                             </li>
                         );
                     })}
