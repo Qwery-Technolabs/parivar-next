@@ -12,7 +12,7 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import { mandalAboutParts, mandalMoneyParts } from '@/components/mandal/mandal-tab';
-import { canRunMandal, mandalAttendance, mandalMeetings, mandalMembers, syncMandalMembers } from '@/lib/mandal';
+import { canRunMandal, mandalAttendance, mandalMeetingsOnce, mandalMembersOnce, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
@@ -108,8 +108,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         campaign.kind === 'mandal'
             ? (async () => {
                   await syncMandalMembers(campaign);
-                  const meetings = await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0);
-                  const members = await mandalMembers(campaign.id, meetings, today);
+                  const members = await mandalMembersOnce(campaign.id, Number(campaign.meta?.installment) || 0, today);
                   return members.reduce((sum, m) => sum + m.due, 0);
               })()
             : Promise.resolve(0);
@@ -174,43 +173,41 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         // A Mandal's Savings tab IS this money tab: its overview leads with the schedules table, and one
         // schedule (?schedule=<id>) shows exactly the fundraise views, limited to that schedule's money.
         const isMandal = campaign.kind === 'mandal';
-        const parts = isMandal
-            ? await mandalMoneyParts({
-                  campaign,
-                  user,
-                  today,
-                  t,
-                  locale,
-                  scheduleId: Number(sp1(sp.schedule)) || null,
-                  base,
-              })
-            : null;
-        const sid = parts?.chosen?.id ?? null;
-        // One schedule adds 'absent': who did not come (nothing recorded counts as absent).
-        const views = isMandal ? (sid ? [...MONEY_VIEWS, 'absent'] : ['schedules', ...MONEY_VIEWS]) : MONEY_VIEWS;
-        const mview = views.includes(rawView) ? rawView : views[0];
+        const askedSid = isMandal ? Number(sp1(sp.schedule)) || null : null;
         const page = normalizePage(sp1(sp.page));
         const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value); // cookies are local — no DB
         const offset = (page - 1) * perPage;
-        // One schedule: all its rows (a single day — no paging needed).
-        const paging = sid ? { eventId: sid } : { limit: perPage, offset };
-        const [rows, settings, people, stats] = await Promise.all([
-            mview === 'contributions'
-                ? listContributions(campaign.id, paging)
-                : mview === 'expenses'
-                  ? listExpenses(campaign.id, paging)
-                  : mview === 'contributors'
-                    ? contributorTotals(campaign.id, {
-                          publicView: !perms.manage,
-                          eventId: sid,
-                      })
-                    : [],
+        // One schedule adds 'absent': who did not come (nothing recorded counts as absent).
+        const viewsFor = (s) => (isMandal ? (s ? [...MONEY_VIEWS, 'absent'] : ['schedules', ...MONEY_VIEWS]) : MONEY_VIEWS);
+        // The rows for a schedule id — one schedule: all its rows (a single day — no paging needed).
+        const loadRows = (s) => {
+            const v = viewsFor(s).includes(rawView) ? rawView : viewsFor(s)[0];
+            const paging = s ? { eventId: s } : { limit: perPage, offset };
+            return Promise.all([
+                v === 'contributions'
+                    ? listContributions(campaign.id, paging)
+                    : v === 'expenses'
+                      ? listExpenses(campaign.id, paging)
+                      : v === 'contributors'
+                        ? contributorTotals(campaign.id, { publicView: !perms.manage, eventId: s })
+                        : [],
+                // One schedule: its own totals and counts for the boxes and the view switch.
+                s ? Promise.all([listContributions(campaign.id, { eventId: s }), listExpenses(campaign.id, { eventId: s })]) : null,
+            ]);
+        };
+        // Everything starts together: the Mandal parts, the rows for the schedule asked for (redone only if
+        // that schedule turns out not to exist), the settings and the people.
+        const [parts, guessed, settings, people] = await Promise.all([
+            isMandal ? mandalMoneyParts({ campaign, user, today, t, locale, scheduleId: askedSid, base }) : null,
+            loadRows(askedSid),
             getSettings('fundraise'),
             // "Paid by" (expenses) and "Kept by" (contributions) choices.
             perms.expense || perms.contribution ? fundraisePeople(campaign.id) : [],
-            // One schedule: its own totals and counts for the boxes and the view switch.
-            sid ? Promise.all([listContributions(campaign.id, { eventId: sid }), listExpenses(campaign.id, { eventId: sid })]) : null,
         ]);
+        const sid = parts?.chosen?.id ?? null;
+        const views = viewsFor(sid);
+        const mview = views.includes(rawView) ? rawView : views[0];
+        const [rows, stats] = sid === askedSid ? guessed : await loadRows(sid);
         // Anonymous gifts: only managers see who gave (they get the name + an "Anonymous" badge).
         const shown = perms.manage || mview === 'expenses' ? rows : maskAnonymous(rows, t('fundraise.anonymousLabel'));
         const total = sid ? rows.length : mview === 'contributions' ? campaign.contribution_count : mview === 'expenses' ? campaign.expense_count : rows.length;
@@ -280,13 +277,18 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         );
     } else if (tab === 'meetings') {
         // Minutes are updates tied to a meeting; they show under that meeting.
-        const updates = await listUpdates(campaign.id);
+        // Handed over as promises: the meetings list loads its own data at the same time.
+        const minutes = listUpdates(campaign.id).then((updates) =>
+            updates
+                .filter((u) => u.update_type === 'minutes' && u.event_id)
+                .map((u) => ({ id: u.id, event_id: u.event_id, body: u.body, author: u.author, author_local: u.author_local })),
+        );
         // A Mandal's meetings are its schedules: each card marks who came (those who run it), straight from here.
         const attendance = isMandal
-            ? {
-                  byEvent: await mandalAttendance(campaign.id, await mandalMeetings(campaign.id, Number(campaign.meta?.installment) || 0)),
-                  canMark: await canRunMandal(user, campaign),
-              }
+            ? Promise.all([
+                  mandalMeetingsOnce(campaign.id, Number(campaign.meta?.installment) || 0).then((m) => mandalAttendance(campaign.id, m)),
+                  canRunMandal(user, campaign),
+              ]).then(([byEvent, canMark]) => ({ byEvent, canMark }))
             : null;
         body = (
             <MeetingsSection
@@ -294,15 +296,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 scopeId={campaign.id}
                 defaultTitle={`${campaign.title} — ${t('meetings.word')}`}
                 defaultPlace={campaign.location ?? ''}
-                minutes={updates
-                    .filter((u) => u.update_type === 'minutes' && u.event_id)
-                    .map((u) => ({
-                        id: u.id,
-                        event_id: u.event_id,
-                        body: u.body,
-                        author: u.author,
-                        author_local: u.author_local,
-                    }))}
+                minutes={minutes}
                 canPostMinutes={perms.post}
                 attendance={attendance}
             />

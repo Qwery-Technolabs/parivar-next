@@ -1,5 +1,7 @@
 import 'server-only';
 import { syncMandalMembers } from './mandal';
+import { getCampaign } from './fundraise';
+import { getGroup } from './groups';
 import { canManageGroup, fundraisePermissions } from './access';
 import { getMetaMany, inList, query, queryOne } from './db';
 
@@ -17,9 +19,13 @@ export const DEFAULT_TIME = '09:00:00';
  */
 export async function meetingScope(user, scope, scopeId) {
     if (scope === 'group') {
-        const g = await queryOne('SELECT id, name, name_local FROM admin_groups WHERE id = :scopeId', { scopeId });
+        // Side by side; the group itself is shared with the page (cached per request).
+        const [g, members, manage] = await Promise.all([
+            getGroup(Number(scopeId)),
+            query('SELECT user_id FROM admin_group_members WHERE group_id = :scopeId', { scopeId }),
+            canManageGroup(user, Number(scopeId)),
+        ]);
         if (!g) return null;
-        const members = await query('SELECT user_id FROM admin_group_members WHERE group_id = :scopeId', { scopeId });
         return {
             scope,
             scopeId,
@@ -27,16 +33,16 @@ export async function meetingScope(user, scope, scopeId) {
             campaignId: null,
             title: g.name,
             titleLocal: g.name_local,
-            manage: await canManageGroup(user, g.id),
+            manage,
             candidateIds: members.map((m) => m.user_id),
             link: `/groups/${g.id}?tab=meetings`,
         };
     }
     if (scope === 'fundraise') {
-        const c = await queryOne('SELECT id, group_id, kind, title, title_local FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
+        // Shared with the page (cached per request); the people and the permissions load side by side.
+        const c = await getCampaign(Number(scopeId));
         if (!c) return null;
-        await syncMandalMembers(c);
-        const people = await query(FUNDRAISE_PEOPLE, { scopeId });
+        const [people, perms] = await Promise.all([syncMandalMembers(c).then(() => query(FUNDRAISE_PEOPLE, { scopeId })), fundraisePermissions(user, c)]);
         return {
             scope,
             scopeId,
@@ -44,7 +50,7 @@ export async function meetingScope(user, scope, scopeId) {
             campaignId: c.id,
             title: c.title,
             titleLocal: c.title_local,
-            manage: (await fundraisePermissions(user, c)).manage,
+            manage: perms.manage,
             candidateIds: people.map((m) => m.user_id),
             link: `/fundraise/${c.id}?tab=meetings`,
         };
@@ -56,10 +62,7 @@ export async function meetingScope(user, scope, scopeId) {
 export async function candidatePeople(ids) {
     if (!ids.length) return [];
     const l = inList(ids, 'c');
-    return query(
-        `SELECT id, full_name, full_name_local FROM users_list WHERE id IN (${l.sql}) AND status = 'active' ORDER BY full_name`,
-        l.params,
-    );
+    return query(`SELECT id, full_name, full_name_local FROM users_list WHERE id IN (${l.sql}) AND status = 'active' ORDER BY full_name`, l.params);
 }
 
 /**
@@ -116,7 +119,10 @@ export async function listMeetings(scope, scopeId, viewerId) {
 /** The soonest upcoming meeting of a group/fundraise, for the pinned banner. */
 export async function nextMeetingOf(scope, scopeId, viewerId, today) {
     const all = await listMeetings(scope, scopeId, viewerId);
-    return all.filter((m) => m.start_date >= today).sort((a, b) => (a.start_date + (a.start_time ?? '')).localeCompare(b.start_date + (b.start_time ?? '')))[0] ?? null;
+    return (
+        all.filter((m) => m.start_date >= today).sort((a, b) => (a.start_date + (a.start_time ?? '')).localeCompare(b.start_date + (b.start_time ?? '')))[0] ??
+        null
+    );
 }
 
 /** Recompute reminder rows for a meeting (on create and on reschedule). */
@@ -160,7 +166,10 @@ export async function scopeBirthdays(scope, scopeId) {
         );
     } else {
         const [team, members] = await Promise.all([
-            query(`SELECT ${cols}, fm.member_role AS role FROM fundraise_members fm JOIN users_list u ON u.id = fm.user_id WHERE fm.campaign_id = :scopeId AND ${alive}`, { scopeId }),
+            query(
+                `SELECT ${cols}, fm.member_role AS role FROM fundraise_members fm JOIN users_list u ON u.id = fm.user_id WHERE fm.campaign_id = :scopeId AND ${alive}`,
+                { scopeId },
+            ),
             query(
                 `SELECT DISTINCT ${cols}, 'group_member' AS role FROM fundraise_groups fg
                    JOIN admin_group_members gm ON gm.group_id = fg.group_id JOIN users_list u ON u.id = gm.user_id
@@ -188,15 +197,6 @@ const FUNDRAISE_PEOPLE = `
     UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id
       JOIN fundraise_campaigns c ON c.id = fg.campaign_id AND c.kind <> 'mandal'
      WHERE fg.campaign_id = :scopeId`;
-
-/** Everyone a group / fundraise meeting can invite right now (same as meetingScope's candidates). */
-async function scopeCandidateIds(scope, scopeId) {
-    const rows =
-        scope === 'group'
-            ? await query('SELECT user_id FROM admin_group_members WHERE group_id = :scopeId', { scopeId })
-            : await query(FUNDRAISE_PEOPLE, { scopeId });
-    return rows.map((r) => r.user_id);
-}
 
 /**
  * Someone joined a group: right away, (1) Mandals of that group set to "everyone in the group" take
@@ -236,21 +236,41 @@ export async function syncEveryoneMeetings({ scope, scopeId, eventIds } = {}) {
             l.params,
         );
     } else if (scope && scopeId) {
-        events = await query(
-            `SELECT e.id, e.group_id, e.campaign_id FROM events_list e
-               JOIN events_listmeta m ON m.event_id = e.id AND m.meta_key = 'audience' AND m.meta_value = 'all'
-              WHERE e.event_type = 'meeting' AND e.start_date >= CURDATE()
-                AND ${scope === 'group' ? 'e.group_id = :scopeId AND e.campaign_id IS NULL' : 'e.campaign_id = :scopeId'}`,
-            { scopeId },
-        );
+        // One statement for every upcoming "Everyone" meeting of this group / fundraise.
+        const r =
+            scope === 'group'
+                ? await query(
+                      `INSERT IGNORE INTO events_attendees (event_id, user_id)
+                       SELECT e.id, gm.user_id FROM events_list e
+                         JOIN events_listmeta m ON m.event_id = e.id AND m.meta_key = 'audience' AND m.meta_value = 'all'
+                         JOIN admin_group_members gm ON gm.group_id = e.group_id
+                        WHERE e.event_type = 'meeting' AND e.start_date >= CURDATE() AND e.group_id = :scopeId AND e.campaign_id IS NULL`,
+                      { scopeId },
+                  )
+                : await query(
+                      `INSERT IGNORE INTO events_attendees (event_id, user_id)
+                       SELECT e.id, p.user_id FROM events_list e
+                         JOIN events_listmeta m ON m.event_id = e.id AND m.meta_key = 'audience' AND m.meta_value = 'all'
+                         JOIN (${FUNDRAISE_PEOPLE}) p
+                        WHERE e.event_type = 'meeting' AND e.start_date >= CURDATE() AND e.campaign_id = :scopeId`,
+                      { scopeId },
+                  );
+        return r?.affectedRows ?? 0;
     } else return 0;
+    // One INSERT … SELECT per meeting (was one INSERT per person per meeting — dozens of round trips
+    // to the database every time a meetings list opened).
     let added = 0;
     for (const e of events) {
-        const ids = e.campaign_id ? await scopeCandidateIds('fundraise', e.campaign_id) : await scopeCandidateIds('group', e.group_id);
-        for (const uid of ids) {
-            const r = await query('INSERT IGNORE INTO events_attendees (event_id, user_id) VALUES (:id, :uid)', { id: e.id, uid });
-            added += r?.affectedRows ?? 0;
-        }
+        const r = e.campaign_id
+            ? await query(`INSERT IGNORE INTO events_attendees (event_id, user_id) SELECT :id, p.user_id FROM (${FUNDRAISE_PEOPLE}) p`, {
+                  id: e.id,
+                  scopeId: e.campaign_id,
+              })
+            : await query('INSERT IGNORE INTO events_attendees (event_id, user_id) SELECT :id, user_id FROM admin_group_members WHERE group_id = :scopeId', {
+                  id: e.id,
+                  scopeId: e.group_id,
+              });
+        added += r?.affectedRows ?? 0;
     }
     return added;
 }

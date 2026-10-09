@@ -1,6 +1,7 @@
 import 'server-only';
+import { cache } from 'react';
 import { fundraisePermissions } from './access';
-import { getMeta, getMetaMany, inList, query } from './db';
+import { getMeta, inList, query } from './db';
 import { listContributions, listExpenses } from './fundraise';
 import { date as formatDate } from './format';
 
@@ -31,40 +32,41 @@ export async function canRunMandal(user, campaign) {
  * archived (money in, closed: no more changes) and who holds its money (`holder`).
  */
 export async function mandalMeetings(campaignId, defaultInstallment) {
-    const rows = await query(
-        `SELECT id, title, title_local, start_date, start_time, location FROM events_list
-          WHERE event_type = 'meeting' AND campaign_id = :campaignId ORDER BY start_date DESC, start_time DESC LIMIT 100`,
-        { campaignId },
-    );
-    const meta = await getMetaMany(
-        'events_list',
-        rows.map((r) => r.id),
-        ['collect', 'installment', 'audience', 'archived', 'held_by', 'handed_over'],
-    );
-    // Who keeps the money collected at each schedule (events_listmeta held_by = a user id).
-    const holderIds = [...new Set(rows.map((r) => Number(meta[r.id]?.held_by) || 0).filter(Boolean))];
-    const holders = holderIds.length
-        ? new Map(
-              (
-                  await (async () => {
-                      const l = inList(holderIds, 'h');
-                      return query(`SELECT id, full_name, full_name_local FROM users_list WHERE id IN (${l.sql})`, l.params);
-                  })()
-              ).map((u) => [u.id, u]),
-          )
-        : new Map();
-    const chosen = rows.filter((r) => meta[r.id]?.audience === 'selected').map((r) => r.id);
-    const att = chosen.length
-        ? await (async () => {
-              const l = inList(chosen, 'ev');
-              return query(`SELECT event_id, user_id FROM events_attendees WHERE event_id IN (${l.sql})`, l.params);
-          })()
-        : [];
+    // Four lookups side by side, each found by the Mandal (not by the schedule ids) — one round trip
+    // to the database instead of four in a row.
+    const ofMandal = `JOIN events_list e ON e.id = m.event_id AND e.event_type = 'meeting' AND e.campaign_id = :campaignId`;
+    const [rows, metaRows, holderRows, att] = await Promise.all([
+        query(
+            `SELECT id, title, title_local, start_date, start_time, location FROM events_list
+              WHERE event_type = 'meeting' AND campaign_id = :campaignId ORDER BY start_date DESC, start_time DESC LIMIT 100`,
+            { campaignId },
+        ),
+        query(
+            `SELECT m.event_id, m.meta_key, m.meta_value FROM events_listmeta m ${ofMandal}
+              WHERE m.meta_key IN ('collect', 'installment', 'audience', 'archived', 'held_by', 'handed_over')`,
+            { campaignId },
+        ),
+        // Who keeps the money collected at each schedule (events_listmeta held_by = a user id).
+        query(
+            `SELECT m.event_id, u.id, u.full_name, u.full_name_local FROM events_listmeta m ${ofMandal}
+               JOIN users_list u ON u.id = CAST(m.meta_value AS UNSIGNED) WHERE m.meta_key = 'held_by'`,
+            { campaignId },
+        ),
+        // The chosen people of "selected" schedules.
+        query(
+            `SELECT a.event_id, a.user_id FROM events_attendees a
+               JOIN events_listmeta m ON m.event_id = a.event_id AND m.meta_key = 'audience' AND m.meta_value = 'selected' ${ofMandal}`,
+            { campaignId },
+        ),
+    ]);
+    const meta = {};
+    for (const r of metaRows) (meta[r.event_id] ??= {})[r.meta_key] = r.meta_value;
+    const holders = new Map(holderRows.map((h) => [h.event_id, { id: h.id, full_name: h.full_name, full_name_local: h.full_name_local }]));
     return rows.map((r) => ({
         ...r,
         everyone: meta[r.id]?.audience !== 'selected',
         archived: meta[r.id]?.archived === '1',
-        holder: holders.get(Number(meta[r.id]?.held_by)) ?? null,
+        holder: holders.get(r.id) ?? null,
         // Its money has been handed to the treasurer (set on the schedule; applies to all its payments).
         handedOver: meta[r.id]?.handed_over === '1',
         invited: att.filter((a) => a.event_id === r.id).map((a) => a.user_id),
@@ -78,14 +80,16 @@ export async function mandalMeetings(campaignId, defaultInstallment) {
  * @returns {Promise<Array<{ id, full_name, full_name_local, phone, joined, due: number, paid: number, missed: number, daysAway: number|null, lastPresent: string|null }>>}
  */
 export async function mandalMembers(campaignId, meetings, today) {
-    const members = await query(
-        `SELECT u.id, u.full_name, u.full_name_local, u.phone, DATE(s.created_at) AS joined
-           FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id
-          WHERE s.campaign_id = :campaignId ORDER BY u.full_name`,
-        { campaignId },
-    );
+    const [members, marks] = await Promise.all([
+        query(
+            `SELECT u.id, u.full_name, u.full_name_local, u.phone, DATE(s.created_at) AS joined
+               FROM fundraise_subscribers s JOIN users_list u ON u.id = s.user_id
+              WHERE s.campaign_id = :campaignId ORDER BY u.full_name`,
+            { campaignId },
+        ),
+        query('SELECT event_id, user_id, present, paid FROM fundraise_mandal_marks WHERE campaign_id = :campaignId', { campaignId }),
+    ]);
     if (!members.length) return [];
-    const marks = await query('SELECT event_id, user_id, present, paid FROM fundraise_mandal_marks WHERE campaign_id = :campaignId', { campaignId });
     const held = meetings.filter((m) => m.start_date <= today).sort((a, b) => a.start_date.localeCompare(b.start_date));
     const day = (d) => Math.round((Date.parse(today) - Date.parse(d)) / 86400000);
     return members.map((m) => {
@@ -227,23 +231,38 @@ export async function syncMandalMembers(campaign) {
     if (campaign?.kind !== 'mandal' || !campaign.group_id) return;
     const mode = campaign.meta?.members_mode ?? (await getMeta('fundraise_campaigns', campaign.id)).members_mode;
     if (mode !== 'all') return;
+    await addGroupPeople(campaign.id, campaign.group_id);
+}
+
+// Once per request (the page, its Savings tab and the meetings list all ask).
+const addGroupPeople = cache(async (c, g) => {
     await query(
         `INSERT IGNORE INTO fundraise_subscribers (campaign_id, user_id, added_by)
          SELECT :c, gm.user_id, NULL FROM admin_group_members gm WHERE gm.group_id = :g`,
-        { c: campaign.id, g: campaign.group_id },
+        { c, g },
     );
-}
+});
+
+/** mandalMeetings, once per request for pages (the header total, the tab and the meetings list share it). */
+export const mandalMeetingsOnce = cache((campaignId, installment) => mandalMeetings(campaignId, installment));
+
+/** mandalMembers over mandalMeetingsOnce, once per request (after syncMandalMembers). */
+export const mandalMembersOnce = cache(async (campaignId, installment, today) =>
+    mandalMembers(campaignId, await mandalMeetingsOnce(campaignId, installment), today),
+);
 
 /** For the Mandal form: the group's people (+ anyone already in it) and who is in it now. */
 export async function mandalChoice(groupId, campaignId = null) {
-    const rows = await query(
-        `SELECT u.id, u.full_name, u.full_name_local FROM users_list u
-          WHERE u.status = 'active' AND (u.id IN (SELECT user_id FROM admin_group_members WHERE group_id = :g)
-             OR u.id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c))
-          ORDER BY u.full_name`,
-        { g: groupId ?? 0, c: campaignId ?? 0 },
-    );
-    const memberIds = campaignId ? await subscriberIds(campaignId) : null;
+    const [rows, memberIds] = await Promise.all([
+        query(
+            `SELECT u.id, u.full_name, u.full_name_local FROM users_list u
+              WHERE u.status = 'active' AND (u.id IN (SELECT user_id FROM admin_group_members WHERE group_id = :g)
+                 OR u.id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c))
+              ORDER BY u.full_name`,
+            { g: groupId ?? 0, c: campaignId ?? 0 },
+        ),
+        campaignId ? subscriberIds(campaignId) : null,
+    ]);
     return { people: rows, memberIds };
 }
 

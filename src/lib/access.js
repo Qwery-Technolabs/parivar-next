@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { query, queryOne } from './db';
 import { canEditDetails, canManageMembership, standingFrom } from './group-roles';
 import { canManageAllFundraises, canManageGroups } from './roles';
@@ -26,11 +27,15 @@ export async function adminGroupIds(userId) {
 }
 
 /** The user's role in one group (admin_group_members.member_role), or null. */
-export async function groupRoleOf(userId, groupId) {
+// Cached per request: the group page asks for the viewer's standing several times.
+export const groupRoleOf = cache(async (userId, groupId) => {
     if (!userId || !groupId) return null;
-    const row = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId', { groupId, userId });
+    const row = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId', {
+        groupId: Number(groupId),
+        userId,
+    });
     return row?.member_role ?? null;
-}
+});
 
 /**
  * How the user stands in a group: 'app' | 'admin' | 'sub_admin' | null (lib/group-roles.js),
@@ -61,12 +66,14 @@ export const CONTRIBUTION_ROLES = ['treasurer', 'collector'];
 export const EXPENSE_ROLES = ['expenser'];
 
 /** Every role the user holds on one fundraise's team (fundraise_members — one row per role), in rank order. */
-export async function fundraiseTeamRoles(userId, campaignId) {
+// Cached per request (React cache): a page asks several times (its permissions, the Mandal checks,
+// the meetings list) — one query. Outside a render (server actions) it is a plain call.
+export const fundraiseTeamRoles = cache(async (userId, campaignId) => {
     if (!userId || !campaignId) return [];
     const rows = await query('SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId });
     const held = new Set(rows.map((r) => r.member_role));
     return FUNDRAISE_TEAM_ROLES.filter((r) => held.has(r));
-}
+});
 
 /**
  * Everything one user may do on one fundraise, resolved in one place so pages and
@@ -118,7 +125,7 @@ export async function canManageFundraise(user, campaign) {
 }
 
 /** Admin of any group this fundraise is shown in (fundraise_groups)? */
-export async function isAdminOfFundraiseGroup(userId, campaignId) {
+export const isAdminOfFundraiseGroup = cache(async (userId, campaignId) => {
     if (!userId || !campaignId) return false;
     const row = await queryOne(
         `SELECT 1 AS ok FROM fundraise_groups fg
@@ -127,7 +134,7 @@ export async function isAdminOfFundraiseGroup(userId, campaignId) {
         { userId, campaignId },
     );
     return Boolean(row);
-}
+});
 
 /** Admin or sub-admin of any group this fundraise is shown in (fundraise_groups)? */
 export async function isLeaderOfFundraiseGroup(userId, campaignId) {

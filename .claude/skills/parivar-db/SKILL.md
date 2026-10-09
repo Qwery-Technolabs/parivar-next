@@ -22,6 +22,9 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
 
 - The app runs against the **live remote MariaDB 11.8** from `.env` (no `.env.local`). Never commit `.env`;
   never print its values.
+- **Plain queries, not prepared statements** (`pool.query`, client-side escaping): a prepared statement cost an extra round
+  trip the first time each connection met that SQL — doubled every query after a cold start. Values must be plain
+  (string / number / boolean / null / Date / Buffer); `checkParams` throws on an object or array. IN lists via `inList`.
 - Pool (lib/db.js): cached per timezone offset, named placeholders (`:name`), `dateStrings`, strict
   `sql_mode`, session `time_zone` = the admin timezone offset (default +05:30). A standalone node script
   connects in **UTC** — use `DATE_ADD(NOW(), INTERVAL 1 DAY)` style margins when comparing with app rows.

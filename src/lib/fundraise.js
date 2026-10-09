@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { getMeta, getMetaMany, inList, query, queryOne } from './db';
 import { fundraiseGroupIds } from './access';
 import { canManageAllFundraises } from './roles';
@@ -168,7 +169,8 @@ export async function campaignGroups(campaignId) {
     );
 }
 
-export async function getCampaign(id) {
+// Cached per request: the page and its title (generateMetadata), the meetings list … share one load.
+export const getCampaign = cache(async (id) => {
     if (!Number.isInteger(id) || id <= 0) return null;
     const row = await queryOne(
         `SELECT ${COLS}, ${TOTALS}
@@ -181,7 +183,7 @@ export async function getCampaign(id) {
     row.meta = meta;
     row.groups = groups;
     return row;
-}
+});
 
 /** Public lookup: only a well-formed token of a campaign that is currently public. */
 export async function getCampaignByToken(token) {

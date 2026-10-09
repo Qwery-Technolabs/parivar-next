@@ -138,6 +138,16 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Speed — parallel queries**: in pages and actions, never await independent DB calls one after another. Load the user
   and the main record together, then everything that needs only the id in ONE Promise.all (start background pieces as
   promises and await them after the tab's data). Fundraise / group / member pages follow this.
+  Measured (Oct 2026): one round trip to the live DB ≈ 25 ms — pages are slow by the NUMBER OF WAITS in a row, not by
+  query size. Rules: (1) never a query per person / per generation / per row in a loop — one INSERT … SELECT or one IN
+  list (syncEveryoneMeetings, family tree from the request's `allRelations`); (2) look things up by the parent id with a
+  JOIN instead of "load ids, then load by ids" (mandalMeetings: 4 lookups in one wave); (3) lookups a page repeats are
+  React `cache()`d per request: getCampaign, getGroup, fundraiseTeamRoles, isAdminOfFundraiseGroup, groupRoleOf,
+  syncMandalMembers' insert, `mandalMeetingsOnce` / `mandalMembersOnce` (pages only — actions use the plain ones);
+  (4) a child server component may take promises as props (MeetingsSection minutes / attendance) so its own loading
+  overlaps the page's; (5) start the likely rows before a dependent check finishes and redo only if the guess was wrong
+  (Savings tab ?schedule=). To profile: temporarily log each query's start + ms in lib/db.js, `next start` a build and
+  fetch pages with a probe session; count the sequential "waves".
 - **Debounce**: every search / suggestion field that reacts to typing goes through `useDebouncedCallback`
   (components/ui/use-debounce.js, DEBOUNCE_MS = 300): list search boxes (search as you type; Enter still immediate),
   Combobox / member pickers, Google local-script suggestions. Never a hand-made setTimeout for this.

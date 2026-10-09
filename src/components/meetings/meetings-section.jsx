@@ -23,11 +23,14 @@ export default async function MeetingsSection({
     const user = await getCurrentUser();
     const ctx = await meetingScope(user, scope, scopeId);
     if (!ctx) return null;
-    const [meetings, people, birthdays, { t }] = await Promise.all([
+    // `minutes` / `attendance` may come as promises from the page: awaited together with the rest.
+    const [meetings, people, birthdays, { t }, minutesList, attendanceData] = await Promise.all([
         listMeetings(scope, scopeId, user.id),
         candidatePeople(ctx.candidateIds),
         scopeBirthdays(scope, scopeId),
         getT(),
+        minutes,
+        attendance,
     ]);
     // Whose birthdays to show: the group's roles, or a fundraise's team roles + its groups' members.
     const birthdayRoles =
@@ -48,11 +51,11 @@ export default async function MeetingsSection({
             today={todayLocal()}
             defaultTitle={defaultTitle}
             defaultPlace={defaultPlace}
-            minutes={minutes}
+            minutes={minutesList}
             canPostMinutes={canPostMinutes}
             birthdays={birthdays}
             birthdayRoles={birthdayRoles}
-            attendance={attendance}
+            attendance={attendanceData}
         />
     );
 }

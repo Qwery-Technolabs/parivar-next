@@ -35,7 +35,8 @@ const MAX_PEOPLE = 2000;
  * hundred links at most). The connected-family walk then runs in memory instead of one
  * database round trip per generation, which queued requests when several people were on.
  */
-const allLinks = cache(async () => query('SELECT user_id AS a, relative_id AS b FROM users_relations'));
+const allRelations = cache(async () => query('SELECT id, user_id, relative_id, relation FROM users_relations ORDER BY id'));
+const allLinks = cache(async () => (await allRelations()).map((r) => ({ a: r.user_id, b: r.relative_id })));
 
 export const familyIds = cache(async (userId) => {
     const adj = new Map();
@@ -174,13 +175,19 @@ export async function linkRelative(q, person, kind, relativeId) {
         await q('INSERT INTO users_relations (user_id, relative_id, relation) VALUES (:child, :parent, :relation)', { child, parent, relation });
     };
     const both = async (a, b, relation) => {
-        for (const [x, y] of [[a, b], [b, a]]) {
+        for (const [x, y] of [
+            [a, b],
+            [b, a],
+        ]) {
             await q('INSERT IGNORE INTO users_relations (user_id, relative_id, relation) VALUES (:x, :y, :relation)', { x, y, relation });
         }
     };
     const married = async (ids) => {
         const l = inList(ids, 'm');
-        await q(`UPDATE users_list SET marital_status = 'married' WHERE id IN (${l.sql}) AND (marital_status IS NULL OR marital_status = 'unmarried')`, l.params);
+        await q(
+            `UPDATE users_list SET marital_status = 'married' WHERE id IN (${l.sql}) AND (marital_status IS NULL OR marital_status = 'unmarried')`,
+            l.params,
+        );
     };
 
     if (kind === 'father' || kind === 'mother') {
@@ -224,85 +231,88 @@ export async function linkRelative(q, person, kind, relativeId) {
     if (spouses.length === 1) {
         const otherRel = parentRel === 'father' ? 'mother' : 'father';
         const has = (await parentsOf(rel)).some((p) => p.relation === otherRel);
-        if (!has) await q('INSERT INTO users_relations (user_id, relative_id, relation) VALUES (:c, :p, :r)', { c: rel, p: spouses[0].relative_id, r: otherRel });
+        if (!has)
+            await q('INSERT INTO users_relations (user_id, relative_id, relation) VALUES (:c, :p, :r)', { c: rel, p: spouses[0].relative_id, r: otherRel });
     }
 }
 
 /**
  * The family line as a real tree: start from the oldest recorded ancestor up the father's line
  * (the mother's when no father is recorded), then every descendant below, generation by
- * generation — each person with their spouse(s), children under the couple. One query per
- * generation (never per person); a visited set stops loops.
+ * generation — each person with their spouse(s), children under the couple; a visited set stops loops.
+ * Walked in memory over the request's family links (allRelations), then ONE query for the people —
+ * it used to be a query per generation up and three per generation down (≈ 40 round trips).
  * @returns {Promise<null | { rootId: number, top: object }>}  top = { ...person, spouses: [], children: [node] }
  */
 export async function getLineageTree(rootId, maxDepth = 20) {
-    const root = await getPerson(rootId);
+    const [root, rels] = await Promise.all([getPerson(rootId), allRelations()]);
     if (!root) return null;
+    const push = (m, k, v) => (m.get(k) ?? m.set(k, []).get(k)).push(v);
+    const parentsOf = new Map(); // child → [{ relative_id, relation }]
+    const spousesOf = new Map(); // person → [spouse ids]
+    const kidsOf = new Map(); // parent → [{ id, child, parent }]
+    for (const r of rels) {
+        if (r.relation === 'father' || r.relation === 'mother') {
+            push(parentsOf, r.user_id, r);
+            push(kidsOf, r.relative_id, { id: r.id, child: r.user_id, parent: r.relative_id });
+        } else if (r.relation === 'spouse') push(spousesOf, r.user_id, r.relative_id);
+    }
     // Up to the oldest ancestor.
     let topId = root.id;
     const upSeen = new Set([topId]);
     for (let i = 0; i < maxDepth; i++) {
-        const parents = await query(`SELECT relative_id, relation FROM users_relations WHERE user_id = :id AND relation IN ('father', 'mother')`, { id: topId });
+        const parents = parentsOf.get(topId) ?? [];
         const next = (parents.find((p) => p.relation === 'father') ?? parents.find((p) => p.relation === 'mother'))?.relative_id;
         if (!next || upSeen.has(next)) break;
         upSeen.add(next);
         topId = next;
     }
 
-    const people = new Map();
-    const loadPeople = async (ids) => {
-        const missing = ids.filter((x) => !people.has(x));
-        if (!missing.length) return;
-        const l = inList(missing, 'p');
-        for (const r of await query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params)) people.set(r.id, r);
-    };
-    const placed = new Set(); // a person appears once (as a node or as a spouse)
-    const nodes = new Map(); // id → node
-    const makeNode = (id) => ({ ...people.get(id), spouses: [], children: [] });
-
-    await loadPeople([topId]);
-    const top = makeNode(topId);
-    nodes.set(topId, top);
-    placed.add(topId);
+    // The shape first, by id: { id, spouses: [id], children: [shape] }.
+    const placed = new Set([topId]); // a person appears once (as a node or as a spouse)
+    const shapes = new Map(); // id → shape
+    const top = { id: topId, spouses: [], children: [] };
+    shapes.set(topId, top);
     let level = [topId];
     for (let depth = 0; depth < maxDepth && level.length; depth++) {
-        const l = inList(level, 'g');
-        // Spouses of this generation.
-        const sp = await query(`SELECT user_id AS a, relative_id AS b FROM users_relations WHERE relation = 'spouse' AND user_id IN (${l.sql})`, l.params);
-        await loadPeople(sp.map((r) => r.b));
         const coupleOf = new Map(); // spouse id → the node they sit beside
-        for (const { a, b } of sp) {
-            if (placed.has(b)) continue;
-            placed.add(b);
-            nodes.get(a).spouses.push(people.get(b));
-            coupleOf.set(b, a);
-        }
-        // Children of anyone in a couple on this level go under that couple.
-        const parentIds = [...level, ...coupleOf.keys()];
-        const pl = inList(parentIds, 'c');
-        const kids = await query(
-            `SELECT r.user_id AS child, r.relative_id AS parent FROM users_relations r JOIN users_list u ON u.id = r.user_id
-              WHERE r.relation IN ('father', 'mother') AND r.relative_id IN (${pl.sql})
-              ORDER BY r.id`,
-            pl.params,
-        );
-        await loadPeople(kids.map((k) => k.child));
+        for (const a of level)
+            for (const b of spousesOf.get(a) ?? []) {
+                if (placed.has(b)) continue;
+                placed.add(b);
+                shapes.get(a).spouses.push(b);
+                coupleOf.set(b, a);
+            }
+        // Children of anyone in a couple on this level go under that couple, in the order they were linked.
+        const kids = [...level, ...coupleOf.keys()].flatMap((pid) => kidsOf.get(pid) ?? []).sort((x, y) => x.id - y.id);
         const next = [];
         for (const { child, parent } of kids) {
             if (placed.has(child)) continue;
             placed.add(child);
-            const owner = nodes.get(parent) ?? nodes.get(coupleOf.get(parent));
+            const owner = shapes.get(parent) ?? shapes.get(coupleOf.get(parent));
             if (!owner) continue;
-            const node = makeNode(child);
-            nodes.set(child, node);
-            owner.children.push(node);
+            const shape = { id: child, spouses: [], children: [] };
+            shapes.set(child, shape);
+            owner.children.push(shape);
             next.push(child);
         }
         level = next;
     }
-    // Children left to right, eldest first — among those with a birth date; the rest keep their place.
-    for (const n of nodes.values()) n.children = byAge(n.children);
-    return { rootId: root.id, top };
+
+    // Then everyone in it, in one query; a link to a missing person is dropped.
+    const people = new Map([[root.id, root]]);
+    const ids = [...placed].filter((x) => !people.has(x));
+    if (ids.length) {
+        const l = inList(ids, 'p');
+        for (const r of await query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params)) people.set(r.id, r);
+    }
+    const build = (sh) => ({
+        ...people.get(sh.id),
+        spouses: sh.spouses.filter((x) => people.has(x)).map((x) => people.get(x)),
+        // Children left to right, eldest first — among those with a birth date; the rest keep their place.
+        children: byAge(sh.children.filter((c) => people.has(c.id)).map(build)),
+    });
+    return { rootId: root.id, top: build(top) };
 }
 
 /**
@@ -324,9 +334,11 @@ export function byAge(list) {
 async function familyGraph(startId) {
     const ids = [...(await familyIds(startId))];
     const l = inList(ids, 'k');
+    const inFamily = new Set(ids);
     const [people, rows] = await Promise.all([
         query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params),
-        query(`SELECT user_id, relative_id, relation FROM users_relations WHERE user_id IN (${l.sql})`, l.params),
+        // The links come from the request's cached list — no second query.
+        allRelations().then((all) => all.filter((r) => inFamily.has(r.user_id))),
     ]);
     const byId = new Map(people.map((p) => [p.id, p]));
     const parents = new Map();
@@ -435,11 +447,15 @@ export async function fillFatherNames(q, ids) {
 
     // 1) Father's name from the linked father.
     const fathers = new Set(list); // the people themselves may be fathers
-    for (const r of await q(`SELECT relative_id FROM users_relations WHERE relation = 'father' AND user_id IN (${l.sql})`, l.params)) fathers.add(r.relative_id);
+    for (const r of await q(`SELECT relative_id FROM users_relations WHERE relation = 'father' AND user_id IN (${l.sql})`, l.params))
+        fathers.add(r.relative_id);
     for (const fid of fathers) {
         const [father] = await q('SELECT first_name, first_name_local, surname, surname_local FROM users_list WHERE id = :fid', { fid });
         if (!father?.first_name) continue;
-        const kids = await q(`SELECT ${NAME_COLS} FROM users_relations r JOIN users_list u ON u.id = r.user_id WHERE r.relative_id = :fid AND r.relation = 'father'`, { fid });
+        const kids = await q(
+            `SELECT ${NAME_COLS} FROM users_relations r JOIN users_list u ON u.id = r.user_id WHERE r.relative_id = :fid AND r.relation = 'father'`,
+            { fid },
+        );
         for (const k of kids) {
             if (marriedWoman(k)) {
                 if (k.maiden_middle_name) continue;
@@ -495,7 +511,8 @@ export async function fillCastes(q) {
     const spouses = by('spouse');
     const sibs = by('sibling');
     const children = new Map();
-    for (const l of links) if (l.relation === 'father' || l.relation === 'mother') children.set(l.relative_id, [...(children.get(l.relative_id) ?? []), l.user_id]);
+    for (const l of links)
+        if (l.relation === 'father' || l.relation === 'mother') children.set(l.relative_id, [...(children.get(l.relative_id) ?? []), l.user_id]);
     const siblingsOf = (id) => {
         const s = new Set(sibs.get(id) ?? []);
         for (const p of [...(fathers.get(id) ?? []), ...(mothers.get(id) ?? [])]) for (const c of children.get(p) ?? []) if (c !== id) s.add(c);
@@ -518,7 +535,11 @@ export async function fillCastes(q) {
             if (!src) continue;
             p.caste_id = src.caste_id;
             p.subcaste_id = src.subcaste_id;
-            await q('UPDATE users_list SET caste_id = :c, subcaste_id = :s WHERE id = :id AND caste_id IS NULL', { c: src.caste_id, s: src.subcaste_id, id: p.id });
+            await q('UPDATE users_list SET caste_id = :c, subcaste_id = :s WHERE id = :id AND caste_id IS NULL', {
+                c: src.caste_id,
+                s: src.subcaste_id,
+                id: p.id,
+            });
             changed++;
         }
         if (!changed) break;

@@ -381,3 +381,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal Edit schedule: Holding part (icon heading; kept by + handed over on one row)
 - [x] Mandal schedule dialog: Collect + Amount in one row, Date + Place in one row; switch labels left-aligned when they wrap
 - [x] Mandal Meetings tab: mark Came / Absent per member right on each schedule card
+- [x] Speed: plain queries (no prepare round trip), family tree in memory (2 s → 0.2 s), Mandal / group / meetings pages in fewer waits (≈ 2× faster), one-statement meeting invite sync

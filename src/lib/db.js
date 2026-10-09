@@ -2,7 +2,7 @@ import 'server-only';
 import mysql from 'mysql2/promise';
 import { offsetOf } from './timezone';
 
-// design-system.md §9 — one cached pool, named placeholders, bounded prepared-statement cache.
+// design-system.md §9 — one cached pool, named placeholders, plain (client-escaped) queries.
 
 // A small pool, kept open. The host (Hostinger shared) allows only 500 NEW connections per hour
 // per database user (max_connections_per_hour) and caps open connections per user; every
@@ -14,11 +14,11 @@ import { offsetOf } from './timezone';
 const POOL_SIZE = Number(process.env.DB_POOL_SIZE || 5);
 // A statement slower than this is logged (Vercel logs) with its first words — to find slow pages.
 const SLOW_MS = 800;
-// MySQL's server-wide max_prepared_stmt_count defaults to 16382 and is shared with every
-// other app on the server. Budget half of it, split across our connections, floor 32 —
-// the driver default (16000 per connection) never evicts and exhausts the server.
-const STMT_BUDGET = 8000;
-const MAX_PREPARED = Math.max(32, Math.floor(STMT_BUDGET / POOL_SIZE));
+// Plain queries, not prepared statements: mysql2 escapes the values (named placeholders, same safety;
+// sql_mode below has no NO_BACKSLASH_ESCAPES). A prepared statement costs an extra round trip the
+// first time each connection meets that SQL — on this remote database that doubled every query after a
+// cold start (new instance = new connections), which is why pages were slow to open the first time.
+// It also no longer uses up the server-wide max_prepared_stmt_count shared with other apps.
 
 function createPool(offset) {
     const pool = mysql.createPool({
@@ -39,7 +39,6 @@ function createPool(offset) {
         enableKeepAlive: true,
         keepAliveInitialDelay: 30 * 1000,
         namedPlaceholders: true,
-        maxPreparedStatements: MAX_PREPARED,
         charset: 'utf8mb4_unicode_ci',
         timezone: offset,
         dateStrings: true, // DATE stays 'YYYY-MM-DD'; no UTC shift turning the 5th into the 4th
@@ -87,15 +86,28 @@ function isReadOnly(sql) {
 }
 
 /**
+ * Plain values only (as prepared statements required): a plain query would quietly turn an object into
+ * `a` = 1, `b` = 2 and an array into a list — fail loudly instead.
+ */
+function checkParams(sql, params) {
+    for (const v of Array.isArray(params) ? params : Object.values(params ?? {})) {
+        if (v !== null && typeof v === 'object' && !(v instanceof Date) && !Buffer.isBuffer(v)) {
+            throw new TypeError(`db: a query value must be plain (string, number, boolean, null, Date) — ${sql.replace(/\s+/g, ' ').trim().slice(0, 80)}`);
+        }
+    }
+}
+
+/**
  * Run one statement on the pool.
  * @param {string} sql
  * @param {Record<string, unknown>} [params]
  */
 export async function query(sql, params = {}) {
+    checkParams(sql, params);
     for (let attempt = 0; ; attempt++) {
         try {
             const started = Date.now();
-            const [rows] = await currentPool().execute(sql, params);
+            const [rows] = await currentPool().query(sql, params);
             const ms = Date.now() - started;
             // Includes the wait for a free connection — a long one means the pool is too small or a query is heavy.
             if (ms > SLOW_MS) console.warn(`[db slow] ${ms} ms: ${sql.replace(/\s+/g, ' ').trim().slice(0, 120)}`);
@@ -128,7 +140,10 @@ export async function withTransaction(run) {
     const conn = await currentPool().getConnection();
     try {
         await conn.beginTransaction();
-        const q = async (sql, params = {}) => (await conn.execute(sql, params))[0];
+        const q = async (sql, params = {}) => {
+            checkParams(sql, params);
+            return (await conn.query(sql, params))[0];
+        };
         const out = await run(q);
         await conn.commit();
         return out;
@@ -142,7 +157,7 @@ export async function withTransaction(run) {
 
 /**
  * Named placeholders for an IN list, so the SQL text varies only by the COUNT of ids —
- * interpolating the ids makes a new prepared statement per distinct list.
+ * the SQL text stays short and the same for lists of the same length.
  * @param {Array<string|number>} values
  * @param {string} [prefix]
  * @returns {{ sql: string, params: Record<string, string|number> }}

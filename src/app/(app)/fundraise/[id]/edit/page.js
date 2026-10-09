@@ -23,21 +23,27 @@ export async function generateMetadata() {
 
 export default async function EditFundraisePage({ params }) {
     const { id } = await params;
-    const user = await requireUser();
-    const campaign = await getCampaign(Number(id));
+    // Side by side (each wait is a round trip to the database): who asks + the fundraise, then the check
+    // and everything the form needs — a Mandal's members, schedules and opening balance too.
+    const [user, campaign, { t, locale }] = await Promise.all([requireUser(), getCampaign(Number(id)), getT()]);
     if (!campaign) notFound();
-    if (!(await canManageFundraise(user, campaign))) redirect(`/fundraise/${campaign.id}`);
-
-    const { t, locale } = await getT();
     const all = canManageAllFundraises(user.role);
-    const [groups, mine, locations, audience, castes, suggestions] = await Promise.all([
+    const isMandal = campaign.kind === 'mandal';
+    const openingId = Number(campaign.meta?.opening_contribution_id) || null;
+    const [canManage, groups, mine, locations, audience, castes, suggestions, mandal, meetings, marks, opening] = await Promise.all([
+        canManageFundraise(user, campaign),
         listGroupsForSelect(),
         all ? [] : fundraiseGroupIds(user.id),
         knownLocations(),
         getAudience(campaign.id),
         casteOptions(locale),
         audienceSuggestions(),
+        isMandal ? mandalChoice(campaign.group_id, campaign.id) : null,
+        isMandal ? mandalMeetings(campaign.id, 0) : [],
+        isMandal ? allMarks(campaign.id) : {},
+        openingId ? queryOne('SELECT amount, handed_over FROM fundraise_contributions WHERE id = :openingId AND deleted_at IS NULL', { openingId }) : null,
     ]);
+    if (!canManage) redirect(`/fundraise/${campaign.id}`);
     const allowed = all ? groups : groups.filter((g) => mine.includes(g.id) || g.id === campaign.group_id);
     // Keep the current group selectable even if it was archived since (the list holds active groups only).
     if (campaign.group_id && !allowed.some((g) => g.id === campaign.group_id))
@@ -59,13 +65,9 @@ export default async function EditFundraisePage({ params }) {
         locked: linked.has(g.id) && !manageable.has(g.id),
     }));
     const groupName = localized({ name: campaign.group_name, name_local: campaign.group_name_local }, 'name', locale);
-    // A Mandal's opening balance is its "Opening balance" contribution row.
-    const openingId = Number(campaign.meta?.opening_contribution_id) || null;
-    const mandal = campaign.kind === 'mandal' ? await mandalChoice(campaign.group_id, campaign.id) : null;
     // Its schedules, each with what was received at it (decides Archive vs Delete).
     let schedules = [];
     if (mandal) {
-        const [meetings, marks] = await Promise.all([mandalMeetings(campaign.id, 0), allMarks(campaign.id)]);
         schedules = meetings.map((e) => ({
             id: e.id,
             start_date: e.start_date,
@@ -76,9 +78,7 @@ export default async function EditFundraisePage({ params }) {
             received: Object.values(marks[e.id] ?? {}).reduce((s, x) => s + Number(x.paid || 0), 0),
         }));
     }
-    const opening = openingId
-        ? await queryOne('SELECT amount, handed_over FROM fundraise_contributions WHERE id = :openingId AND deleted_at IS NULL', { openingId })
-        : null;
+    // A Mandal's opening balance is its "Opening balance" contribution row.
     const openingBalance = opening?.amount ?? '';
     // No opening row yet → the switch starts on (money already with the treasurer).
     const openingHanded = opening ? Boolean(opening.handed_over) : true;

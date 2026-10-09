@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { getMeta, getMetaMany, query, queryOne } from './db';
 import { audienceFilter } from './fundraise';
 
@@ -15,11 +16,14 @@ export async function listGroups() {
     );
 }
 
-export async function getGroup(id) {
-    const g = await queryOne('SELECT id, name, name_local, status, created_at, created_by FROM admin_groups WHERE id = :id', { id });
-    if (!g) return null;
-    return { ...g, meta: await getMeta('admin_groups', id) };
-}
+// Cached per request (the page, its title and the meetings list); the row and its meta load together.
+export const getGroup = cache(async (id) => {
+    const [g, meta] = await Promise.all([
+        queryOne('SELECT id, name, name_local, status, created_at, created_by FROM admin_groups WHERE id = :id', { id }),
+        getMeta('admin_groups', id),
+    ]);
+    return g ? { ...g, meta } : null;
+});
 
 export async function groupMembers(groupId) {
     return query(
@@ -45,7 +49,11 @@ export async function groupFundraises(groupId, user) {
           ORDER BY pinned DESC, c.status = 'active' DESC, c.start_date DESC LIMIT 50`,
         { groupId, ...aud.params },
     );
-    const pics = await getMetaMany('fundraise_campaigns', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color']);
+    const pics = await getMetaMany(
+        'fundraise_campaigns',
+        rows.map((r) => r.id),
+        ['avatar_kind', 'avatar_value', 'avatar_color'],
+    );
     return rows.map((r) => ({ ...r, avatar: pics[r.id] ?? {} }));
 }
 
@@ -79,6 +87,10 @@ export async function listGroupsForChat(userId, { manager = false } = {}) {
           ORDER BY (gm.user_id IS NULL), COALESCE(lm.created_at, g.created_at) DESC`,
         { userId, manager: manager ? 1 : 0 },
     );
-    const meta = await getMetaMany('admin_groups', rows.map((r) => r.id), ['avatar_kind', 'avatar_value', 'avatar_color', 'visibility']);
+    const meta = await getMetaMany(
+        'admin_groups',
+        rows.map((r) => r.id),
+        ['avatar_kind', 'avatar_value', 'avatar_color', 'visibility'],
+    );
     return rows.map((r) => ({ ...r, avatar: meta[r.id] ?? {}, private: meta[r.id]?.visibility === 'private' }));
 }

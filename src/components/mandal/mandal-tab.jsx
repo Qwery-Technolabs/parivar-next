@@ -14,7 +14,7 @@ import { date, money } from '@/lib/format';
 import { query, queryOne } from '@/lib/db';
 import { scheduleMoney } from '@/lib/fundraise';
 import { localized } from '@/lib/i18n/config';
-import { allMarks, canRunMandal, isFor, mandalMeetings, mandalMembers, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
+import { allMarks, canRunMandal, isFor, mandalMeetingsOnce, mandalMembersOnce, pendingBefore, syncMandalMembers, unpaidBySchedule } from '@/lib/mandal';
 import PendingList from '@/components/mandal/pending-list';
 
 /**
@@ -37,26 +37,28 @@ export async function mandalAboutParts(props) {
 
 async function buildMandal({ campaign, user, today, t, locale, section, scheduleId = null, base = '' }) {
     const installment = Number(campaign.meta?.installment) || 0;
-    await syncMandalMembers(campaign);
-    const [meetings, canRun, marks] = await Promise.all([mandalMeetings(campaign.id, installment), canRunMandal(user, campaign), allMarks(campaign.id)]);
-    const members = await mandalMembers(campaign.id, meetings, today);
-    // Amount per person is set on each schedule; the latest one is the usual amount.
-    const latest = meetings[0]?.installment || installment;
-    // "Everyone in the group": group members come back on their own, so only people added by phone can be removed here.
-    // New schedule's "Money kept by": the last schedule's keeper, else the Mandal's treasurer.
-    const treasurer =
-        section === 'about' && !meetings[0]?.holder
-            ? await queryOne(
+    // Everything at once (each wait is a round trip to the database); shared with the page header's total.
+    const [meetings, canRun, marks, members, treasurer, groupRows, moneyBy] = await Promise.all([
+        mandalMeetingsOnce(campaign.id, installment),
+        canRunMandal(user, campaign),
+        allMarks(campaign.id),
+        syncMandalMembers(campaign).then(() => mandalMembersOnce(campaign.id, installment, today)),
+        // New schedule's "Money kept by": the last schedule's keeper, else the Mandal's treasurer.
+        section === 'about'
+            ? queryOne(
                   `SELECT u.id, u.full_name, u.full_name_local FROM fundraise_members fm JOIN users_list u ON u.id = fm.user_id
                     WHERE fm.campaign_id = :c AND fm.member_role = 'treasurer' ORDER BY fm.added_at, fm.user_id LIMIT 1`,
                   { c: campaign.id },
               )
-            : null;
+            : null,
+        // "Everyone in the group": group members come back on their own, so only people added by phone can be removed here.
+        campaign.meta?.members_mode === 'all' ? query('SELECT user_id FROM admin_group_members WHERE group_id = :g', { g: campaign.group_id }) : [],
+        section === 'money' ? scheduleMoney(campaign.id) : null,
+    ]);
+    // Amount per person is set on each schedule; the latest one is the usual amount.
+    const latest = meetings[0]?.installment || installment;
     const defaultKeeper = meetings[0]?.holder ?? treasurer ?? null;
-    const inGroup =
-        campaign.meta?.members_mode === 'all'
-            ? new Set((await query('SELECT user_id FROM admin_group_members WHERE group_id = :g', { g: campaign.group_id })).map((r) => r.user_id))
-            : new Set();
+    const inGroup = new Set(groupRows.map((r) => r.user_id));
     const totalPending = members.reduce((s, m) => s + m.due, 0);
     const name = (p) => localized(p, 'full_name', locale);
     const plain = members.map((m) => ({
@@ -76,7 +78,6 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
         };
     });
     // Savings: each schedule's money in / out (contributions with its event_id, expenses named for it).
-    const moneyBy = section === 'money' ? await scheduleMoney(campaign.id) : null;
     // A schedule as a picker option: its date, and in grey its place · amount per person.
     // (No "Money with …" in a picker — it made the option too long; the keeper shows on the schedule itself.)
     const scheduleHint = (e) =>
