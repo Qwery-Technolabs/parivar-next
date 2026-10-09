@@ -8,10 +8,17 @@ import { offsetOf } from './timezone';
 // per database user (max_connections_per_hour) and caps open connections per user; every
 // serverless instance / build worker has its own pool. So never a big pool (100 would blow both).
 // 5 per instance: a page's parallel queries (Promise.all of 5–8) run together instead of queueing
-// behind 2, which made pages slow; connections open only when needed and stay 15 min. For ~15
-// people at once that is ≈15–25 open connections in all. Never 1 (a helper calling the pool inside
-// a transaction would wait forever). DB_POOL_SIZE overrides.
+// behind 2, which made pages slow. The host also caps OPEN connections at 50 per user (max_user_connections)
+// across every instance, so 5 × ≤10 instances. Never 1 (a helper calling the pool inside a transaction
+// would wait forever). DB_POOL_SIZE overrides.
 const POOL_SIZE = Number(process.env.DB_POOL_SIZE || 5);
+// The server closes a connection idle for wait_timeout = 20 s (Hostinger's global value). Each of ours
+// asks for SESSION_WAIT_S instead, so a pause of a minute does not mean reconnecting (≈ 4 round trips
+// each, and one more against the hourly new-connection limit). The pool closes idle ones itself a bit
+// sooner (IDLE_MS), and a connection idle longer than that is never used (a frozen serverless instance
+// cannot run the pool's timer — the server may already have dropped it): see `connection()`.
+const SESSION_WAIT_S = 300;
+const IDLE_MS = 240 * 1000;
 // A statement slower than this is logged (Vercel logs) with its first words — to find slow pages.
 const SLOW_MS = 800;
 // Plain queries, not prepared statements: mysql2 escapes the values (named placeholders, same safety;
@@ -32,10 +39,11 @@ function createPool(offset) {
         waitForConnections: true,
         queueLimit: 0,
         connectTimeout: 10 * 1000,
-        // Keep idle connections instead of closing them after 60 s (mysql2's default) — each
+        // At most 3 idle connections kept per instance (maxIdle must be below the limit, or mysql2 never
+        // closes idle ones), each for IDLE_MS — open slots are shared by every instance (cap 50) and every
         // reconnect counts against the hourly limit. TCP keep-alive stops routers dropping them.
-        maxIdle: POOL_SIZE,
-        idleTimeout: 15 * 60 * 1000,
+        maxIdle: Math.min(3, POOL_SIZE - 1),
+        idleTimeout: IDLE_MS,
         enableKeepAlive: true,
         keepAliveInitialDelay: 30 * 1000,
         namedPlaceholders: true,
@@ -53,7 +61,9 @@ function createPool(offset) {
     // value is silently stored as '' and overlong text is cut off. Refusing is better than
     // quietly storing something else.
     pool.pool.on('connection', (conn) =>
-        conn.query(`SET time_zone = '${offset}', sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'`),
+        conn.query(
+            `SET time_zone = '${offset}', sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION', SESSION wait_timeout = ${SESSION_WAIT_S}`,
+        ),
     );
     return pool;
 }
@@ -98,6 +108,18 @@ function checkParams(sql, params) {
 }
 
 /**
+ * A pooled connection that is safe to use: one idle longer than IDLE_MS is dropped instead (the server
+ * may have closed it while this instance was frozen) — so a write never goes out on a dead connection.
+ */
+async function connection() {
+    for (;;) {
+        const conn = await currentPool().getConnection();
+        if (Date.now() - (conn.connection.lastActiveTime ?? Date.now()) < IDLE_MS) return conn;
+        conn.destroy();
+    }
+}
+
+/**
  * Run one statement on the pool.
  * @param {string} sql
  * @param {Record<string, unknown>} [params]
@@ -107,7 +129,13 @@ export async function query(sql, params = {}) {
     for (let attempt = 0; ; attempt++) {
         try {
             const started = Date.now();
-            const [rows] = await currentPool().query(sql, params);
+            const conn = await connection();
+            let rows;
+            try {
+                [rows] = await conn.query(sql, params);
+            } finally {
+                conn.release();
+            }
             const ms = Date.now() - started;
             // Includes the wait for a free connection — a long one means the pool is too small or a query is heavy.
             if (ms > SLOW_MS) console.warn(`[db slow] ${ms} ms: ${sql.replace(/\s+/g, ' ').trim().slice(0, 120)}`);
@@ -137,7 +165,7 @@ export async function queryOne(sql, params = {}) {
  * @returns {Promise<T>}
  */
 export async function withTransaction(run) {
-    const conn = await currentPool().getConnection();
+    const conn = await connection();
     try {
         await conn.beginTransaction();
         const q = async (sql, params = {}) => {

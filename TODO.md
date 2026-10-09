@@ -382,3 +382,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal schedule dialog: Collect + Amount in one row, Date + Place in one row; switch labels left-aligned when they wrap
 - [x] Mandal Meetings tab: mark Came / Absent per member right on each schedule card
 - [x] Speed: plain queries (no prepare round trip), family tree in memory (2 s → 0.2 s), Mandal / group / meetings pages in fewer waits (≈ 2× faster), one-statement meeting invite sync
+- [x] DB connections: survive pauses (session wait_timeout 300 s vs server 20 s), idle ones closed at 240 s, stale ones never used; load-tested 5–40 simultaneous users, 0 errors

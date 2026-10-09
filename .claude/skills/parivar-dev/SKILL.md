@@ -31,7 +31,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   no long-lived timers (instrumentation skips the reminder loop when `VERCEL` is set). **Hobby plan = daily
   crons only** (`vercel.json`: `0 3 * * *`; a more frequent schedule fails the deploy). Reminders also run via
   `kickReminders()` in the (app) layout — `after()` a signed-in page, once a minute per instance; an external
-  scheduler may hit `/api/cron/reminders?key=…`. DB pool 3 on Vercel.
+  scheduler may hit `/api/cron/reminders?key=…`. DB pool 5 per instance (parivar-db).
 - **No page zoom / drift on phones**: html/body have `touch-action: pan-x pan-y` + `overscroll-behavior: none`, the viewport
   sets maximumScale 1 / userScalable false. Anything wide must scroll in its own box (TableShell: overflow-x-auto +
   overscroll-x-contain). A widget needing pinch (family tree) sets `touch-none` and handles gestures itself.
