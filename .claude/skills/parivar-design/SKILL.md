@@ -262,7 +262,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   headings and `.print-keep-next` stay with what follows, `thead` repeats on every page.
 - **Mandal print** (MandalPrint — the app's /fundraise/[id]/print and the public /p/[token]/print): chip rows
   Print (one): By contributors (default) · By schedules · Expenses; Print includes: All or any schedule dates
-  (multi-select, `?schedule=4,7`; All clears them) + a From–To range under All; Show (By schedules only): Everyone ·
+  (multi-select, `?schedule=4,7`; All clears them); NO date range in the Mandal print (`mandalPrintFilters` drops one
+  from the URL — the multi-select schedules are the filter); Show (By schedules only): Everyone ·
   Came only · Absent only. By contributors / Expenses = the fundraise Statement tables over the chosen money
   (mandalLedger + mandalStatement); By schedules = MandalScheduleSheets (tables styled like the Statement: rounded
   border, grey bg-surface-login head and total row, px-4 cells). Defaults by mode (lib/mandal-filters MANDAL_MODES):

@@ -68,6 +68,11 @@ export function mandalQuery(f, over = {}) {
     return q.toString();
 }
 
+/** The printout's filter: no date range there — the multi-select schedule chips choose (a range in the URL is ignored). */
+export function mandalPrintFilters(sp, mode) {
+    return { ...mandalFilters(sp, mode), from: '', to: '' };
+}
+
 /** The latest schedule held by `today` (else the soonest coming one) from a newest-first list. */
 export function latestSchedule(schedules, today) {
     return schedules.find((s) => String(s.start_date).slice(0, 10) <= today) ?? schedules.at(-1) ?? null;

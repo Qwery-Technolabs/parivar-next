@@ -7,7 +7,7 @@ import { getT } from '@/lib/i18n/server';
 import MandalPrint from '@/components/mandal/mandal-print';
 import { todayLocal } from '@/lib/forms';
 import { mandalLedger, mandalSheets, mandalStatement } from '@/lib/mandal';
-import { mandalFilters, mandalQuery } from '@/lib/mandal-filters';
+import { mandalPrintFilters, mandalQuery } from '@/lib/mandal-filters';
 import { sp1 } from '@/lib/url';
 
 export async function generateMetadata({ params }) {
@@ -32,7 +32,7 @@ export default async function PublicFundraisePrintPage({ params, searchParams })
     // Absent only — within the public link's date range, if one is set (kept on every chip).
     if (campaign.kind === 'mandal') {
         // Default: By contributors of the latest schedule — a light page; every chip opens the rest.
-        const filters = mandalFilters(sp, 'public');
+        const filters = mandalPrintFilters(sp, 'public');
         const today = todayLocal();
         const [ledger, sheets] = await Promise.all([mandalLedger(campaign.id, filters, today), mandalSheets(campaign, today)]);
         const back = mandalQuery(filters, { ids: ledger.ids, all: !ledger.ids.length, view: undefined });

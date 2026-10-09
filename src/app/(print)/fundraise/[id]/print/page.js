@@ -9,7 +9,7 @@ import { canSeeCampaign, contributorTotals, getCampaign, listContributions, list
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
 import { mandalLedger, mandalSheets, mandalStatement } from '@/lib/mandal';
-import { mandalFilters } from '@/lib/mandal-filters';
+import { mandalPrintFilters } from '@/lib/mandal-filters';
 import { getT } from '@/lib/i18n/server';
 import { sp1 } from '@/lib/url';
 
@@ -40,7 +40,7 @@ export default async function FundraisePrintPage({ params, searchParams }) {
     // A Mandal prints its schedules — all of them, or one (?schedule=<id>) — never the fundraise statement.
     if (campaign.kind === 'mandal') {
         // By contributors (default) · By schedules · Expenses, over all schedules (default) or the chosen ones.
-        const filters = mandalFilters(sp, 'app');
+        const filters = mandalPrintFilters(sp, 'app');
         const today = todayLocal();
         const [manage, ledger, sheets] = await Promise.all([allowed(), mandalLedger(campaign.id, filters, today), mandalSheets(campaign, today)]);
         return (

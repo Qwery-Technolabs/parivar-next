@@ -4,11 +4,10 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import PrintButton from '@/components/fundraise/print-button';
 import Statement from '@/components/fundraise/statement';
 import ChipLink from '@/components/ui/chip-link';
-import { textInput } from '@/components/ui/field';
 import { date } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
-import { MANDAL_MODES, MANDAL_VIEWS, mandalQuery } from '@/lib/mandal-filters';
+import { MANDAL_VIEWS, mandalQuery } from '@/lib/mandal-filters';
 import { getSettings, samajName } from '@/lib/settings';
 import MandalScheduleSheets from './mandal-schedule-sheets';
 
@@ -20,7 +19,7 @@ const SHOW_LABEL = { all: 'mandal.printEveryone', present: 'mandal.onlyPresent',
  * A Mandal's printout / PDF (server component, outside the app shell) — the app's and the public link's.
  * Chips on top (each a link with a mini loader):
  *   View (one): By contributors (default) · By schedules · Expenses
- *   Print includes: All, or one or more schedule dates (multi-select; All clears them); with All, a From–To range
+ *   Print includes: All, or one or more schedule dates (multi-select; All clears them) — no date range
  *   Show (By schedules only): Everyone · Came only · Absent only
  * By contributors / Expenses are the fundraise statement's tables (Statement) over the chosen money; By
  * schedules is MandalScheduleSheets. `filters` from lib/mandal-filters (its mode sets the defaults),
@@ -29,7 +28,6 @@ const SHOW_LABEL = { all: 'mandal.printEveryone', present: 'mandal.onlyPresent',
  */
 export default async function MandalPrint({ campaign, filters, selected, sheets, statement, t, locale, backHref, basePath, publicView = false }) {
     const brand = samajName(await getSettings('admin'), locale) || t('app.name');
-    const mode = MANDAL_MODES[filters.mode] ?? MANDAL_MODES.public;
     const now = { ...filters, ids: selected, all: !selected.length };
     const href = (over) => {
         const q = mandalQuery(now, over);
@@ -84,24 +82,6 @@ export default async function MandalPrint({ campaign, filters, selected, sheets,
                         </ChipLink>
                     ))}
                 </div>
-                {/* All: optionally a date range. */}
-                {!selected.length && (
-                    <form action={basePath} className={row}>
-                        {filters.view !== MANDAL_VIEWS[0] && <input type="hidden" name="view" value={filters.view} />}
-                        {mode.allToken && <input type="hidden" name="schedule" value={mode.allToken} />}
-                        {filters.show !== mode.show && <input type="hidden" name="show" value={filters.show} />}
-                        <span className={label}>{t('mandal.from')}</span>
-                        <input type="date" name="from" defaultValue={filters.from} className={`${textInput()} h-7 w-36 text-xs`} />
-                        <span className={label}>{t('mandal.to')}</span>
-                        <input type="date" name="to" defaultValue={filters.to} className={`${textInput()} h-7 w-36 text-xs`} />
-                        <button
-                            type="submit"
-                            className="inline-flex h-7 items-center rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                        >
-                            {t('common.apply')}
-                        </button>
-                    </form>
-                )}
                 {/* By schedules: whom to list. */}
                 {filters.view === 'schedules' && (
                     <div className={row}>
