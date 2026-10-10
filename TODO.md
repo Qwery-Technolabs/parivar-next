@@ -401,3 +401,8 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] /install page: one shareable link that installs the app per OS (Android prompt / Chrome from WhatsApp / iPhone steps) or opens the dashboard when already in the app
 - [x] Mandal print: schedules with 0 came hidden (chips + sheets) except on Expenses; total shown as 20/35
 - [x] Mandal About: no News & minutes; meeting minutes collapsed ("Minutes (n)") and loaded only when opened
+- [x] Profile save fixed (db guard checks only used values); relatives you added are always editable; Access tab admins only
+- [x] Member page: "Added by … · date" under the Details card
+- [x] Names in Name Case when saved and typed (members, relatives, register, invites)
+- [x] One-time Name Case backfill on live: 31 of 231 members (parts + rebuilt full name), logged as user.namecase.backfill
+- [x] English ↔ Gujarati name pairs in one shaded box everywhere (member forms, register, relatives, titles, settings, surnames)

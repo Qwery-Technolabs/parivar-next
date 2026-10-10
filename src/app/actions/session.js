@@ -8,7 +8,7 @@ import { notifyMany } from '@/lib/notifications';
 import { atLeast } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { LANG_COOKIE, LANG_MAX_AGE, normalizeLocale } from '@/lib/i18n/config';
-import { composeName } from '@/lib/names';
+import { composeName, nameCase } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
 import { applySurnameCastes } from '@/lib/surnames';
 import { safeNext } from '@/lib/url';
@@ -94,9 +94,9 @@ export async function register(prev, formData) {
     const settings = await getSettings('admin');
     if (!settings.allow_registration) return { error: 'auth.register.closed' };
     const values = {
-        first_name: str(formData, 'first_name', 60),
-        middle_name: str(formData, 'middle_name', 60),
-        surname: str(formData, 'surname', 60),
+        first_name: nameCase(str(formData, 'first_name', 60)),
+        middle_name: nameCase(str(formData, 'middle_name', 60)),
+        surname: nameCase(str(formData, 'surname', 60)),
         first_name_local: str(formData, 'first_name_local', 60),
         middle_name_local: str(formData, 'middle_name_local', 60),
         surname_local: str(formData, 'surname_local', 60),
@@ -111,7 +111,8 @@ export async function register(prev, formData) {
     if (!values.middle_name) fieldErrors.middle_name = 'common.required';
     if (!values.surname) fieldErrors.surname = 'common.required';
     const fullName = composeName({ first: values.first_name, middle: values.middle_name, surname: values.surname }).slice(0, 150);
-    const fullNameLocal = composeName({ first: values.first_name_local, middle: values.middle_name_local, surname: values.surname_local }).slice(0, 150) || null;
+    const fullNameLocal =
+        composeName({ first: values.first_name_local, middle: values.middle_name_local, surname: values.surname_local }).slice(0, 150) || null;
     if (!phone) fieldErrors.phone = 'auth.errors.phoneInvalid';
     const pwErr = passwordProblem(password);
     if (pwErr) fieldErrors.password = pwErr;

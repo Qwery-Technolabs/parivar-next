@@ -9,7 +9,7 @@ import { bool, date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { postMemberNote } from '@/lib/chat';
 import { MEMBER_META_KEYS } from '@/lib/members';
 import { applySurnameCastes } from '@/lib/surnames';
-import { composeName } from '@/lib/names';
+import { composeName, nameCase } from '@/lib/names';
 import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
 import { ensureInvitedUser } from '@/lib/invite';
@@ -22,9 +22,10 @@ import { forget } from '@/lib/memo';
 const FORBIDDEN = { error: 'common.forbidden' };
 
 function readMember(fd) {
-    const first_name = str(fd, 'first_name', 60);
-    const middle_name = str(fd, 'middle_name', 60);
-    const surname = str(fd, 'surname', 60);
+    // English names in Name Case ("manthan" → "Manthan"), whatever was typed.
+    const first_name = nameCase(str(fd, 'first_name', 60));
+    const middle_name = nameCase(str(fd, 'middle_name', 60));
+    const surname = nameCase(str(fd, 'surname', 60));
     const first_name_local = str(fd, 'first_name_local', 60);
     const middle_name_local = str(fd, 'middle_name_local', 60);
     const surname_local = str(fd, 'surname_local', 60);
@@ -44,8 +45,8 @@ function readMember(fd) {
         gender: oneOf(fd, 'gender', ['male', 'female', 'other']),
         dob: date(fd, 'dob'),
         marital_status: oneOf(fd, 'marital_status', ['unmarried', 'married', 'engaged', 'widowed', 'divorced']),
-        maiden_middle_name: strOrNull(fd, 'maiden_middle_name', 60),
-        maiden_surname: strOrNull(fd, 'maiden_surname', 60),
+        maiden_middle_name: nameCase(strOrNull(fd, 'maiden_middle_name', 60)) || null,
+        maiden_surname: nameCase(strOrNull(fd, 'maiden_surname', 60)) || null,
         maiden_middle_name_local: strOrNull(fd, 'maiden_middle_name_local', 60),
         maiden_surname_local: strOrNull(fd, 'maiden_surname_local', 60),
         blood_group: oneOf(fd, 'blood_group', BLOOD_GROUPS),

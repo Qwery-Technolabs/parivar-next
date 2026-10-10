@@ -2,7 +2,7 @@
 import { Plus, UserPlus, UserRoundSearch } from 'lucide-react';
 import { useState } from 'react';
 import { addRelative } from '@/app/actions/family';
-import { Field, selectInput, textInput } from '@/components/ui/field';
+import { Field, selectInput, textInput, translationPair } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
 import GujaratiField from '@/components/ui/gujarati-field';
@@ -42,28 +42,42 @@ function defaultsFor(kind, p, spouse) {
     }[kind] ?? ['', ''];
     const ownSurname = !(kind === 'spouse' && p.gender === 'female');
     return {
-        first_name: kind === 'father' ? p.middle_name ?? '' : '',
-        first_name_local: kind === 'father' ? p.middle_name_local ?? '' : '',
+        first_name: kind === 'father' ? (p.middle_name ?? '') : '',
+        first_name_local: kind === 'father' ? (p.middle_name_local ?? '') : '',
         middle_name: middle[0] ?? '',
         middle_name_local: middle[1] ?? '',
-        surname: ownSurname ? p.surname ?? '' : '',
-        surname_local: ownSurname ? p.surname_local ?? '' : '',
+        surname: ownSurname ? (p.surname ?? '') : '',
+        surname_local: ownSurname ? (p.surname_local ?? '') : '',
     };
 }
 
 /** A married woman's four name parts, worked out from the person: husband / in-laws, and her father's side. */
 function marriedDefaultsFor(kind, p, spouse) {
     const base = { first_name: '', first_name_local: '', middle_name: '', middle_name_local: '', surname: '', surname_local: '' };
-    if (kind === 'spouse') return { ...base, middle_name: p.first_name ?? '', middle_name_local: p.first_name_local ?? '', surname: p.surname ?? '', surname_local: p.surname_local ?? '' };
-    if (kind === 'mother') return { ...base, middle_name: p.middle_name ?? '', middle_name_local: p.middle_name_local ?? '', surname: p.surname ?? '', surname_local: p.surname_local ?? '' };
+    if (kind === 'spouse')
+        return {
+            ...base,
+            middle_name: p.first_name ?? '',
+            middle_name_local: p.first_name_local ?? '',
+            surname: p.surname ?? '',
+            surname_local: p.surname_local ?? '',
+        };
+    if (kind === 'mother')
+        return {
+            ...base,
+            middle_name: p.middle_name ?? '',
+            middle_name_local: p.middle_name_local ?? '',
+            surname: p.surname ?? '',
+            surname_local: p.surname_local ?? '',
+        };
     // daughter / sister: her father's side is known, her husband's is typed
     const father = kind === 'daughter' ? childFather(p, spouse) : null;
     return {
         ...base,
-        maiden_middle_name: kind === 'sister' ? p.middle_name ?? '' : father?.first_name ?? '',
-        maiden_middle_name_local: kind === 'sister' ? p.middle_name_local ?? '' : father?.first_name_local ?? '',
-        maiden_surname: kind === 'sister' ? p.surname ?? '' : father?.surname ?? '',
-        maiden_surname_local: kind === 'sister' ? p.surname_local ?? '' : father?.surname_local ?? '',
+        maiden_middle_name: kind === 'sister' ? (p.middle_name ?? '') : (father?.first_name ?? ''),
+        maiden_middle_name_local: kind === 'sister' ? (p.middle_name_local ?? '') : (father?.first_name_local ?? ''),
+        maiden_surname: kind === 'sister' ? (p.surname ?? '') : (father?.surname ?? ''),
+        maiden_surname_local: kind === 'sister' ? (p.surname_local ?? '') : (father?.surname_local ?? ''),
     };
 }
 
@@ -96,7 +110,7 @@ function MarriedName({ defaults, fe }) {
     const field = (name) => {
         const shown = full || !known(name);
         return (
-            <div key={name} className={shown ? 'grid gap-1.5 sm:col-span-1' : 'hidden'}>
+            <div key={name} className={shown ? `${translationPair} grid content-start gap-1.5 sm:col-span-1` : 'hidden'}>
                 <Field label={`${t(labels[name])} (${t('lang.en')})`} error={fe(name)} required={name === 'first_name' || name === 'surname'}>
                     <input
                         name={name}
@@ -148,26 +162,38 @@ function QuickName({ defaults, fe }) {
     const firstProps = { ...first.enProps, onChange: (e) => (first.enProps.onChange(e), setFirstEn(e.target.value)) };
     const en = (name, label, auto, props = {}) => (
         <Field label={`${t(label)} (${t('lang.en')})`} error={fe(name)} required={props.required}>
-            <input name={name} maxLength={60} autoComplete="off" {...(props.enProps ?? auto.enProps)} required={props.required} className={`${textInput(!!fe(name))} w-full`} />
+            <input
+                name={name}
+                maxLength={60}
+                autoComplete="off"
+                {...(props.enProps ?? auto.enProps)}
+                required={props.required}
+                className={`${textInput(!!fe(name))} w-full`}
+            />
         </Field>
     );
     return (
         <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={`${translationPair} grid gap-3 sm:grid-cols-2`}>
                 {en('first_name', 'members.firstName', first, { required: true, enProps: firstProps })}
                 <GujaratiField label={`${t('members.firstName')} (${lang})`} name="first_name_local" auto={first} maxLength={60} />
             </div>
             {/* The rest of the name: hidden but posted, or shown to change. */}
             <div className={full ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
-                {en('middle_name', 'members.middleName', middle)}
-                {en('surname', 'members.surname', surname, { required: full })}
-                <GujaratiField label={`${t('members.middleName')} (${lang})`} name="middle_name_local" auto={middle} maxLength={60} />
-                <GujaratiField label={`${t('members.surname')} (${lang})`} name="surname_local" auto={surname} maxLength={60} />
+                <div className={`${translationPair} grid content-start gap-3`}>
+                    {en('middle_name', 'members.middleName', middle)}
+                    <GujaratiField label={`${t('members.middleName')} (${lang})`} name="middle_name_local" auto={middle} maxLength={60} />
+                </div>
+                <div className={`${translationPair} grid content-start gap-3`}>
+                    {en('surname', 'members.surname', surname, { required: full })}
+                    <GujaratiField label={`${t('members.surname')} (${lang})`} name="surname_local" auto={surname} maxLength={60} />
+                </div>
             </div>
             {!full && (
                 <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-gray">
                     <span>
-                        {t('family.fullName')}: <b className="text-primary">{[firstEn || '…', defaults.middle_name, defaults.surname].filter(Boolean).join(' ')}</b>
+                        {t('family.fullName')}:{' '}
+                        <b className="text-primary">{[firstEn || '…', defaults.middle_name, defaults.surname].filter(Boolean).join(' ')}</b>
                     </span>
                     <button type="button" onClick={() => setFull(true)} className="font-medium text-primary underline">
                         {t('family.changeName')}
@@ -241,7 +267,13 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
             {({ fieldError }) => (
                 <>
                     <Field label={t('family.relation')} hint={t('family.relationHint')} error={fieldError('kind')} required>
-                        <select name="kind" value={kind} onChange={(e) => pickKind(e.target.value)} required className={`${selectInput(!!fieldError('kind'))} w-full`}>
+                        <select
+                            name="kind"
+                            value={kind}
+                            onChange={(e) => pickKind(e.target.value)}
+                            required
+                            className={`${selectInput(!!fieldError('kind'))} w-full`}
+                        >
                             <option value="" disabled>
                                 {t('family.chooseRelation')}
                             </option>

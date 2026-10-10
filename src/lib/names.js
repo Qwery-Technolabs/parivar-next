@@ -2,7 +2,21 @@
 // (middle) and surname. full_name stays the join of the parts, so search, lists and the
 // family tree keep reading one field.
 
-const tidy = (s) => String(s ?? '').trim().replace(/\s+/g, ' ');
+const tidy = (s) =>
+    String(s ?? '')
+        .trim()
+        .replace(/\s+/g, ' ');
+
+/**
+ * A typed English name in Name Case: each word's first letter capital, the rest small — "manthan",
+ * "MANTHAN" → "Manthan"; after a hyphen or apostrophe too ("patel-shah" → "Patel-Shah"). Spaces tidied.
+ * Scripts without capitals (Gujarati, Hindi) are left exactly as typed. Empty stays empty.
+ */
+export function nameCase(s) {
+    return tidy(s)
+        .toLowerCase()
+        .replace(/(^|[\s\-'’.])(\p{Ll})/gu, (_, before, ch) => before + ch.toUpperCase());
+}
 
 /** "First Father Surname" from the parts (blank parts skipped). */
 export function composeName({ first = '', middle = '', surname = '' } = {}) {

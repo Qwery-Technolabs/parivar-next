@@ -1,5 +1,6 @@
 'use client';
 import { Plus, Send, Smartphone, X } from 'lucide-react';
+import { nameCase } from '@/lib/names';
 import { useRef, useState } from 'react';
 import { inviteMembers } from '@/app/actions/members';
 import { textInput } from '@/components/ui/field';
@@ -33,13 +34,13 @@ export default function InviteMembersDialog({ groups, menuKey }) {
                 menuKey ? (
                     <MenuOpener id={menuKey} open={open} />
                 ) : (
-                <button
-                    type="button"
-                    onClick={open}
-                    className="btn-secondary inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium sm:flex-none"
-                >
-                    <Smartphone className="size-4" /> {t('members.invite.button')}
-                </button>
+                    <button
+                        type="button"
+                        onClick={open}
+                        className="btn-secondary inline-flex h-9 flex-1 shrink-0 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium sm:flex-none"
+                    >
+                        <Smartphone className="size-4" /> {t('members.invite.button')}
+                    </button>
                 )
             }
         >
@@ -66,13 +67,20 @@ function parsePasted(text) {
         const m = line.match(/\+?\d[\d\s\-().]{7,}\d/);
         if (!m) continue;
         const phone = m[0].replace(/[^\d+]/g, '');
-        const name = (line.slice(0, m.index) + ' ' + line.slice(m.index + m[0].length)).replace(/[,:|\-–]+/g, ' ').replace(/\s+/g, ' ').trim();
+        const name = (line.slice(0, m.index) + ' ' + line.slice(m.index + m[0].length))
+            .replace(/[,:|\-–]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
         out.push({ phone, name });
     }
     return out;
 }
 
-const digits = (p) => String(p).replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').replace(/^0(?=\d{10}$)/, '');
+const digits = (p) =>
+    String(p)
+        .replace(/\D/g, '')
+        .replace(/^91(?=\d{10}$)/, '')
+        .replace(/^0(?=\d{10}$)/, '');
 
 function InviteRows({ groups }) {
     const { t } = useT();
@@ -143,6 +151,9 @@ function InviteRows({ groups }) {
                             maxLength={150}
                             value={row.name}
                             onChange={(e) => set(row.id, { name: e.target.value })}
+                            // Name Case on leaving the box; the server does the same.
+                            onBlur={(e) => set(row.id, { name: nameCase(e.target.value) })}
+                            autoCapitalize="words"
                             placeholder={examplePlaceholders('fullName').en}
                             aria-label={`${t('members.invite.name')} ${i + 1}`}
                             className={`${textInput()} w-full min-w-0`}

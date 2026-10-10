@@ -303,6 +303,8 @@ const en = {
         donorHint: 'Can be contacted for blood',
         address: 'Address',
         copyAddress: 'Copy address',
+        addedBy: 'Added by',
+        joined: 'Joined',
         addressCopied: 'Address copied',
         openMap: 'Open in Google Maps',
         occupation: 'Occupation',

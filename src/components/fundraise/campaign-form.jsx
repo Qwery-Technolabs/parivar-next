@@ -96,6 +96,7 @@ export default function CampaignForm({
                                             error={fe('title')}
                                             maxLength={200}
                                             required
+                                            side
                                         />
                                     </div>
                                 </FormPart>

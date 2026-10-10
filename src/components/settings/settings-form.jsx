@@ -56,6 +56,7 @@ export default function SettingsForm({ module, title, fields }) {
                     defaultEn={f.value}
                     defaultGu={twin.value}
                     maxLength={500}
+                    side
                 />
             );
         return f.type === 'bool' ? (

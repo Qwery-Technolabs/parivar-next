@@ -5,7 +5,7 @@ import { startTransition, useActionState, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { saveSurname, saveSurnamesBulk } from '@/app/actions/surnames';
 import CasteSelect from '@/components/members/caste-select';
-import { Field, textInput } from '@/components/ui/field';
+import { Field, textInput, translationPair } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
 import GujaratiField from '@/components/ui/gujarati-field';
 import SubmitButton from '@/components/ui/submit-button';
@@ -22,7 +22,7 @@ function SurnameFields({ row, options, fieldError }) {
     const auto = useAutoGujarati(row?.name ?? '', row?.name_local ?? '', 'surname');
     const [caste, setCaste] = useState({ caste: row?.caste_id ? String(row.caste_id) : '', subcaste: row?.subcaste_id ? String(row.subcaste_id) : '' });
     return (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`${translationPair} grid gap-3 sm:grid-cols-2`}>
             {row ? (
                 <input type="hidden" name="name" value={row.name} />
             ) : (

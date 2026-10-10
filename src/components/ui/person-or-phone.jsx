@@ -1,5 +1,6 @@
 'use client';
 import { Phone, UserRoundSearch } from 'lucide-react';
+import { nameCase } from '@/lib/names';
 import { useState } from 'react';
 import { Field, textInput } from '@/components/ui/field';
 import MemberPicker from '@/components/ui/member-picker';
@@ -56,6 +57,11 @@ export default function PersonOrPhone({ fieldError, pickerName, exclude = [], al
                             name="full_name"
                             maxLength={150}
                             autoComplete="off"
+                            autoCapitalize="words"
+                            // Name Case on leaving the box ("MANTHAN KANANI" → "Manthan Kanani"); the server does the same.
+                            onBlur={(e) => {
+                                e.target.value = nameCase(e.target.value);
+                            }}
                             placeholder={examplePlaceholders('fullName').en}
                             className={`${textInput()} w-full`}
                         />

@@ -168,6 +168,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
   (actions/minutes.js — same visibility as the page). A Mandal's About tab shows no News & minutes (they live under
   its meetings) and does not load them.
+- **Names in Name Case**: every typed English name part (first / father's / surname, maiden parts, an invite's full
+  name) goes through `nameCase()` (lib/names.js — "MANTHAN" → "Manthan", Gujarati untouched) on the server when saved
+  (members, family, register, invite) and on leaving the box in the forms (name-fields, person-or-phone, invite dialog).
+- **Editing someone else's profile** (`canEditUser`): themselves; whoever added a FAMILY relative (users_listmeta
+  added_via = family) — always; whoever added anyone else — until that person first signs in; member admins by rank.
+  The Access tab (role / status) is member admins only (page + updateMemberSection). Member page: a small right-aligned
+  line under the Details card — "Added by <name> · date" (created_by) or "Joined · date".
 - **Speed — parallel queries**: in pages and actions, never await independent DB calls one after another. Load the user
   and the main record together, then everything that needs only the id in ONE Promise.all (start background pieces as
   promises and await them after the tab's data). Fundraise / group / member pages follow this.

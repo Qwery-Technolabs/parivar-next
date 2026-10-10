@@ -64,6 +64,7 @@ export default function MeetingDialog({ scope, scopeId, people, meeting = null, 
                             defaultEn={meeting?.title ?? defaultTitle}
                             defaultGu={meeting?.title_local ?? ''}
                             maxLength={200}
+                            side
                         />
                         <Field label={t('meetings.date')} error={fieldError('start_date')} required>
                             <input

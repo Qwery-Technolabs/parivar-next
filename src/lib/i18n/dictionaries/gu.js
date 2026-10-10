@@ -299,6 +299,8 @@ const gu = {
         donorHint: 'રક્ત માટે સંપર્ક કરી શકાય',
         address: 'સરનામું',
         copyAddress: 'સરનામું કૉપિ કરો',
+        addedBy: 'ઉમેરનાર:',
+        joined: 'જોડાયા',
         addressCopied: 'સરનામું કૉપિ થયું',
         openMap: 'Google Maps માં ખોલો',
         occupation: 'વ્યવસાય',

@@ -257,6 +257,11 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   Discussion, each with a hint (components/groups/group-team-panel.jsx). The Members tab shows the task roles as badges
   only; its ⋮ keeps Change role › and Remove.
 
+- **English ↔ local-language pairs** (a field and its auto-filled Gujarati twin): always together in ONE lightly
+  shaded box — `translationPair` (components/ui/field.jsx: bg-surface-bggray/60 + ring). NameFields = one box per name
+  part (English above, local below); BilingualName = one box spanning the grid row (`side` = the two side by side);
+  add-relative dialog and the surname manager too. Any new pair must use it.
+
 ## Public & print
 
 - **Privacy policy**: public /privacy-policy (proxy.js allows it) and Settings → About (everyone; group "App"): one card — "Designed and developed

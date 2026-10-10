@@ -42,7 +42,6 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                         member={member}
                         fe={fe}
                         married={married}
-                        spacerClass="hidden sm:block"
                         optional={relativeOnly || married ? ['middle_name', 'maiden_middle_name', 'maiden_surname'] : []}
                     />
                 </div>

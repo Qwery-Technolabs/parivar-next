@@ -5,7 +5,7 @@ import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { canEditFamily, fillCastes, fillFatherNames, genderFor, getPerson, linkProblem, linkRelative, MARITAL_STATUSES, RELATIVE_KINDS } from '@/lib/family';
 import { date, id, oneOf, str, strOrNull } from '@/lib/forms';
-import { composeName } from '@/lib/names';
+import { composeName, nameCase } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
 import { applySurnameCastes } from '@/lib/surnames';
 import { forget } from '@/lib/memo';
@@ -44,9 +44,10 @@ export async function addRelative(prev, fd) {
             return { fieldErrors: { relative_id: 'common.required' } };
         }
     } else {
-        const first = str(fd, 'first_name', 60);
-        const middle = str(fd, 'middle_name', 60);
-        const surname = str(fd, 'surname', 60);
+        // English names in Name Case ("manthan" → "Manthan").
+        const first = nameCase(str(fd, 'first_name', 60));
+        const middle = nameCase(str(fd, 'middle_name', 60));
+        const surname = nameCase(str(fd, 'surname', 60));
         const fieldErrors = {};
         if (!first) fieldErrors.first_name = 'common.required';
         if (!surname) fieldErrors.surname = 'common.required';
@@ -65,8 +66,8 @@ export async function addRelative(prev, fd) {
         const marriedWoman = gender === 'female' && ['married', 'widowed', 'divorced'].includes(marital ?? '');
         const maiden = marriedWoman
             ? {
-                  middle: strOrNull(fd, 'maiden_middle_name', 60),
-                  surname: strOrNull(fd, 'maiden_surname', 60),
+                  middle: nameCase(strOrNull(fd, 'maiden_middle_name', 60)) || null,
+                  surname: nameCase(strOrNull(fd, 'maiden_surname', 60)) || null,
                   middleLocal: strOrNull(fd, 'maiden_middle_name_local', 60),
                   surnameLocal: strOrNull(fd, 'maiden_surname_local', 60),
               }
@@ -145,9 +146,7 @@ export async function removeRelative(personId, relativeId) {
     if (!actor || !person || !(await canEditFamily(actor, person))) return FORBIDDEN;
     const a = person.id;
     const b = Number(relativeId);
-    await withTransaction((q) =>
-        q('DELETE FROM users_relations WHERE (user_id = :a AND relative_id = :b) OR (user_id = :b AND relative_id = :a)', { a, b }),
-    );
+    await withTransaction((q) => q('DELETE FROM users_relations WHERE (user_id = :a AND relative_id = :b) OR (user_id = :b AND relative_id = :a)', { a, b }));
     await audit(actor.id, 'user.relation.remove', 'user', a, { relativeId: b });
     refresh(a, b);
     return { ok: true, message: 'family.removed' };

@@ -40,3 +40,9 @@ export function selectInput(hasError = false, size = 'h-9') {
 export function textArea(hasError = false) {
     return `min-h-20 px-3 py-2 ${base} ${hasError ? bad : ok}`;
 }
+
+/**
+ * An English field and its local-language (Gujarati) twin that fills itself from it: both sit in one lightly
+ * shaded box, so it is clear which translation belongs to which field. Used by every English ↔ local pair.
+ */
+export const translationPair = 'rounded-lg bg-surface-bggray/60 p-2.5 ring-1 ring-inset ring-surface-border';

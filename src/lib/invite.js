@@ -2,7 +2,7 @@ import 'server-only';
 import { audit } from './audit';
 import { hashPassword } from './auth';
 import { query, queryOne, setMeta } from './db';
-import { splitName } from './names';
+import { splitName, nameCase } from './names';
 import { applySurnameCastes } from './surnames';
 
 const nullParts = (p) => ({ first: p.first || null, middle: p.middle || null, surname: p.surname || null });
@@ -22,7 +22,9 @@ const nullParts = (p) => ({ first: p.first || null, middle: p.middle || null, su
  * @param {string|null} [fullNameLocal]
  * @returns {Promise<{ id: number, status: 'created'|'enabled'|'existing' } | { error: string }>}
  */
-export async function ensureInvitedUser(actor, phone, fullName = '', fullNameLocal = null) {
+export async function ensureInvitedUser(actor, phone, rawFullName = '', fullNameLocal = null) {
+    // A typed English name in Name Case ("manthan kanani" → "Manthan Kanani").
+    const fullName = nameCase(rawFullName);
     const user = await queryOne('SELECT id, password_hash, status FROM users_list WHERE phone = :phone', { phone });
     if (user?.status === 'deceased') return { error: 'groups.invite.unavailable' };
     if (user?.password_hash) return { id: user.id, status: 'existing' };
