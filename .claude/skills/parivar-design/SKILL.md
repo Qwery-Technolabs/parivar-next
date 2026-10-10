@@ -263,6 +263,10 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   dialog the same; BilingualName = one box spanning the grid row (`side` = the two side by side);
   add-relative dialog and the surname manager too. Any new pair must use it.
 
+- **Family tree couples**: a couple is drawn man left, woman right — except a MARRIED DAUGHTER in her father's line (not
+  the tree's top): she is first (left), her husband right; her children are drawn only in HER own tree (she is the
+  person viewed) — and in her husband's tree, where she is his wife — not in her father's family's other trees. The "Married daughters" switch still hides married daughters entirely.
+
 ## Public & print
 
 - **Privacy policy**: public /privacy-policy (proxy.js allows it) and Settings → About (everyone; group "App"): one card — "Designed and developed

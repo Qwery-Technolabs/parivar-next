@@ -87,11 +87,15 @@ function PersonTile({ p, isRoot, showDetails, leaf = false, birth = false }) {
 /** A daughter who has married (status married / widowed / divorced, or a recorded husband). */
 const marriedDaughter = (n) => n.gender === 'female' && (MARRIED_LIKE.includes(n.marital_status) || n.spouses.length > 0);
 
-function Branch({ node, rootId, showDetails, hideMarried }) {
+function Branch({ node, rootId, showDetails, hideMarried, top = false }) {
+    // A married daughter in her father's line (not the tree's top): she comes first, her husband beside her on the
+    // right. Her children show in HER own tree (she is the person viewed) and in her husband's tree (where she is his
+    // wife) — not in the rest of her father's family's trees.
+    const outMarried = !top && marriedDaughter(node);
     // "Married daughters" off: married daughters (and their branch) leave every chain — but never the person whose tree it is.
-    const kids = hideMarried ? node.children.filter((c) => c.id === rootId || !marriedDaughter(c)) : node.children;
+    const kids = outMarried && node.id !== rootId ? [] : hideMarried ? node.children.filter((c) => c.id === rootId || !marriedDaughter(c)) : node.children;
     const people = [node, ...node.spouses];
-    const ordered = [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
+    const ordered = outMarried ? people : [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
     return (
         <li>
             <div className="flex items-stretch gap-[3px] rounded-xl bg-white p-[3px] shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
@@ -263,7 +267,7 @@ export default function FamilyTree({ tree }) {
             >
                 <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
                     <ul>
-                        <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} hideMarried={!showMarried} />
+                        <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} hideMarried={!showMarried} top />
                     </ul>
                 </div>
             </div>
