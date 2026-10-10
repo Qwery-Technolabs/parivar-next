@@ -76,7 +76,8 @@ export default function MandalScheduleSheets({ shown, show = 'all', t, locale })
                                                 <td />
                                                 <td className="px-4 py-2 text-primary">{t('common.total')}</td>
                                                 <td className="px-4 py-2 text-center text-primary tabular-nums">
-                                                    {t('mandal.cameCount', { came, total: forThem.length })}
+                                                    {/* Under the "Came" column: just came / total. */}
+                                                    {came}/{forThem.length}
                                                 </td>
                                                 <td className="px-4 py-2 text-right text-income tabular-nums">{money(paidTotal)}</td>
                                                 <td />

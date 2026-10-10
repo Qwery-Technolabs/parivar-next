@@ -38,7 +38,10 @@ export default async function MandalPrint({ campaign, filters, selected, sheets,
         return href(ids.length ? { ids, all: false } : { ids: [], all: true });
     };
     const inRange = (d) => (!filters.from || d >= filters.from) && (!filters.to || d <= filters.to);
-    const shown = selected.length ? sheets.filter((s) => selected.includes(s.e.id)) : sheets.filter((s) => inRange(s.e.start_date));
+    // A schedule nobody came to (an upcoming one, or one never marked) is left out of the printout and its date
+    // chips — except on Expenses, where money can be spent for any schedule.
+    const usable = filters.view === 'expenses' ? sheets : sheets.filter(({ sheet, forThem }) => forThem.some((m) => sheet[m.id]?.present));
+    const shown = selected.length ? usable.filter((s) => selected.includes(s.e.id)) : usable.filter((s) => inRange(s.e.start_date));
     const period = selected.length
         ? sheets
               .filter((s) => selected.includes(s.e.id))
@@ -76,7 +79,7 @@ export default async function MandalPrint({ campaign, filters, selected, sheets,
                     <ChipLink href={href({ ids: [], all: true })} on={!selected.length} className={chip(!selected.length)}>
                         {t('mandal.printAllShort')}
                     </ChipLink>
-                    {sheets.map(({ e }) => (
+                    {usable.map(({ e }) => (
                         <ChipLink key={e.id} href={toggle(e.id)} on={selected.includes(e.id)} className={chip(selected.includes(e.id))}>
                             {date(e.start_date, locale)}
                         </ChipLink>

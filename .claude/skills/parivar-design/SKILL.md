@@ -284,6 +284,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   (mandalLedger + mandalStatement); By schedules = MandalScheduleSheets (tables styled like the Statement: rounded
   border, grey bg-surface-login head and total row, px-4 cells). Defaults by mode (lib/mandal-filters MANDAL_MODES):
   public = latest schedule + Came only, app = all + Everyone.
+  A schedule nobody came to (upcoming / never marked) is left out of the chips and the sheets — except on Expenses.
+  Sheet total under "Came": just `came/total` (20/35).
 - Mandal public page (/p/[token]): Show chips + the schedule sheets of the filter (latest schedule by default) +
   totals & Expenses of the same selection; its Filter pop-over picks one schedule or all + a range.
 - **Filter loaders**: filter chips that are links use `ChipLink` (components/ui/chip-link.jsx — ✓ when on, a spinner via

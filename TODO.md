@@ -399,3 +399,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Group Team card (About tab) like the fundraise team: add / edit roles (Admin, Sub-admin + task roles) / remove from team
 - [x] Group History (About tab, admins only): edits, members, roles, team, status / archive, fundraisers; Clear history for its admins
 - [x] /install page: one shareable link that installs the app per OS (Android prompt / Chrome from WhatsApp / iPhone steps) or opens the dashboard when already in the app
+- [x] Mandal print: schedules with 0 came hidden (chips + sheets) except on Expenses; total shown as 20/35
