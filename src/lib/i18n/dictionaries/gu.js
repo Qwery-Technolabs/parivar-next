@@ -1285,10 +1285,9 @@ const gu = {
         },
     },
     about: {
-        developedBy: 'બનાવનાર',
-        contact: 'સંપર્ક',
+        designedBy: 'ડિઝાઇન અને વિકાસ',
+        contactNote: 'એપમાં કોઈ સમસ્યા હોય કે એપ બનાવડાવવી હોય તો સંપર્ક કરો.',
         privacyPolicy: 'ગોપનીયતા નીતિ',
-        openPublic: 'જાહેર પેજ',
         policyUpdated: 'છેલ્લો સુધારો: {date}',
         licenses: 'ઓપન-સોર્સ લાઇસન્સ',
         licensesHint: 'આ એપ આ ઓપન-સોર્સ પેકેજો વડે બનેલી છે; દરેક તેના પોતાના લાઇસન્સ હેઠળ વપરાય છે.',

@@ -1297,10 +1297,9 @@ const en = {
         },
     },
     about: {
-        developedBy: 'Developed by',
-        contact: 'Contact',
+        designedBy: 'Designed and developed by',
+        contactNote: 'Contact for any issue with the app, or for app development.',
         privacyPolicy: 'Privacy policy',
-        openPublic: 'Public page',
         policyUpdated: 'Last updated: {date}',
         licenses: 'Open-source licences',
         licensesHint: 'This app is built with these open-source packages, each used under its own licence.',

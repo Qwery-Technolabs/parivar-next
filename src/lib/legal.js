@@ -2,7 +2,7 @@
 // built with. Pure data — the public /privacy-policy page and Settings → About both render it.
 // The policy describes what the app really stores and sends; change it together with the app.
 
-export const DEVELOPER = { name: 'Manthan Kanani', phone: '+918690355381', phoneShown: '+91 86903 55381' };
+export const DEVELOPER = { company: 'Qwery Technolabs', name: 'Manthan Kanani', phone: '+918690355381', phoneShown: '+91 86903 55381' };
 
 export const POLICY_UPDATED = '2026-10-10';
 
@@ -15,7 +15,7 @@ export const PRIVACY_POLICY = {
         {
             title: 'Who we are',
             body: [
-                'This app is the members’ app of {samaj}. It is run by the Samaj’s administrators for its members and their families. It was developed by Manthan Kanani, who can be contacted at the number at the end of this policy.',
+                'This app is the members’ app of {samaj}. It is run by the Samaj’s administrators for its members and their families. It was designed and developed by Qwery Technolabs (Manthan Kanani), who can be contacted at the number at the end of this policy.',
             ],
         },
         {
@@ -85,7 +85,7 @@ export const PRIVACY_POLICY = {
         {
             title: 'Changes and contact',
             body: [
-                'If this policy changes, the new version is published on this page with its date. For any question or request about your data, contact a Samaj administrator or the developer, Manthan Kanani, at {phone}.',
+                'If this policy changes, the new version is published on this page with its date. For any question or request about your data, contact a Samaj administrator or the developer, Qwery Technolabs (Manthan Kanani), at {phone}.',
             ],
         },
     ],
@@ -93,7 +93,7 @@ export const PRIVACY_POLICY = {
         {
             title: 'અમે કોણ છીએ',
             body: [
-                'આ એપ {samaj} ના સભ્યો માટેની એપ છે. તે સમાજના સંચાલકો દ્વારા સભ્યો અને તેમના પરિવારો માટે ચલાવવામાં આવે છે. આ એપ મંથન કાનાણી દ્વારા બનાવવામાં આવી છે; તેમનો સંપર્ક નંબર આ નીતિના અંતે આપેલો છે.',
+                'આ એપ {samaj} ના સભ્યો માટેની એપ છે. તે સમાજના સંચાલકો દ્વારા સભ્યો અને તેમના પરિવારો માટે ચલાવવામાં આવે છે. આ એપ Qwery Technolabs (મંથન કાનાણી) દ્વારા ડિઝાઇન અને વિકસાવવામાં આવી છે; તેમનો સંપર્ક નંબર આ નીતિના અંતે આપેલો છે.',
             ],
         },
         {
@@ -163,7 +163,7 @@ export const PRIVACY_POLICY = {
         {
             title: 'ફેરફારો અને સંપર્ક',
             body: [
-                'આ નીતિમાં ફેરફાર થાય તો નવી આવૃત્તિ તેની તારીખ સાથે આ પેજ પર મૂકવામાં આવશે. તમારી માહિતી અંગે કોઈ પ્રશ્ન કે વિનંતી માટે સમાજના સંચાલક અથવા ડેવલપર મંથન કાનાણીનો {phone} પર સંપર્ક કરો.',
+                'આ નીતિમાં ફેરફાર થાય તો નવી આવૃત્તિ તેની તારીખ સાથે આ પેજ પર મૂકવામાં આવશે. તમારી માહિતી અંગે કોઈ પ્રશ્ન કે વિનંતી માટે સમાજના સંચાલક અથવા ડેવલપર Qwery Technolabs (મંથન કાનાણી) નો {phone} પર સંપર્ક કરો.',
             ],
         },
     ],

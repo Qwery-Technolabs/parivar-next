@@ -24,7 +24,7 @@ export default async function PrivacyPolicyPage() {
                 <PrivacyPolicy samaj={samaj} t={t} locale={locale} />
             </div>
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-ink-gray">
-                {t('about.developedBy')} {DEVELOPER.name} ·
+                {t('about.designedBy')} {DEVELOPER.company} ({DEVELOPER.name}) ·
                 <a href={`tel:${DEVELOPER.phone}`} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
                     <Phone className="size-3" />
                     <span className="tabular-nums">{DEVELOPER.phoneShown}</span>
