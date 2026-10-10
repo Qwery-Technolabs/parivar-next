@@ -16,7 +16,7 @@ import { canRunMandal, mandalAttendance, mandalMeetingsOnce, mandalMembersOnce, 
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
-import { fundraiseGroupIds, fundraisePermissions } from '@/lib/access';
+import { createFundraiseGroupIds, fundraisePermissions } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { date, money, time } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
@@ -117,7 +117,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         perms.manage && campaign.kind !== 'mandal'
             ? (async () => {
                   const all = canManageAllFundraises(user.role);
-                  const [groups, mine] = await Promise.all([listGroupsForSelect(), all ? [] : fundraiseGroupIds(user.id)]);
+                  const [groups, mine] = await Promise.all([listGroupsForSelect(), all ? [] : createFundraiseGroupIds(user.id)]);
                   const linked = new Set([campaign.group_id, ...(campaign.groups ?? []).map((g) => g.id)]);
                   return groups
                       .filter((g) => !linked.has(g.id) && (all || mine.includes(g.id)))
@@ -478,7 +478,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-surface-border bg-surface-bggray/60 px-3 py-2.5">
                     <Archive className="size-4 shrink-0 text-ink-gray" />
                     <p className="min-w-0 flex-1 text-sm text-ink">{t('fundraise.archivedNotice')}</p>
-                    {perms.manage && (
+                    {perms.danger && (
                         <form action={setCampaignArchived.bind(null, campaign.id, false)}>
                             <SubmitButton icon={<ArchiveRestore className="size-4" />} variant="secondary">
                                 {t('fundraise.restore')}

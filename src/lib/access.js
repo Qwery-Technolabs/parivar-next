@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { query, queryOne } from './db';
-import { canEditDetails, canManageMembership, standingFrom } from './group-roles';
+import { canEditDetails, canManageMembership, GROUP_TEAM_ROLES, groupCan, standingFrom } from './group-roles';
 import { canManageAllFundraises, canManageGroups } from './roles';
 
 /** Is the user an admin of this specific group (admin_group_members.member_role)? */
@@ -14,9 +14,19 @@ export async function isGroupAdmin(userId, groupId) {
     return Boolean(row);
 }
 
-/** Group ids where this user may start fundraises: its admins and sub-admins. */
+/** Group ids this user leads (admin / sub-admin) — they see the drafts of fundraises shown there. */
 export async function fundraiseGroupIds(userId) {
     const rows = await query(`SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role IN ('admin', 'sub_admin')`, { userId });
+    return rows.map((r) => r.group_id);
+}
+
+/** Group ids where this user may start fundraises (the group pickers): its leaders, and the "fundraise" team role. */
+export async function createFundraiseGroupIds(userId) {
+    const rows = await query(
+        `SELECT group_id FROM admin_group_members WHERE user_id = :userId AND member_role IN ('admin', 'sub_admin')
+         UNION SELECT group_id FROM admin_group_team WHERE user_id = :userId AND team_role = 'fundraise'`,
+        { userId },
+    );
     return rows.map((r) => r.group_id);
 }
 
@@ -43,19 +53,35 @@ export const groupRoleOf = cache(async (userId, groupId) => {
  * @returns {Promise<{ standing: string|null, myRole: string|null }>}
  */
 export async function groupStanding(user, groupId) {
-    if (!user) return { standing: null, myRole: null };
-    const myRole = await groupRoleOf(user.id, groupId);
-    return { standing: standingFrom(canManageGroups(user.role), myRole), myRole };
+    if (!user) return { standing: null, myRole: null, team: [] };
+    const [myRole, team] = await Promise.all([groupRoleOf(user.id, groupId), groupTeamRoles(user.id, groupId)]);
+    return { standing: standingFrom(canManageGroups(user.role), myRole), myRole, team };
+}
+
+/** The user's team roles in one group (admin_group_team), in GROUP_TEAM_ROLES order. Cached per request. */
+export const groupTeamRoles = cache(async (userId, groupId) => {
+    if (!userId || !groupId) return [];
+    const rows = await query('SELECT team_role FROM admin_group_team WHERE group_id = :groupId AND user_id = :userId', { groupId: Number(groupId), userId });
+    const held = new Set(rows.map((r) => r.team_role));
+    return GROUP_TEAM_ROLES.filter((r) => held.has(r));
+});
+
+/** May the user do one group task (a GROUP_TEAM_ROLES key)? Leaders always; others with that team role. */
+export async function groupAbility(user, groupId, task) {
+    const { standing, team } = await groupStanding(user, groupId);
+    return groupCan(standing, team, task);
 }
 
 /** Manage a group's membership and meetings: app-level group managers, its admins and sub-admins. */
 export async function canManageGroup(user, groupId) {
-    return canManageMembership((await groupStanding(user, groupId)).standing);
+    const { standing, team } = await groupStanding(user, groupId);
+    return canManageMembership(standing, team);
 }
 
 /** Edit a group's details and discussion setting: app-level group managers, its admins and sub-admins. */
 export async function canEditGroupDetails(user, groupId) {
-    return canEditDetails((await groupStanding(user, groupId)).standing);
+    const { standing, team } = await groupStanding(user, groupId);
+    return canEditDetails(standing, team);
 }
 
 // admin manages the fundraise (the creator starts as admin); the rest are informational.
@@ -88,17 +114,21 @@ export const fundraiseTeamRoles = cache(async (userId, campaignId) => {
  *                  informational (shown and notified, no write access to the ledger).
  * Viewing needs no permission: every signed-in member sees every non-draft fundraise.
  *   groupAdmin   — an admin of ANY group the fundraise is shown in (fundraise_groups) manages it.
+ *   danger       — the Danger zone (pause / resume, archive / restore): app-level managers and the leaders
+ *                  (admin / sub-admin) of a group it is shown in — NOT its creator or team admins, who only
+ *                  edit it. A Mandal (run by its own team) keeps it with manage.
  * @param {{id: number, role: string}} user
  * @param {{id: number, group_id: number|null}} campaign
  */
 export async function fundraisePermissions(user, campaign) {
-    const none = { manage: false, contribution: false, expense: false, post: false, teamRole: null, teamRoles: [] };
+    const none = { manage: false, contribution: false, expense: false, post: false, danger: false, teamRole: null, teamRoles: [] };
     if (!user || !campaign) return none;
     const appLevel = canManageAllFundraises(user.role);
-    const [teamRoles, groupAdmin] = await Promise.all([
+    const [teamRoles, groupAdmin, groupLeader] = await Promise.all([
         fundraiseTeamRoles(user.id, campaign.id),
         // A Mandal is run by its own people only: being an admin of its group does not manage it.
         !appLevel && campaign.kind !== 'mandal' ? isAdminOfFundraiseGroup(user.id, campaign.id) : false,
+        !appLevel && campaign.kind !== 'mandal' ? isLeaderOfFundraiseGroup(user.id, campaign.id) : false,
     ]);
     // A fundraise admin (its creator, or anyone an admin promoted) manages it even without
     // being a group admin; once demoted, they lose it like anyone else.
@@ -110,6 +140,7 @@ export async function fundraisePermissions(user, campaign) {
         contribution: manage || has(CONTRIBUTION_ROLES),
         expense: manage || has(EXPENSE_ROLES),
         post: manage || teamRoles.length > 0,
+        danger: appLevel || (campaign.kind === 'mandal' ? manage : groupLeader),
         teamRoles,
         teamRole: teamRoles[0] ?? null, // the main (highest) role
     };
@@ -137,7 +168,7 @@ export const isAdminOfFundraiseGroup = cache(async (userId, campaignId) => {
 });
 
 /** Admin or sub-admin of any group this fundraise is shown in (fundraise_groups)? */
-export async function isLeaderOfFundraiseGroup(userId, campaignId) {
+export const isLeaderOfFundraiseGroup = cache(async (userId, campaignId) => {
     if (!userId || !campaignId) return false;
     const row = await queryOne(
         `SELECT 1 AS ok FROM fundraise_groups fg
@@ -146,7 +177,7 @@ export async function isLeaderOfFundraiseGroup(userId, campaignId) {
         { userId, campaignId },
     );
     return Boolean(row);
-}
+});
 
 /** Member (any role) of any group this fundraise is shown in? */
 export async function isInFundraiseGroup(userId, campaignId) {
@@ -167,6 +198,7 @@ export async function isInFundraiseGroup(userId, campaignId) {
 export async function canCreateFundraiseIn(user, groupId) {
     if (canManageAllFundraises(user.role)) return true;
     if (!groupId) return false;
-    const role = await groupRoleOf(user.id, groupId);
-    return role === 'admin' || role === 'sub_admin';
+    // Its admins and sub-admins, and members with the "fundraise" team role.
+    const [role, team] = await Promise.all([groupRoleOf(user.id, groupId), groupTeamRoles(user.id, groupId)]);
+    return role === 'admin' || role === 'sub_admin' || team.includes('fundraise');
 }

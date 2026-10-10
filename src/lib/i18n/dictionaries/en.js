@@ -696,6 +696,23 @@ const en = {
     },
     groups: {
         changeRole: 'Change role',
+        // Team roles (admin_group_team): tasks a member or speaker can be given; admins and sub-admins do all of them.
+        teamRoles: 'Team roles',
+        teamRolesHint: 'Tasks this member may do in the group. Admins and sub-admins can already do all of them.',
+        team: {
+            members: 'Members',
+            fundraise: 'Fundraise',
+            meetings: 'Meetings',
+            details: 'Group details',
+            discussion: 'Discussion',
+        },
+        teamHints: {
+            members: 'Add, change and remove members and speakers',
+            fundraise: 'Start fundraisers here — and edit the ones they start',
+            meetings: 'Schedule meetings — and edit or cancel their own',
+            details: 'Edit the group’s name, picture and description',
+            discussion: 'Always allowed to post in the discussion',
+        },
         visibility: {
             label: 'Visibility',
             hint: 'Private: only members see it',

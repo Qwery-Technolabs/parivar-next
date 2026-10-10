@@ -5,7 +5,7 @@ import { deleteCampaign, setCampaignArchived } from '@/app/actions/fundraise';
 import PageHeader from '@/components/shell/page-header';
 import PageMenu from '@/components/shell/page-menu';
 import StatusSelect from '@/components/fundraise/status-select';
-import { fundraiseGroupIds, canManageFundraise } from '@/lib/access';
+import { createFundraiseGroupIds, canManageFundraise } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
 import { audienceSuggestions, getAudience, getCampaign, knownLocations, listGroupsForSelect } from '@/lib/fundraise';
@@ -33,7 +33,7 @@ export default async function EditFundraisePage({ params }) {
     const [canManage, groups, mine, locations, audience, castes, suggestions, mandal, meetings, marks, opening] = await Promise.all([
         canManageFundraise(user, campaign),
         listGroupsForSelect(),
-        all ? [] : fundraiseGroupIds(user.id),
+        all ? [] : createFundraiseGroupIds(user.id),
         knownLocations(),
         getAudience(campaign.id),
         casteOptions(locale),

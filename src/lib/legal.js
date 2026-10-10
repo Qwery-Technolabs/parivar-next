@@ -2,7 +2,13 @@
 // built with. Pure data — the public /privacy-policy page and Settings → About both render it.
 // The policy describes what the app really stores and sends; change it together with the app.
 
-export const DEVELOPER = { company: 'Qwery Technolabs', name: 'Manthan Kanani', phone: '+918690355381', phoneShown: '+91 86903 55381' };
+export const DEVELOPER = {
+    company: 'Qwery Technolabs',
+    url: 'https://qwerytechnolabs.com',
+    name: 'Manthan Kanani',
+    phone: '+918690355381',
+    phoneShown: '+91 86903 55381',
+};
 
 export const POLICY_UPDATED = '2026-10-10';
 

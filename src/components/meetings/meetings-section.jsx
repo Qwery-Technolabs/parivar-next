@@ -46,6 +46,7 @@ export default async function MeetingsSection({
             scope={scope}
             scopeId={scopeId}
             manage={ctx.manage}
+            moderate={ctx.moderate}
             people={people}
             me={user.id}
             today={todayLocal()}

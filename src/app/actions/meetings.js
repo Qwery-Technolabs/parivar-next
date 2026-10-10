@@ -27,9 +27,9 @@ export async function saveMeeting(prev, fd) {
     const where = readScope(fd);
     if (!user || !where) return FORBIDDEN;
     const ctx = await meetingScope(user, where.scope, where.scopeId);
-    if (!ctx || !ctx.manage) return FORBIDDEN;
-
     const meetingId = Number(fd.get('meeting_id')) || null;
+    // New: who may schedule. Edit: the group's leaders (fundraise: its managers), or whoever scheduled it — checked below.
+    if (!ctx || (!meetingId && !ctx.manage)) return FORBIDDEN;
     const day = date(fd, 'start_date');
     const rawTime = str(fd, 'start_time', 8);
     const at = rawTime ? time(fd, 'start_time') : null;
@@ -54,11 +54,11 @@ export async function saveMeeting(prev, fd) {
     let existing = null;
     if (meetingId) {
         existing = await queryOne(
-            `SELECT id, start_date, start_time, location FROM events_list
+            `SELECT id, start_date, start_time, location, created_by FROM events_list
               WHERE id = :meetingId AND event_type = 'meeting' AND ${where.scope === 'group' ? 'group_id = :sid AND campaign_id IS NULL' : 'campaign_id = :sid'}`,
             { meetingId, sid: where.scopeId },
         );
-        if (!existing) return FORBIDDEN;
+        if (!existing || !(ctx.moderate || existing.created_by === user.id)) return FORBIDDEN;
     }
     const before = existing
         ? new Set((await query('SELECT user_id FROM events_attendees WHERE event_id = :id', { id: meetingId })).map((r) => r.user_id))
@@ -98,9 +98,7 @@ export async function saveMeeting(prev, fd) {
     const added = chosen.filter((uid) => !before.has(uid));
     const stayed = chosen.filter((uid) => before.has(uid));
     // "Changed" only when something people act on moved: the day, the time or the place.
-    const moved =
-        existing &&
-        (existing.start_date !== day || (existing.start_time ?? null) !== at || (existing.location ?? null) !== place);
+    const moved = existing && (existing.start_date !== day || (existing.start_time ?? null) !== at || (existing.location ?? null) !== place);
     await notifyMany(added, { type: 'meeting.invite', data, link: ctx.link, actorId: user.id });
     // A new meeting also shows in the discussion as a centred note. Best effort: the
     // meeting is saved either way.
@@ -127,13 +125,14 @@ export async function cancelMeeting(scope, scopeId, meetingId) {
     const user = await getCurrentUser();
     if (!user || !SCOPES.includes(scope)) return FORBIDDEN;
     const ctx = await meetingScope(user, scope, Number(scopeId));
-    if (!ctx || !ctx.manage) return FORBIDDEN;
+    if (!ctx) return FORBIDDEN;
     const m = await queryOne(
-        `SELECT id, title, title_local, start_date, start_time FROM events_list
+        `SELECT id, title, title_local, start_date, start_time, created_by FROM events_list
           WHERE id = :id AND event_type = 'meeting' AND ${scope === 'group' ? 'group_id = :sid AND campaign_id IS NULL' : 'campaign_id = :sid'}`,
         { id: Number(meetingId), sid: Number(scopeId) },
     );
-    if (!m) return FORBIDDEN;
+    // The group's leaders (fundraise: its managers), or whoever scheduled it.
+    if (!m || !(ctx.moderate || m.created_by === user.id)) return FORBIDDEN;
     const invited = (await query('SELECT user_id FROM events_attendees WHERE event_id = :id', { id: m.id })).map((r) => r.user_id);
     await query('DELETE FROM events_list WHERE id = :id', { id: m.id });
     await notifyMany(invited, {
@@ -151,10 +150,11 @@ export async function cancelMeeting(scope, scopeId, meetingId) {
 export async function setRsvp(meetingId, rsvp) {
     const user = await getCurrentUser();
     if (!user || !['yes', 'maybe', 'no'].includes(rsvp)) return FORBIDDEN;
-    const r = await query(
-        'UPDATE events_attendees SET rsvp = :rsvp, responded_at = NOW() WHERE event_id = :id AND user_id = :uid',
-        { rsvp, id: Number(meetingId), uid: user.id },
-    );
+    const r = await query('UPDATE events_attendees SET rsvp = :rsvp, responded_at = NOW() WHERE event_id = :id AND user_id = :uid', {
+        rsvp,
+        id: Number(meetingId),
+        uid: user.id,
+    });
     if (!r.affectedRows) return FORBIDDEN;
     refresh();
     return { ok: true };

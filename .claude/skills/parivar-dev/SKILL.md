@@ -59,6 +59,19 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `canInviteMembers`, `canResetPassword`, `canManageAllFundraises`, `canViewAudit`) — add new ones there.
 - Group roles (lib/group-roles.js, pure): `admin, sub_admin, speaker, member`; "standing" = app | admin |
   sub_admin | null. Use `canActOnRole`, `canEditDetails`, `canManageMembership`, `canPostIn`.
+- **Group team roles** (admin_group_team, one row per role, like a fundraise team): `GROUP_TEAM_ROLES` =
+  members · fundraise · meetings · details · discussion, given to plain members / speakers by the group's leaders
+  (`canSetTeam`: admins any; sub-admins on members / speakers). Leaders (app, admin, sub_admin — `isGroupLeader`) do
+  everything; others by role: `groupCan(standing, team, task)`. `groupStanding()` returns `{ standing, myRole, team }`
+  — pass `team` to canActOnRole / canManageMembership / canEditDetails / canPostIn. Meanings: members = add / edit /
+  remove members & speakers (never admins / sub-admins); fundraise = start fundraisers in the group
+  (`canCreateFundraiseIn`, pickers use `createFundraiseGroupIds`; drafts list stays leaders-only + your own drafts) and
+  then edit only those (they are its team admin); meetings = schedule — edit / cancel only the meetings they scheduled
+  (`meetingScope().moderate` = leaders, else `events_list.created_by`, checked in saveMeeting / cancelMeeting and the
+  list's Edit / Cancel); details = edit the group; discussion = always may post.
+- **Danger zones**: group — its leaders only (status: admins; delete: app-level). Fundraise — `fundraisePermissions().danger`
+  = app-level or a leader of a group it is shown in (NOT its creator / team admins, who only edit it); setCampaignStatus /
+  setCampaignArchived use `authorize(id, 'danger')`. A Mandal keeps danger = manage (run by its own team).
   Sub-admins never act on admins/sub-admins.
 - Fundraise: `fundraisePermissions(user, campaign)` → manage / contribution / expense / post / teamRole.
   Admins & sub-admins of any linked group (`fundraise_groups`) start fundraises; standalone (no group)

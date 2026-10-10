@@ -394,3 +394,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Member page address: Copy · Map · Directions (Google Maps)
 - [ ] LATER: pin-point location per member (opt-in, set on the profile) + a members map view; "near me" = viewer enables location and sees members living nearby. Update lib/legal.js privacy policy when built.
 - [x] Member address: blue underlined link to Google Maps + plain grey copy icon (Directions removed)
+- [x] Group team roles (Members / Fundraise / Meetings / Group details / Discussion), danger zones for group leaders only, fundraise creator edits only, meeting edit/cancel by its creator or group leaders
+- [x] Qwery Technolabs link (qwerytechnolabs.com) in Settings → About and the privacy policy page

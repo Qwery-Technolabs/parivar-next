@@ -188,6 +188,24 @@ CREATE TABLE IF NOT EXISTS admin_group_members (
     CONSTRAINT fk_admin_gm_user  FOREIGN KEY (user_id)  REFERENCES users_list (id)   ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Group team roles: besides the one main role (admin_group_members.member_role), a member can hold any of
+-- these task roles (one row per role), like a fundraise team. Admins and sub-admins can already do all of them.
+--   members     add / edit / remove plain members and speakers
+--   fundraise   start fundraisers in the group (edits only the ones they start)
+--   meetings    schedule meetings (edits / cancels only their own)
+--   details     edit the group's details
+--   discussion  always allowed to post in the discussion
+CREATE TABLE IF NOT EXISTS admin_group_team (
+    group_id   INT UNSIGNED NOT NULL,
+    user_id    INT UNSIGNED NOT NULL,
+    team_role  ENUM('members','fundraise','meetings','details','discussion') NOT NULL,  -- lib/group-roles.js GROUP_TEAM_ROLES
+    added_by   INT UNSIGNED NULL,
+    added_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (group_id, user_id, team_role),
+    KEY idx_admin_gt_user (user_id, team_role),
+    CONSTRAINT fk_admin_gt_member FOREIGN KEY (group_id, user_id) REFERENCES admin_group_members (group_id, user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS admin_settings (
     setting_key    VARCHAR(64) NOT NULL,
     setting_value  LONGTEXT    NULL,

@@ -134,12 +134,13 @@ export default function DetailsTab({
                 {holdings && <HoldingsCard holdings={holdings} />}
                 {/* Draws its own card, with the public switch in the header. */}
                 <PublicLinkCard campaignId={campaign.id} isPublic={Boolean(campaign.is_public)} token={campaign.public_token} canManage={perms.manage} />
-                {/* Danger zone (its admins): clear the discussion, pause, archive — each with a sentence and a confirmation. */}
-                {(perms.manage || (canClearChat && messageCount > 0) || historyCount > 0) && (
+                {/* Danger zone (app-level managers and the group's admins / sub-admins — not the fundraise's creator):
+                    clear the discussion, pause, archive — each with a sentence and a confirmation. */}
+                {(perms.danger || (canClearChat && messageCount > 0) || historyCount > 0) && (
                     <div className="min-w-0 max-lg:order-2">
                         <FundraiseDangerCard
                             campaign={campaign}
-                            canManage={perms.manage}
+                            canManage={perms.danger}
                             messageCount={canClearChat ? messageCount : 0}
                             historyCount={historyCount}
                             t={t}

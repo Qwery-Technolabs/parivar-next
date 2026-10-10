@@ -244,17 +244,14 @@ async function applyGroupMembership(actor, userIds, groupIds, memberRole) {
     const users = userIds.length ? (await query(`SELECT id FROM users_list WHERE id IN (${ul.sql})`, ul.params)).map((r) => r.id) : [];
     for (const groupId of groupIds) {
         const group = await queryOne('SELECT id, name, name_local FROM admin_groups WHERE id = :groupId', { groupId });
-        const { standing } = group ? await groupStanding(actor, groupId) : { standing: null };
-        // Adding members: admins and sub-admins; making admins: that group's admins only.
-        if (!group || !canActOnRole(standing, null, memberRole)) {
+        const { standing, team } = group ? await groupStanding(actor, groupId) : { standing: null, team: [] };
+        // Adding members: admins, sub-admins and the "members" team role; making admins: that group's admins only.
+        if (!group || !canActOnRole(standing, null, memberRole, team)) {
             out.skipped.push(groupId);
             continue;
         }
         const existing = new Map(
-            (await query('SELECT user_id, member_role FROM admin_group_members WHERE group_id = :groupId', { groupId })).map((r) => [
-                r.user_id,
-                r.member_role,
-            ]),
+            (await query('SELECT user_id, member_role FROM admin_group_members WHERE group_id = :groupId', { groupId })).map((r) => [r.user_id, r.member_role]),
         );
         const added = [];
         const promoted = [];
@@ -262,10 +259,12 @@ async function applyGroupMembership(actor, userIds, groupIds, memberRole) {
             for (const uid of users) {
                 const had = existing.get(uid);
                 if (!had) {
-                    await q(
-                        `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:groupId, :uid, :memberRole, :by)`,
-                        { groupId, uid, memberRole, by: actor.id },
-                    );
+                    await q(`INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:groupId, :uid, :memberRole, :by)`, {
+                        groupId,
+                        uid,
+                        memberRole,
+                        by: actor.id,
+                    });
                     added.push(uid);
                 } else if (memberRole === 'admin' && had !== 'admin') {
                     await q(`UPDATE admin_group_members SET member_role = 'admin' WHERE group_id = :groupId AND user_id = :uid`, { groupId, uid });
@@ -301,7 +300,8 @@ export async function assignToGroup(prev, fd) {
     const groupId = id(fd, 'group_id');
     const memberRole = 'member';
     if (!groupId) return { fieldErrors: { group_id: 'common.required' } };
-    if (!actor || !userId || !canActOnRole((await groupStanding(actor, groupId)).standing, null, memberRole)) return FORBIDDEN;
+    const gs = actor ? await groupStanding(actor, groupId) : null;
+    if (!actor || !userId || !canActOnRole(gs.standing, null, memberRole, gs.team)) return FORBIDDEN;
     const [user, group] = await Promise.all([
         queryOne('SELECT full_name FROM users_list WHERE id = :userId', { userId }),
         queryOne('SELECT name FROM admin_groups WHERE id = :groupId', { groupId }),
@@ -346,7 +346,10 @@ export async function inviteMembers(prev, fd) {
     if (!actor || !canInviteMembers(actor.role)) return FORBIDDEN;
     const phones = fd.getAll('phone').map((v) => String(v).trim());
     const names = fd.getAll('full_name').map((v) => String(v).trim().slice(0, 150));
-    const rows = phones.map((raw, i) => ({ raw, name: names[i] ?? '', row: i + 1 })).filter((r) => r.raw || r.name).slice(0, 50);
+    const rows = phones
+        .map((raw, i) => ({ raw, name: names[i] ?? '', row: i + 1 }))
+        .filter((r) => r.raw || r.name)
+        .slice(0, 50);
     if (!rows.length) return { error: 'members.invite.none' };
 
     // Validate every row first, so one bad line does not leave half the list invited.

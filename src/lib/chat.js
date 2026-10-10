@@ -35,22 +35,25 @@ export async function chatAccess(user, scope, scopeId) {
             { scopeId },
         );
         if (!group) return none;
-        const { standing, myRole } = await groupStanding(user, scopeId);
+        const { standing, myRole, team } = await groupStanding(user, scopeId);
         if (!standing && !myRole) return none;
         if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') return none;
         const postRoles = chatRolesFrom(group.chat_roles, group.chat_mode);
         // An inactive or archived group's discussion is read-only for everyone.
         // Clear the whole discussion: app-level admins / sub-admins, and this group's admins and sub-admins.
         const canClear = canClearChats(user.role) || standing === 'app' || standing === 'admin' || standing === 'sub_admin';
-        if (group.status !== 'active') return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), canClear, postRoles, paused: true };
-        const canPost = canPostIn(postRoles, standing, myRole);
+        if (group.status !== 'active')
+            return { allowed: true, canPost: false, canAlert: false, moderate: Boolean(standing), canClear, postRoles, paused: true };
+        // The "discussion" team role may always post (whatever the group's who-can-post setting).
+        const canPost = canPostIn(postRoles, standing, myRole, team);
         return { allowed: true, canPost, canAlert: canPost && Boolean(standing), moderate: Boolean(standing), canClear, postRoles };
     }
     const campaign = await queryOne('SELECT id, group_id, status, archived_at FROM fundraise_campaigns WHERE id = :scopeId', { scopeId });
     if (!campaign) return none;
     // Paused (closed) or archived: everyone may still read, nobody posts — like an inactive group.
     const paused = campaign.status === 'closed' || Boolean(campaign.archived_at);
-    if (canManageAllFundraises(user.role)) return { allowed: true, canPost: !paused, canAlert: !paused, moderate: true, canClear: canClearChats(user.role), paused };
+    if (canManageAllFundraises(user.role))
+        return { allowed: true, canPost: !paused, canAlert: !paused, moderate: true, canClear: canClearChats(user.role), paused };
     const [perms, member, leader] = await Promise.all([
         fundraisePermissions(user, campaign),
         isInFundraiseGroup(user.id, campaign.id),
@@ -60,7 +63,14 @@ export async function chatAccess(user, scope, scopeId) {
     // perms.manage = app-level, a group admin, or the fundraise's own admin; plus group sub-admins.
     // Delete others' messages: its admins and the admins / sub-admins of its groups. Clear the WHOLE discussion: only
     // its own team admins (app admins / sub-admins are handled above) — never a group admin / sub-admin as such.
-    return { allowed, canPost: allowed && !paused, canAlert: !paused && (perms.manage || leader), moderate: perms.manage || leader, canClear: perms.teamRoles.includes('admin'), paused };
+    return {
+        allowed,
+        canPost: allowed && !paused,
+        canAlert: !paused && (perms.manage || leader),
+        moderate: perms.manage || leader,
+        canClear: perms.teamRoles.includes('admin'),
+        paused,
+    };
 }
 
 /**
@@ -150,10 +160,10 @@ export async function alertAudience(scope, scopeId) {
 
 /** Message count per thread, for the tab badges. */
 export async function messageCount(scope, scopeId) {
-    const row = await queryOne(
-        'SELECT COUNT(*) AS n FROM chat_messages WHERE scope = :scope AND scope_id = :scopeId AND deleted_at IS NULL',
-        { scope, scopeId },
-    );
+    const row = await queryOne('SELECT COUNT(*) AS n FROM chat_messages WHERE scope = :scope AND scope_id = :scopeId AND deleted_at IS NULL', {
+        scope,
+        scopeId,
+    });
     return row.n;
 }
 

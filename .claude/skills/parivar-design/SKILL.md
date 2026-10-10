@@ -248,6 +248,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Discussion system notes (meeting scheduled, member added/removed) are centred pills; alert messages
   carry an amber "Alert" badge. The composer's bell toggle = "alert everyone" (off by default).
 
+- **Group Members tab**: main role badge, then the team roles as small navy badges; row ⋮ → Change role ›, Team roles
+  (FormDialog with tick boxes + a hint per role, like the fundraise "Edit roles"), Remove.
+
 ## Public & print
 
 - **Privacy policy**: public /privacy-policy (proxy.js allows it) and Settings → About (everyone; group "App"): one card — "Designed and developed

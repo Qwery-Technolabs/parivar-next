@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import CampaignForm from '@/components/fundraise/campaign-form';
 import StatusSelect from '@/components/fundraise/status-select';
 import PageHeader from '@/components/shell/page-header';
-import { fundraiseGroupIds, canCreateFundraiseIn } from '@/lib/access';
+import { createFundraiseGroupIds, canCreateFundraiseIn } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
 import { casteOptions } from '@/lib/castes';
 import { audienceSuggestions, knownLocations, listGroupsForSelect } from '@/lib/fundraise';
@@ -36,7 +36,7 @@ export default async function NewFundraisePage({ searchParams }) {
     const all = canManageAllFundraises(user.role);
     const [groups, mine, locations, settings, castes, suggestions] = await Promise.all([
         listGroupsForSelect(),
-        all ? [] : fundraiseGroupIds(user.id),
+        all ? [] : createFundraiseGroupIds(user.id),
         knownLocations(),
         getSettings('fundraise'),
         casteOptions(locale),
@@ -58,21 +58,21 @@ export default async function NewFundraisePage({ searchParams }) {
                 actions={<StatusSelect t={t} />}
             />
             <CampaignForm
-                    kind={kind}
-                    mandalPeople={mandal?.people}
-                    today={todayLocal()}
-                    groups={allowed}
-                    defaultGroupId={groupId}
-                    // Other groups it may also be shown in: the ones this user may create in.
-                    otherGroups={allowed.filter((g) => g.id !== groupId)}
-                    // Fundraise managers may leave it without a home group.
-                    allowNoGroup={all}
-                    cancelHref={back.href}
-                    locations={locations}
-                    defaultPublic={settings.default_public}
-                    castes={castes}
-                    suggestions={suggestions}
-                />
+                kind={kind}
+                mandalPeople={mandal?.people}
+                today={todayLocal()}
+                groups={allowed}
+                defaultGroupId={groupId}
+                // Other groups it may also be shown in: the ones this user may create in.
+                otherGroups={allowed.filter((g) => g.id !== groupId)}
+                // Fundraise managers may leave it without a home group.
+                allowNoGroup={all}
+                cancelHref={back.href}
+                locations={locations}
+                defaultPublic={settings.default_public}
+                castes={castes}
+                suggestions={suggestions}
+            />
         </div>
     );
 }

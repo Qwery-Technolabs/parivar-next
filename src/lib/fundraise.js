@@ -100,11 +100,12 @@ async function visibilityClause(user) {
     if (canManageAllFundraises(user.role)) return { sql: '1 = 1', params: {} };
     const aud = audienceFilter(user);
     const ids = await fundraiseGroupIds(user.id);
-    if (!ids.length) return { sql: `c.status <> 'draft' AND ${aud.sql}`, params: aud.params };
+    // Your own drafts (started with the group's "fundraise" team role) stay visible to you.
+    if (!ids.length) return { sql: `(c.status <> 'draft' OR c.created_by = :vme) AND ${aud.sql}`, params: { ...aud.params, vme: user.id } };
     const list = inList(ids, 'vg');
     return {
-        sql: `(c.status <> 'draft' OR EXISTS (SELECT 1 FROM fundraise_groups vfg WHERE vfg.campaign_id = c.id AND vfg.group_id IN (${list.sql}))) AND ${aud.sql}`,
-        params: { ...list.params, ...aud.params },
+        sql: `(c.status <> 'draft' OR c.created_by = :vme OR EXISTS (SELECT 1 FROM fundraise_groups vfg WHERE vfg.campaign_id = c.id AND vfg.group_id IN (${list.sql}))) AND ${aud.sql}`,
+        params: { ...list.params, ...aud.params, vme: user.id },
     };
 }
 

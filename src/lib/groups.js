@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { getMeta, getMetaMany, query, queryOne } from './db';
 import { audienceFilter } from './fundraise';
+import { GROUP_TEAM_ROLES } from './group-roles';
 
 export async function listGroups() {
     // Counts come from one grouped read of the membership table, not a subquery per group.
@@ -27,11 +28,21 @@ export const getGroup = cache(async (id) => {
 
 export async function groupMembers(groupId) {
     return query(
-        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at
+        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at,
+                (SELECT GROUP_CONCAT(t.team_role) FROM admin_group_team t WHERE t.group_id = gm.group_id AND t.user_id = gm.user_id) AS team
            FROM admin_group_members gm JOIN users_list u ON u.id = gm.user_id
           WHERE gm.group_id = :groupId
           ORDER BY FIELD(gm.member_role, 'admin', 'sub_admin', 'speaker', 'member'), u.full_name`,
         { groupId },
+    ).then((rows) =>
+        rows.map((r) => ({
+            ...r,
+            team: GROUP_TEAM_ROLES.filter((x) =>
+                String(r.team ?? '')
+                    .split(',')
+                    .includes(x),
+            ),
+        })),
     );
 }
 

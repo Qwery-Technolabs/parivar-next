@@ -24,7 +24,7 @@ const newToken = () => randomBytes(18).toString('base64url'); // 24 url-safe cha
 
 /**
  * Load the campaign and check the signed-in user holds `perm` on it
- * (manage | contribution | expense | post — see fundraisePermissions).
+ * (manage | contribution | expense | post | danger — see fundraisePermissions).
  */
 async function authorize(campaignId, perm = 'manage') {
     const user = await getCurrentUser();
@@ -489,7 +489,8 @@ export async function saveCampaign(prev, fd) {
  */
 /** Archive ⇄ restore — its admins (app-level, its own admins, admins of its groups): About → Danger zone. */
 export async function setCampaignArchived(campaignId, archived) {
-    const { user, campaign: c } = await authorize(Number(campaignId));
+    // Danger zone: app-level managers and the group's admins / sub-admins — not the creator (fundraisePermissions.danger).
+    const { user, campaign: c } = await authorize(Number(campaignId), 'danger');
     if (!c) return FORBIDDEN;
     await query(`UPDATE fundraise_campaigns SET archived_at = ${archived ? 'NOW()' : 'NULL'} WHERE id = :campaignId`, { campaignId });
     await audit(user.id, archived ? 'fundraise.archive' : 'fundraise.restore', 'fundraise', campaignId, { title: c.title });
@@ -507,7 +508,7 @@ export async function setCampaignArchived(campaignId, archived) {
  */
 export async function setCampaignStatus(campaignId, status) {
     if (status !== 'active' && status !== 'closed') return FORBIDDEN;
-    const { user, campaign } = await authorize(Number(campaignId));
+    const { user, campaign } = await authorize(Number(campaignId), 'danger');
     if (!campaign) return FORBIDDEN;
     await query('UPDATE fundraise_campaigns SET status = :status WHERE id = :campaignId', { status, campaignId: campaign.id });
     await audit(user.id, status === 'closed' ? 'fundraise.pause' : 'fundraise.resume', 'fundraise', campaign.id, { title: campaign.title });

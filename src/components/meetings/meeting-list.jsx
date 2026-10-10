@@ -19,7 +19,7 @@ const RSVP = {
     pending: { icon: Clock, on: '', tone: 'text-ink-gray' },
 };
 
-function MeetingCard({ m, scope, scopeId, manage, people, me, past, today, minutes = [], canPostMinutes = false, attendance = null, canMark = false }) {
+function MeetingCard({ m, scope, scopeId, canEdit, people, me, past, today, minutes = [], canPostMinutes = false, attendance = null, canMark = false }) {
     const { t, locale } = useT();
     const [open, setOpen] = useState(false);
     const [pending, startTransition] = useTransition();
@@ -85,7 +85,7 @@ function MeetingCard({ m, scope, scopeId, manage, people, me, past, today, minut
                         </ul>
                     )}
                 </div>
-                {manage && !past && (
+                {canEdit && !past && (
                     <div className="flex shrink-0 items-center gap-1.5">
                         {/* Edit and Cancel side by side; Cancel is the red one. */}
                         <MeetingDialog scope={scope} scopeId={scopeId} people={people} meeting={m} today={today} />
@@ -153,6 +153,7 @@ export default function MeetingList({
     scope,
     scopeId,
     manage,
+    moderate = false,
     people,
     me,
     today,
@@ -184,7 +185,8 @@ export default function MeetingList({
             m={m}
             scope={scope}
             scopeId={scopeId}
-            manage={manage}
+            // Edit / cancel: the group's leaders (fundraise: its managers), or whoever scheduled it.
+            canEdit={moderate || m.created_by === me}
             people={people}
             me={me}
             today={today}

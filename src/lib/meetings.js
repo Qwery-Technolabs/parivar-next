@@ -2,7 +2,8 @@ import 'server-only';
 import { syncMandalMembers } from './mandal';
 import { getCampaign } from './fundraise';
 import { getGroup } from './groups';
-import { canManageGroup, fundraisePermissions } from './access';
+import { fundraisePermissions, groupStanding } from './access';
+import { groupCan, isGroupLeader } from './group-roles';
 import { getMetaMany, inList, query, queryOne } from './db';
 
 /** Reminder choices, minutes before the start. */
@@ -15,17 +16,22 @@ export const DEFAULT_TIME = '09:00:00';
  * Where a meeting belongs and who is involved:
  *   group     — events_list.group_id,   candidates = the group's members
  *   fundraise — events_list.campaign_id, candidates = its team ∪ its group's members
- * @returns {Promise<null | { scope, scopeId, groupId, campaignId, title, titleLocal, manage: boolean, candidateIds: number[], link: string }>}
+ * `manage` = may schedule; `moderate` = may edit / cancel any meeting (others: only the ones they scheduled).
+ * @returns {Promise<null | { scope, scopeId, groupId, campaignId, title, titleLocal, manage: boolean, moderate: boolean, candidateIds: number[], link: string }>}
  */
 export async function meetingScope(user, scope, scopeId) {
     if (scope === 'group') {
         // Side by side; the group itself is shared with the page (cached per request).
-        const [g, members, manage] = await Promise.all([
+        const [g, members, { standing, team }] = await Promise.all([
             getGroup(Number(scopeId)),
             query('SELECT user_id FROM admin_group_members WHERE group_id = :scopeId', { scopeId }),
-            canManageGroup(user, Number(scopeId)),
+            groupStanding(user, Number(scopeId)),
         ]);
         if (!g) return null;
+        // Schedule: leaders and the "meetings" team role. Edit / cancel ANY meeting: leaders only — everyone
+        // else, only the meetings they scheduled (events_list.created_by).
+        const manage = groupCan(standing, team, 'meetings');
+        const moderate = isGroupLeader(standing);
         return {
             scope,
             scopeId,
@@ -34,6 +40,7 @@ export async function meetingScope(user, scope, scopeId) {
             title: g.name,
             titleLocal: g.name_local,
             manage,
+            moderate,
             candidateIds: members.map((m) => m.user_id),
             link: `/groups/${g.id}?tab=meetings`,
         };
@@ -51,6 +58,7 @@ export async function meetingScope(user, scope, scopeId) {
             title: c.title,
             titleLocal: c.title_local,
             manage: perms.manage,
+            moderate: perms.manage,
             candidateIds: people.map((m) => m.user_id),
             link: `/fundraise/${c.id}?tab=meetings`,
         };

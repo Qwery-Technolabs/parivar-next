@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { canEditGroupDetails, groupStanding } from '@/lib/access';
-import { canActOnRole, canAdminister, GROUP_ROLES, GROUP_STATUSES, GROUP_VISIBILITY } from '@/lib/group-roles';
+import { canActOnRole, canAdminister, canSetTeam, GROUP_ROLES, GROUP_STATUSES, GROUP_TEAM_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
@@ -59,10 +59,7 @@ export async function saveGroup(prev, fd) {
             });
             gid = r.insertId;
             // The creator runs the group by default. Other admins may demote them later like anyone else.
-            await q(
-                `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:gid, :uid, 'admin', :uid)`,
-                { gid, uid: actor.id },
-            );
+            await q(`INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:gid, :uid, 'admin', :uid)`, { gid, uid: actor.id });
         }
         // Defaults (every role posts, public) are stored as absence.
         await setMeta(
@@ -92,14 +89,14 @@ export async function addGroupMember(prev, fd) {
     const userId = id(fd, 'user_id');
     const memberRole = oneOf(fd, 'member_role', GROUP_ROLES, 'member');
     if (!groupId || !actor) return FORBIDDEN;
-    const { standing } = await groupStanding(actor, groupId);
+    const { standing, team } = await groupStanding(actor, groupId);
     if (!userId) return { fieldErrors: { user_id: 'common.required' } };
     if (!(await queryOne('SELECT id FROM users_list WHERE id = :userId', { userId }))) {
         return { fieldErrors: { user_id: 'common.required' } };
     }
     const already = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :groupId AND user_id = :userId', { groupId, userId });
     // A sub-admin adds members and speakers only, and never changes an admin's or sub-admin's role.
-    if (!canActOnRole(standing, already?.member_role ?? null, memberRole)) return FORBIDDEN;
+    if (!canActOnRole(standing, already?.member_role ?? null, memberRole, team)) return FORBIDDEN;
     await query(
         `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by)
          VALUES (:groupId, :userId, :memberRole, :by)
@@ -128,8 +125,8 @@ export async function inviteGroupMember(prev, fd) {
     const groupId = id(fd, 'group_id');
     if (!groupId || !actor) return FORBIDDEN;
     const memberRole = oneOf(fd, 'member_role', GROUP_ROLES, 'member');
-    const { standing } = await groupStanding(actor, groupId);
-    if (!canActOnRole(standing, null, memberRole)) return FORBIDDEN;
+    const { standing, team } = await groupStanding(actor, groupId);
+    if (!canActOnRole(standing, null, memberRole, team)) return FORBIDDEN;
     const phone = normalizePhone(fd.get('phone'));
     const fullName = str(fd, 'full_name', 150);
     if (!phone) return { fieldErrors: { phone: 'auth.errors.phoneInvalid' } };
@@ -140,7 +137,7 @@ export async function inviteGroupMember(prev, fd) {
 
     const already = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :groupId AND user_id = :uid', { groupId, uid: user.id });
     if (already && already.member_role === memberRole) return { error: 'groups.invite.alreadyIn' };
-    if (already && !canActOnRole(standing, already.member_role, memberRole)) return FORBIDDEN;
+    if (already && !canActOnRole(standing, already.member_role, memberRole, team)) return FORBIDDEN;
     await query(
         `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by)
          VALUES (:groupId, :uid, :memberRole, :by)
@@ -161,20 +158,55 @@ export async function setGroupMemberRole(groupId, userId, memberRole) {
     const gid = Number(groupId);
     const uid = Number(userId);
     if (!actor || !GROUP_ROLES.includes(memberRole)) return FORBIDDEN;
-    const { standing } = await groupStanding(actor, gid);
+    const { standing, team } = await groupStanding(actor, gid);
     const row = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     if (!row) return { error: 'common.error' };
-    if (!canActOnRole(standing, row.member_role, memberRole)) return FORBIDDEN;
+    if (!canActOnRole(standing, row.member_role, memberRole, team)) return FORBIDDEN;
     // A group admin demoting themselves could leave the group with nobody able to run it;
     // only an app-level group manager may do that.
     if (uid === actor.id && memberRole !== row.member_role && standing !== 'app') return { error: 'groups.errors.selfDemote' };
-    await query(
-        'UPDATE admin_group_members SET member_role = :memberRole WHERE group_id = :gid AND user_id = :uid',
-        { memberRole, gid, uid },
-    );
+    await query('UPDATE admin_group_members SET member_role = :memberRole WHERE group_id = :gid AND user_id = :uid', { memberRole, gid, uid });
     await audit(actor.id, 'group.role', 'group', gid, { userId: uid, from: row.member_role, to: memberRole });
     // Promotion is news; a demotion is not pushed as a notification.
     if (GROUP_ROLES.indexOf(memberRole) < GROUP_ROLES.indexOf(row.member_role)) await notifyGroupRole(uid, gid, memberRole, actor.id);
+    revalidatePath(`/groups/${gid}`);
+    return { ok: true, message: 'common.saved' };
+}
+
+/**
+ * A member's team roles in the group (admin_group_team — Members, Fundraise, Meetings, Group details,
+ * Discussion; several at once, like a fundraise team). Given by the group's leaders to plain members and
+ * speakers (admins and sub-admins already do everything). Fields: group_id, user_id, team_roles[].
+ */
+export async function setGroupTeamRoles(prev, fd) {
+    const actor = await getCurrentUser();
+    const gid = id(fd, 'group_id');
+    const uid = id(fd, 'user_id');
+    if (!actor || !gid || !uid) return FORBIDDEN;
+    const [{ standing }, row] = await Promise.all([
+        groupStanding(actor, gid),
+        queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid }),
+    ]);
+    if (!row) return { error: 'common.error' };
+    if (!canSetTeam(standing, row.member_role)) return FORBIDDEN;
+    const next = new Set(
+        fd
+            .getAll('team_roles')
+            .map(String)
+            .filter((r) => GROUP_TEAM_ROLES.includes(r)),
+    );
+    const before = new Set(
+        (await query('SELECT team_role FROM admin_group_team WHERE group_id = :gid AND user_id = :uid', { gid, uid })).map((r) => r.team_role),
+    );
+    const added = [...next].filter((r) => !before.has(r));
+    const removed = [...before].filter((r) => !next.has(r));
+    if (!added.length && !removed.length) return { ok: true, message: 'common.saved' };
+    await withTransaction(async (q) => {
+        for (const r of added)
+            await q('INSERT IGNORE INTO admin_group_team (group_id, user_id, team_role, added_by) VALUES (:gid, :uid, :r, :by)', { gid, uid, r, by: actor.id });
+        for (const r of removed) await q('DELETE FROM admin_group_team WHERE group_id = :gid AND user_id = :uid AND team_role = :r', { gid, uid, r });
+    });
+    await audit(actor.id, 'group.team', 'group', gid, { userId: uid, added, removed });
     revalidatePath(`/groups/${gid}`);
     return { ok: true, message: 'common.saved' };
 }
@@ -188,11 +220,11 @@ export async function removeGroupMember(groupId, userId) {
     const gid = Number(groupId);
     const uid = Number(userId);
     if (!actor) return FORBIDDEN;
-    const { standing } = await groupStanding(actor, gid);
+    const { standing, team } = await groupStanding(actor, gid);
     const row = await queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     if (!row) return { ok: true, message: 'common.deleted' };
-    // Admins remove anyone; a sub-admin only members and speakers — never an admin.
-    if (!canActOnRole(standing, row.member_role)) return FORBIDDEN;
+    // Admins remove anyone; a sub-admin (or the "members" team role) only members and speakers — never an admin.
+    if (!canActOnRole(standing, row.member_role, undefined, team)) return FORBIDDEN;
     if (uid === actor.id && standing !== 'app') return { error: 'groups.errors.selfDemote' };
     const r = await query('DELETE FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     await audit(actor.id, 'group.member.remove', 'group', gid, { userId: uid });

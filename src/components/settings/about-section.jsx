@@ -14,7 +14,9 @@ export default async function AboutSection({ t, locale }) {
     return (
         <Card title={samaj}>
             <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('about.designedBy')}</p>
-            <p className="mt-1 text-base font-semibold text-primary">{DEVELOPER.company}</p>
+            <a href={DEVELOPER.url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-base font-semibold text-primary hover:underline">
+                {DEVELOPER.company}
+            </a>
             <p className="text-sm text-ink">{DEVELOPER.name}</p>
             <a href={`tel:${DEVELOPER.phone}`} className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
                 <Phone className="size-3.5" />

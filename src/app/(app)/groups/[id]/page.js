@@ -44,7 +44,7 @@ export default async function GroupPage({ params, searchParams }) {
     const [{ id }, sp, user] = await Promise.all([params, searchParams, requireUser()]);
     const groupId = Number(id) || 0;
     // Everything below only needs the id: one round of parallel queries (speed) instead of one after another.
-    const [group, { t, locale }, members, fundraises, { standing, myRole }, canFundraise, messages, upcoming] = await Promise.all([
+    const [group, { t, locale }, members, fundraises, { standing, myRole, team }, canFundraise, messages, upcoming] = await Promise.all([
         getGroup(groupId),
         getT(),
         groupMembers(groupId),
@@ -61,9 +61,9 @@ export default async function GroupPage({ params, searchParams }) {
     if (isPrivate && !standing && !myRole) notFound();
     // Archived: hidden from members — only app-level group managers and the group's admins open it.
     if (group.status === 'archived' && standing !== 'app' && standing !== 'admin') notFound();
-    // Admins and sub-admins edit the group and manage its members (lib/group-roles.js).
-    const canManage = canManageMembership(standing);
-    const canEditGroup = canEditDetails(standing);
+    // Admins and sub-admins do everything; others by their team roles (lib/group-roles.js).
+    const canManage = canManageMembership(standing, team);
+    const canEditGroup = canEditDetails(standing, team);
     const name = localized(group, 'name', locale);
     const base = `/groups/${group.id}`;
 
@@ -136,19 +136,28 @@ export default async function GroupPage({ params, searchParams }) {
                         </div>
                     )}
                     {fundraises.length === 0 ? (
-                        <p className="rounded-lg border border-surface-border bg-white px-4 py-10 text-center text-sm text-ink-gray">
-                            {t('fundraise.empty')}
-                        </p>
+                        <p className="rounded-lg border border-surface-border bg-white px-4 py-10 text-center text-sm text-ink-gray">{t('fundraise.empty')}</p>
                     ) : (
                         // Chat-list look: one row per fundraise, amount where the last-message time would be.
                         <ul className="divide-y divide-surface-border overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
                             {fundraises.map((f) => (
                                 <li key={f.id}>
-                                    <Link href={`/${f.kind === 'mandal' ? 'mandal' : 'fundraise'}/${f.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/60">
-                                        <GroupAvatar id={f.id} name={f.title} kind={f.avatar?.avatar_kind} value={f.avatar?.avatar_value} color={f.avatar?.avatar_color} />
+                                    <Link
+                                        href={`/${f.kind === 'mandal' ? 'mandal' : 'fundraise'}/${f.id}`}
+                                        className="flex items-center gap-3 px-3 py-2.5 hover:bg-accent/60"
+                                    >
+                                        <GroupAvatar
+                                            id={f.id}
+                                            name={f.title}
+                                            kind={f.avatar?.avatar_kind}
+                                            value={f.avatar?.avatar_value}
+                                            color={f.avatar?.avatar_color}
+                                        />
                                         <span className="min-w-0 flex-1">
                                             <span className="flex items-center gap-1.5">
-                                                {f.pinned ? <Pin className="size-3.5 shrink-0 rotate-45 text-brand-orange-strong" aria-label={t('mandal.pinned')} /> : null}
+                                                {f.pinned ? (
+                                                    <Pin className="size-3.5 shrink-0 rotate-45 text-brand-orange-strong" aria-label={t('mandal.pinned')} />
+                                                ) : null}
                                                 <span className="truncate text-sm font-semibold text-primary">{localized(f, 'title', locale)}</span>
                                                 {f.kind === 'mandal' && (
                                                     <Badge tone="orange" className="shrink-0">
@@ -177,13 +186,15 @@ export default async function GroupPage({ params, searchParams }) {
             )}
 
             {tab === 'members' && (
-                <GroupMembers groupId={group.id} members={members} standing={standing} currentUserId={user.id} creatorId={group.created_by} />
+                <GroupMembers groupId={group.id} members={members} standing={standing} team={team} currentUserId={user.id} creatorId={group.created_by} />
             )}
 
             {tab === 'about' && (
                 <div className="space-y-4">
                     <Card title={t('groups.about')}>
-                        <p className="whitespace-pre-line text-sm text-ink">{group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}</p>
+                        <p className="whitespace-pre-line text-sm text-ink">
+                            {group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}
+                        </p>
                         <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
                     </Card>
                     {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
