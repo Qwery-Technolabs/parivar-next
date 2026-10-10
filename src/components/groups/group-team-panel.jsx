@@ -48,7 +48,7 @@ export default function GroupTeamPanel({ groupId, members, standing, currentUser
                     </ul>
                 )}
             </div>
-            <ul className="grid gap-1 text-xs text-ink-gray sm:grid-cols-2">
+            <ul className="grid gap-1 text-xs text-ink-gray">
                 {ROLES.map((r) => (
                     <li key={r}>
                         <span className="font-medium text-primary">{label(t, r)}</span> — {hint(t, r)}

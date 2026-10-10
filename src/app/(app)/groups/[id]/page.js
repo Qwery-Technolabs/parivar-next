@@ -191,35 +191,40 @@ export default async function GroupPage({ params, searchParams }) {
             )}
 
             {tab === 'about' && (
-                <div className="space-y-4">
+                // Two columns like a fundraise's About: the group on the left; Team and the Danger zone on the right.
+                <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
                     <Card title={t('groups.about')}>
                         <p className="whitespace-pre-line text-sm text-ink">
                             {group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}
                         </p>
                         <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
                     </Card>
-                    {/* Team — like a fundraise team: admins, sub-admins and members with task roles (its leaders edit it). */}
-                    <Card
-                        title={t('groups.teamTitle')}
-                        actions={
-                            isGroupLeader(standing) && <AddGroupTeamButton groupId={group.id} standing={standing} exclude={teamOf(members).map((m) => m.id)} />
-                        }
-                    >
-                        <GroupTeamPanel groupId={group.id} members={members} standing={standing} currentUserId={user.id} creatorId={group.created_by} />
-                    </Card>
-                    {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
-                    {(canAdminister(standing) || standing === 'sub_admin') && (
-                        <GroupDangerCard
-                            group={group}
-                            canDelete={standing === 'app'}
-                            // Status / archive / delete: its admins (and app managers); a sub-admin sees only Clear history.
-                            canManage={canAdminister(standing)}
-                            // Clearing the discussion: app admins / sub-admins, and this group's admins and sub-admins.
-                            canClearChat={canClearChats(user.role) || canAdminister(standing) || standing === 'sub_admin'}
-                            messageCount={messages}
-                            t={t}
-                        />
-                    )}
+                    <div className="min-w-0 space-y-4">
+                        {/* Team — like a fundraise team: admins, sub-admins and members with task roles (its leaders edit it). */}
+                        <Card
+                            title={t('groups.teamTitle')}
+                            actions={
+                                isGroupLeader(standing) && (
+                                    <AddGroupTeamButton groupId={group.id} standing={standing} exclude={teamOf(members).map((m) => m.id)} />
+                                )
+                            }
+                        >
+                            <GroupTeamPanel groupId={group.id} members={members} standing={standing} currentUserId={user.id} creatorId={group.created_by} />
+                        </Card>
+                        {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
+                        {(canAdminister(standing) || standing === 'sub_admin') && (
+                            <GroupDangerCard
+                                group={group}
+                                canDelete={standing === 'app'}
+                                // Status / archive / delete: its admins (and app managers); a sub-admin sees only Clear history.
+                                canManage={canAdminister(standing)}
+                                // Clearing the discussion: app admins / sub-admins, and this group's admins and sub-admins.
+                                canClearChat={canClearChats(user.role) || canAdminister(standing) || standing === 'sub_admin'}
+                                messageCount={messages}
+                                t={t}
+                            />
+                        )}
+                    </div>
                 </div>
             )}
         </div>
