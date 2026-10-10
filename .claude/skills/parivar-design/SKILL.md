@@ -254,9 +254,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   by" Qwery Technolabs / Manthan Kanani / tel link + "contact for any issue or app development" (lib/legal DEVELOPER),
   then two plain links: Privacy policy (public page, new tab) · Open-source licences (link-styled toggle, hidden by
   default; the table appears below — components/settings/about-links.jsx). The policy text: components/legal/privacy-policy.jsx over lib/legal.js (en + gu). lib/legal.js must change WITH the app whenever what it stores, shows or sends changes.
-- **Address** (member page): text + Copy · Map (Google Maps search) · Directions (Google Maps dir, from the viewer's
-  location) — components/members/address-actions.jsx; the city is added to the map search when the address lacks it.
-
+- **Address** (member page): the address itself is the link — blue, underlined — opening Google Maps (search); a plain
+  grey copy icon beside it (no background). No Directions button. components/members/address-actions.jsx; the city is
+  added to the map search when the address lacks it.
 - Public pages: navy header, Samaj logo + name, language toggle on navy.
 - Public fundraise / Mandal page actions: icon-only blue squares (bg-primary, size-9), Download PDF then (a Mandal) Filters at
   the far right; a filter count sits as an orange dot on the corner. A "back to the list" inside a strip is a round ← button

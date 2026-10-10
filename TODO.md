@@ -393,3 +393,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Settings → About: developer (Manthan Kanani, +91 86903 55381), privacy policy (also public /privacy-policy, en + gu), open-source licences
 - [x] Member page address: Copy · Map · Directions (Google Maps)
 - [ ] LATER: pin-point location per member (opt-in, set on the profile) + a members map view; "near me" = viewer enables location and sees members living nearby. Update lib/legal.js privacy policy when built.
+- [x] Member address: blue underlined link to Google Maps + plain grey copy icon (Directions removed)
