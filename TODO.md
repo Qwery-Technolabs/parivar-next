@@ -409,3 +409,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Family tree: married daughter left + husband right; her children only in her own / her husband's tree
 - [x] Adding a wife / husband marks both married (both alive; never over widowed / divorced)
 - [x] One-time: 3 living people with a living spouse marked married on live (user.married.backfill)
+- [x] Surnames: edit the English spelling (renames it for all its members, English + Gujarati); delete an unused surname (admins / sub-admins)
+- [x] Add relative to a married woman: sibling / parent names from her father (maiden side); marital change keeps typed name

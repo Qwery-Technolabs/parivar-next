@@ -1,9 +1,9 @@
 'use client';
-import { Pencil, Plus, Save, Users } from 'lucide-react';
+import { Pencil, Plus, Save, Trash2, Users } from 'lucide-react';
 import Link from 'next/link';
-import { startTransition, useActionState, useEffect, useState } from 'react';
+import { startTransition, useActionState, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { saveSurname, saveSurnamesBulk } from '@/app/actions/surnames';
+import { deleteSurname, saveSurname, saveSurnamesBulk } from '@/app/actions/surnames';
 import CasteSelect from '@/components/members/caste-select';
 import { Field, textInput, translationPair } from '@/components/ui/field';
 import FormDialog from '@/components/ui/form-dialog';
@@ -13,7 +13,7 @@ import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
 import { useT } from '@/lib/i18n/client';
 
 /**
- * The fields of the Add / Edit popup: the surname (fixed when editing), its local spelling with
+ * The fields of the Add / Edit popup: the surname (editing it renames it for its members), its local spelling with
  * Google's suggestions, and its caste → sub-caste. A component of its own, so its hooks remount
  * with the dialog's form each time it opens.
  */
@@ -23,20 +23,12 @@ function SurnameFields({ row, options, fieldError }) {
     const [caste, setCaste] = useState({ caste: row?.caste_id ? String(row.caste_id) : '', subcaste: row?.subcaste_id ? String(row.subcaste_id) : '' });
     return (
         <div className={`${translationPair} grid gap-3 sm:grid-cols-2`}>
-            {row ? (
-                <input type="hidden" name="name" value={row.name} />
-            ) : (
-                <Field label={`${t('members.surname')} (${t('lang.en')})`} error={fieldError('name')} required>
-                    <input name="name" required maxLength={60} autoComplete="off" {...auto.enProps} className={`${textInput(!!fieldError('name'))} w-full`} />
-                </Field>
-            )}
-            <GujaratiField
-                label={`${t('members.surname')} (${localLang === 'hi' ? 'हिन्दी' : 'ગુજરાતી'})`}
-                name="name_local"
-                auto={auto}
-                maxLength={60}
-                className={row ? 'sm:col-span-2' : ''}
-            />
+            {/* Editing: the English spelling can change too — the surname is renamed for everyone who carries it. */}
+            {row && <input type="hidden" name="original_name" value={row.name} />}
+            <Field label={`${t('members.surname')} (${t('lang.en')})`} error={fieldError('name')} required>
+                <input name="name" required maxLength={60} autoComplete="off" {...auto.enProps} className={`${textInput(!!fieldError('name'))} w-full`} />
+            </Field>
+            <GujaratiField label={`${t('members.surname')} (${localLang === 'hi' ? 'हिन्दी' : 'ગુજરાતી'})`} name="name_local" auto={auto} maxLength={60} />
             <CasteSelect
                 options={options}
                 caste={caste.caste}
@@ -45,6 +37,7 @@ function SurnameFields({ row, options, fieldError }) {
                 names={{ caste: 'caste_id', subcaste: 'subcaste_id' }}
                 errors={{ caste: fieldError('caste_id'), subcaste: fieldError('subcaste_id') }}
             />
+            {row?.members > 0 && <p className="text-xs text-ink-gray sm:col-span-2">{t('surnames.renameNote', { count: row.members })}</p>}
         </div>
     );
 }
@@ -111,7 +104,7 @@ function BulkAssign({ rows, options, onDone }) {
  * surname who have none, and new members (added, invited, registered, from a family tree) get it.
  * Tick several to give them one caste → sub-caste at once.
  */
-export default function SurnameManager({ surnames, options, canEdit = false }) {
+export default function SurnameManager({ surnames, options, canEdit = false, canDelete = false }) {
     const { t, locale } = useT();
     const [picked, setPicked] = useState(() => new Set());
     const toggle = (name) =>
@@ -224,11 +217,38 @@ export default function SurnameManager({ surnames, options, canEdit = false }) {
                                     </span>
                                 )}
                                 {canEdit && <SurnameDialog row={r} options={options} trigger={editButton} />}
+                                {/* A saved surname nobody carries: app admins / sub-admins may delete it. */}
+                                {canDelete && r.id && !(r.members > 0) && <DeleteSurname name={r.name} />}
                             </li>
                         );
                     })}
                 </ul>
             )}
         </section>
+    );
+}
+
+/** Red, icon-only delete for a surname nobody carries (asks first). */
+function DeleteSurname({ name }) {
+    const { t } = useT();
+    const [pending, start] = useTransition();
+    return (
+        <button
+            type="button"
+            disabled={pending}
+            aria-label={t('surnames.delete')}
+            title={t('surnames.delete')}
+            onClick={() => {
+                if (!window.confirm(t('surnames.deleteConfirm', { name }))) return;
+                start(async () => {
+                    const res = await deleteSurname(name);
+                    if (res?.ok) toast.success(t(res.message));
+                    else toast.error(t(res?.error ?? 'common.error'));
+                });
+            }}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-destructive text-white hover:bg-destructive/90 disabled:opacity-60"
+        >
+            <Trash2 className="size-3.5" />
+        </button>
     );
 }

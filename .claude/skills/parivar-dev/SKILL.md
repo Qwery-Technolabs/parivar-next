@@ -168,6 +168,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
   (actions/minutes.js — same visibility as the page). A Mandal's About tab shows no News & minutes (they live under
   its meetings) and does not load them.
+- **Surnames** (/members/surnames, actions/surnames.js): editing (administrators) can change the English spelling too —
+  `saveSurname` with original_name renames it for every member carrying it (surname + maiden_surname, any case; English
+  and local), rebuilds full names that were the join of the parts, moves / merges the saved row; audited
+  surname.rename. `deleteSurname`: app admins + sub-admins, only a saved surname nobody carries (checked server-side).
+- **Add-relative name suggestions**: father / mother / brother / sister take the person's OWN father (`ownFather`): for a
+  married (widowed / divorced) woman that is her maiden father's name + maiden surname, never her husband's. Changing
+  the marital status (single ↔ married name form) keeps what was typed (`carry`: father's name / surname ↔ maiden parts).
 - **Spouse ⇒ married**: linking a wife / husband (linkRelative 'spouse') sets BOTH to married when both are alive and
   their status is empty / unmarried / engaged (never over widowed / divorced; nothing when one has passed away).
 - **Names in Name Case**: every typed English name part (first / father's / surname, maiden parts, an invite's full

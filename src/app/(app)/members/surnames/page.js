@@ -1,7 +1,7 @@
 import SurnameManager from '@/components/members/surname-manager';
 import PageHeader from '@/components/shell/page-header';
 import { requireUser } from '@/lib/auth';
-import { canManageSettings } from '@/lib/roles';
+import { atLeast, canManageSettings } from '@/lib/roles';
 import { casteOptions } from '@/lib/castes';
 import { getT } from '@/lib/i18n/server';
 import { listSurnames } from '@/lib/surnames';
@@ -22,7 +22,7 @@ export default async function SurnamesPage() {
     return (
         <div>
             <PageHeader title={t('surnames.title')} subtitle={t('surnames.subtitle')} back={{ href: '/members', label: t('members.title') }} />
-            <SurnameManager surnames={surnames} options={options} canEdit={canManageSettings(user.role)} />
+            <SurnameManager surnames={surnames} options={options} canEdit={canManageSettings(user.role)} canDelete={atLeast(user.role, 'sub_admin')} />
         </div>
     );
 }

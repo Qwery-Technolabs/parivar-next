@@ -9,6 +9,7 @@ import GujaratiField from '@/components/ui/gujarati-field';
 import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
 import { useT } from '@/lib/i18n/client';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
+import { MARRIED_LIKE } from '@/lib/names';
 
 const KINDS = ['father', 'mother', 'spouse', 'brother', 'sister', 'son', 'daughter'];
 const MARITAL = ['unmarried', 'married', 'engaged', 'widowed', 'divorced'];
@@ -29,25 +30,44 @@ function childFather(p, spouse) {
     return spouse ?? { first_name: p.middle_name, first_name_local: p.middle_name_local, surname: p.surname, surname_local: p.surname_local };
 }
 
+/**
+ * The person's own father: first name + surname. A married (widowed / divorced) woman's main middle name and
+ * surname are her husband's and her in-laws' — her father is her maiden father's name + maiden surname.
+ */
+function ownFather(p) {
+    const marriedWoman = p.gender === 'female' && MARRIED_LIKE.includes(p.marital_status);
+    return marriedWoman
+        ? {
+              first: p.maiden_middle_name ?? '',
+              firstLocal: p.maiden_middle_name_local ?? '',
+              surname: p.maiden_surname ?? '',
+              surnameLocal: p.maiden_surname_local ?? '',
+          }
+        : { first: p.middle_name ?? '', firstLocal: p.middle_name_local ?? '', surname: p.surname ?? '', surnameLocal: p.surname_local ?? '' };
+}
+
 function defaultsFor(kind, p, spouse) {
     const husbandOfPerson = p.gender === 'female' ? childFather(p, spouse) : null;
+    // Father, mother, brother, sister share the person's father's side (a married woman's maiden side).
+    const dad = ownFather(p);
+    const fatherSide = ['father', 'mother', 'brother', 'sister'].includes(kind);
     const middle = {
         father: ['', ''],
-        mother: [p.middle_name, p.middle_name_local],
+        mother: [dad.first, dad.firstLocal],
         spouse: p.gender === 'female' ? ['', ''] : [p.first_name, p.first_name_local],
-        brother: [p.middle_name, p.middle_name_local],
-        sister: [p.middle_name, p.middle_name_local],
+        brother: [dad.first, dad.firstLocal],
+        sister: [dad.first, dad.firstLocal],
         son: p.gender === 'female' ? [husbandOfPerson?.first_name, husbandOfPerson?.first_name_local] : [p.first_name, p.first_name_local],
         daughter: p.gender === 'female' ? [husbandOfPerson?.first_name, husbandOfPerson?.first_name_local] : [p.first_name, p.first_name_local],
     }[kind] ?? ['', ''];
     const ownSurname = !(kind === 'spouse' && p.gender === 'female');
     return {
-        first_name: kind === 'father' ? (p.middle_name ?? '') : '',
-        first_name_local: kind === 'father' ? (p.middle_name_local ?? '') : '',
+        first_name: kind === 'father' ? dad.first : '',
+        first_name_local: kind === 'father' ? dad.firstLocal : '',
         middle_name: middle[0] ?? '',
         middle_name_local: middle[1] ?? '',
-        surname: ownSurname ? (p.surname ?? '') : '',
-        surname_local: ownSurname ? (p.surname_local ?? '') : '',
+        surname: !ownSurname ? '' : fatherSide ? dad.surname : (p.surname ?? ''),
+        surname_local: !ownSurname ? '' : fatherSide ? dad.surnameLocal : (p.surname_local ?? ''),
     };
 }
 
@@ -62,23 +82,63 @@ function marriedDefaultsFor(kind, p, spouse) {
             surname: p.surname ?? '',
             surname_local: p.surname_local ?? '',
         };
-    if (kind === 'mother')
-        return {
-            ...base,
-            middle_name: p.middle_name ?? '',
-            middle_name_local: p.middle_name_local ?? '',
-            surname: p.surname ?? '',
-            surname_local: p.surname_local ?? '',
-        };
+    if (kind === 'mother') {
+        // Her husband is the person's father; her married surname is his.
+        const dad = ownFather(p);
+        return { ...base, middle_name: dad.first, middle_name_local: dad.firstLocal, surname: dad.surname, surname_local: dad.surnameLocal };
+    }
     // daughter / sister: her father's side is known, her husband's is typed
     const father = kind === 'daughter' ? childFather(p, spouse) : null;
+    // A sister's father is the person's own father (a married woman's maiden side).
+    const dad = ownFather(p);
     return {
         ...base,
-        maiden_middle_name: kind === 'sister' ? (p.middle_name ?? '') : (father?.first_name ?? ''),
-        maiden_middle_name_local: kind === 'sister' ? (p.middle_name_local ?? '') : (father?.first_name_local ?? ''),
-        maiden_surname: kind === 'sister' ? (p.surname ?? '') : (father?.surname ?? ''),
-        maiden_surname_local: kind === 'sister' ? (p.surname_local ?? '') : (father?.surname_local ?? ''),
+        maiden_middle_name: kind === 'sister' ? dad.first : (father?.first_name ?? ''),
+        maiden_middle_name_local: kind === 'sister' ? dad.firstLocal : (father?.first_name_local ?? ''),
+        maiden_surname: kind === 'sister' ? dad.surname : (father?.surname ?? ''),
+        maiden_surname_local: kind === 'sister' ? dad.surnameLocal : (father?.surname_local ?? ''),
     };
+}
+
+const NAME_KEYS = [
+    'first_name',
+    'first_name_local',
+    'middle_name',
+    'middle_name_local',
+    'surname',
+    'surname_local',
+    'maiden_middle_name',
+    'maiden_middle_name_local',
+    'maiden_surname',
+    'maiden_surname_local',
+];
+
+/**
+ * What was typed, for the other name form (marital status changed): the first name as is; a single woman's
+ * father's name + surname become a married woman's maiden father's name + surname, and back. Only typed
+ * (non-empty) values — the rest keep their suggestions.
+ */
+function carry(draft, toMarried) {
+    const out = {};
+    const put = (to, from) => {
+        if (draft[from]) out[to] = draft[from];
+    };
+    put('first_name', 'first_name');
+    put('first_name_local', 'first_name_local');
+    const map = toMarried
+        ? [
+              ['maiden_middle_name', 'middle_name'],
+              ['maiden_surname', 'surname'],
+          ]
+        : [
+              ['middle_name', 'maiden_middle_name'],
+              ['surname', 'maiden_surname'],
+          ];
+    for (const [to, from] of map) {
+        put(to, from);
+        put(`${to}_local`, `${from}_local`);
+    }
+    return out;
 }
 
 /**
@@ -219,8 +279,11 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
     const { t, locale } = useT();
     const [kind, setKind] = useState('');
     const [marital, setMarital] = useState('unmarried');
+    // Name parts typed so far: married ↔ not switches between two name forms; what was typed carries over.
+    const [draft, setDraft] = useState({});
     const pickKind = (k) => {
         setKind(k);
+        setDraft({});
         setMarital(k === 'father' || k === 'mother' || k === 'spouse' ? 'married' : 'unmarried');
     };
     // A woman who is (or was) married gets all four name parts: husband's name + in-laws' surname, father's name + surname.
@@ -251,7 +314,10 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
             width="sm:max-w-2xl"
             keepOpen
             // Next one: choose the relation again (father / mother may now be taken).
-            onSuccess={() => setKind('')}
+            onSuccess={() => {
+                setKind('');
+                setDraft({});
+            }}
             trigger={({ open }) => (
                 <button
                     type="button"
@@ -325,11 +391,26 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
                                 </Field>
                             ) : (
                                 // key: switching the relation refills the suggested names.
-                                <div key={kind} className="space-y-3">
+                                <div
+                                    key={kind}
+                                    className="space-y-3"
+                                    onChange={(e) => {
+                                        const n = e.target?.name;
+                                        if (NAME_KEYS.includes(n)) setDraft((d) => ({ ...d, [n]: e.target.value }));
+                                    }}
+                                >
                                     {marriedWoman ? (
-                                        <MarriedName key={`${kind}-married`} defaults={marriedDefaultsFor(kind, person, spouse)} fe={fieldError} />
+                                        <MarriedName
+                                            key={`${kind}-married`}
+                                            defaults={{ ...marriedDefaultsFor(kind, person, spouse), ...carry(draft, true) }}
+                                            fe={fieldError}
+                                        />
                                     ) : (
-                                        <QuickName key={`${kind}-single`} defaults={defaultsFor(kind, person, spouse)} fe={fieldError} />
+                                        <QuickName
+                                            key={`${kind}-single`}
+                                            defaults={{ ...defaultsFor(kind, person, spouse), ...carry(draft, false) }}
+                                            fe={fieldError}
+                                        />
                                     )}
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <Field label={t('family.phoneOptional')} hint={t('family.phoneHint')} error={fieldError('phone')}>
