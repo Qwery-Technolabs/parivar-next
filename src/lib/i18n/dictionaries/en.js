@@ -302,6 +302,10 @@ const en = {
         donorTwoWords: 'Write at least two words — first name and surname.',
         donorHint: 'Can be contacted for blood',
         address: 'Address',
+        copyAddress: 'Copy',
+        addressCopied: 'Address copied',
+        openMap: 'Map',
+        directions: 'Directions',
         occupation: 'Occupation',
         education: 'Education',
         nativePlace: 'Native place',
@@ -1292,6 +1296,17 @@ const en = {
             event_new: 'New event: {title} on {date}',
         },
     },
+    about: {
+        developedBy: 'Developed by',
+        contact: 'Contact',
+        privacyPolicy: 'Privacy policy',
+        openPublic: 'Public page',
+        policyUpdated: 'Last updated: {date}',
+        licenses: 'Open-source licences',
+        licensesHint: 'This app is built with these open-source packages, each used under its own licence.',
+        package: 'Package',
+        license: 'Licence',
+    },
     settings: {
         formGroups: {
             samaj: 'Samaj',
@@ -1344,8 +1359,9 @@ const en = {
             local: 'Local language for names',
             localHint: 'English names are also written in this script',
         },
-        groups: { personal: 'My account', admin: 'Samaj' },
+        groups: { personal: 'My account', admin: 'Samaj', app: 'App' },
         sections: {
+            about: { title: 'About', hint: 'Developer, privacy policy and open-source licences' },
             audit: { title: 'Activity log', hint: 'Who changed what, for admins.' },
             notifications: {
                 title: 'Notifications',

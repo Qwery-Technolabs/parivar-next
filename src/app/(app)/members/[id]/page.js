@@ -11,6 +11,7 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { birthName, isMarriedWoman } from '@/lib/names';
+import AddressActions from '@/components/members/address-actions';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
 import { formatPhone } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast } from '@/lib/roles';
@@ -163,7 +164,17 @@ export default async function MemberPage({ params }) {
                         <Detail label={t('members.email')}>{m.email}</Detail>
                         <div className="sm:col-span-2">
                             <Detail label={t('members.address')}>
-                                <span className="whitespace-pre-line">{m.address}</span>
+                                {/* Copy / Map / Directions (Google Maps; the city is added to the search when the address lacks it). */}
+                                {m.address && (
+                                    <AddressActions
+                                        address={m.address}
+                                        query={
+                                            member.city && !m.address.toLowerCase().includes(String(member.city).toLowerCase())
+                                                ? `${m.address}, ${member.city}`
+                                                : m.address
+                                        }
+                                    />
+                                )}
                             </Detail>
                         </div>
                         {m.bio && (

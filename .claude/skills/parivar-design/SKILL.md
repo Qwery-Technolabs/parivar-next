@@ -250,6 +250,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 
 ## Public & print
 
+- **Privacy policy**: public /privacy-policy (proxy.js allows it) and Settings → About (everyone; group "App"): developer
+  card (name + tel link), the policy (components/legal/privacy-policy.jsx, text in lib/legal.js, en + gu), open-source
+  licences table. lib/legal.js must change WITH the app whenever what it stores, shows or sends changes.
+- **Address** (member page): text + Copy · Map (Google Maps search) · Directions (Google Maps dir, from the viewer's
+  location) — components/members/address-actions.jsx; the city is added to the map search when the address lacks it.
+
 - Public pages: navy header, Samaj logo + name, language toggle on navy.
 - Public fundraise / Mandal page actions: icon-only blue squares (bg-primary, size-9), Download PDF then (a Mandal) Filters at
   the far right; a filter count sits as an orange dot on the corner. A "back to the list" inside a strip is a round ← button

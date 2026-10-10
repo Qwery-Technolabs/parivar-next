@@ -1,4 +1,17 @@
-import { BellRing, CalendarDays, Check, Droplet, HandCoins, Languages, Megaphone, ShieldCheck, SlidersHorizontal, UserCircle, History } from 'lucide-react';
+import {
+    BellRing,
+    CalendarDays,
+    Check,
+    Droplet,
+    HandCoins,
+    Info,
+    Languages,
+    Megaphone,
+    ShieldCheck,
+    SlidersHorizontal,
+    UserCircle,
+    History,
+} from 'lucide-react';
 import Link from 'next/link';
 import { setLocalLanguage } from '@/app/actions/profile';
 import { setLanguage } from '@/app/actions/session';
@@ -23,6 +36,7 @@ import { getMember, listCities, listVillages } from '@/lib/members';
 import { AdminNotifySettings, NotificationPrefs } from '@/components/settings/notification-prefs';
 import { NOTIFY_CATEGORIES, parseOff } from '@/lib/notification-prefs';
 import LanguageSelect from '@/components/settings/language-select';
+import AboutSection from '@/components/settings/about-section';
 import { sp1 } from '@/lib/url';
 
 export async function generateMetadata() {
@@ -48,6 +62,8 @@ const SECTIONS = [
     // Blood and Calendar had only their notify switches; those now live under Notifications.
     // Kept out of the sidebar: an internal record, shown here (sub-admins and up).
     { key: 'audit', group: 'admin', icon: History, audit: true },
+    // About the app — developer, privacy policy, open-source licences (everyone).
+    { key: 'about', group: 'app', icon: Info },
 ];
 
 export default async function SettingsPage({ searchParams }) {
@@ -62,6 +78,7 @@ export default async function SettingsPage({ searchParams }) {
     const groups = [
         { key: 'personal', title: t('settings.groups.personal') },
         ...(visible.some((s) => s.group === 'admin') ? [{ key: 'admin', title: t('settings.groups.admin') }] : []),
+        { key: 'app', title: t('settings.groups.app') },
     ];
 
     return (
@@ -105,6 +122,7 @@ export default async function SettingsPage({ searchParams }) {
                     ) : (
                         current.key === 'profile' && <ProfileSection userId={user.id} t={t} locale={locale} />
                     )}
+                    {current.key === 'about' && <AboutSection t={t} locale={locale} />}
                     {current.key === 'audit' && <AuditLog sp={sp} t={t} locale={locale} canClear={isAdmin} />}
                     {current.key === 'security' && <SecuritySection userId={user.id} t={t} />}
                     {current.key === 'notifications' && (
@@ -139,15 +157,18 @@ function Row({ label, children }) {
 async function ProfileSection({ userId, t, locale }) {
     // Both spellings are shown here — this is where a person checks how their name reads.
     const localLang = await getLocalLanguage();
-    const me = await queryOne(
-        `SELECT id, phone, full_name, full_name_local, gender, dob, blood_group, village, role FROM users_list WHERE id = :id`,
-        { id: userId },
-    );
+    const me = await queryOne(`SELECT id, phone, full_name, full_name_local, gender, dob, blood_group, village, role FROM users_list WHERE id = :id`, {
+        id: userId,
+    });
     return (
         <Card
             title={t('settings.sections.profile.title')}
             actions={
-                <Link href="/settings?section=profile&action=edit" scroll={false} className="btn-secondary inline-flex h-8 items-center rounded-md px-3 text-xs font-medium">
+                <Link
+                    href="/settings?section=profile&action=edit"
+                    scroll={false}
+                    className="btn-secondary inline-flex h-8 items-center rounded-md px-3 text-xs font-medium"
+                >
                     {t('common.edit')}
                 </Link>
             }
@@ -260,7 +281,6 @@ async function ModuleSection({ module: mod, title, t }) {
         />
     );
 }
-
 
 /**
  * Settings → Profile → Edit: your own details in the member editor's tabs (Basic info,

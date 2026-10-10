@@ -298,6 +298,10 @@ const gu = {
         donorTwoWords: 'ઓછામાં ઓછા બે શબ્દ લખો — નામ અને અટક.',
         donorHint: 'રક્ત માટે સંપર્ક કરી શકાય',
         address: 'સરનામું',
+        copyAddress: 'કૉપિ',
+        addressCopied: 'સરનામું કૉપિ થયું',
+        openMap: 'નકશો',
+        directions: 'રસ્તો',
         occupation: 'વ્યવસાય',
         education: 'અભ્યાસ',
         nativePlace: 'મૂળ વતન',
@@ -1280,6 +1284,17 @@ const gu = {
             event_new: 'નવો કાર્યક્રમ: {title}, {date}',
         },
     },
+    about: {
+        developedBy: 'બનાવનાર',
+        contact: 'સંપર્ક',
+        privacyPolicy: 'ગોપનીયતા નીતિ',
+        openPublic: 'જાહેર પેજ',
+        policyUpdated: 'છેલ્લો સુધારો: {date}',
+        licenses: 'ઓપન-સોર્સ લાઇસન્સ',
+        licensesHint: 'આ એપ આ ઓપન-સોર્સ પેકેજો વડે બનેલી છે; દરેક તેના પોતાના લાઇસન્સ હેઠળ વપરાય છે.',
+        package: 'પેકેજ',
+        license: 'લાઇસન્સ',
+    },
     settings: {
         formGroups: {
             samaj: 'સમાજ',
@@ -1326,8 +1341,9 @@ const gu = {
             local: 'નામ માટે સ્થાનિક ભાષા',
             localHint: 'અંગ્રેજી નામ આ લિપિમાં પણ લખાય',
         },
-        groups: { personal: 'મારું ખાતું', admin: 'સમાજ' },
+        groups: { personal: 'મારું ખાતું', admin: 'સમાજ', app: 'એપ' },
         sections: {
+            about: { title: 'એપ વિશે', hint: 'ડેવલપર, ગોપનીયતા નીતિ અને ઓપન-સોર્સ લાઇસન્સ' },
             audit: {
                 title: 'પ્રવૃત્તિ નોંધ',
                 hint: 'કોણે શું બદલ્યું — વ્યવસ્થાપકો માટે.',
