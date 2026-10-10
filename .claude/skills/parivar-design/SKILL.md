@@ -259,7 +259,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 
 - **English ↔ local-language pairs** (a field and its auto-filled Gujarati twin): always together in ONE lightly
   shaded box — `translationPair` (components/ui/field.jsx: bg-surface-bggray/60 + ring). NameFields = one box per name
-  part (English above, local below); BilingualName = one box spanning the grid row (`side` = the two side by side);
+  part — on phones English | local side by side (grid-cols-2), from sm up stacked (three boxes per row); add-relative
+  dialog the same; BilingualName = one box spanning the grid row (`side` = the two side by side);
   add-relative dialog and the surname manager too. Any new pair must use it.
 
 ## Public & print

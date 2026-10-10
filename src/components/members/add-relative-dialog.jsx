@@ -110,7 +110,10 @@ function MarriedName({ defaults, fe }) {
     const field = (name) => {
         const shown = full || !known(name);
         return (
-            <div key={name} className={shown ? `${translationPair} grid content-start gap-1.5 sm:col-span-1` : 'hidden'}>
+            <div
+                key={name}
+                className={shown ? `${translationPair} grid grid-cols-2 items-start content-start gap-2 sm:col-span-1 sm:grid-cols-1 sm:gap-1.5` : 'hidden'}
+            >
                 <Field label={`${t(labels[name])} (${t('lang.en')})`} error={fe(name)} required={name === 'first_name' || name === 'surname'}>
                     <input
                         name={name}
@@ -174,17 +177,17 @@ function QuickName({ defaults, fe }) {
     );
     return (
         <div className="space-y-3">
-            <div className={`${translationPair} grid gap-3 sm:grid-cols-2`}>
+            <div className={`${translationPair} grid grid-cols-2 items-start gap-2 sm:gap-3`}>
                 {en('first_name', 'members.firstName', first, { required: true, enProps: firstProps })}
                 <GujaratiField label={`${t('members.firstName')} (${lang})`} name="first_name_local" auto={first} maxLength={60} />
             </div>
             {/* The rest of the name: hidden but posted, or shown to change. */}
             <div className={full ? 'grid gap-3 sm:grid-cols-2' : 'hidden'}>
-                <div className={`${translationPair} grid content-start gap-3`}>
+                <div className={`${translationPair} grid grid-cols-2 items-start content-start gap-2 sm:grid-cols-1 sm:gap-3`}>
                     {en('middle_name', 'members.middleName', middle)}
                     <GujaratiField label={`${t('members.middleName')} (${lang})`} name="middle_name_local" auto={middle} maxLength={60} />
                 </div>
-                <div className={`${translationPair} grid content-start gap-3`}>
+                <div className={`${translationPair} grid grid-cols-2 items-start content-start gap-2 sm:grid-cols-1 sm:gap-3`}>
                     {en('surname', 'members.surname', surname, { required: full })}
                     <GujaratiField label={`${t('members.surname')} (${lang})`} name="surname_local" auto={surname} maxLength={60} />
                 </div>

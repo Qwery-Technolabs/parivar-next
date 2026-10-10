@@ -50,7 +50,7 @@ export default function NameFields({ member, fe, optional = [], married = false 
 
     // Each name part: its English box and its local twin together in one shaded box (which translation is whose).
     const pair = (name, labelKey, auto) => (
-        <div key={name} className={`${translationPair} grid content-start gap-3`}>
+        <div key={name} className={`${translationPair} grid grid-cols-2 items-start content-start gap-2 sm:grid-cols-1 sm:gap-3`}>
             {english(name, labelKey, auto)}
             {local(`${name}_local`, labelKey, auto)}
         </div>
