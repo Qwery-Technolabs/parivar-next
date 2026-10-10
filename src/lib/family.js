@@ -185,7 +185,7 @@ export async function linkRelative(q, person, kind, relativeId) {
     const married = async (ids) => {
         const l = inList(ids, 'm');
         await q(
-            `UPDATE users_list SET marital_status = 'married' WHERE id IN (${l.sql}) AND (marital_status IS NULL OR marital_status = 'unmarried')`,
+            `UPDATE users_list SET marital_status = 'married' WHERE id IN (${l.sql}) AND (marital_status IS NULL OR marital_status IN ('unmarried', 'engaged'))`,
             l.params,
         );
     };
@@ -207,7 +207,10 @@ export async function linkRelative(q, person, kind, relativeId) {
     }
     if (kind === 'spouse') {
         await both(person.id, rel, 'spouse');
-        await married([person.id, rel]);
+        // A wife / husband recorded: both are married — while both are alive (a living partner of someone who has
+        // passed away is widowed, which is left to the family to set).
+        const dead = await q(`SELECT COUNT(*) AS n FROM users_list WHERE id IN (:a, :b) AND status = 'deceased'`, { a: person.id, b: rel });
+        if (!Number(dead[0]?.n)) await married([person.id, rel]);
         return;
     }
     if (kind === 'brother' || kind === 'sister') {

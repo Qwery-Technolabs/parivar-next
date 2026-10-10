@@ -407,3 +407,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] One-time Name Case backfill on live: 31 of 231 members (parts + rebuilt full name), logged as user.namecase.backfill
 - [x] English ↔ Gujarati name pairs in one shaded box everywhere (member forms, register, relatives, titles, settings, surnames)
 - [x] Family tree: married daughter left + husband right; her children only in her own / her husband's tree
+- [x] Adding a wife / husband marks both married (both alive; never over widowed / divorced)
+- [x] One-time: 3 living people with a living spouse marked married on live (user.married.backfill)

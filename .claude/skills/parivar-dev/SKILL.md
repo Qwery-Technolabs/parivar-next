@@ -168,6 +168,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
   (actions/minutes.js — same visibility as the page). A Mandal's About tab shows no News & minutes (they live under
   its meetings) and does not load them.
+- **Spouse ⇒ married**: linking a wife / husband (linkRelative 'spouse') sets BOTH to married when both are alive and
+  their status is empty / unmarried / engaged (never over widowed / divorced; nothing when one has passed away).
 - **Names in Name Case**: every typed English name part (first / father's / surname, maiden parts, an invite's full
   name) goes through `nameCase()` (lib/names.js — "MANTHAN" → "Manthan", Gujarati untouched) on the server when saved
   (members, family, register, invite) and on leaving the box in the forms (name-fields, person-or-phone, invite dialog).
