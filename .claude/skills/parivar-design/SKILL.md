@@ -248,8 +248,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Discussion system notes (meeting scheduled, member added/removed) are centred pills; alert messages
   carry an amber "Alert" badge. The composer's bell toggle = "alert everyone" (off by default).
 
-- **Group Members tab**: main role badge, then the team roles as small navy badges; row ⋮ → Change role ›, Team roles
-  (FormDialog with tick boxes + a hint per role, like the fundraise "Edit roles"), Remove.
+- **Group Team card** (About tab, like the fundraise Team card): everyone who is admin / sub-admin or holds task
+  roles, with role badges; header "Add to team" (MemberPicker + tick boxes) for the group's leaders; row ⋮ → Edit
+  roles, Remove from team (they stay in the group). Tick boxes: Admin · Sub-admin (one at most, admins only; ticking one
+  greys the tasks — "admins and sub-admins already do every task") · Members · Fundraise · Meetings · Group details ·
+  Discussion, each with a hint (components/groups/group-team-panel.jsx). The Members tab shows the task roles as badges
+  only; its ⋮ keeps Change role › and Remove.
 
 ## Public & print
 
@@ -257,7 +261,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   by" Qwery Technolabs / Manthan Kanani / tel link + "contact for any issue or app development" (lib/legal DEVELOPER),
   then two plain links: Privacy policy (public page, new tab) · Open-source licences (link-styled toggle, hidden by
   default; the table appears below — components/settings/about-links.jsx). The policy text: components/legal/privacy-policy.jsx over lib/legal.js (en + gu). lib/legal.js must change WITH the app whenever what it stores, shows or sends changes.
-- **Address** (member page): the address itself is the link — blue, underlined — opening Google Maps (search); a plain
+- **Address** (member page): the address itself is the link — navy theme colour (text-primary), underlined — opening Google Maps (search); a plain
   grey copy icon beside it (no background). No Directions button. components/members/address-actions.jsx; the city is
   added to the map search when the address lacks it.
 - Public pages: navy header, Samaj logo + name, language toggle on navy.

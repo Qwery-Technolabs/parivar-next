@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { canEditGroupDetails, groupStanding } from '@/lib/access';
-import { canActOnRole, canAdminister, canSetTeam, GROUP_ROLES, GROUP_STATUSES, GROUP_TEAM_ROLES, GROUP_VISIBILITY } from '@/lib/group-roles';
+import { canActOnRole, canAdminister, canSetTeam, GROUP_ROLES, GROUP_STATUSES, GROUP_TEAM_ROLES, GROUP_VISIBILITY, isGroupLeader } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
@@ -174,39 +174,87 @@ export async function setGroupMemberRole(groupId, userId, memberRole) {
 }
 
 /**
- * A member's team roles in the group (admin_group_team — Members, Fundraise, Meetings, Group details,
- * Discussion; several at once, like a fundraise team). Given by the group's leaders to plain members and
- * speakers (admins and sub-admins already do everything). Fields: group_id, user_id, team_roles[].
+ * The group's Team card (About tab), like a fundraise team: one person, every role they hold, by tick boxes —
+ * Admin or Sub-admin (their main role, admin_group_members.member_role) and the tasks (admin_group_team:
+ * Members, Fundraise, Meetings, Group details, Discussion). Admins and sub-admins already do every task, so
+ * their task rows are cleared. Someone not in the group yet joins it as a member. Only the group's leaders
+ * use it; making an admin / sub-admin (or changing one) is for its admins (canActOnRole). Fields: group_id,
+ * user_id, roles[].
  */
-export async function setGroupTeamRoles(prev, fd) {
+export async function saveGroupTeam(prev, fd) {
     const actor = await getCurrentUser();
     const gid = id(fd, 'group_id');
     const uid = id(fd, 'user_id');
-    if (!actor || !gid || !uid) return FORBIDDEN;
-    const [{ standing }, row] = await Promise.all([
+    if (!actor || !gid) return FORBIDDEN;
+    if (!uid) return { fieldErrors: { user_id: 'common.required' } };
+    const picked = new Set(fd.getAll('roles').map(String));
+    const lead = picked.has('admin') ? 'admin' : picked.has('sub_admin') ? 'sub_admin' : null;
+    const tasks = lead ? [] : GROUP_TEAM_ROLES.filter((r) => picked.has(r));
+    if (!lead && !tasks.length) return { fieldErrors: { roles: 'groups.errors.pickRole' } };
+    const [{ standing, team }, row, person] = await Promise.all([
         groupStanding(actor, gid),
         queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid }),
+        queryOne('SELECT id FROM users_list WHERE id = :uid', { uid }),
     ]);
-    if (!row) return { error: 'common.error' };
-    if (!canSetTeam(standing, row.member_role)) return FORBIDDEN;
-    const next = new Set(
-        fd
-            .getAll('team_roles')
-            .map(String)
-            .filter((r) => GROUP_TEAM_ROLES.includes(r)),
-    );
+    if (!person) return { fieldErrors: { user_id: 'common.required' } };
+    if (!isGroupLeader(standing)) return FORBIDDEN;
+    const current = row?.member_role ?? null;
+    // Main role: the lead role ticked; else a former admin / sub-admin becomes a member, a speaker stays one.
+    const nextRole = lead ?? (current === 'speaker' ? 'speaker' : 'member');
+    if (nextRole !== current && !canActOnRole(standing, current, nextRole, team)) return FORBIDDEN;
+    if (!canSetTeam(standing, nextRole === 'admin' || nextRole === 'sub_admin' ? 'member' : nextRole)) return FORBIDDEN;
+    // Leaving the group without anyone to run it: only an app-level manager may demote themselves.
+    if (uid === actor.id && current && nextRole !== current && standing !== 'app') return { error: 'groups.errors.selfDemote' };
     const before = new Set(
         (await query('SELECT team_role FROM admin_group_team WHERE group_id = :gid AND user_id = :uid', { gid, uid })).map((r) => r.team_role),
     );
-    const added = [...next].filter((r) => !before.has(r));
-    const removed = [...before].filter((r) => !next.has(r));
-    if (!added.length && !removed.length) return { ok: true, message: 'common.saved' };
+    const added = tasks.filter((r) => !before.has(r));
+    const removed = [...before].filter((r) => !tasks.includes(r));
     await withTransaction(async (q) => {
+        await q(
+            `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:gid, :uid, :role, :by)
+             ON DUPLICATE KEY UPDATE member_role = VALUES(member_role)`,
+            { gid, uid, role: nextRole, by: actor.id },
+        );
         for (const r of added)
             await q('INSERT IGNORE INTO admin_group_team (group_id, user_id, team_role, added_by) VALUES (:gid, :uid, :r, :by)', { gid, uid, r, by: actor.id });
         for (const r of removed) await q('DELETE FROM admin_group_team WHERE group_id = :gid AND user_id = :uid AND team_role = :r', { gid, uid, r });
     });
-    await audit(actor.id, 'group.team', 'group', gid, { userId: uid, added, removed });
+    await audit(actor.id, 'group.team', 'group', gid, { userId: uid, from: current, to: nextRole, added, removed });
+    // A new admin / sub-admin is told; joining the group shows in its discussion.
+    if (lead && lead !== current) await notifyGroupRole(uid, gid, lead, actor.id);
+    if (!current) {
+        await postMemberNote(gid, actor.id, 'added', [uid]);
+        await syncGroupJoin(gid);
+    }
+    revalidatePath(`/groups/${gid}`);
+    return { ok: true, message: 'common.saved' };
+}
+
+/**
+ * Off the team: an admin / sub-admin becomes a plain member and every task role goes — they stay in the
+ * group (Members tab removes them from it). Same permission as changing their role.
+ */
+export async function removeFromGroupTeam(groupId, userId) {
+    const actor = await getCurrentUser();
+    const gid = Number(groupId);
+    const uid = Number(userId);
+    if (!actor || !gid || !uid) return FORBIDDEN;
+    const [{ standing, team }, row] = await Promise.all([
+        groupStanding(actor, gid),
+        queryOne('SELECT member_role FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid }),
+    ]);
+    if (!row) return { ok: true, message: 'common.saved' };
+    if (!isGroupLeader(standing)) return FORBIDDEN;
+    const lead = row.member_role === 'admin' || row.member_role === 'sub_admin';
+    if (lead && !canActOnRole(standing, row.member_role, 'member', team)) return FORBIDDEN;
+    if (!lead && !canSetTeam(standing, row.member_role)) return FORBIDDEN;
+    if (uid === actor.id && standing !== 'app') return { error: 'groups.errors.selfDemote' };
+    await withTransaction(async (q) => {
+        if (lead) await q("UPDATE admin_group_members SET member_role = 'member' WHERE group_id = :gid AND user_id = :uid", { gid, uid });
+        await q('DELETE FROM admin_group_team WHERE group_id = :gid AND user_id = :uid', { gid, uid });
+    });
+    await audit(actor.id, 'group.team.remove', 'group', gid, { userId: uid, from: row.member_role });
     revalidatePath(`/groups/${gid}`);
     return { ok: true, message: 'common.saved' };
 }

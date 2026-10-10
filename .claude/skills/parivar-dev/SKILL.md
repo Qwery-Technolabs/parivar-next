@@ -60,8 +60,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - Group roles (lib/group-roles.js, pure): `admin, sub_admin, speaker, member`; "standing" = app | admin |
   sub_admin | null. Use `canActOnRole`, `canEditDetails`, `canManageMembership`, `canPostIn`.
 - **Group team roles** (admin_group_team, one row per role, like a fundraise team): `GROUP_TEAM_ROLES` =
-  members · fundraise · meetings · details · discussion, given to plain members / speakers by the group's leaders
-  (`canSetTeam`: admins any; sub-admins on members / speakers). Leaders (app, admin, sub_admin — `isGroupLeader`) do
+  members · fundraise · meetings · details · discussion, set in the group's Team card (About) by its leaders —
+  `saveGroupTeam` (roles[]: admin / sub_admin set member_role and clear tasks; otherwise tasks, a former leader becomes a
+  member; a non-member joins as member) and `removeFromGroupTeam` (leader → member, tasks cleared). Admin / sub-admin
+  changes follow `canActOnRole` (admins); tasks `canSetTeam`. `teamOf(members)` (group-roles) = the team list. Leaders (app, admin, sub_admin — `isGroupLeader`) do
   everything; others by role: `groupCan(standing, team, task)`. `groupStanding()` returns `{ standing, myRole, team }`
   — pass `team` to canActOnRole / canManageMembership / canEditDetails / canPostIn. Meanings: members = add / edit /
   remove members & speakers (never admins / sub-admins); fundraise = start fundraisers in the group

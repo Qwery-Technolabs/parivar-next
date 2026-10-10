@@ -699,6 +699,13 @@ const en = {
         // Team roles (admin_group_team): tasks a member or speaker can be given; admins and sub-admins do all of them.
         teamRoles: 'Team roles',
         teamRolesHint: 'Tasks this member may do in the group. Admins and sub-admins can already do all of them.',
+        teamTitle: 'Team',
+        addTeamMember: 'Add to team',
+        editRoles: 'Edit roles',
+        removeFromTeam: 'Remove from team',
+        removeFromTeamConfirm: 'Remove {name} from the team? They stay in the group as a member.',
+        noTeam: 'No team yet.',
+        leadAllTasks: 'Admins and sub-admins can already do every task.',
         team: {
             members: 'Members',
             fundraise: 'Fundraise',
@@ -707,6 +714,8 @@ const en = {
             discussion: 'Discussion',
         },
         teamHints: {
+            admin: 'Runs the group: every task, roles and the danger zone',
+            sub_admin: 'Helps run it: every task and the danger zone; not admins',
             members: 'Add, change and remove members and speakers',
             fundraise: 'Start fundraisers here — and edit the ones they start',
             meetings: 'Schedule meetings — and edit or cancel their own',
@@ -764,6 +773,7 @@ const en = {
         },
         errors: {
             selfDemote: 'You cannot remove your own admin role. Ask another admin.',
+            pickRole: 'Pick at least one role.',
         },
         status: { active: 'Active', inactive: 'Inactive', archived: 'Archived' },
         danger: {

@@ -10,12 +10,13 @@ import GroupFormDialog from '@/components/groups/group-form-dialog';
 import GroupDangerCard from '@/components/groups/group-danger-card';
 import { DOT_SIZE } from '@/lib/status-dot';
 import GroupMembers from '@/components/groups/group-members';
+import GroupTeamPanel, { AddGroupTeamButton } from '@/components/groups/group-team-panel';
 import NewFundraiseMenu from '@/components/fundraise/new-fundraise-menu';
 import { Card } from '@/components/shell/page-header';
 import Badge from '@/components/ui/badge';
 import WaTabs from '@/components/ui/wa-tabs';
 import { canCreateFundraiseIn, groupStanding } from '@/lib/access';
-import { canAdminister, canEditDetails, canManageMembership, GROUP_STATUS_DOT } from '@/lib/group-roles';
+import { canAdminister, canEditDetails, canManageMembership, GROUP_STATUS_DOT, isGroupLeader, teamOf } from '@/lib/group-roles';
 import { requireUser } from '@/lib/auth';
 import { messageCount } from '@/lib/chat';
 import { todayLocal } from '@/lib/forms';
@@ -196,6 +197,15 @@ export default async function GroupPage({ params, searchParams }) {
                             {group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}
                         </p>
                         <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
+                    </Card>
+                    {/* Team — like a fundraise team: admins, sub-admins and members with task roles (its leaders edit it). */}
+                    <Card
+                        title={t('groups.teamTitle')}
+                        actions={
+                            isGroupLeader(standing) && <AddGroupTeamButton groupId={group.id} standing={standing} exclude={teamOf(members).map((m) => m.id)} />
+                        }
+                    >
+                        <GroupTeamPanel groupId={group.id} members={members} standing={standing} currentUserId={user.id} creatorId={group.created_by} />
                     </Card>
                     {/* Danger zone: the group's admins (and app-level managers) change its status; an archived group can be deleted (app-level only). */}
                     {(canAdminister(standing) || standing === 'sub_admin') && (

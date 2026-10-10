@@ -23,6 +23,11 @@ export const GROUP_ROLES = ['admin', 'sub_admin', 'speaker', 'member'];
  */
 export const GROUP_TEAM_ROLES = ['members', 'fundraise', 'meetings', 'details', 'discussion'];
 
+/** The group's team: its admins, sub-admins and members holding task roles (rows of lib/groups groupMembers). */
+export function teamOf(members) {
+    return members.filter((m) => m.member_role === 'admin' || m.member_role === 'sub_admin' || m.team?.length);
+}
+
 /** Leads the group (every task, the danger zone, the team): app-level group managers, its admins and sub-admins. */
 export function isGroupLeader(standing) {
     return standing === 'app' || standing === 'admin' || standing === 'sub_admin';

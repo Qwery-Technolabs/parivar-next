@@ -1,16 +1,16 @@
 'use client';
-import { Check, ChevronLeft, ChevronRight, ListChecks, Megaphone, Shield, ShieldCheck, UserCog, UserMinus, UserPlus, UserRound } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Megaphone, Shield, ShieldCheck, UserCog, UserMinus, UserPlus, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { addGroupMember, inviteGroupMember, removeGroupMember, setGroupMemberRole, setGroupTeamRoles } from '@/app/actions/groups';
+import { addGroupMember, inviteGroupMember, removeGroupMember, setGroupMemberRole } from '@/app/actions/groups';
 import Badge from '@/components/ui/badge';
 import { Field, selectInput, textInput } from '@/components/ui/field';
-import FormDialog, { OpenOnMount } from '@/components/ui/form-dialog';
+import FormDialog from '@/components/ui/form-dialog';
 import PersonOrPhone from '@/components/ui/person-or-phone';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
-import { canActOnRole, canManageMembership, canSetTeam, GROUP_ROLES, GROUP_TEAM_ROLES } from '@/lib/group-roles';
+import { canActOnRole, canManageMembership, GROUP_ROLES } from '@/lib/group-roles';
 import { useT } from '@/lib/i18n/client';
 import { formatPhone } from '@/lib/phone';
 
@@ -23,7 +23,7 @@ const ROLE_UI = {
 };
 
 /**
- * Members with their main role and their team roles (Members · Fundraise · Meetings · Group details · Discussion).
+ * Members with their main role and, as badges, their team roles (set in the About tab's Team card).
  * `team` = the VIEWER's team roles: the "members" one lets them add / edit / remove plain members and speakers.
  * @param {{ groupId: number, members: any[], standing: 'app'|'admin'|'sub_admin'|null, team?: string[], currentUserId: number, creatorId?: number|null }} props
  */
@@ -33,8 +33,6 @@ export default function GroupMembers({ groupId, members, standing, team = [], cu
     // Roles this actor may hand out when adding someone.
     const grantable = GROUP_ROLES.filter((r) => canActOnRole(standing, null, r, team));
     const [pending, startTransition] = useTransition();
-    // "Team roles" dialog: the member being edited (a new key re-opens it).
-    const [teamEdit, setTeamEdit] = useState(null);
 
     const run = (fn) =>
         startTransition(async () => {
@@ -142,26 +140,24 @@ export default function GroupMembers({ groupId, members, standing, team = [], cu
                                 {canManage && (
                                     <Td className="text-right">
                                         {/* A sub-admin sees no menu on admins and sub-admins: they cannot act on them. */}
-                                        {m.id !== currentUserId &&
-                                            (canActOnRole(standing, m.member_role, undefined, team) || canSetTeam(standing, m.member_role)) && (
-                                                <KebabMenu label={t('common.more')}>
-                                                    {(close) => (
-                                                        <MemberMenu
-                                                            member={m}
-                                                            standing={standing}
-                                                            team={team}
-                                                            close={close}
-                                                            onTeam={() => setTeamEdit({ m, key: Date.now() })}
-                                                            onRole={(r) => run(() => setGroupMemberRole(groupId, m.id, r))}
-                                                            onRemove={() => {
-                                                                if (!window.confirm(`${t('groups.removeMember')}?`)) return;
-                                                                // Group membership only — the person stays in Members and Family.
-                                                                run(() => removeGroupMember(groupId, m.id));
-                                                            }}
-                                                        />
-                                                    )}
-                                                </KebabMenu>
-                                            )}
+                                        {m.id !== currentUserId && canActOnRole(standing, m.member_role, undefined, team) && (
+                                            <KebabMenu label={t('common.more')}>
+                                                {(close) => (
+                                                    <MemberMenu
+                                                        member={m}
+                                                        standing={standing}
+                                                        team={team}
+                                                        close={close}
+                                                        onRole={(r) => run(() => setGroupMemberRole(groupId, m.id, r))}
+                                                        onRemove={() => {
+                                                            if (!window.confirm(`${t('groups.removeMember')}?`)) return;
+                                                            // Group membership only — the person stays in Members and Family.
+                                                            run(() => removeGroupMember(groupId, m.id));
+                                                        }}
+                                                    />
+                                                )}
+                                            </KebabMenu>
+                                        )}
                                     </Td>
                                 )}
                             </Tr>
@@ -169,59 +165,7 @@ export default function GroupMembers({ groupId, members, standing, team = [], cu
                     </tbody>
                 </TableShell>
             </div>
-            {teamEdit && (
-                <FormDialog
-                    key={teamEdit.key}
-                    title={t('groups.teamRoles')}
-                    description={(locale === 'gu' && teamEdit.m.full_name_local) || teamEdit.m.full_name}
-                    action={setGroupTeamRoles}
-                    hidden={{ group_id: groupId, user_id: teamEdit.m.id }}
-                    submitIcon={ListChecks}
-                    width="sm:max-w-lg"
-                    trigger={({ open }) => <OpenOnMount open={open} />}
-                >
-                    {() => <TeamChecks initial={teamEdit.m.team ?? []} />}
-                </FormDialog>
-            )}
         </section>
-    );
-}
-
-/** Tick boxes for the team roles (posted as team_roles[]), each with what it allows. */
-function TeamChecks({ initial }) {
-    const { t } = useT();
-    const [picked, setPicked] = useState(() => new Set(initial));
-    return (
-        <Field label={t('groups.teamRoles')} hint={t('groups.teamRolesHint')}>
-            <div className="grid gap-1.5 sm:grid-cols-2">
-                {GROUP_TEAM_ROLES.map((r) => (
-                    <label
-                        key={r}
-                        className="flex cursor-pointer items-start gap-2 rounded-md border border-surface-border px-2.5 py-2 text-sm hover:bg-accent/50"
-                    >
-                        <input
-                            type="checkbox"
-                            name="team_roles"
-                            value={r}
-                            checked={picked.has(r)}
-                            onChange={() =>
-                                setPicked((s) => {
-                                    const n = new Set(s);
-                                    if (n.has(r)) n.delete(r);
-                                    else n.add(r);
-                                    return n;
-                                })
-                            }
-                            className="mt-0.5 size-4 shrink-0 accent-brand-orange-strong"
-                        />
-                        <span className="min-w-0">
-                            <span className="block font-medium text-primary">{t(`groups.team.${r}`)}</span>
-                            <span className="block text-xs text-ink-gray">{t(`groups.teamHints.${r}`)}</span>
-                        </span>
-                    </label>
-                ))}
-            </div>
-        </Field>
     );
 }
 
@@ -230,13 +174,11 @@ function TeamChecks({ initial }) {
  * side flyout would be clipped by the scrolling menu panel. Only roles the actor may give
  * are listed; the current one is ticked.
  */
-function MemberMenu({ member, standing, team, close, onRole, onRemove, onTeam }) {
+function MemberMenu({ member, standing, team, close, onRole, onRemove }) {
     const { t } = useT();
     const [view, setView] = useState('main');
     const choices = GROUP_ROLES.filter((r) => r === member.member_role || canActOnRole(standing, member.member_role, r, team));
     const canAct = canActOnRole(standing, member.member_role, undefined, team);
-    // Team roles: for plain members and speakers (admins and sub-admins already do everything).
-    const canTeam = canSetTeam(standing, member.member_role) && (member.member_role === 'member' || member.member_role === 'speaker');
 
     if (view === 'roles') {
         return (
@@ -289,18 +231,7 @@ function MemberMenu({ member, standing, team, close, onRole, onRemove, onTeam })
                     <ChevronRight className="size-4 text-ink-gray" />
                 </button>
             )}
-            {canTeam && (
-                <MenuItem
-                    icon={ListChecks}
-                    onClick={() => {
-                        close();
-                        onTeam();
-                    }}
-                >
-                    {t('groups.teamRoles')}
-                </MenuItem>
-            )}
-            {canAct && (choices.length > 1 || canTeam) && <MenuSeparator />}
+            {canAct && choices.length > 1 && <MenuSeparator />}
             {canAct && (
                 <MenuItem
                     icon={UserMinus}

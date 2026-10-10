@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/client';
 
 /**
- * A member's address as a link (underlined, blue) that opens it in Google Maps, with a plain grey copy
+ * A member's address as a link (underlined, in the navy theme colour) that opens it in Google Maps, with a plain grey copy
  * icon beside it. `query` is what Maps searches: the address, plus the city when the address does not name it.
  * @param {{ address: string, query: string }} props
  */
@@ -25,7 +25,7 @@ export default function AddressActions({ address, query }) {
                 target="_blank"
                 rel="noreferrer"
                 title={t('members.openMap')}
-                className="whitespace-pre-line text-blue-700 underline decoration-blue-300 underline-offset-2 hover:decoration-blue-700"
+                className="whitespace-pre-line text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
             >
                 {address}
             </a>

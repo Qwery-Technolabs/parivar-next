@@ -396,3 +396,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Member address: blue underlined link to Google Maps + plain grey copy icon (Directions removed)
 - [x] Group team roles (Members / Fundraise / Meetings / Group details / Discussion), danger zones for group leaders only, fundraise creator edits only, meeting edit/cancel by its creator or group leaders
 - [x] Qwery Technolabs link (qwerytechnolabs.com) in Settings → About and the privacy policy page
+- [x] Group Team card (About tab) like the fundraise team: add / edit roles (Admin, Sub-admin + task roles) / remove from team
