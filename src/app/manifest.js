@@ -16,11 +16,19 @@ export default async function manifest() {
     }
     const name = general.samaj_name || 'Parivar';
     const v = general.logo_version ? `&v=${general.logo_version}` : '';
+    // The site's own address (Vercel sets it at build): lets /install ask Android "is this app installed?"
+    // (navigator.getInstalledRelatedApps). Without it that check is simply skipped.
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.NEXT_PUBLIC_SITE_HOST || '';
     return {
+        id: '/',
         name,
         short_name: name.slice(0, 12).trim(),
         start_url: '/',
+        scope: '/',
         display: 'standalone',
+        // A link opened while the app is running reuses its window instead of opening another one.
+        launch_handler: { client_mode: 'navigate-existing' },
+        ...(host ? { related_applications: [{ platform: 'webapp', url: `https://${host}/manifest.webmanifest` }] } : {}),
         background_color: '#ffffff',
         theme_color: await themeColor(), // brand navy, like the browser bar
         icons: [

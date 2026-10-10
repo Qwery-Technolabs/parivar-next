@@ -156,7 +156,13 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Stale server actions after a deploy**: a page open across a deploy calls OLD action ids → Next throws
   UnrecognizedActionError. app/(app)/error.js detects it (`unstable_isUnrecognizedActionError`) and reloads the page once
   (sessionStorage guard, 30 s) instead of showing "Something went wrong".
-- **Public routes** (no sign-in, proxy.js): /login, /register, /language, /p/[token] (+ /print), /privacy-policy.
+- **Public routes** (no sign-in, proxy.js): /login, /register, /language, /p/[token] (+ /print), /privacy-policy, /install.
+- **/install** (components/shell/install-app.jsx — a link to share): inside the installed app (display-mode standalone)
+  → /; Android Chrome / Edge / desktop: the beforeinstallprompt "Install app" button (else the browser-menu steps);
+  Android in-app browsers (WhatsApp …) → "Open in Chrome" intent link; iPhone Safari → the 3 Add-to-Home-Screen steps;
+  other iOS browsers → open in Safari (copy link); already installed (getInstalledRelatedApps, manifest
+  related_applications from VERCEL_PROJECT_PRODUCTION_URL) → "Open the app". Manifest: id / scope "/",
+  launch_handler navigate-existing. Android opens in-scope links tapped in other apps in the installed app itself.
 - **Speed — parallel queries**: in pages and actions, never await independent DB calls one after another. Load the user
   and the main record together, then everything that needs only the id in ONE Promise.all (start background pieces as
   promises and await them after the tab's data). Fundraise / group / member pages follow this.

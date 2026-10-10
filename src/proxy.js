@@ -16,8 +16,8 @@ export function proxy(request) {
     // No language redirect: without a cookie the app uses the admin's default language
     // (Settings → General); /language stays available to switch.
 
-    // The privacy policy is public (linked from Settings → About).
-    if (pathname === '/language' || pathname === '/login' || pathname === '/register' || pathname === '/privacy-policy') return NextResponse.next();
+    // The privacy policy (linked from Settings → About) and the install page (a link to share) are public.
+    if (['/language', '/login', '/register', '/privacy-policy', '/install'].includes(pathname)) return NextResponse.next();
 
     if (!hasSession) {
         const url = new URL('/login', request.url);

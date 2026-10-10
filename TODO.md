@@ -398,3 +398,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Qwery Technolabs link (qwerytechnolabs.com) in Settings → About and the privacy policy page
 - [x] Group Team card (About tab) like the fundraise team: add / edit roles (Admin, Sub-admin + task roles) / remove from team
 - [x] Group History (About tab, admins only): edits, members, roles, team, status / archive, fundraisers; Clear history for its admins
+- [x] /install page: one shareable link that installs the app per OS (Android prompt / Chrome from WhatsApp / iPhone steps) or opens the dashboard when already in the app
