@@ -82,8 +82,12 @@ export function canDeleteMember(actor, target) {
 export function canEditUser(actor, target) {
     if (!actor) return false;
     if (actor.id === target.id) return true;
-    // A relative added from a family tree, who has never signed in: whoever added them may fix details.
-    if (target.created_by && target.created_by === actor.id && !target.last_login_at) return true;
+    if (target.created_by && target.created_by === actor.id) {
+        // A relative they added from their family tree (father, mother, wife, son, daughter, sister …): always theirs to edit.
+        if ((target.added_via ?? target.meta?.added_via) === 'family') return true;
+        // Anyone else they added (e.g. by phone): only until that person has signed in themselves.
+        if (!target.last_login_at) return true;
+    }
     if (!canManageMembers(actor.role)) return false;
     return actor.role === 'super_admin' || rank(target.role) > rank(actor.role);
 }

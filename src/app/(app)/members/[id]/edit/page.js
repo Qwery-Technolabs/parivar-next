@@ -6,7 +6,7 @@ import { localized } from '@/lib/i18n/config';
 import { casteOptions } from '@/lib/castes';
 import { getT } from '@/lib/i18n/server';
 import { getMember, listCities, listVillages } from '@/lib/members';
-import { assignableRoles, canEditUser, canResetPassword } from '@/lib/roles';
+import { assignableRoles, canEditUser, canManageMembers, canResetPassword } from '@/lib/roles';
 
 export async function generateMetadata() {
     const { t } = await getT();
@@ -43,8 +43,8 @@ export default async function EditMemberPage({ params, searchParams }) {
                 roles={assignableRoles(user.role)}
                 // Password-only access (an admin resetting a peer) shows just that tab.
                 canEdit={canEdit}
-                // Nobody changes their own role or status — that is someone else's decision.
-                canSetRole={canEdit && !self}
+                // Role / status: member administrators only — never your own, and not whoever added a relative.
+                canSetRole={canEdit && !self && canManageMembers(user.role)}
                 canSetPassword={canReset}
                 villages={villages.map((v) => v.value)}
                 cities={cities.map((c) => c.value)}

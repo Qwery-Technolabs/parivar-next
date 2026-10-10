@@ -146,7 +146,9 @@ export async function updateMemberSection(prev, fd) {
     const target =
         targetId &&
         (await queryOne(
-            'SELECT id, role, phone, status, caste_id, subcaste_id, created_by, last_login_at, (password_hash IS NOT NULL) AS can_login FROM users_list WHERE id = :targetId',
+            `SELECT id, role, phone, status, caste_id, subcaste_id, created_by, last_login_at, (password_hash IS NOT NULL) AS can_login,
+                    (SELECT meta_value FROM users_listmeta WHERE user_id = users_list.id AND meta_key = 'added_via') AS added_via
+               FROM users_list WHERE id = :targetId`,
             { targetId },
         ));
     const section = oneOf(fd, 'section', ['basic', 'community', 'details', 'access', 'password']);
@@ -196,8 +198,9 @@ export async function updateMemberSection(prev, fd) {
     } else if (section === 'details') {
         await setMeta('users_list', target.id, m.meta);
     } else if (section === 'access') {
-        // Nobody changes their own role or status — that is someone else's decision.
-        if (self) return FORBIDDEN;
+        // Nobody changes their own role or status — that is someone else's decision; and only member administrators
+        // do (someone who added a relative edits their details, not their access).
+        if (self || !canManageMembers(actor.role)) return FORBIDDEN;
         // Role only changes when the actor may make exactly that change; otherwise it is left alone.
         const roleChanged = m.role && m.role !== target.role && canChangeRole(actor, target, m.role);
         const role = roleChanged ? m.role : target.role;

@@ -99,10 +99,14 @@ function isReadOnly(sql) {
 
 /**
  * Plain values only (as prepared statements required): a plain query would quietly turn an object into
- * `a` = 1, `b` = 2 and an array into a list — fail loudly instead.
+ * `a` = 1, `b` = 2 and an array into a list — fail loudly instead. Only the values the SQL USES are checked:
+ * callers often pass a whole form object (`{ ...m, id }`) whose unused keys (lists, nested objects) the
+ * driver never touches — those must not fail the query.
  */
 function checkParams(sql, params) {
-    for (const v of Array.isArray(params) ? params : Object.values(params ?? {})) {
+    if (!params) return;
+    const used = Array.isArray(params) ? params : [...new Set(sql.match(/:\w+/g) ?? [])].map((p) => params[p.slice(1)]);
+    for (const v of used) {
         if (v !== null && typeof v === 'object' && !(v instanceof Date) && !Buffer.isBuffer(v)) {
             throw new TypeError(`db: a query value must be plain (string, number, boolean, null, Date) — ${sql.replace(/\s+/g, ' ').trim().slice(0, 80)}`);
         }
