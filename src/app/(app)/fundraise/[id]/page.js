@@ -33,6 +33,7 @@ import {
     listGroupsForSelect,
     maskAnonymous,
     listUpdates,
+    minutesCounts,
     nextMeeting,
     historyCount,
     fundraisePeople,
@@ -278,11 +279,8 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
     } else if (tab === 'meetings') {
         // Minutes are updates tied to a meeting; they show under that meeting.
         // Handed over as promises: the meetings list loads its own data at the same time.
-        const minutes = listUpdates(campaign.id).then((updates) =>
-            updates
-                .filter((u) => u.update_type === 'minutes' && u.event_id)
-                .map((u) => ({ id: u.id, event_id: u.event_id, body: u.body, author: u.author, author_local: u.author_local })),
-        );
+        // Only how many minutes each meeting has; their text loads when opened (actions/minutes.js).
+        const minutes = minutesCounts(campaign.id);
         // A Mandal's meetings are its schedules: each card marks who came (those who run it), straight from here.
         const attendance = isMandal
             ? Promise.all([
@@ -307,7 +305,8 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
             listTeam(campaign.id),
             // Holdings card (everyone who sees the fundraise or Mandal), under Team.
             listHoldings(campaign),
-            listUpdates(campaign.id),
+            // A Mandal shows no News & minutes here — minutes live under each meeting (Meetings tab).
+            isMandal ? [] : listUpdates(campaign.id),
             listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),
             historyCount(campaign.id),

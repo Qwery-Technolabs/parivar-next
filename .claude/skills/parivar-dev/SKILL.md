@@ -163,6 +163,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   other iOS browsers → open in Safari (copy link); already installed (getInstalledRelatedApps, manifest
   related_applications from VERCEL_PROJECT_PRODUCTION_URL) → "Open the app". Manifest: id / scope "/",
   launch_handler navigate-existing. Android opens in-scope links tapped in other apps in the installed app itself.
+- **Load on open, not with the page**: content hidden behind a toggle is fetched when opened (server action), the page
+  carries only counts. Meeting minutes: the meetings list gets `minutesCounts(campaignId)` ({eventId: n}); each card shows
+  "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
+  (actions/minutes.js — same visibility as the page). A Mandal's About tab shows no News & minutes (they live under
+  its meetings) and does not load them.
 - **Speed — parallel queries**: in pages and actions, never await independent DB calls one after another. Load the user
   and the main record together, then everything that needs only the id in ONE Promise.all (start background pieces as
   promises and await them after the tab's data). Fundraise / group / member pages follow this.

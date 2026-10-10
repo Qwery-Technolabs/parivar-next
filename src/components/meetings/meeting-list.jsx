@@ -11,6 +11,7 @@ import MeetingCalendar from './meeting-calendar';
 import { selectInput } from '@/components/ui/field';
 import MeetingDialog from './meeting-dialog';
 import MandalAttendance from './mandal-attendance';
+import MeetingMinutes from './meeting-minutes';
 
 const RSVP = {
     yes: { icon: Check, on: 'bg-emerald-700 text-white', tone: 'text-emerald-700' },
@@ -19,7 +20,7 @@ const RSVP = {
     pending: { icon: Clock, on: '', tone: 'text-ink-gray' },
 };
 
-function MeetingCard({ m, scope, scopeId, canEdit, people, me, past, today, minutes = [], canPostMinutes = false, attendance = null, canMark = false }) {
+function MeetingCard({ m, scope, scopeId, canEdit, people, me, past, today, minutesCount = 0, canPostMinutes = false, attendance = null, canMark = false }) {
     const { t, locale } = useT();
     const [open, setOpen] = useState(false);
     const [pending, startTransition] = useTransition();
@@ -101,7 +102,7 @@ function MeetingCard({ m, scope, scopeId, canEdit, people, me, past, today, minu
                     </div>
                 )}
             </div>
-            {(minutes.length > 0 || (canPostMinutes && past)) && (
+            {(minutesCount > 0 || (canPostMinutes && past)) && (
                 <div className="mt-2.5 space-y-1.5 border-t border-surface-border pt-2.5">
                     <div className="flex items-center justify-between gap-2">
                         <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('fundraise.minutes')}</p>
@@ -109,12 +110,8 @@ function MeetingCard({ m, scope, scopeId, canEdit, people, me, past, today, minu
                             <PostDialog campaignId={scopeId} meetingId={m.id} subtitle={t('fundraise.minutesOf', { date: fmtDate(m.start_date, locale) })} />
                         )}
                     </div>
-                    {minutes.map((u) => (
-                        <div key={u.id} className="rounded-md bg-surface-login px-2.5 py-1.5">
-                            <p className="whitespace-pre-line break-words text-sm text-ink">{u.body}</p>
-                            <p className="text-[11px] text-ink-gray">{(locale !== 'en' && u.author_local) || u.author}</p>
-                        </div>
-                    ))}
+                    {/* Collapsed; opened → fetched (components/meetings/meeting-minutes.jsx). */}
+                    <MeetingMinutes campaignId={scopeId} eventId={m.id} count={minutesCount} />
                 </div>
             )}
             {invited && !past && !attendance && (
@@ -159,13 +156,14 @@ export default function MeetingList({
     today,
     defaultTitle,
     defaultPlace,
-    minutes = [],
+    // { eventId: how many minutes } — the text loads when a meeting's minutes are opened.
+    minutes = {},
     canPostMinutes = false,
     birthdays = [],
     birthdayRoles = [],
     attendance = null,
 }) {
-    const minutesOf = (id) => minutes.filter((u) => u.event_id === id);
+    const minutesOf = (id) => minutes?.[id] ?? 0;
     const { t, locale } = useT();
     const router = useRouter();
     const pathname = usePathname();
@@ -191,7 +189,7 @@ export default function MeetingList({
             me={me}
             today={today}
             past={m.start_date < today}
-            minutes={minutesOf(m.id)}
+            minutesCount={minutesOf(m.id)}
             canPostMinutes={canPostMinutes}
             attendance={attendance?.byEvent?.[m.id] ?? null}
             canMark={Boolean(attendance?.canMark)}

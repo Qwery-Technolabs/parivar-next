@@ -1585,6 +1585,7 @@ const gu = {
         },
         counts: '{yes} આવશે · {maybe} કદાચ · {no} નહીં આવે · {pending} જવાબ નથી',
         yourAnswer: 'તમે આવશો?',
+        showMinutes: { one: 'કાર્યવાહી નોંધ ({count})', other: 'કાર્યવાહી નોંધ ({count})' },
         rsvp: { yes: 'આવીશ', maybe: 'કદાચ', no: 'નહીં આવું', pending: 'જવાબ નથી' },
         cancel: 'રદ કરો',
         cancelConfirm: 'આ મીટિંગ રદ કરવી છે? બધા આમંત્રિતોને જાણ થશે.',

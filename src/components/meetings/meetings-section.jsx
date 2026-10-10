@@ -16,7 +16,7 @@ export default async function MeetingsSection({
     scopeId,
     defaultTitle = '',
     defaultPlace = '',
-    minutes = [],
+    minutes = {},
     canPostMinutes = false,
     attendance = null,
 }) {

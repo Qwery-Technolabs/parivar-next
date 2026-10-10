@@ -1609,6 +1609,7 @@ const en = {
         },
         counts: '{yes} coming · {maybe} maybe · {no} not coming · {pending} no reply',
         yourAnswer: 'Are you coming?',
+        showMinutes: { one: 'Minutes ({count})', other: 'Minutes ({count})' },
         rsvp: {
             yes: 'Coming',
             maybe: 'Maybe',

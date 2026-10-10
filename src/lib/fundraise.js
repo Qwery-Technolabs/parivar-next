@@ -545,6 +545,16 @@ export async function nextMeeting(campaignId, today) {
 // ── updates & minutes ─────────────────────────────────────────────────────────
 
 /** Timeline, newest first. `eventId` narrows to one meeting's minutes. */
+/** How many minutes each meeting has: { eventId: n } — the meetings list shows "Minutes (n)" and loads them on open. */
+export async function minutesCounts(campaignId) {
+    const rows = await query(
+        `SELECT event_id, COUNT(*) AS n FROM fundraise_updates
+          WHERE campaign_id = :campaignId AND update_type = 'minutes' AND event_id IS NOT NULL GROUP BY event_id`,
+        { campaignId },
+    );
+    return Object.fromEntries(rows.map((r) => [r.event_id, Number(r.n)]));
+}
+
 export async function listUpdates(campaignId, { eventId = null } = {}) {
     const rows = await query(
         `SELECT fu.id, fu.update_type, fu.event_id, fu.created_by, fu.created_at,
