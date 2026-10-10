@@ -146,69 +146,53 @@ export default async function MemberPage({ params }) {
                 </p>
             )}
             <div className="grid gap-4 xl:grid-cols-2">
-                <div className="min-w-0">
-                    <Card title={t('members.details')}>
-                        <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
-                            <Detail label={t('members.gender')}>{member.gender && t(`gender.${member.gender}`)}</Detail>
-                            <Detail label={t('members.dob')}>{!privateDetails && member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}</Detail>
-                            <Detail label={t('family.maritalStatus')}>
-                                {!privateDetails && member.marital_status && t(`family.marital.${member.marital_status}`)}
+                <Card title={t('members.details')}>
+                    <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
+                        <Detail label={t('members.gender')}>{member.gender && t(`gender.${member.gender}`)}</Detail>
+                        <Detail label={t('members.dob')}>{!privateDetails && member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}</Detail>
+                        <Detail label={t('family.maritalStatus')}>
+                            {!privateDetails && member.marital_status && t(`family.marital.${member.marital_status}`)}
+                        </Detail>
+                        <Detail label={t('members.village')}>{member.village}</Detail>
+                        <Detail label={t('members.position')}>{m.position}</Detail>
+                        <Detail label={t('members.city')}>{member.city}</Detail>
+                        <Detail label={t('members.caste')}>
+                            {member.caste_name &&
+                                [
+                                    (locale === 'gu' && member.caste_name_local) || member.caste_name,
+                                    member.subcaste_name && ((locale === 'gu' && member.subcaste_name_local) || member.subcaste_name),
+                                ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                        </Detail>
+                        <Detail label={t('members.occupation')}>{m.occupation}</Detail>
+                        <Detail label={t('members.education')}>{m.education}</Detail>
+                        <Detail label={t('members.altPhone')}>{m.alt_phone}</Detail>
+                        <Detail label={t('members.email')}>{m.email}</Detail>
+                        <div className="sm:col-span-2">
+                            <Detail label={t('members.address')}>
+                                {/* Copy / Map / Directions (Google Maps; the city is added to the search when the address lacks it). */}
+                                {m.address && (
+                                    <AddressActions
+                                        address={m.address}
+                                        query={
+                                            member.city && !m.address.toLowerCase().includes(String(member.city).toLowerCase())
+                                                ? `${m.address}, ${member.city}`
+                                                : m.address
+                                        }
+                                    />
+                                )}
                             </Detail>
-                            <Detail label={t('members.village')}>{member.village}</Detail>
-                            <Detail label={t('members.position')}>{m.position}</Detail>
-                            <Detail label={t('members.city')}>{member.city}</Detail>
-                            <Detail label={t('members.caste')}>
-                                {member.caste_name &&
-                                    [
-                                        (locale === 'gu' && member.caste_name_local) || member.caste_name,
-                                        member.subcaste_name && ((locale === 'gu' && member.subcaste_name_local) || member.subcaste_name),
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' · ')}
-                            </Detail>
-                            <Detail label={t('members.occupation')}>{m.occupation}</Detail>
-                            <Detail label={t('members.education')}>{m.education}</Detail>
-                            <Detail label={t('members.altPhone')}>{m.alt_phone}</Detail>
-                            <Detail label={t('members.email')}>{m.email}</Detail>
+                        </div>
+                        {m.bio && (
                             <div className="sm:col-span-2">
-                                <Detail label={t('members.address')}>
-                                    {/* Copy / Map / Directions (Google Maps; the city is added to the search when the address lacks it). */}
-                                    {m.address && (
-                                        <AddressActions
-                                            address={m.address}
-                                            query={
-                                                member.city && !m.address.toLowerCase().includes(String(member.city).toLowerCase())
-                                                    ? `${m.address}, ${member.city}`
-                                                    : m.address
-                                            }
-                                        />
-                                    )}
+                                <Detail label={t('members.bio')}>
+                                    <span className="whitespace-pre-line">{m.bio}</span>
                                 </Detail>
                             </div>
-                            {m.bio && (
-                                <div className="sm:col-span-2">
-                                    <Detail label={t('members.bio')}>
-                                        <span className="whitespace-pre-line">{m.bio}</span>
-                                    </Detail>
-                                </div>
-                            )}
-                        </dl>
-                    </Card>
-                    {/* Who added this profile, and when — small, under the card's bottom-right corner. */}
-                    <p className="mt-1.5 text-right text-[11px] text-ink-gray">
-                        {addedBy ? (
-                            <>
-                                {t('members.addedBy')}{' '}
-                                <Link href={`/members/${addedBy.id}`} className="font-medium text-primary hover:underline">
-                                    {localized(addedBy, 'full_name', locale)}
-                                </Link>
-                            </>
-                        ) : (
-                            t('members.joined')
                         )}
-                        {member.created_at && <> · {date(String(member.created_at).slice(0, 10), locale)}</>}
-                    </p>
-                </div>
+                    </dl>
+                </Card>
 
                 <div className="space-y-4">
                     <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} relation={relation} t={t} locale={locale} />
@@ -280,6 +264,20 @@ export default async function MemberPage({ params }) {
                     )}
                 </div>
             </div>
+            {/* Who added this profile, and when — small, the page's last line (bottom right). */}
+            <p className="mt-3 text-right text-[11px] text-ink-gray">
+                {addedBy ? (
+                    <>
+                        {t('members.addedBy')}{' '}
+                        <Link href={`/members/${addedBy.id}`} className="font-medium text-primary hover:underline">
+                            {localized(addedBy, 'full_name', locale)}
+                        </Link>
+                    </>
+                ) : (
+                    t('members.joined')
+                )}
+                {member.created_at && <> · {date(String(member.created_at).slice(0, 10), locale)}</>}
+            </p>
         </div>
     );
 }
