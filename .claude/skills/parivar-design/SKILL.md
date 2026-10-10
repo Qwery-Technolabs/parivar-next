@@ -248,7 +248,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Discussion system notes (meeting scheduled, member added/removed) are centred pills; alert messages
   carry an amber "Alert" badge. The composer's bell toggle = "alert everyone" (off by default).
 
-- **Group About tab**: two columns like a fundraise's About (lg: main + 22rem / xl: 26rem side) — About card left; Team
+- **Group About tab**: two columns like a fundraise's About (lg: main + 22rem / xl: 26rem side) — About card left; its History (admins only, collapsed <details>, like the fundraise History) under it; Team
   card and Danger zone on the right (stacked on phones).
 - **Group Team card** (About tab, like the fundraise Team card): everyone who is admin / sub-admin or holds task
   roles, with role badges; header "Add to team" (MemberPicker + tick boxes) for the group's leaders; row ⋮ → Edit

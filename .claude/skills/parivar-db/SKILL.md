@@ -73,7 +73,7 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
 - Soft deletes via `deleted_at` (contributions, expenses, chat); archive via `archived_at` (fundraises).
 - Enum values used so far: users_list.role `super_admin|administrator|sub_admin|sabhyo`;
   admin_group_members.member_role `member|speaker|sub_admin|admin`; admin_group_team.team_role
-  `members|fundraise|meetings|details|discussion` (FK (group_id, user_id) → admin_group_members, cascade); fundraise_contributions.mode
+  `members|fundraise|meetings|details|discussion` (FK (group_id, user_id) → admin_group_members, cascade); admin_group_history (group_id, action, actor_id, user_id, detail JSON — a group's own History, cleared by its admins); fundraise_contributions.mode
   `cash|upi|bank|cheque|other|unpaid` (`unpaid` = pledged, excluded from every collected total).
 
 ## Changing the schema on live

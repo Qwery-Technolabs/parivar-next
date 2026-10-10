@@ -397,3 +397,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Group team roles (Members / Fundraise / Meetings / Group details / Discussion), danger zones for group leaders only, fundraise creator edits only, meeting edit/cancel by its creator or group leaders
 - [x] Qwery Technolabs link (qwerytechnolabs.com) in Settings → About and the privacy policy page
 - [x] Group Team card (About tab) like the fundraise team: add / edit roles (Admin, Sub-admin + task roles) / remove from team
+- [x] Group History (About tab, admins only): edits, members, roles, team, status / archive, fundraisers; Clear history for its admins

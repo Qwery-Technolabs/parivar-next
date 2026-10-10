@@ -206,6 +206,22 @@ CREATE TABLE IF NOT EXISTS admin_group_team (
     CONSTRAINT fk_admin_gt_member FOREIGN KEY (group_id, user_id) REFERENCES admin_group_members (group_id, user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A group's own history (About → History, its admins only; its admins can clear it), like fundraise_history:
+-- group edits, members / roles / team changes, status (archive, restore, inactive), fundraisers started in or
+-- linked to it. lib/group-history.js writes it; the app-wide admin_audit_log is separate and never cleared here.
+CREATE TABLE IF NOT EXISTS admin_group_history (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    group_id    INT UNSIGNED    NOT NULL,
+    action      VARCHAR(32)     NOT NULL,          -- edit, status, member_add, member_remove, role, team, team_remove, fundraise_create, fundraise_link, fundraise_unlink
+    actor_id    INT UNSIGNED    NULL,
+    user_id     INT UNSIGNED    NULL,              -- the member it was about (role, team, add / remove)
+    detail      JSON            NULL,
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_admin_group_history (group_id, created_at),
+    CONSTRAINT fk_admin_group_history FOREIGN KEY (group_id) REFERENCES admin_groups (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS admin_settings (
     setting_key    VARCHAR(64) NOT NULL,
     setting_value  LONGTEXT    NULL,

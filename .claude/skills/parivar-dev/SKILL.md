@@ -74,6 +74,12 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Danger zones**: group — its leaders only (status: admins; delete: app-level). Fundraise — `fundraisePermissions().danger`
   = app-level or a leader of a group it is shown in (NOT its creator / team admins, who only edit it); setCampaignStatus /
   setCampaignArchived use `authorize(id, 'danger')`. A Mandal keeps danger = manage (run by its own team).
+- **Group history** (admin_group_history, lib/group-history.js `recordGroupHistory` — never throws): every group action
+  writes one entry — edit (changed fields), status, member_add / member_remove, role, team, team_remove, and from
+  fundraise actions (`recordFundraiseInGroups`) fundraise_create / fundraise_link / fundraise_unlink. Shown on the About
+  tab (collapsed, like the fundraise History) to the group's admins + app-level managers only (`canAdminister`); its
+  admins clear it (`clearGroupHistory`, danger zone). The app-wide admin_audit_log is separate and keeps its record.
+  A NEW group action must record its history too.
   Sub-admins never act on admins/sub-admins.
 - Fundraise: `fundraisePermissions(user, campaign)` → manage / contribution / expense / post / teamRole.
   Admins & sub-admins of any linked group (`fundraise_groups`) start fundraises; standalone (no group)

@@ -4,11 +4,12 @@ import { redirect } from 'next/navigation';
 import { canEditGroupDetails, groupStanding } from '@/lib/access';
 import { canActOnRole, canAdminister, canSetTeam, GROUP_ROLES, GROUP_STATUSES, GROUP_TEAM_ROLES, GROUP_VISIBILITY, isGroupLeader } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
+import { recordGroupHistory } from '@/lib/group-history';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
 import { ensureInvitedUser } from '@/lib/invite';
 import { postMemberNote } from '@/lib/chat';
-import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
+import { getMeta, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { id, oneOf, str, strOrNull } from '@/lib/forms';
 import { normalizePhone } from '@/lib/phone';
 import { notify } from '@/lib/notifications';
@@ -46,6 +47,10 @@ export async function saveGroup(prev, fd) {
     const chatRoles = GROUP_ROLES.filter((r) => r === 'admin' || fd.getAll('chat_roles').includes(r));
     const visibility = oneOf(fd, 'visibility', GROUP_VISIBILITY, 'public');
     const avatar = sanitizeAvatar(str(fd, 'avatar_kind', 10), str(fd, 'avatar_value', 40), str(fd, 'avatar_color', 10));
+    // Before an edit: what it was, for the group's History.
+    const before = groupId
+        ? await Promise.all([queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId }), getMeta('admin_groups', groupId)])
+        : null;
 
     const savedId = await withTransaction(async (q) => {
         let gid = groupId;
@@ -77,6 +82,19 @@ export async function saveGroup(prev, fd) {
         return gid;
     });
     await audit(actor.id, groupId ? 'group.update' : 'group.create', 'group', savedId, { name });
+    if (before) {
+        const [row, meta] = before;
+        const nextChat = chatRoles.length === GROUP_ROLES.length ? '' : chatRoles.join(',');
+        const changes = [
+            row?.name !== name && { field: 'name', from: row?.name ?? '', to: name },
+            (row?.name_local ?? null) !== nameLocal && { field: 'name_local', from: row?.name_local ?? '', to: nameLocal ?? '' },
+            (meta.visibility || 'public') !== visibility && { field: 'visibility', from: meta.visibility || 'public', to: visibility },
+            (meta.description ?? '') !== description && { field: 'description' },
+            ['avatar_kind', 'avatar_value', 'avatar_color'].some((k) => (meta[k] ?? '') !== (avatar[k] ?? '')) && { field: 'picture' },
+            (meta.chat_roles ?? '') !== nextChat && { field: 'who_can_post' },
+        ].filter(Boolean);
+        if (changes.length) await recordGroupHistory(groupId, actor.id, 'edit', { changes });
+    }
     revalidatePath('/groups');
     revalidatePath(`/groups/${savedId}`);
     forget('groups'); // cached lists (lib/memo)
@@ -104,6 +122,8 @@ export async function addGroupMember(prev, fd) {
         { groupId, userId, memberRole, by: actor.id },
     );
     await audit(actor.id, memberRole === 'admin' ? 'group.admin' : 'group.member.add', 'group', groupId, { userId });
+    if (!already) await recordGroupHistory(groupId, actor.id, 'member_add', { userId, role: memberRole });
+    else if (already.member_role !== memberRole) await recordGroupHistory(groupId, actor.id, 'role', { userId, from: already.member_role, to: memberRole });
     await notifyGroupRole(userId, groupId, memberRole, actor.id);
     if (!already) await postMemberNote(groupId, actor.id, 'added', [userId]);
     await syncGroupJoin(groupId); // upcoming "Everyone" meetings + "everyone" Mandals take them now
@@ -145,6 +165,8 @@ export async function inviteGroupMember(prev, fd) {
         { groupId, uid: user.id, memberRole, by: actor.id },
     );
     await audit(actor.id, 'group.member.add', 'group', groupId, { userId: user.id, invited: created });
+    if (!already) await recordGroupHistory(groupId, actor.id, 'member_add', { userId: user.id, role: memberRole, invited: created });
+    else await recordGroupHistory(groupId, actor.id, 'role', { userId: user.id, from: already.member_role, to: memberRole });
     if (!created) await notifyGroupRole(user.id, groupId, memberRole, actor.id);
     if (!already) await postMemberNote(groupId, actor.id, 'added', [user.id]);
     await syncGroupJoin(groupId); // upcoming "Everyone" meetings + "everyone" Mandals take them now
@@ -167,6 +189,7 @@ export async function setGroupMemberRole(groupId, userId, memberRole) {
     if (uid === actor.id && memberRole !== row.member_role && standing !== 'app') return { error: 'groups.errors.selfDemote' };
     await query('UPDATE admin_group_members SET member_role = :memberRole WHERE group_id = :gid AND user_id = :uid', { memberRole, gid, uid });
     await audit(actor.id, 'group.role', 'group', gid, { userId: uid, from: row.member_role, to: memberRole });
+    if (row.member_role !== memberRole) await recordGroupHistory(gid, actor.id, 'role', { userId: uid, from: row.member_role, to: memberRole });
     // Promotion is news; a demotion is not pushed as a notification.
     if (GROUP_ROLES.indexOf(memberRole) < GROUP_ROLES.indexOf(row.member_role)) await notifyGroupRole(uid, gid, memberRole, actor.id);
     revalidatePath(`/groups/${gid}`);
@@ -221,6 +244,8 @@ export async function saveGroupTeam(prev, fd) {
         for (const r of removed) await q('DELETE FROM admin_group_team WHERE group_id = :gid AND user_id = :uid AND team_role = :r', { gid, uid, r });
     });
     await audit(actor.id, 'group.team', 'group', gid, { userId: uid, from: current, to: nextRole, added, removed });
+    if (current !== nextRole || added.length || removed.length)
+        await recordGroupHistory(gid, actor.id, 'team', { userId: uid, from: current, to: nextRole, added, removed });
     // A new admin / sub-admin is told; joining the group shows in its discussion.
     if (lead && lead !== current) await notifyGroupRole(uid, gid, lead, actor.id);
     if (!current) {
@@ -255,6 +280,7 @@ export async function removeFromGroupTeam(groupId, userId) {
         await q('DELETE FROM admin_group_team WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     });
     await audit(actor.id, 'group.team.remove', 'group', gid, { userId: uid, from: row.member_role });
+    await recordGroupHistory(gid, actor.id, 'team_remove', { userId: uid, from: row.member_role });
     revalidatePath(`/groups/${gid}`);
     return { ok: true, message: 'common.saved' };
 }
@@ -276,9 +302,26 @@ export async function removeGroupMember(groupId, userId) {
     if (uid === actor.id && standing !== 'app') return { error: 'groups.errors.selfDemote' };
     const r = await query('DELETE FROM admin_group_members WHERE group_id = :gid AND user_id = :uid', { gid, uid });
     await audit(actor.id, 'group.member.remove', 'group', gid, { userId: uid });
+    if (r.affectedRows) await recordGroupHistory(gid, actor.id, 'member_remove', { userId: uid, role: row.member_role });
     if (r.affectedRows) await postMemberNote(gid, actor.id, 'removed', [uid]);
     revalidatePath(`/groups/${gid}`);
     return { ok: true, message: 'common.deleted' };
+}
+
+/**
+ * Danger zone: clear the group's own History (admin_group_history). Its admins and app-level group managers
+ * only; the app-wide activity log keeps its record (and notes this clear).
+ */
+export async function clearGroupHistory(groupId) {
+    const actor = await getCurrentUser();
+    const gid = Number(groupId);
+    if (!actor || !gid) return FORBIDDEN;
+    const { standing } = await groupStanding(actor, gid);
+    if (!canAdminister(standing)) return FORBIDDEN;
+    const r = await query('DELETE FROM admin_group_history WHERE group_id = :gid', { gid });
+    await audit(actor.id, 'group.history.clear', 'group', gid, { rows: r?.affectedRows ?? 0 });
+    revalidatePath(`/groups/${gid}`);
+    return { ok: true, message: 'groups.history.cleared' };
 }
 
 /** Danger zone: set a group's status (active / inactive / archived). The group's admins and app-level group managers. */
@@ -291,6 +334,7 @@ export async function setGroupStatus(groupId, status) {
     if (!g) return FORBIDDEN;
     await query('UPDATE admin_groups SET status = :status WHERE id = :groupId', { status, groupId });
     await audit(actor.id, 'group.update', 'group', groupId, { name: g.name, status: { from: g.status, to: status } });
+    if (g.status !== status) await recordGroupHistory(g.id, actor.id, 'status', { from: g.status, to: status });
     revalidatePath('/groups');
     revalidatePath(`/groups/${groupId}`);
     forget('groups'); // cached lists (lib/memo)

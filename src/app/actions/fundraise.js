@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { canCreateFundraiseIn, FUNDRAISE_TEAM_ROLES, fundraisePermissions } from '@/lib/access';
 import { audit } from '@/lib/audit';
+import { recordFundraiseInGroups } from '@/lib/group-history';
 import { getCurrentUser } from '@/lib/auth';
 import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, money, oneOf, str, strOrNull } from '@/lib/forms';
@@ -435,6 +436,9 @@ export async function saveCampaign(prev, fd) {
             title,
             audience: audience.length,
         });
+        // The groups' own History: shown in / taken out of a group.
+        await recordFundraiseInGroups(plan.add, user.id, 'fundraise_link', { campaignId, title });
+        await recordFundraiseInGroups(plan.drop, user.id, 'fundraise_unlink', { campaignId, title });
         refreshCampaign(campaignId);
         forget('places'); // cached lists (lib/memo)
         redirect(`/fundraise/${campaignId}`);
@@ -478,6 +482,14 @@ export async function saveCampaign(prev, fd) {
         title,
         audience: audience.length,
     });
+    // The groups' own History: started in its home group, shown in the others.
+    await recordFundraiseInGroups([groupId], user.id, 'fundraise_create', { campaignId: newId, title, kind });
+    await recordFundraiseInGroups(
+        plan.add.filter((g) => g !== groupId),
+        user.id,
+        'fundraise_link',
+        { campaignId: newId, title },
+    );
     revalidatePath('/fundraise');
     forget('places'); // cached lists (lib/memo)
     redirect(`/fundraise/${newId}`);
@@ -1208,6 +1220,7 @@ export async function addCampaignToGroups(prev, fd) {
         title: campaign.title,
         addedGroups: add,
     });
+    await recordFundraiseInGroups(add, user.id, 'fundraise_link', { campaignId, title: campaign.title });
     refreshCampaign(campaignId);
     for (const g of add) revalidatePath(`/groups/${g}`);
     return { ok: true, message: 'fundraise.addToGroupDone' };

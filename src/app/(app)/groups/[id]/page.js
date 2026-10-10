@@ -10,6 +10,8 @@ import GroupFormDialog from '@/components/groups/group-form-dialog';
 import GroupDangerCard from '@/components/groups/group-danger-card';
 import { DOT_SIZE } from '@/lib/status-dot';
 import GroupMembers from '@/components/groups/group-members';
+import GroupHistory from '@/components/groups/group-history';
+import { listGroupHistory } from '@/lib/group-history';
 import GroupTeamPanel, { AddGroupTeamButton } from '@/components/groups/group-team-panel';
 import NewFundraiseMenu from '@/components/fundraise/new-fundraise-menu';
 import { Card } from '@/components/shell/page-header';
@@ -65,6 +67,9 @@ export default async function GroupPage({ params, searchParams }) {
     // Admins and sub-admins do everything; others by their team roles (lib/group-roles.js).
     const canManage = canManageMembership(standing, team);
     const canEditGroup = canEditDetails(standing, team);
+    // The group's own History: its admins (and app-level group managers) only — loaded on the About tab.
+    const seesHistory = canAdminister(standing);
+    const history = tab === 'about' && seesHistory ? await listGroupHistory(group.id) : [];
     const name = localized(group, 'name', locale);
     const base = `/groups/${group.id}`;
 
@@ -193,12 +198,15 @@ export default async function GroupPage({ params, searchParams }) {
             {tab === 'about' && (
                 // Two columns like a fundraise's About: the group on the left; Team and the Danger zone on the right.
                 <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_26rem]">
-                    <Card title={t('groups.about')}>
-                        <p className="whitespace-pre-line text-sm text-ink">
-                            {group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}
-                        </p>
-                        <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
-                    </Card>
+                    <div className="min-w-0 space-y-4">
+                        <Card title={t('groups.about')}>
+                            <p className="whitespace-pre-line text-sm text-ink">
+                                {group.meta.description || <span className="text-ink-gray">{t('groups.noDescription')}</span>}
+                            </p>
+                            <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
+                        </Card>
+                        {seesHistory && <GroupHistory rows={history} t={t} locale={locale} />}
+                    </div>
                     <div className="min-w-0 space-y-4">
                         {/* Team — like a fundraise team: admins, sub-admins and members with task roles (its leaders edit it). */}
                         <Card
@@ -221,6 +229,7 @@ export default async function GroupPage({ params, searchParams }) {
                                 // Clearing the discussion: app admins / sub-admins, and this group's admins and sub-admins.
                                 canClearChat={canClearChats(user.role) || canAdminister(standing) || standing === 'sub_admin'}
                                 messageCount={messages}
+                                historyCount={seesHistory ? history.length : 0}
                                 t={t}
                             />
                         )}

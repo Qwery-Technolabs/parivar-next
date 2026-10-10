@@ -1,5 +1,5 @@
-import { Archive, ArchiveRestore, CirclePause, CirclePlay, Trash2 } from 'lucide-react';
-import { deleteGroup, setGroupStatus } from '@/app/actions/groups';
+import { Archive, ArchiveRestore, CirclePause, CirclePlay, History, Trash2 } from 'lucide-react';
+import { clearGroupHistory, deleteGroup, setGroupStatus } from '@/app/actions/groups';
 import ClearChatRow from '@/components/chat/clear-chat-row';
 import ActionButton from '@/components/fundraise/action-button';
 import { Card } from '@/components/shell/page-header';
@@ -10,7 +10,7 @@ import { GROUP_STATUS_DOT } from '@/lib/group-roles';
  * active ⇄ inactive (read-only discussion); archive (hidden from members) ⇄ restore; an archived
  * group can be deleted for good (app-level group managers only).
  */
-export default function GroupDangerCard({ group, canDelete, canManage = true, canClearChat = false, messageCount = 0, t }) {
+export default function GroupDangerCard({ group, canDelete, canManage = true, canClearChat = false, messageCount = 0, historyCount = 0, t }) {
     const s = group.status;
     // Colour by meaning (white text ≥4.5:1): pause amber, archive slate, back to active green, delete red.
     // Phones: icon only (label → aria-label + title); icon + text from sm.
@@ -30,6 +30,22 @@ export default function GroupDangerCard({ group, canDelete, canManage = true, ca
             </p>
             <ul className="space-y-3 text-xs text-ink-gray">
                 {canClearChat && messageCount > 0 && <ClearChatRow scope="group" scopeId={group.id} count={messageCount} t={t} />}
+                {/* The group's own History: its admins only — the page passes 0 otherwise. */}
+                {historyCount > 0 && (
+                    <li className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0 flex-1">{t('groups.danger.historyHint', { count: historyCount })}</span>
+                        <ActionButton
+                            action={clearGroupHistory.bind(null, group.id)}
+                            confirm={t('groups.danger.historyConfirm')}
+                            icon={<History className="size-3.5" />}
+                            plain
+                            label={t('groups.danger.clearHistory')}
+                            className={tone.delete}
+                        >
+                            {text('groups.danger.clearHistory')}
+                        </ActionButton>
+                    </li>
+                )}
                 {canManage && s !== 'archived' && (
                     <li className="flex flex-wrap items-center justify-between gap-2">
                         <span className="min-w-0 flex-1">{t('groups.danger.inactiveHint')}</span>
