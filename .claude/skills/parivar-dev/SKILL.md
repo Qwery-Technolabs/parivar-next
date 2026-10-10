@@ -174,7 +174,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Editing someone else's profile** (`canEditUser`): themselves; whoever added a FAMILY relative (users_listmeta
   added_via = family) — always; whoever added anyone else — until that person first signs in; member admins by rank.
   The Access tab (role / status) is member admins only (page + updateMemberSection). Member page: a small right-aligned
-  line at the very END of the page (under both columns, phone and desktop) — "Added by <name> · date" (created_by) or "Joined · date".
+  line at the very END of the page (under both columns, phone and desktop) — shown only to app
+  admins / sub-admins (who added anyone, or "Joined") and to whoever added that profile ("Added by you"); hidden from
+  everyone else — "Added by <name> · date" (created_by) or "Joined · date".
 - **Speed — parallel queries**: in pages and actions, never await independent DB calls one after another. Load the user
   and the main record together, then everything that needs only the id in ONE Promise.all (start background pieces as
   promises and await them after the tab's data). Fundraise / group / member pages follow this.

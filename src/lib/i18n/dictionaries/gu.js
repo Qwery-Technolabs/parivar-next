@@ -300,6 +300,7 @@ const gu = {
         address: 'સરનામું',
         copyAddress: 'સરનામું કૉપિ કરો',
         addedBy: 'ઉમેરનાર:',
+        addedByYou: 'તમે ઉમેર્યા',
         joined: 'જોડાયા',
         addressCopied: 'સરનામું કૉપિ થયું',
         openMap: 'Google Maps માં ખોલો',

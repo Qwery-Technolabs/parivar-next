@@ -52,9 +52,13 @@ export default async function MemberPage({ params }) {
     // An archived member is visible to administrators (and up) only.
     if (member.status === 'archived' && !atLeast(user.role, 'administrator')) notFound();
     // Who added this profile (users_list.created_by), for the small line under the Details card.
+    // "Added by …" (last line of the page): app admins / sub-admins see who added anyone (or "Joined"); whoever added
+    // this profile themselves (e.g. a relative from their family tree) sees "Added by you"; nobody else sees it.
+    const addedByMe = Boolean(member.created_by) && member.created_by === user.id && member.id !== user.id;
+    const seesAddedBy = atLeast(user.role, 'sub_admin');
     const [seeFamily, addedBy] = await Promise.all([
         canSeeFamily(user, member),
-        member.created_by && member.created_by !== member.id
+        seesAddedBy && !addedByMe && member.created_by && member.created_by !== member.id
             ? queryOne('SELECT id, full_name, full_name_local FROM users_list WHERE id = :id', { id: member.created_by })
             : null,
     ]);
@@ -265,19 +269,23 @@ export default async function MemberPage({ params }) {
                 </div>
             </div>
             {/* Who added this profile, and when — small, the page's last line (bottom right). */}
-            <p className="mt-3 text-right text-[11px] text-ink-gray">
-                {addedBy ? (
-                    <>
-                        {t('members.addedBy')}{' '}
-                        <Link href={`/members/${addedBy.id}`} className="font-medium text-primary hover:underline">
-                            {localized(addedBy, 'full_name', locale)}
-                        </Link>
-                    </>
-                ) : (
-                    t('members.joined')
-                )}
-                {member.created_at && <> · {date(String(member.created_at).slice(0, 10), locale)}</>}
-            </p>
+            {(seesAddedBy || addedByMe) && (
+                <p className="mt-3 text-right text-[11px] text-ink-gray">
+                    {addedByMe ? (
+                        t('members.addedByYou')
+                    ) : addedBy ? (
+                        <>
+                            {t('members.addedBy')}{' '}
+                            <Link href={`/members/${addedBy.id}`} className="font-medium text-primary hover:underline">
+                                {localized(addedBy, 'full_name', locale)}
+                            </Link>
+                        </>
+                    ) : (
+                        t('members.joined')
+                    )}
+                    {member.created_at && <> · {date(String(member.created_at).slice(0, 10), locale)}</>}
+                </p>
+            )}
         </div>
     );
 }

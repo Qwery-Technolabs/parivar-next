@@ -304,6 +304,7 @@ const en = {
         address: 'Address',
         copyAddress: 'Copy address',
         addedBy: 'Added by',
+        addedByYou: 'Added by you',
         joined: 'Joined',
         addressCopied: 'Address copied',
         openMap: 'Open in Google Maps',
