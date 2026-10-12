@@ -4,6 +4,7 @@ import { FilterPopover, FilterSection, SearchBox, ToolbarRow, useUrlFilters } fr
 import { Field, selectInput, textInput } from '@/components/ui/field';
 import Switch from '@/components/ui/switch';
 import CasteSelect from './caste-select';
+import Combobox from '@/components/ui/combobox';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 import { useDebouncedCallback } from '@/components/ui/use-debounce';
@@ -83,6 +84,11 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
         by: filters.createdBy ? String(filters.createdBy) : '',
     });
     const [draft, setDraft] = useState(initial);
+    // "Added by" choices (searchable): me first, then — for admins — everyone who added members, with counts.
+    const byOptions = [
+        ...(meId ? [{ value: String(meId), label: t('members.addedByMeOption') }] : []),
+        ...(creators ?? []).filter((c) => c.value !== String(meId)),
+    ];
     const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
 
     return (
@@ -151,36 +157,28 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     <option value="all">{t('common.all')}</option>
                 </select>
             </Field>
-            {/* Registration and Added by: half width each, side by side. */}
-            <div className="grid grid-cols-2 gap-2">
-                <Field label={t('members.registration')}>
-                    <select value={draft.reg} onChange={(e) => set('reg', e.target.value)} className={`${selectInput()} w-full`}>
-                        <option value="registered">{t('members.reg.registered')}</option>
-                        <option value="unregistered">{t('members.reg.unregistered')}</option>
-                        <option value="all">{t('common.all')}</option>
-                    </select>
-                </Field>
-                <Field label={t('members.addedByFilter')}>
-                    <select
-                        value={draft.by}
-                        onChange={(e) =>
-                            // People someone added are mostly not registered yet: picking one shows everyone (All).
-                            setDraft((d) => ({ ...d, by: e.target.value, reg: e.target.value && d.reg === 'registered' ? 'all' : d.reg }))
-                        }
-                        className={`${selectInput()} w-full`}
-                    >
-                        <option value="">{t('common.any')}</option>
-                        {meId && <option value={String(meId)}>{t('members.addedByMeOption')}</option>}
-                        {(creators ?? [])
-                            .filter((c) => c.value !== String(meId))
-                            .map((c) => (
-                                <option key={c.value} value={c.value}>
-                                    {c.label}
-                                </option>
-                            ))}
-                    </select>
-                </Field>
-            </div>
+            {/* Registration | Added by — one grid cell each, so they share a row (Gender | Age follow). */}
+            <Field label={t('members.registration')}>
+                <select value={draft.reg} onChange={(e) => set('reg', e.target.value)} className={`${selectInput()} w-full`}>
+                    <option value="registered">{t('members.reg.registered')}</option>
+                    <option value="unregistered">{t('members.reg.unregistered')}</option>
+                    <option value="all">{t('common.all')}</option>
+                </select>
+            </Field>
+            <Field label={t('members.addedByFilter')}>
+                <Combobox
+                    value={draft.by}
+                    valueLabel={byOptions.find((o) => o.value === draft.by)?.label ?? ''}
+                    // People someone added are mostly not registered yet: picking one shows everyone (All).
+                    onSelect={(opt) => setDraft((d) => ({ ...d, by: opt?.value ?? '', reg: opt?.value && d.reg === 'registered' ? 'all' : d.reg }))}
+                    fetchOptions={async (q) => {
+                        const needle = q.trim().toLowerCase();
+                        return needle ? byOptions.filter((o) => o.label.toLowerCase().includes(needle)) : byOptions;
+                    }}
+                    placeholder={t('common.any')}
+                    emptyText={t('mandal.searchNone')}
+                />
+            </Field>
             <Field label={t('members.gender')}>
                 <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
                     {[

@@ -3,7 +3,7 @@ import { todayLocal } from '@/lib/forms';
 import { FUNDRAISE_TEAM_ROLES } from '@/lib/access';
 import { GROUP_ROLES } from '@/lib/group-roles';
 import { getT } from '@/lib/i18n/server';
-import { candidatePeople, listMeetings, meetingScope, scopeBirthdays } from '@/lib/meetings';
+import { candidatePeople, countPastMeetings, listMeetings, meetingScope, scopeBirthdays } from '@/lib/meetings';
 import MeetingList from './meeting-list';
 
 /**
@@ -19,18 +19,22 @@ export default async function MeetingsSection({
     minutes = {},
     canPostMinutes = false,
     attendance = null,
+    // ?view= of the page: 'calendar' loads every meeting + birthdays; the list only upcoming ones (past on open).
+    view = 'list',
 }) {
     const user = await getCurrentUser();
     const ctx = await meetingScope(user, scope, scopeId);
     if (!ctx) return null;
     // `minutes` / `attendance` may come as promises from the page: awaited together with the rest.
-    const [meetings, people, birthdays, { t }, minutesList, attendanceData] = await Promise.all([
-        listMeetings(scope, scopeId, user.id),
+    const calendar = view === 'calendar';
+    const [meetings, people, birthdays, { t }, minutesList, attendanceData, pastCount] = await Promise.all([
+        listMeetings(scope, scopeId, user.id, { when: calendar ? 'all' : 'upcoming' }),
         candidatePeople(ctx.candidateIds),
-        scopeBirthdays(scope, scopeId),
+        calendar ? scopeBirthdays(scope, scopeId) : [],
         getT(),
         minutes,
         attendance,
+        calendar ? null : countPastMeetings(scope, scopeId),
     ]);
     // Whose birthdays to show: the group's roles, or a fundraise's team roles + its groups' members.
     const birthdayRoles =
@@ -57,6 +61,7 @@ export default async function MeetingsSection({
             birthdays={birthdays}
             birthdayRoles={birthdayRoles}
             attendance={attendanceData}
+            pastCount={pastCount}
         />
     );
 }

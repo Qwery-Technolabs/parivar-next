@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LinkSpinner from './link-spinner';
 
 /**
  * "Old WhatsApp" tab row on the navy header: equal-width tabs, each an icon over a short
@@ -34,6 +35,8 @@ export default function WaTabs({ tabs, active }) {
                     >
                         <span className="relative">
                             {Icon && <Icon className="size-4 sm:size-[18px]" />}
+                            {/* Loading this tab: a mini spinner beside its icon. */}
+                            <LinkSpinner className="absolute -left-4 top-0.5 size-3" />
                             {tab.count > 0 && (
                                 <span className="absolute -right-3 -top-1.5 rounded-full bg-white/20 px-1 text-[9px] font-semibold leading-3.5 tabular-nums">
                                     {tab.count > 99 ? '99+' : tab.count}

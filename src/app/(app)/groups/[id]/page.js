@@ -131,7 +131,7 @@ export default async function GroupPage({ params, searchParams }) {
                 </>
             )}
 
-            {tab === 'meetings' && <MeetingsSection scope="group" scopeId={group.id} defaultTitle={`${name} — ${t('meetings.word')}`} />}
+            {tab === 'meetings' && <MeetingsSection scope="group" scopeId={group.id} defaultTitle={`${name} — ${t('meetings.word')}`} view={sp1(sp.view)} />}
 
             {tab === 'fundraise' && (
                 <div className="theme-fundraise space-y-3">

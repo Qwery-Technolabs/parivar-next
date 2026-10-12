@@ -1,5 +1,6 @@
 import { ArrowLeft, Check } from 'lucide-react';
 import Link from 'next/link';
+import LinkSpinner from '@/components/ui/link-spinner';
 import { date } from '@/lib/format';
 import { todayLocal } from '@/lib/forms';
 import { localized } from '@/lib/i18n/config';
@@ -65,6 +66,7 @@ export default async function PrintSheet({
                         );
                         return href ? (
                             <Link key={s} href={href} replace scroll={false} aria-pressed={on} className={cls}>
+                                <LinkSpinner />
                                 {body}
                             </Link>
                         ) : (

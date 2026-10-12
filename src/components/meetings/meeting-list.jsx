@@ -1,9 +1,9 @@
 'use client';
-import { CalendarDays, Check, ChevronDown, Clock, HelpCircle, List, MapPin, Trash2, Users, X, Cake } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, Clock, HelpCircle, List, MapPin, Trash2, Users, X, Cake, Loader2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { cancelMeeting, setRsvp } from '@/app/actions/meetings';
+import { cancelMeeting, loadPastMeetings, setRsvp } from '@/app/actions/meetings';
 import { date as fmtDate, time as fmtTime } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 import PostDialog from '@/components/fundraise/post-dialog';
@@ -162,6 +162,7 @@ export default function MeetingList({
     birthdays = [],
     birthdayRoles = [],
     attendance = null,
+    pastCount = null,
 }) {
     const minutesOf = (id) => minutes?.[id] ?? 0;
     const { t, locale } = useT();
@@ -176,7 +177,21 @@ export default function MeetingList({
     const calMeetings = show === 'birthday' ? [] : meetings;
     const calBirthdays = show === 'meeting' ? [] : birthdays.filter((b) => !role || b.role === role);
     const upcoming = meetings.filter((m) => m.start_date >= today).reverse();
-    const past = meetings.filter((m) => m.start_date < today);
+    // The list: past meetings load when opened (pastCount = how many); the calendar view has them all already.
+    const [pastLoaded, setPastLoaded] = useState(null);
+    const [pastPending, startPast] = useTransition();
+    const past = pastCount == null ? meetings.filter((m) => m.start_date < today) : (pastLoaded ?? []);
+    const pastTotal = pastCount ?? past.length;
+    const togglePast = () => {
+        const next = !showPast;
+        setShowPast(next);
+        if (next && pastCount != null && pastLoaded == null)
+            startPast(async () => {
+                const res = await loadPastMeetings(scope, scopeId);
+                if (res?.ok) setPastLoaded(res.meetings);
+                else toast.error(t(res?.error ?? 'common.error'));
+            });
+    };
     const card = (m) => (
         <MeetingCard
             key={m.id}
@@ -196,12 +211,16 @@ export default function MeetingList({
         />
     );
 
+    // The view being opened, with a mini spinner on its button until it arrives.
+    const [viewPending, startView] = useTransition();
+    const [opening, setOpening] = useState(null);
     function setView(v) {
         const params = new URLSearchParams(searchParams.toString());
         if (v === 'calendar') params.set('view', 'calendar');
         else params.delete('view');
         const qs = params.toString();
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+        setOpening(v);
+        startView(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
     }
 
     return (
@@ -221,7 +240,7 @@ export default function MeetingList({
                                 aria-pressed={view === v}
                                 className={`inline-flex h-7 items-center gap-1 rounded px-2 text-xs font-medium ${view === v ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-brand-navy'}`}
                             >
-                                <Icon className="size-3.5" /> {label}
+                                {viewPending && opening === v ? <Loader2 className="size-3.5 animate-spin" /> : <Icon className="size-3.5" />} {label}
                             </button>
                         ))}
                     </div>
@@ -313,15 +332,19 @@ export default function MeetingList({
                         <p className="rounded-lg border border-surface-border bg-white px-4 py-6 text-center text-sm text-ink-gray">{t('meetings.none')}</p>
                     )}
                     <ul className="space-y-2">{upcoming.map(card)}</ul>
-                    {past.length > 0 && (
+                    {pastTotal > 0 && (
                         <>
                             <button
                                 type="button"
-                                onClick={() => setShowPast((v) => !v)}
+                                onClick={togglePast}
                                 className="inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary"
                             >
-                                <ChevronDown className={`size-3.5 transition-transform ${showPast ? 'rotate-180' : ''}`} />{' '}
-                                {t('meetings.past', { count: past.length })}
+                                {pastPending ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                    <ChevronDown className={`size-3.5 transition-transform ${showPast ? 'rotate-180' : ''}`} />
+                                )}{' '}
+                                {t('meetings.past', { count: pastTotal })}
                             </button>
                             {showPast && <ul className="space-y-2">{past.map(card)}</ul>}
                         </>

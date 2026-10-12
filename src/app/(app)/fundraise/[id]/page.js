@@ -12,7 +12,7 @@ import GroupAvatar from '@/components/groups/group-avatar';
 import MeetingsSection from '@/components/meetings/meetings-section';
 import MoneyTab, { MONEY_VIEWS } from '@/components/fundraise/money-tab';
 import { mandalAboutParts, mandalMoneyParts } from '@/components/mandal/mandal-tab';
-import { canRunMandal, mandalAttendance, mandalMeetingsOnce, mandalMembersOnce, syncMandalMembers } from '@/lib/mandal';
+import { canRunMandal, mandalAttendanceCounts, mandalMeetingsOnce, mandalMembersOnce, syncMandalMembers } from '@/lib/mandal';
 import Badge from '@/components/ui/badge';
 import AddToGroups from '@/components/fundraise/add-to-groups';
 import { DOT_SIZE, FUNDRAISE_STATUS_DOT } from '@/lib/status-dot';
@@ -284,7 +284,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
         // A Mandal's meetings are its schedules: each card marks who came (those who run it), straight from here.
         const attendance = isMandal
             ? Promise.all([
-                  mandalMeetingsOnce(campaign.id, Number(campaign.meta?.installment) || 0).then((m) => mandalAttendance(campaign.id, m)),
+                  mandalMeetingsOnce(campaign.id, Number(campaign.meta?.installment) || 0).then((m) => mandalAttendanceCounts(campaign.id, m)),
                   canRunMandal(user, campaign),
               ]).then(([byEvent, canMark]) => ({ byEvent, canMark }))
             : null;
@@ -292,6 +292,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
             <MeetingsSection
                 scope="fundraise"
                 scopeId={campaign.id}
+                view={rawView}
                 defaultTitle={`${campaign.title} — ${t('meetings.word')}`}
                 defaultPlace={campaign.location ?? ''}
                 minutes={minutes}

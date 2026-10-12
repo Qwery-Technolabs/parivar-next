@@ -66,6 +66,13 @@ export async function meetingScope(user, scope, scopeId) {
     return null;
 }
 
+/** How many past meetings a group / fundraise has — the list's "Past meetings (n)" before they are opened. */
+export async function countPastMeetings(scope, scopeId) {
+    const where = scope === 'group' ? 'group_id = :scopeId AND campaign_id IS NULL' : 'campaign_id = :scopeId';
+    const [r] = await query(`SELECT COUNT(*) AS n FROM events_list WHERE event_type = 'meeting' AND ${where} AND start_date < CURDATE()`, { scopeId });
+    return Number(r?.n ?? 0);
+}
+
 /** People who can be invited, with names, for the attendee picker. */
 export async function candidatePeople(ids) {
     if (!ids.length) return [];
@@ -77,10 +84,15 @@ export async function candidatePeople(ids) {
  * Meetings of one group (group meetings only — a fundraise's meetings live on the fundraise)
  * or one fundraise, with RSVP counts and the viewer's own answer.
  */
-export async function listMeetings(scope, scopeId, viewerId) {
-    // People who joined since: add them to upcoming "Everyone" meetings before listing.
-    await syncEveryoneMeetings({ scope, scopeId });
-    const where = scope === 'group' ? 'e.group_id = :scopeId AND e.campaign_id IS NULL' : 'e.campaign_id = :scopeId';
+/**
+ * `when`: 'all' (the calendar), 'upcoming' (the list — past ones load when opened), 'past'.
+ */
+export async function listMeetings(scope, scopeId, viewerId, { when = 'all' } = {}) {
+    // People who joined since: add them to upcoming "Everyone" meetings before listing (not needed for past ones).
+    if (when !== 'past') await syncEveryoneMeetings({ scope, scopeId });
+    const where =
+        (scope === 'group' ? 'e.group_id = :scopeId AND e.campaign_id IS NULL' : 'e.campaign_id = :scopeId') +
+        (when === 'upcoming' ? ' AND e.start_date >= CURDATE()' : when === 'past' ? ' AND e.start_date < CURDATE()' : '');
     const rows = await query(
         `SELECT e.id, e.title, e.title_local, e.start_date, e.start_time, e.location, e.created_by,
                 COUNT(a.user_id) AS invited,

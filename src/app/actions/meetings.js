@@ -4,7 +4,10 @@ import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { date, str, strOrNull, time, todayLocal } from '@/lib/forms';
-import { meetingScope, REMINDER_OFFSETS, writeReminders } from '@/lib/meetings';
+import { listMeetings, meetingScope, REMINDER_OFFSETS, writeReminders } from '@/lib/meetings';
+import { canSeeCampaign } from '@/lib/fundraise';
+import { groupStanding } from '@/lib/access';
+import { getGroup } from '@/lib/groups';
 import { postSystemMessage } from '@/lib/chat';
 import { notifyMany } from '@/lib/notifications';
 
@@ -158,4 +161,22 @@ export async function setRsvp(meetingId, rsvp) {
     if (!r.affectedRows) return FORBIDDEN;
     refresh();
     return { ok: true };
+}
+
+/**
+ * A group's / fundraise's past meetings, loaded when "Past meetings" is opened (the list page carries only how
+ * many). Same visibility as the page: a fundraise its audience; a private group its members (and app managers).
+ */
+export async function loadPastMeetings(scope, scopeId) {
+    const user = await getCurrentUser();
+    const sid = Number(scopeId);
+    if (!user || !SCOPES.includes(scope) || !sid) return FORBIDDEN;
+    if (scope === 'fundraise') {
+        if (!(await canSeeCampaign(user, sid))) return FORBIDDEN;
+    } else {
+        const [g, { standing, myRole }] = await Promise.all([getGroup(sid), groupStanding(user, sid)]);
+        if (!g || (g.meta?.visibility === 'private' && !standing && !myRole)) return FORBIDDEN;
+    }
+    if (!(await meetingScope(user, scope, sid))) return FORBIDDEN;
+    return { ok: true, meetings: await listMeetings(scope, sid, user.id, { when: 'past' }) };
 }

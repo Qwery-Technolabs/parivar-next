@@ -1,5 +1,6 @@
 import { Cake, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Circle, Clock, HandCoins, MapPin, PartyPopper, UsersRound } from 'lucide-react';
 import Link from 'next/link';
+import LinkSpinner from '@/components/ui/link-spinner';
 import { EventRowMenu, NewEventButton } from '@/components/calendar/event-controls';
 import PageHeader from '@/components/shell/page-header';
 import FilterBar from '@/components/ui/filter-bar';
@@ -131,10 +132,12 @@ export default async function CalendarPage({ searchParams }) {
                 left={
                     <>
                         <Link href={monthHref(cal.prev, cal.currentKey)} scroll={false} aria-label={t('common.prev')} className={navBtn}>
+                            <LinkSpinner className="size-3" />
                             <ChevronLeft className="size-4" />
                         </Link>
                         <Link href={monthHref(cal.next, cal.currentKey)} scroll={false} aria-label={t('common.next')} className={navBtn}>
                             <ChevronRight className="size-4" />
+                            <LinkSpinner className="size-3" />
                         </Link>
                         <h2 className="ml-1 text-base font-semibold text-primary tabular-nums">
                             {months[cal.month - 1]} {cal.year}
@@ -175,14 +178,20 @@ export default async function CalendarPage({ searchParams }) {
             <div className="overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm sm:hidden">
                 <div className="grid grid-cols-7 border-b border-surface-border bg-surface-login">
                     {weekdays.map((w, i) => (
-                        <div key={w} className={`truncate px-0.5 py-1.5 text-center text-[10px] font-semibold uppercase ${i === 0 ? 'text-destructive' : 'text-ink-gray'}`}>
+                        <div
+                            key={w}
+                            className={`truncate px-0.5 py-1.5 text-center text-[10px] font-semibold uppercase ${i === 0 ? 'text-destructive' : 'text-ink-gray'}`}
+                        >
                             {w}
                         </div>
                     ))}
                 </div>
                 <div className="grid grid-cols-7">
                     {cells.map((c, i) => {
-                        if (!c) return <div key={`p${i}`} className="h-12 border-b border-r border-surface-border bg-surface-login/60 [&:nth-child(7n)]:border-r-0" />;
+                        if (!c)
+                            return (
+                                <div key={`p${i}`} className="h-12 border-b border-r border-surface-border bg-surface-login/60 [&:nth-child(7n)]:border-r-0" />
+                            );
                         const kinds = [...new Set(c.items.map((it) => it.type))].slice(0, 4);
                         const body = (
                             <>
@@ -200,9 +209,15 @@ export default async function CalendarPage({ searchParams }) {
                                 </span>
                             </>
                         );
-                        const cell = 'flex h-12 flex-col items-center justify-center gap-0.5 border-b border-r border-surface-border [&:nth-child(7n)]:border-r-0';
+                        const cell =
+                            'flex h-12 flex-col items-center justify-center gap-0.5 border-b border-r border-surface-border [&:nth-child(7n)]:border-r-0';
                         return c.items.length ? (
-                            <a key={c.iso} href={`#ag-${c.items[0].key}`} aria-label={`${c.d}: ${c.items.map((it) => it.title).join(', ')}`} className={`${cell} hover:bg-accent`}>
+                            <a
+                                key={c.iso}
+                                href={`#ag-${c.items[0].key}`}
+                                aria-label={`${c.d}: ${c.items.map((it) => it.title).join(', ')}`}
+                                className={`${cell} hover:bg-accent`}
+                            >
                                 {body}
                             </a>
                         ) : (
@@ -238,11 +253,7 @@ export default async function CalendarPage({ searchParams }) {
                                 <>
                                     <span
                                         className={`mb-1 inline-flex size-6 items-center justify-center rounded-full text-xs font-medium tabular-nums ${
-                                            c.iso === cal.today
-                                                ? 'seg-active'
-                                                : c.weekday === 0
-                                                  ? 'text-destructive'
-                                                  : 'text-ink-gray'
+                                            c.iso === cal.today ? 'seg-active' : c.weekday === 0 ? 'text-destructive' : 'text-ink-gray'
                                         }`}
                                     >
                                         {c.d}
@@ -268,9 +279,7 @@ export default async function CalendarPage({ searchParams }) {
                                                 </span>
                                             );
                                         })}
-                                        {c.items.length > 3 && (
-                                            <span className="block px-1.5 text-[11px] text-ink-gray">+{c.items.length - 3}</span>
-                                        )}
+                                        {c.items.length > 3 && <span className="block px-1.5 text-[11px] text-ink-gray">+{c.items.length - 3}</span>}
                                     </div>
                                 </>
                             )}
@@ -296,7 +305,10 @@ export default async function CalendarPage({ searchParams }) {
                                         {(() => {
                                             const Icon = TYPE_ICON[it.type] ?? Circle;
                                             return (
-                                                <span aria-hidden className={`flex size-6 shrink-0 items-center justify-center rounded-full ${TYPE_CHIP[it.type]}`}>
+                                                <span
+                                                    aria-hidden
+                                                    className={`flex size-6 shrink-0 items-center justify-center rounded-full ${TYPE_CHIP[it.type]}`}
+                                                >
                                                     <Icon className="size-3.5" />
                                                 </span>
                                             );

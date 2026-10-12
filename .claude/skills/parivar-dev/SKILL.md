@@ -163,10 +163,17 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   other iOS browsers → open in Safari (copy link); already installed (getInstalledRelatedApps, manifest
   related_applications from VERCEL_PROJECT_PRODUCTION_URL) → "Open the app". Manifest: id / scope "/",
   launch_handler navigate-existing. Android opens in-scope links tapped in other apps in the installed app itself.
+- **Mini loaders**: every link that opens another view gets `<LinkSpinner />` (components/ui/link-spinner.jsx,
+  useLinkStatus) inside it — tab bars (WaTabs), the Income/Expense/By contributor switch, print chips, calendar month
+  arrows; filter chips use ChipLink; a client switch that navigates (meetings List/Calendar) shows Loader2 while its
+  transition is pending; a collapsed part that loads on open shows Loader2 in place of its chevron.
 - **Load on open, not with the page**: content hidden behind a toggle is fetched when opened (server action), the page
   carries only counts. Meeting minutes: the meetings list gets `minutesCounts(campaignId)` ({eventId: n}); each card shows
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
-  (actions/minutes.js — same visibility as the page). A Mandal's About tab shows no News & minutes (they live under
+  (actions/minutes.js — same visibility as the page). Past meetings: the list view loads only upcoming meetings + `countPastMeetings`; "Past meetings (n)" calls
+  `loadPastMeetings` (actions/meetings.js, same visibility as the page); the calendar view (?view=calendar → MeetingsSection
+  `view`) loads all meetings and birthdays (the list view loads no birthdays). Mandal attendance: the page carries
+  `mandalAttendanceCounts`; opening a schedule's line calls `loadMandalAttendance`. A Mandal's About tab shows no News & minutes (they live under
   its meetings) and does not load them.
 - **Surnames** (/members/surnames, actions/surnames.js): editing (administrators) can change the English spelling too —
   `saveSurname` with original_name renames it for every member carrying it (surname + maiden_surname, any case; English
@@ -185,7 +192,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   licences (Leaflet, OSM data) say so.
 - **Family tree focus**: a square Focus button (bottom-right of the canvas) scrolls back to the tree's person.
 - **Members "Added by" filter** (?by=<id>): app admins / sub-admins pick anyone (listCreators, with counts); members
-  only "Added by me"; beside Registration (half width each); picking one sets Registration to All.
+  only "Added by me"; a searchable Combobox in its own grid cell — rows Role | Status, Registration | Added by,
+  Gender | Age; picking one sets Registration to All.
 - **Spouse ⇒ married**: linking a wife / husband (linkRelative 'spouse') sets BOTH to married when both are alive and
   their status is empty / unmarried / engaged (never over widowed / divorced; nothing when one has passed away).
 - **Names in Name Case**: every typed English name part (first / father's / surname, maiden parts, an invite's full

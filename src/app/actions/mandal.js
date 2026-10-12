@@ -6,7 +6,8 @@ import { getMeta, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { date as formatDate } from '@/lib/format';
 import { date, id, str, strOrNull } from '@/lib/forms';
 import { ensureInvitedUser } from '@/lib/invite';
-import { canRunMandal, isFor, mandalMeetings } from '@/lib/mandal';
+import { canRunMandal, isFor, mandalAttendance, mandalMeetings } from '@/lib/mandal';
+import { canSeeCampaign } from '@/lib/fundraise';
 import { syncEveryoneMeetings } from '@/lib/meetings';
 import { normalizePhone } from '@/lib/phone';
 
@@ -558,4 +559,18 @@ export async function saveMandalContribution(prev, fd) {
     // A sheet row saves on its own as it changes; the sheet refreshes the page once, when it is closed.
     if (fd.get('sheet') !== '1') refresh(campaign.id);
     return { ok: true, message: 'mandal.contributionSaved' };
+}
+
+/**
+ * One schedule's attendance list (Meetings tab), loaded when its line is opened: the members it is for, each
+ * present true / false / null. For anyone who can see the Mandal.
+ */
+export async function loadMandalAttendance(campaignId, eventId) {
+    const actor = await getCurrentUser();
+    const campaign = await loadMandal(Number(campaignId));
+    if (!actor || !campaign || !(await canSeeCampaign(actor, campaign.id))) return FORBIDDEN;
+    const meeting = (await mandalMeetings(campaign.id, 0)).find((e) => e.id === Number(eventId));
+    if (!meeting) return FORBIDDEN;
+    const byEvent = await mandalAttendance(campaign.id, [meeting]);
+    return { ok: true, people: byEvent[meeting.id]?.people ?? [] };
 }

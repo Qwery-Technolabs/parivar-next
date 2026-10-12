@@ -414,3 +414,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Members "Added by" filter (admins: anyone; members: me); caste filter fixed for ids ≥ 10
 - [x] Nearby Homes (OpenStreetMap): men's home pins set from the profile address, person pins + mini profile, Near me, focus from the Members list
 - [x] Family tree: Focus button back to the person
+- [x] Mini loaders on tabs, money switch, print chips, calendar arrows, meetings view switch; past meetings + Mandal attendance load on open; Nearby full width

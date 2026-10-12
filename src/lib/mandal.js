@@ -148,6 +148,22 @@ export async function mandalAttendance(campaignId, meetings) {
     );
 }
 
+/** The Meetings tab's attendance line per schedule: { archived, came, absent, total } — the list loads on open. */
+export async function mandalAttendanceCounts(campaignId, meetings) {
+    const full = await mandalAttendance(campaignId, meetings);
+    return Object.fromEntries(
+        Object.entries(full).map(([id, a]) => [
+            id,
+            {
+                archived: a.archived,
+                came: a.people.filter((p) => p.present === true).length,
+                absent: a.people.filter((p) => p.present === false).length,
+                total: a.people.length,
+            },
+        ]),
+    );
+}
+
 /** Is this meeting for this member: everyone's, or they were chosen? */
 export function isFor(meeting, userId) {
     return meeting.everyone || meeting.invited.includes(userId);

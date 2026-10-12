@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LinkSpinner from '@/components/ui/link-spinner';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
@@ -98,6 +99,7 @@ export default function MoneyTab({
                                     : `text-ink-gray ${k === 'expenses' ? 'hover:text-expense' : 'hover:text-income'}`
                             }`}
                         >
+                            <LinkSpinner className="size-3" />
                             {labels[k]}
                             {counts[k] != null && <span className="tabular-nums opacity-80">{counts[k]}</span>}
                         </Link>
