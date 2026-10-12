@@ -1,5 +1,5 @@
 'use client';
-import { Crosshair, Loader2, Navigation } from 'lucide-react';
+import { Crosshair, List, Loader2, Navigation, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -9,7 +9,7 @@ import { useT } from '@/lib/i18n/client';
 const OsmMap = dynamic(() => import('./osm-map'), {
     ssr: false,
     loading: () => (
-        <div className="flex h-[60vh] items-center justify-center rounded-lg border border-surface-border bg-white">
+        <div className="flex h-[65vh] min-h-96 items-center justify-center rounded-lg border border-surface-border bg-white">
             <Loader2 className="size-5 animate-spin text-ink-gray" />
         </div>
     ),
@@ -17,19 +17,25 @@ const OsmMap = dynamic(() => import('./osm-map'), {
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-/** The card a pin opens: a person icon, the name, village · city, then View profile and Directions. */
+/**
+ * The card a pin opens: a person icon, the name, village · city, then View profile and Directions.
+ * Leaflet's popup sets its own font (Helvetica/Arial), which made this read heavy — so the card uses the app's
+ * font (Geist + the Gujarati/Devanagari fallbacks; --font-sans itself is @theme inline, not a real var) and lighter weights: name 600, buttons 500, place 400.
+ */
 function miniProfile(h, t) {
     const place = [h.village, h.city].filter(Boolean).join(' · ');
-    const btn = 'display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none';
-    return `<div style="display:flex;gap:10px;align-items:center;min-width:190px">
+    const btn = 'display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none';
+    return `<div style="font-family:var(--font-geist-sans),var(--font-gujarati),var(--font-devanagari),system-ui,sans-serif;font-weight:400">
+<div style="display:flex;gap:10px;align-items:center;min-width:190px">
   <span style="display:flex;width:36px;height:36px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:#172f56">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>
   </span>
-  <span style="min-width:0"><b style="display:block;color:#172f56;font-size:13px">${esc(h.name)}</b>${place ? `<span style="color:#5b6b85;font-size:12px">${esc(place)}</span>` : ''}</span>
+  <span style="min-width:0"><span style="display:block;color:#172f56;font-size:13px;font-weight:600">${esc(h.name)}</span>${place ? `<span style="color:#5b6b85;font-size:12px;font-weight:400">${esc(place)}</span>` : ''}</span>
 </div>
 <div style="display:flex;gap:6px;margin-top:10px">
   <a href="/members/${h.id}" style="${btn};background:#172f56;color:#fff">${esc(t('home.viewProfile'))}</a>
   <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}" target="_blank" rel="noreferrer" style="${btn};border:1px solid #d6dbe4;color:#172f56">${esc(t('home.directions'))}</a>
+</div>
 </div>`;
 }
 
@@ -45,7 +51,8 @@ function km(a, b) {
 /**
  * Nearby Homes: every home pinned on the map (men's profiles only), each opening the profile. "Near me" asks
  * for the viewer's location (the browser asks first; nothing is stored) and lists the nearest homes with
- * distance and Directions (Google Maps).
+ * distance and Directions (Google Maps) in a panel floating INSIDE the map — right side on sm+, a bottom sheet on a
+ * phone — like Google Maps' results list. It can be closed (the map is then fully visible) and reopened from a chip.
  * `focusId` (?focus=<id>, e.g. the pin button on the Members list): open centred on that home with its card open.
  * @param {{ homes: Array<{ id: number, name: string, village: string|null, city?: string|null, lat: number, lng: number }>, focusId?: number|null }} props
  */
@@ -54,6 +61,7 @@ export default function NearbyHomes({ homes, focusId = null }) {
     const [me, setMe] = useState(null);
     const [locating, setLocating] = useState(false);
     const [focus, setFocus] = useState(null);
+    const [panelOpen, setPanelOpen] = useState(true);
     const markers = useMemo(
         () =>
             homes.map((h) => ({
@@ -86,6 +94,7 @@ export default function NearbyHomes({ homes, focusId = null }) {
                 const here = { lat: p.coords.latitude, lng: p.coords.longitude };
                 setMe(here);
                 setFocus(here);
+                setPanelOpen(true);
                 setLocating(false);
             },
             () => {
@@ -109,22 +118,36 @@ export default function NearbyHomes({ homes, focusId = null }) {
                     {locating ? <Loader2 className="size-4 animate-spin" /> : <Crosshair className="size-4" />} {t('home.nearMe')}
                 </button>
             </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
-                <OsmMap markers={markers} me={me} focus={focus} openId={focusId} className="h-[60vh] min-h-80" />
-                {me && (
-                    <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-surface-border bg-white">
-                        <p className="sticky top-0 border-b border-surface-border bg-card-head px-3 py-2 text-sm font-semibold text-primary">
-                            {t('home.nearest')}
-                        </p>
+            {/* The list floats over the map: right column on sm+, a bottom sheet on a phone. It stops short of the
+                bottom-right corner (bottom-7) so the OpenStreetMap attribution stays visible. z-[1000] = above
+                Leaflet's panes and controls; as a sibling of the map, scrolling it never zooms the map. */}
+            <div className="relative">
+                <OsmMap markers={markers} me={me} focus={focus} openId={focusId} className="h-[65vh] min-h-96" />
+                {me && panelOpen && (
+                    <div className="absolute inset-x-2 bottom-7 z-[1000] flex max-h-[45%] flex-col overflow-hidden rounded-xl border border-surface-border bg-white shadow-xl sm:inset-x-auto sm:bottom-7 sm:right-3 sm:top-3 sm:max-h-none sm:w-80">
+                        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-border bg-card-head px-3 py-2">
+                            <p className="text-sm font-semibold text-primary">
+                                {t('home.nearest')} <span className="font-normal text-ink-gray tabular-nums">({nearest.length})</span>
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setPanelOpen(false)}
+                                aria-label={t('common.close')}
+                                title={t('common.close')}
+                                className="inline-flex size-7 items-center justify-center rounded-md text-ink-gray hover:bg-gray-100 hover:text-primary"
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
                         {nearest.length === 0 ? (
                             <p className="px-3 py-6 text-center text-sm text-ink-gray">{t('home.none')}</p>
                         ) : (
-                            <ul className="divide-y divide-surface-border">
+                            <ul className="min-h-0 flex-1 divide-y divide-surface-border overflow-y-auto">
                                 {nearest.map((h) => (
-                                    <li key={h.id} className="flex items-center gap-2 px-3 py-2">
+                                    <li key={h.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50">
                                         <button type="button" onClick={() => setFocus({ lat: h.lat, lng: h.lng })} className="min-w-0 flex-1 text-left">
                                             <span className="block truncate text-sm font-medium text-primary">{h.name}</span>
-                                            <span className="block text-xs text-ink-gray tabular-nums">
+                                            <span className="block truncate text-xs text-ink-gray tabular-nums">
                                                 {h.d < 1 ? `${Math.round(h.d * 1000)} m` : `${h.d.toFixed(1)} km`}
                                                 {h.village ? ` · ${h.village}` : ''}
                                             </span>
@@ -147,6 +170,15 @@ export default function NearbyHomes({ homes, focusId = null }) {
                             </ul>
                         )}
                     </div>
+                )}
+                {me && !panelOpen && (
+                    <button
+                        type="button"
+                        onClick={() => setPanelOpen(true)}
+                        className="absolute right-3 top-3 z-[1000] inline-flex h-9 items-center gap-1.5 rounded-md border border-black/20 bg-white px-3 text-sm font-medium text-primary shadow-md hover:bg-gray-50"
+                    >
+                        <List className="size-4" /> {t('home.nearest')}
+                    </button>
                 )}
             </div>
         </div>

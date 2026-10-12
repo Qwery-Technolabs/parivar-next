@@ -205,13 +205,21 @@ export function DetailFields({ member }) {
                     </Field>
                     <Field label={t('members.address')} className="sm:col-span-2">
                         {/* A man's profile (an existing one): the home's exact spot, for Nearby Homes — saved on its own. */}
-                        <div className="flex items-start gap-2">
-                            <textarea name="address" rows={2} defaultValue={meta.address ?? ''} className={`${textArea()} min-w-0 flex-1`} />
+                        {/* The pin is an icon in the textarea's top-right corner; pr-11 keeps text from running under it. */}
+                        <div className="relative">
+                            <textarea
+                                name="address"
+                                rows={2}
+                                defaultValue={meta.address ?? ''}
+                                className={`${textArea()} w-full${member?.id && member.gender === 'male' ? ' pr-11' : ''}`}
+                            />
                             {member?.id && member.gender === 'male' && (
-                                <HomePinButton
-                                    userId={member.id}
-                                    initial={meta.home_lat && meta.home_lng ? { lat: Number(meta.home_lat), lng: Number(meta.home_lng) } : null}
-                                />
+                                <div className="absolute right-1.5 top-1.5">
+                                    <HomePinButton
+                                        userId={member.id}
+                                        initial={meta.home_lat && meta.home_lng ? { lat: Number(meta.home_lat), lng: Number(meta.home_lng) } : null}
+                                    />
+                                </div>
                             )}
                         </div>
                     </Field>

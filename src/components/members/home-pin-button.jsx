@@ -18,7 +18,7 @@ const OsmMap = dynamic(() => import('@/components/maps/osm-map'), {
 });
 
 /**
- * Icon button beside the address (member edit): opens a map to set the home's exact spot — tap the map or drag
+ * Pin icon in the address textarea's top-right corner (member edit) — green once a spot is saved, grey before: opens a map to set the home's exact spot — tap the map or drag
  * the pin, or "Use my current location". Saved on its own (actions/home.js), not with the form.
  * @param {{ userId: number, initial?: { lat: number, lng: number } | null }} props
  */
@@ -63,11 +63,13 @@ export default function HomePinButton({ userId, initial = null }) {
                     setPick(saved);
                     setOpen(true);
                 }}
-                aria-label={t('home.setPin')}
-                title={t('home.setPin')}
-                className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium ${saved ? 'bg-emerald-700 text-white hover:bg-emerald-800' : 'btn-secondary'}`}
+                aria-label={saved ? t('home.pinSet') : t('home.setPin')}
+                title={saved ? t('home.pinSet') : t('home.setPin')}
+                className={`inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors ${
+                    saved ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-ink-gray hover:bg-gray-100 hover:text-primary'
+                }`}
             >
-                <MapPin className="size-4" /> <span className="hidden sm:inline">{saved ? t('home.pinSet') : t('home.setPin')}</span>
+                <MapPin className="size-4" fill={saved ? 'currentColor' : 'none'} fillOpacity={saved ? 0.2 : 0} />
             </button>
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-h-[92vh] overflow-y-auto bg-white sm:max-w-2xl">
@@ -76,16 +78,24 @@ export default function HomePinButton({ userId, initial = null }) {
                     </DialogHeader>
                     <div className="space-y-3">
                         <p className="text-xs text-ink-gray">{t('home.pickHint')}</p>
-                        <OsmMap pick={pick ?? null} onPick={(lat, lng) => setPick({ lat, lng })} focus={pick} className="h-72 sm:h-96" />
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                        {/* "Use my current location" floats INSIDE the map, top-right (zoom is top-left, attribution
+                            bottom-right). z-[1000] sits above Leaflet's panes/controls; it is a sibling of the map, so a
+                            tap on it never reaches the map as a pin drop. */}
+                        <div className="relative">
+                            <OsmMap pick={pick ?? null} onPick={(lat, lng) => setPick({ lat, lng })} focus={pick} className="h-72 sm:h-96" />
                             <button
                                 type="button"
                                 onClick={locate}
                                 disabled={locating}
-                                className="btn-secondary inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium"
+                                aria-label={t('home.useMyLocation')}
+                                title={t('home.useMyLocation')}
+                                className="absolute right-3 top-3 z-[1000] inline-flex h-9 items-center gap-1.5 rounded-md border border-black/20 bg-white px-2.5 text-sm font-medium text-primary shadow-md hover:bg-gray-50 disabled:opacity-70"
                             >
-                                {locating ? <Loader2 className="size-4 animate-spin" /> : <Crosshair className="size-4" />} {t('home.useMyLocation')}
+                                {locating ? <Loader2 className="size-4 animate-spin" /> : <Crosshair className="size-4" />}
+                                <span className="hidden sm:inline">{t('home.useMyLocation')}</span>
                             </button>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                             <div className="flex items-center gap-2">
                                 {saved && (
                                     <button
