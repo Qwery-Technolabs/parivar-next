@@ -179,10 +179,13 @@ export default async function MemberPage({ params }) {
                                 {m.address && (
                                     <AddressActions
                                         address={m.address}
+                                        // The exact home pin when one is set (Nearby Homes), else the address.
                                         query={
-                                            member.city && !m.address.toLowerCase().includes(String(member.city).toLowerCase())
-                                                ? `${m.address}, ${member.city}`
-                                                : m.address
+                                            m.home_lat && m.home_lng
+                                                ? `${m.home_lat},${m.home_lng}`
+                                                : member.city && !m.address.toLowerCase().includes(String(member.city).toLowerCase())
+                                                  ? `${m.address}, ${member.city}`
+                                                  : m.address
                                         }
                                     />
                                 )}

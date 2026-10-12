@@ -14,12 +14,7 @@ export default async function AppLayout({ children }) {
     kickReminders(); // Vercel only: due meeting reminders, after this page is sent
     // Added by phone number and still on the temporary password (the number): choose one first.
     if (user.must_change_password) redirect('/set-password');
-    const [{ t, locale }, unread, general, jar] = await Promise.all([
-        getT(),
-        unreadCount(user.id),
-        getSettings('admin'),
-        cookies(),
-    ]);
+    const [{ t, locale }, unread, general, jar] = await Promise.all([getT(), unreadCount(user.id), getSettings('admin'), cookies()]);
     const samaj = (locale === 'gu' && general.samaj_name_local) || general.samaj_name;
 
     // Overview · Community · Services · Miscellaneous (Members).
@@ -41,6 +36,8 @@ export default async function AppLayout({ children }) {
             items: [
                 { href: `/members/${user.id}/tree`, icon: 'tree', label: t('nav.myTree'), bottomLabel: t('nav.familyTree') },
                 { href: '/members', icon: 'users', label: t('nav.members'), exclude: [`/members/${user.id}/tree`] },
+                // Homes members pinned on a map (men's profiles only).
+                { href: '/nearby', icon: 'map', label: t('nav.nearby') },
             ],
         },
     ];

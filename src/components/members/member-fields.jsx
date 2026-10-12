@@ -1,5 +1,6 @@
 'use client';
 import { Droplet, FileText, GraduationCap, IdCard, Mail, MapPin, UserRound, UsersRound } from 'lucide-react';
+import HomePinButton from './home-pin-button';
 import { useState } from 'react';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
 import FormPart from '@/components/ui/form-part';
@@ -203,7 +204,16 @@ export function DetailFields({ member }) {
                         <input name="email" type="email" defaultValue={meta.email ?? ''} className={`${textInput()} w-full`} />
                     </Field>
                     <Field label={t('members.address')} className="sm:col-span-2">
-                        <textarea name="address" rows={2} defaultValue={meta.address ?? ''} className={`${textArea()} w-full`} />
+                        {/* A man's profile (an existing one): the home's exact spot, for Nearby Homes — saved on its own. */}
+                        <div className="flex items-start gap-2">
+                            <textarea name="address" rows={2} defaultValue={meta.address ?? ''} className={`${textArea()} min-w-0 flex-1`} />
+                            {member?.id && member.gender === 'male' && (
+                                <HomePinButton
+                                    userId={member.id}
+                                    initial={meta.home_lat && meta.home_lng ? { lat: Number(meta.home_lat), lng: Number(meta.home_lng) } : null}
+                                />
+                            )}
+                        </div>
                     </Field>
                 </div>
             </FormPart>

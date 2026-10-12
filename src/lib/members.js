@@ -17,7 +17,7 @@ const GENDERS = ['male', 'female', 'other'];
  */
 export function resolveMemberFilters(sp = {}) {
     const pick = (v, allowed) => (allowed.includes(sp1(v)) ? sp1(v) : '');
-    const posInt = (v) => (/^[1-9]d{0,9}$/.test(sp1(v)) ? Number(sp1(v)) : null);
+    const posInt = (v) => (/^[1-9]\d{0,9}$/.test(sp1(v)) ? Number(sp1(v)) : null);
     return {
         q: sp1(sp.q).trim().slice(0, 60),
         role: pick(sp.role, ROLES),
@@ -37,6 +37,8 @@ export function resolveMemberFilters(sp = {}) {
         status: sp1(sp.status) === 'all' ? 'all' : pick(sp.status, STATUSES) || 'active',
         // Default view is people who have signed in at least once; reg=unregistered / all to see the rest.
         reg: pick(sp.reg, ['unregistered', 'all']) || 'registered',
+        // Added by one person (users_list.created_by) — the page limits members to themselves.
+        createdBy: posInt(sp.by),
     };
 }
 
@@ -50,8 +52,20 @@ function ageRange(minRaw, maxRaw) {
 }
 
 export function activeFilterCount(f) {
-    return [f.role, f.blood, f.donor, f.village, f.city, f.surname, f.gender, f.caste, f.ageMin != null || f.ageMax != null, f.status !== 'active', f.reg !== 'registered']
-        .filter(Boolean).length;
+    return [
+        f.role,
+        f.blood,
+        f.donor,
+        f.village,
+        f.city,
+        f.surname,
+        f.gender,
+        f.caste,
+        f.ageMin != null || f.ageMax != null,
+        f.status !== 'active',
+        f.reg !== 'registered',
+        f.createdBy,
+    ].filter(Boolean).length;
 }
 
 function whereFor(f) {
@@ -123,7 +137,22 @@ function whereFor(f) {
             params.subcaste = f.subcaste;
         }
     }
+    if (f.createdBy) {
+        where.push('u.created_by = :createdBy AND u.id <> :createdBy');
+        params.createdBy = f.createdBy;
+    }
     return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
+}
+
+/** People who have added members (users_list.created_by), with how many — the "Added by" filter (admins). */
+export async function listCreators() {
+    return query(
+        `SELECT c.id, c.full_name, c.full_name_local, COUNT(*) AS n
+           FROM users_list u JOIN users_list c ON c.id = u.created_by
+          WHERE u.created_by <> u.id AND u.status <> 'archived'
+          GROUP BY c.id, c.full_name, c.full_name_local
+          ORDER BY c.full_name`,
+    );
 }
 
 /**
@@ -139,6 +168,7 @@ export async function listMembers(f, page, perPage) {
         query(
             `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.role, u.village, u.city, u.blood_group,
                     u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login, u.last_login_at, u.created_by,
+                    (u.gender = 'male' AND EXISTS (SELECT 1 FROM users_listmeta hm WHERE hm.user_id = u.id AND hm.meta_key = 'home_lat' AND hm.meta_value <> '')) AS has_home,
                     c.name AS caste_name, c.name_local AS caste_name_local, sc.name AS subcaste_name, sc.name_local AS subcaste_name_local
                FROM users_list u
                LEFT JOIN admin_castes c ON c.id = u.caste_id
@@ -150,7 +180,11 @@ export async function listMembers(f, page, perPage) {
         ),
     ]);
     // One meta read for the whole page — never a query per row.
-    const meta = await getMetaMany('users_list', rows.map((r) => r.id), ['position', 'added_via']);
+    const meta = await getMetaMany(
+        'users_list',
+        rows.map((r) => r.id),
+        ['position', 'added_via'],
+    );
     return {
         total: countRow.n,
         rows: rows.map((r) => ({ ...r, position: meta[r.id]?.position ?? null, added_via: meta[r.id]?.added_via ?? null })),
@@ -216,8 +250,6 @@ export async function listGroupsBrief() {
 }
 
 // ── family ─────────────────────────────────────────────────────────────────────
-
-
 
 /**
  * What one member has given, per group and per fundraise. Anonymous gifts are hidden

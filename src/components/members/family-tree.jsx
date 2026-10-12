@@ -1,5 +1,5 @@
 'use client';
-import { Flower2 } from 'lucide-react';
+import { Flower2, Focus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import Switch from '@/components/ui/switch';
@@ -20,7 +20,11 @@ function WomanIcon({ className = '' }) {
     return (
         <svg viewBox="0 0 64 64" aria-hidden className={className}>
             {/* hair falling to the shoulders, behind the face */}
-            <path d="M32 9c-9 0-15 6.5-15 15.5 0 5 .8 9.5-2.5 14 3.5 1.2 7.5.6 10-1.2L32 38l7.5-.7c2.5 1.8 6.5 2.4 10 1.2-3.3-4.5-2.5-9-2.5-14C47 15.5 41 9 32 9z" fill="currentColor" opacity="0.85" />
+            <path
+                d="M32 9c-9 0-15 6.5-15 15.5 0 5 .8 9.5-2.5 14 3.5 1.2 7.5.6 10-1.2L32 38l7.5-.7c2.5 1.8 6.5 2.4 10 1.2-3.3-4.5-2.5-9-2.5-14C47 15.5 41 9 32 9z"
+                fill="currentColor"
+                opacity="0.85"
+            />
             <circle cx="32" cy="24" r="10" fill="currentColor" />
             <path d="M32 38c-11 0-19 6.5-19 15v3h38v-3c0-8.5-8-15-19-15z" fill="currentColor" />
         </svg>
@@ -44,7 +48,9 @@ function PersonTile({ p, isRoot, showDetails, leaf = false, birth = false }) {
     // Same tile colour for men and women — the figure tells them apart; late relatives are grey.
     const face = late ? 'from-gray-300 to-gray-500' : 'from-[#4a6390] to-brand-navy';
     const Figure = p.gender === 'female' ? WomanIcon : ManIcon;
-    const hover = [fullName, p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? `${a} ${t('matrimony.years')}` : null].filter(Boolean).join(' · ');
+    const hover = [fullName, p.kin && t(`kin.terms.${p.kin}`), late ? t('family.late') : a != null ? `${a} ${t('matrimony.years')}` : null]
+        .filter(Boolean)
+        .join(' · ');
     // One coloured tile: the figure fills it (2–4px edge) and the name sits inside it in white.
     return (
         <Link
@@ -164,14 +170,21 @@ export default function FamilyTree({ tree }) {
     // Trackpad pinch (and Ctrl + wheel) arrive as wheel events with ctrlKey; plain scrolling stays native.
     // Open on the person whose tree this is: scroll their tile (aria-current) to the middle of the box,
     // instead of starting at the top-left with the oldest ancestor.
-    useEffect(() => {
+    /** Bring the person whose tree it is (their tile, aria-current) to the middle of the box. */
+    const centerOnRoot = (smooth = false) => {
         const el = box.current;
         const tile = el?.querySelector('[aria-current="true"]');
         if (!el || !tile) return;
         const b = el.getBoundingClientRect();
         const r = tile.getBoundingClientRect();
-        el.scrollLeft += r.left + r.width / 2 - (b.left + b.width / 2);
-        el.scrollTop += r.top + r.height / 2 - (b.top + b.height / 2);
+        el.scrollTo({
+            left: el.scrollLeft + r.left + r.width / 2 - (b.left + b.width / 2),
+            top: el.scrollTop + r.top + r.height / 2 - (b.top + b.height / 2),
+            behavior: smooth ? 'smooth' : 'auto',
+        });
+    };
+    useEffect(() => {
+        centerOnRoot();
     }, [tree.rootId]);
 
     useEffect(() => {
@@ -257,19 +270,31 @@ export default function FamilyTree({ tree }) {
                     <Switch checked={showDetails} onChange={setShowDetails} label={t('members.details')} />
                 </div>
             </div>
-            <div
-                ref={box}
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerEnd}
-                onPointerCancel={onPointerEnd}
-                className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-gray-100 shadow-inner select-none active:cursor-grabbing"
-            >
-                <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
-                    <ul>
-                        <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} hideMarried={!showMarried} top />
-                    </ul>
+            <div className="relative">
+                <div
+                    ref={box}
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerEnd}
+                    onPointerCancel={onPointerEnd}
+                    className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-gray-100 shadow-inner select-none active:cursor-grabbing"
+                >
+                    <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
+                        <ul>
+                            <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} hideMarried={!showMarried} top />
+                        </ul>
+                    </div>
                 </div>
+                {/* Back to this person: their card moves to the middle of the box. */}
+                <button
+                    type="button"
+                    onClick={() => centerOnRoot(true)}
+                    aria-label={t('family.focusPerson')}
+                    title={t('family.focusPerson')}
+                    className="absolute bottom-3 right-3 inline-flex size-10 items-center justify-center rounded-lg border border-surface-border bg-white text-primary shadow-md hover:bg-accent"
+                >
+                    <Focus className="size-5" />
+                </button>
             </div>
         </div>
     );

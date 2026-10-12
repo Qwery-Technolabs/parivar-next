@@ -10,7 +10,7 @@ export const DEVELOPER = {
     phoneShown: '+91 86903 55381',
 };
 
-export const POLICY_UPDATED = '2026-10-10';
+export const POLICY_UPDATED = '2026-10-12';
 
 /**
  * The privacy policy by language: [{ title, body: string[] (paragraphs), list?: string[] }].
@@ -32,6 +32,7 @@ export const PRIVACY_POLICY = {
                 'Profile: date of birth, gender, blood group and whether you are willing to donate blood, village and city, caste / sub-caste, marital status.',
                 'Family: the relatives you or an administrator link to you (parents, spouse, children, brothers, sisters) for the family tree.',
                 'Matrimony: only if a profile is listed for you — the details written in it.',
+                'Home location: only if a pin is set on a profile (a man’s profile) — the exact point of the home, shown to signed-in members on the Nearby Homes map. Women’s homes are never shown there.',
                 'Groups, fundraisers and Mandals: your memberships and roles, contributions and expenses recorded, attendance at Mandal meetings, replies to meetings, and messages you post in discussions.',
                 'Technical: a sign-in cookie, the browser / device type of each signed-in session, a push-notification address if you turn notifications on, a record of changes made in the app (activity log), and error reports when a page fails.',
             ],
@@ -56,6 +57,7 @@ export const PRIVACY_POLICY = {
                 'Hostinger — hosts the database (in India).',
                 'Google Input Tools — when you use the local-language spelling suggestions, the word you type is sent to Google to suggest its spelling.',
                 'Your browser’s push service (for example Google, Apple or Mozilla) — delivers notifications, only if you turn them on.',
+                'OpenStreetMap — draws the map tiles on Nearby Homes and the location picker (your browser loads them; your own location from “Near me” stays on your device and is not saved).',
             ],
         },
         {
@@ -110,6 +112,7 @@ export const PRIVACY_POLICY = {
                 'પ્રોફાઇલ: જન્મ તારીખ, જાતિ (પુરુષ / સ્ત્રી), બ્લડ ગ્રુપ અને રક્તદાન માટે તૈયાર છો કે નહીં, ગામ અને શહેર, જ્ઞાતિ / પેટા-જ્ઞાતિ, વૈવાહિક સ્થિતિ.',
                 'પરિવાર: ફેમિલી ટ્રી માટે તમે અથવા સંચાલક જે સગાંને તમારી સાથે જોડે (માતા-પિતા, જીવનસાથી, સંતાનો, ભાઈ-બહેન).',
                 'લગ્ન વિભાગ: ફક્ત જો તમારી પ્રોફાઇલ મૂકવામાં આવી હોય — તેમાં લખેલી વિગતો.',
+                'ઘરનું સ્થાન: ફક્ત જો પ્રોફાઇલ (પુરુષની પ્રોફાઇલ) પર પિન મૂકેલી હોય — ઘરનું ચોક્કસ સ્થાન, જે સાઇન-ઇન કરેલા સભ્યોને "નજીકનાં ઘર" નકશા પર દેખાય છે. સ્ત્રીઓનાં ઘર ત્યાં ક્યારેય દેખાતાં નથી.',
                 'ગ્રુપ, ફાળા અને મંડળ: તમારું સભ્યપદ અને ભૂમિકા, નોંધાયેલ ફાળો અને ખર્ચ, મંડળની મીટિંગમાં હાજરી, મીટિંગના જવાબો અને ચર્ચામાં તમે મોકલેલા સંદેશા.',
                 'ટેકનિકલ: સાઇન-ઇન કૂકી, દરેક સાઇન-ઇન સત્રનો બ્રાઉઝર / ડિવાઇસ પ્રકાર, નોટિફિકેશન ચાલુ કરો તો તેનું સરનામું, એપમાં થયેલા ફેરફારોની નોંધ (પ્રવૃત્તિ લોગ) અને કોઈ પેજ નિષ્ફળ જાય ત્યારે ભૂલની નોંધ.',
             ],
@@ -134,6 +137,7 @@ export const PRIVACY_POLICY = {
                 'Hostinger — ડેટાબેઝ હોસ્ટ કરે છે (ભારતમાં).',
                 'Google Input Tools — તમે સ્થાનિક ભાષાના સ્પેલિંગ સૂચનો વાપરો ત્યારે તમે લખેલો શબ્દ સ્પેલિંગ સૂચવવા Google ને મોકલાય છે.',
                 'તમારા બ્રાઉઝરની પુશ સેવા (દા.ત. Google, Apple કે Mozilla) — ફક્ત તમે નોટિફિકેશન ચાલુ કરો તો તે પહોંચાડે છે.',
+                'OpenStreetMap — "નજીકનાં ઘર" અને સ્થાન પસંદ કરવાના નકશા બતાવે છે (તમારું બ્રાઉઝર લોડ કરે છે; "મારી નજીક" માટેનું તમારું સ્થાન તમારા ડિવાઇસ પર જ રહે છે, સાચવાતું નથી).',
             ],
         },
         {
@@ -182,6 +186,8 @@ export const OPEN_SOURCE = [
     { name: 'Tailwind CSS', pkg: 'tailwindcss', license: 'MIT', url: 'https://tailwindcss.com' },
     { name: 'Base UI', pkg: '@base-ui/react', license: 'MIT', url: 'https://base-ui.com' },
     { name: 'Lucide', pkg: 'lucide-react', license: 'ISC', url: 'https://lucide.dev' },
+    { name: 'Leaflet', pkg: 'leaflet', license: 'BSD-2-Clause', url: 'https://leafletjs.com' },
+    { name: 'OpenStreetMap (map data)', pkg: '© OpenStreetMap contributors', license: 'ODbL', url: 'https://www.openstreetmap.org/copyright' },
     { name: 'Sonner', pkg: 'sonner', license: 'MIT', url: 'https://sonner.emilkowal.ski' },
     { name: 'MySQL2', pkg: 'mysql2', license: 'MIT', url: 'https://github.com/sidorares/node-mysql2' },
     { name: 'bcrypt.js', pkg: 'bcryptjs', license: 'BSD-3-Clause', url: 'https://github.com/dcodeIO/bcrypt.js' },

@@ -8,12 +8,11 @@ import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 import { useDebouncedCallback } from '@/components/ui/use-debounce';
 
-
 /**
  * design-system.md §5 "combining several controls" + §6 draft panel: one <form> so the search
  * and the filter button wrap as a unit; type → narrow → go.
  */
-export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes, seesArchived = false }) {
+export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes, seesArchived = false, creators = null, meId = null }) {
     const { t } = useT();
     const { navigate, pending } = useUrlFilters();
     const [q, setQ] = useState(filters.q);
@@ -58,6 +57,8 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
                     roles={roles}
                     castes={castes}
                     seesArchived={seesArchived}
+                    creators={creators}
+                    meId={meId}
                     onApply={navigate}
                     disabled={pending}
                 />
@@ -66,7 +67,11 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
     );
 }
 
-function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, seesArchived = false, onApply, disabled }) {
+/**
+ * `creators` (app admins / sub-admins): everyone who added members, as options — any of them can be picked;
+ * null (members): "Added by" offers only themselves (`meId`).
+ */
+function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, seesArchived = false, creators = null, meId = null, onApply, disabled }) {
     const { t } = useT();
     // Ids travel as strings in the draft so they match <option value>.
     const initial = () => ({
@@ -75,6 +80,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
         subcaste: filters.subcaste ? String(filters.subcaste) : '',
         ageMin: filters.ageMin != null ? String(filters.ageMin) : '',
         ageMax: filters.ageMax != null ? String(filters.ageMax) : '',
+        by: filters.createdBy ? String(filters.createdBy) : '',
     });
     const [draft, setDraft] = useState(initial);
     const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
@@ -101,6 +107,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     ageMax: '',
                     status: 'active',
                     reg: 'registered',
+                    by: '',
                 })
             }
             onApply={() =>
@@ -119,6 +126,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     age_max: draft.ageMax.trim(),
                     status: draft.status === 'active' ? null : draft.status,
                     reg: draft.reg === 'registered' ? null : draft.reg,
+                    by: draft.by || null,
                 })
             }
         >
@@ -143,13 +151,36 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     <option value="all">{t('common.all')}</option>
                 </select>
             </Field>
-            <Field label={t('members.registration')}>
-                <select value={draft.reg} onChange={(e) => set('reg', e.target.value)} className={`${selectInput()} w-full`}>
-                    <option value="registered">{t('members.reg.registered')}</option>
-                    <option value="unregistered">{t('members.reg.unregistered')}</option>
-                    <option value="all">{t('common.all')}</option>
-                </select>
-            </Field>
+            {/* Registration and Added by: half width each, side by side. */}
+            <div className="grid grid-cols-2 gap-2">
+                <Field label={t('members.registration')}>
+                    <select value={draft.reg} onChange={(e) => set('reg', e.target.value)} className={`${selectInput()} w-full`}>
+                        <option value="registered">{t('members.reg.registered')}</option>
+                        <option value="unregistered">{t('members.reg.unregistered')}</option>
+                        <option value="all">{t('common.all')}</option>
+                    </select>
+                </Field>
+                <Field label={t('members.addedByFilter')}>
+                    <select
+                        value={draft.by}
+                        onChange={(e) =>
+                            // People someone added are mostly not registered yet: picking one shows everyone (All).
+                            setDraft((d) => ({ ...d, by: e.target.value, reg: e.target.value && d.reg === 'registered' ? 'all' : d.reg }))
+                        }
+                        className={`${selectInput()} w-full`}
+                    >
+                        <option value="">{t('common.any')}</option>
+                        {meId && <option value={String(meId)}>{t('members.addedByMeOption')}</option>}
+                        {(creators ?? [])
+                            .filter((c) => c.value !== String(meId))
+                            .map((c) => (
+                                <option key={c.value} value={c.value}>
+                                    {c.label}
+                                </option>
+                            ))}
+                    </select>
+                </Field>
+            </div>
             <Field label={t('members.gender')}>
                 <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
                     {[
@@ -162,9 +193,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                             type="button"
                             onClick={() => set('gender', v)}
                             className={`h-8 shrink-0 rounded px-2.5 text-xs font-medium ${
-                                draft.gender === v
-                                    ? 'seg-active shadow-sm'
-                                    : 'text-ink-gray hover:text-brand-navy'
+                                draft.gender === v ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-brand-navy'
                             }`}
                         >
                             {label}
@@ -236,11 +265,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
             )}
             <FilterSection title={t('members.filterSections.blood')} />
             <Field label={t('members.bloodGroup')}>
-                <select
-                    value={draft.blood}
-                    onChange={(e) => set('blood', e.target.value)}
-                    className={`${selectInput()} w-full`}
-                >
+                <select value={draft.blood} onChange={(e) => set('blood', e.target.value)} className={`${selectInput()} w-full`}>
                     <option value="">{t('common.any')}</option>
                     {BLOOD_GROUPS.map((g) => (
                         <option key={g} value={g}>

@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Phone } from 'lucide-react';
+import { Phone, MapPin } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import InviteMembersDialog from '@/components/members/invite-members-dialog';
 import MemberRowActions from '@/components/members/member-row-actions';
@@ -16,7 +16,7 @@ import { casteOptions } from '@/lib/castes';
 import { age } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters } from '@/lib/members';
+import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters, listCreators } from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
 import {
     canEditUser,
@@ -46,18 +46,22 @@ export default async function MembersPage({ searchParams }) {
     // Archived members are for administrators (and up) only — anyone else asking for them sees active members.
     const seesArchived = atLeast(user.role, 'administrator');
     if (filters.status === 'archived' && !seesArchived) filters.status = 'active';
+    // "Added by": app admins / sub-admins filter by anyone; a member only by themselves.
+    const filtersAnyCreator = atLeast(user.role, 'sub_admin');
+    if (filters.createdBy && !filtersAnyCreator && filters.createdBy !== user.id) filters.createdBy = null;
     const page = normalizePage(sp.page);
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
 
     const groupManager = canManageGroups(user.role);
     const manage = canManageMembers(user.role);
-    const [{ total, rows }, villages, groups, ownGroups, castes, cities, family] = await Promise.all([
+    const [{ total, rows }, villages, groups, ownGroups, castes, cities, creators, family] = await Promise.all([
         listMembers(filters, page, perPage),
         listVillages(),
         listGroupsBrief(),
         groupManager ? null : adminGroupIds(user.id),
         casteOptions(locale),
         listCities(),
+        filtersAnyCreator ? listCreators() : [],
         // Phone numbers of relatives added from a family tree: their family and member managers only.
         manage ? null : familyIds(user.id),
     ]);
@@ -109,6 +113,9 @@ export default async function MembersPage({ searchParams }) {
                 castes={castes}
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
                 seesArchived={seesArchived}
+                // "Added by": everyone who added members (admins) — a member gets only "Added by me".
+                creators={filtersAnyCreator ? creators.map((c) => ({ value: String(c.id), label: `${localized(c, 'full_name', locale)} (${c.n})` })) : null}
+                meId={user.id}
             />
 
             {/* Bulk selection: for people who can put others into a group, or reset passwords. */}
@@ -212,13 +219,26 @@ export default async function MembersPage({ searchParams }) {
                                         {age(m.dob)}
                                     </Td>
                                     <Td className="text-right">
-                                        <MemberRowActions
-                                            member={{ id: m.id, name: primary, archived: m.status === 'archived' }}
-                                            canEdit={canEditUser(user, m) || canResetPassword(user, m)}
-                                            groups={groupOptions}
-                                            canAssignGroups={groupOptions.length > 0}
-                                            canDelete={canDeleteMember(user, m)}
-                                        />
+                                        <span className="inline-flex items-center gap-1.5">
+                                            {/* A pinned home: open Nearby Homes on it. */}
+                                            {Boolean(m.has_home) && (
+                                                <Link
+                                                    href={`/nearby?focus=${m.id}`}
+                                                    aria-label={t('home.showOnMap')}
+                                                    title={t('home.showOnMap')}
+                                                    className="btn-secondary inline-flex size-8 items-center justify-center rounded-md"
+                                                >
+                                                    <MapPin className="size-3.5" />
+                                                </Link>
+                                            )}
+                                            <MemberRowActions
+                                                member={{ id: m.id, name: primary, archived: m.status === 'archived' }}
+                                                canEdit={canEditUser(user, m) || canResetPassword(user, m)}
+                                                groups={groupOptions}
+                                                canAssignGroups={groupOptions.length > 0}
+                                                canDelete={canDeleteMember(user, m)}
+                                            />
+                                        </span>
                                     </Td>
                                 </Tr>
                             );

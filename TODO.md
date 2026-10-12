@@ -411,3 +411,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] One-time: 3 living people with a living spouse marked married on live (user.married.backfill)
 - [x] Surnames: edit the English spelling (renames it for all its members, English + Gujarati); delete an unused surname (admins / sub-admins)
 - [x] Add relative to a married woman: sibling / parent names from her father (maiden side); marital change keeps typed name
+- [x] Members "Added by" filter (admins: anyone; members: me); caste filter fixed for ids ≥ 10
+- [x] Nearby Homes (OpenStreetMap): men's home pins set from the profile address, person pins + mini profile, Near me, focus from the Members list
+- [x] Family tree: Focus button back to the person

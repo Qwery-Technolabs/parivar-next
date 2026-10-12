@@ -17,6 +17,7 @@ import {
     Users,
     UsersRound,
     X,
+    MapPinned,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -34,6 +35,7 @@ const ICONS = {
     home: Home,
     users: Users,
     tree: Network,
+    map: MapPinned,
     group: UsersRound,
     blood: Droplet,
     fund: HandCoins,
@@ -174,7 +176,14 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
     // The main menu pages (plus the header's Notifications / Calendar), fetched in the background
     // once the first page is up; the audit log is heavy and rarely opened, so it is left out.
     const prefetchHrefs = useMemo(
-        () => [...sections.flatMap((s) => s.items).filter((i) => i.icon !== 'audit').map((i) => i.href), '/notifications', '/calendar'],
+        () => [
+            ...sections
+                .flatMap((s) => s.items)
+                .filter((i) => i.icon !== 'audit')
+                .map((i) => i.href),
+            '/notifications',
+            '/calendar',
+        ],
         [sections],
     );
 
