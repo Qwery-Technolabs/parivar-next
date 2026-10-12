@@ -74,6 +74,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Danger zones**: group — its leaders only (status: admins; delete: app-level). Fundraise — `fundraisePermissions().danger`
   = app-level or a leader of a group it is shown in (NOT its creator / team admins, who only edit it); setCampaignStatus /
   setCampaignArchived use `authorize(id, 'danger')`. A Mandal keeps danger = manage (run by its own team).
+  Decided (user, Oct 2026): a group's creator gets NO danger rights unless they are a leader — keep it leaders only.
+- **Login phone**: only its owner changes it (actions/profile.js, needs their password). Whoever added a relative may
+  edit that relative's profile but never their mobile number once the relative signs in (decided, Oct 2026).
 - **Group history** (admin_group_history, lib/group-history.js `recordGroupHistory` — never throws): every group action
   writes one entry — edit (changed fields), status, member_add / member_remove, role, team, team_remove, and from
   fundraise actions (`recordFundraiseInGroups`) fundraise_create / fundraise_link / fundraise_unlink. Shown on the About
@@ -182,15 +185,20 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Add-relative name suggestions**: father / mother / brother / sister take the person's OWN father (`ownFather`): for a
   married (widowed / divorced) woman that is her maiden father's name + maiden surname, never her husband's. Changing
   the marital status (single ↔ married name form) keeps what was typed (`carry`: father's name / surname ↔ maiden parts).
-- **Home pins / Nearby Homes** (/nearby, nav Members section): users_listmeta home_lat / home_lng, set ONLY on a man's
+- **Home pins / Nearby Homes** (/nearby, nav Miscellaneous: My family tree · Nearby homes · Members): users_listmeta home_lat / home_lng, set ONLY on a man's
   profile — member edit → Details → the map-pin button beside the address (components/members/home-pin-button.jsx,
   actions/home.js `setHomeLocation`, canEditUser; saved on its own). The map shows active MEN only (never a woman's
   home) to every signed-in member: Leaflet + OpenStreetMap tiles (components/maps/osm-map.jsx, browser-only via
-  next/dynamic ssr:false; CSS pins, no images), person-icon pins with a mini profile card (View profile · Directions),
-  "Near me" (browser location, never stored) lists the nearest by distance. ?focus=<id> opens on one home; the Members
+  next/dynamic ssr:false; CSS pins, no images), person-icon pins with a mini profile card (name, village · city, address,
+  phone — not for a relative added via the family tree, like the profile — then icon-only Profile / Directions / Call).
+  "Near me" is a square icon button on the map's bottom-right corner (like the tree's Focus); it lists the nearest by
+  distance (browser location, never stored). The pin picker button has a light grey background. ?focus=<id> opens on one home; the Members
   list shows a pin button (has_home) before ⋮. The profile's address link uses the pin when set. Privacy policy +
   licences (Leaflet, OSM data) say so.
 - **Family tree focus**: a square Focus button (bottom-right of the canvas) scrolls back to the tree's person.
+- **Full-screen canvases** (family tree, Nearby Homes map): `useFillHeight()` (components/ui/use-fill-height.js) on
+  the canvas wrapper grows it to the bottom of #content (above the phone bar), measured live; keep a CSS
+  h-[calc(100dvh-…)] for the first paint. Leaflet redraws on resize (ResizeObserver in osm-map).
 - **Members "Added by" filter** (?by=<id>): app admins / sub-admins pick anyone (listCreators, with counts); members
   only "Added by me"; a searchable Combobox in its own grid cell — rows Role | Status, Registration | Added by,
   Gender | Age; picking one sets Registration to All.

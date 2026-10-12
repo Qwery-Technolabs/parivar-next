@@ -32,12 +32,11 @@ export default async function AppLayout({ children }) {
         {
             title: t('nav.sections.admin'),
             // The activity log lives in Settings (admins), not here.
-            // My own family tree first, then everyone.
+            // My own family tree, Nearby Homes (pinned homes, men's profiles only), then everyone.
             items: [
                 { href: `/members/${user.id}/tree`, icon: 'tree', label: t('nav.myTree'), bottomLabel: t('nav.familyTree') },
-                { href: '/members', icon: 'users', label: t('nav.members'), exclude: [`/members/${user.id}/tree`] },
-                // Homes members pinned on a map (men's profiles only).
                 { href: '/nearby', icon: 'map', label: t('nav.nearby') },
+                { href: '/members', icon: 'users', label: t('nav.members'), exclude: [`/members/${user.id}/tree`] },
             ],
         },
     ];

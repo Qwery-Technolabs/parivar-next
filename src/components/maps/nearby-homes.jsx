@@ -4,12 +4,13 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import useFillHeight from '@/components/ui/use-fill-height';
 import { useT } from '@/lib/i18n/client';
 
 const OsmMap = dynamic(() => import('./osm-map'), {
     ssr: false,
     loading: () => (
-        <div className="flex h-[65vh] min-h-96 items-center justify-center rounded-lg border border-surface-border bg-white">
+        <div className="flex h-full min-h-80 items-center justify-center rounded-lg border border-surface-border bg-white">
             <Loader2 className="size-5 animate-spin text-ink-gray" />
         </div>
     ),
@@ -22,19 +23,37 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
  * Leaflet's popup sets its own font (Helvetica/Arial), which made this read heavy — so the card uses the app's
  * font (Geist + the Gujarati/Devanagari fallbacks; --font-sans itself is @theme inline, not a real var) and lighter weights: name 600, buttons 500, place 400.
  */
+// Lucide icon paths for the popup's icon buttons (the popup is HTML, not React).
+const ICONS = {
+    user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    nav: '<polygon points="3 11 22 2 13 21 11 13 3 11"/>',
+    phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    pin: '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+};
+const svg = (k, size = 16) =>
+    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none">${ICONS[k]}</svg>`;
+
+/**
+ * A home's popup: name, village · city, the address (up to 3 lines) and phone, then icon-only actions —
+ * profile, directions (Google Maps), call.
+ */
 function miniProfile(h, t) {
     const place = [h.village, h.city].filter(Boolean).join(' · ');
-    const btn = 'display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:6px;font-size:12px;font-weight:500;text-decoration:none';
-    return `<div style="font-family:var(--font-geist-sans),var(--font-gujarati),var(--font-devanagari),system-ui,sans-serif;font-weight:400">
-<div style="display:flex;gap:10px;align-items:center;min-width:190px">
+    const icon = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;text-decoration:none';
+    const line = 'display:flex;gap:6px;align-items:flex-start;margin-top:6px;color:#334155;font-size:12px;line-height:1.4';
+    return `<div style="font-family:var(--font-geist-sans),var(--font-gujarati),var(--font-devanagari),system-ui,sans-serif;font-weight:400;max-width:250px">
+<div style="display:flex;gap:10px;align-items:center;min-width:200px">
   <span style="display:flex;width:36px;height:36px;flex:none;align-items:center;justify-content:center;border-radius:50%;background:#172f56">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>
   </span>
   <span style="min-width:0"><span style="display:block;color:#172f56;font-size:13px;font-weight:600">${esc(h.name)}</span>${place ? `<span style="color:#5b6b85;font-size:12px;font-weight:400">${esc(place)}</span>` : ''}</span>
 </div>
+${h.address ? `<div style="${line}"><span style="color:#5b6b85;margin-top:1px">${svg('pin', 13)}</span><span style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${esc(h.address)}</span></div>` : ''}
+${h.phone ? `<div style="${line}"><span style="color:#5b6b85;margin-top:1px">${svg('phone', 13)}</span><a href="tel:${esc(h.phone.tel)}" style="color:#172f56;font-variant-numeric:tabular-nums;text-decoration:none">${esc(h.phone.text)}</a></div>` : ''}
 <div style="display:flex;gap:6px;margin-top:10px">
-  <a href="/members/${h.id}" style="${btn};background:#172f56;color:#fff">${esc(t('home.viewProfile'))}</a>
-  <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}" target="_blank" rel="noreferrer" style="${btn};border:1px solid #d6dbe4;color:#172f56">${esc(t('home.directions'))}</a>
+  <a href="/members/${h.id}" title="${esc(t('home.viewProfile'))}" aria-label="${esc(t('home.viewProfile'))}" style="${icon};background:#172f56;color:#fff">${svg('user')}</a>
+  <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}" target="_blank" rel="noreferrer" title="${esc(t('home.directions'))}" aria-label="${esc(t('home.directions'))}" style="${icon};border:1px solid #d6dbe4;background:#f3f4f6;color:#172f56">${svg('nav')}</a>
+  ${h.phone ? `<a href="tel:${esc(h.phone.tel)}" title="${esc(t('members.call'))}" aria-label="${esc(t('members.call'))}" style="${icon};border:1px solid #d6dbe4;background:#f3f4f6;color:#172f56">${svg('phone')}</a>` : ''}
 </div>
 </div>`;
 }
@@ -105,24 +124,17 @@ export default function NearbyHomes({ homes, focusId = null }) {
         );
     };
 
+    // The map reaches the bottom edge of the page.
+    const fill = useFillHeight();
+
     return (
         <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-ink-gray">{t('home.mapHint', { count: homes.length })}</p>
-                <button
-                    type="button"
-                    onClick={locate}
-                    disabled={locating}
-                    className="btn-secondary inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium"
-                >
-                    {locating ? <Loader2 className="size-4 animate-spin" /> : <Crosshair className="size-4" />} {t('home.nearMe')}
-                </button>
-            </div>
+            <p className="text-xs text-ink-gray">{t('home.mapHint', { count: homes.length })}</p>
             {/* The list floats over the map: right column on sm+, a bottom sheet on a phone. It stops short of the
                 bottom-right corner (bottom-7) so the OpenStreetMap attribution stays visible. z-[1000] = above
                 Leaflet's panes and controls; as a sibling of the map, scrolling it never zooms the map. */}
-            <div className="relative">
-                <OsmMap markers={markers} me={me} focus={focus} openId={focusId} className="h-[65vh] min-h-96" />
+            <div ref={fill} className="relative h-[calc(100dvh-15rem)] min-h-80">
+                <OsmMap markers={markers} me={me} focus={focus} openId={focusId} className="h-full" />
                 {me && panelOpen && (
                     <div className="absolute inset-x-2 bottom-7 z-[1000] flex max-h-[45%] flex-col overflow-hidden rounded-xl border border-surface-border bg-white shadow-xl sm:inset-x-auto sm:bottom-7 sm:right-3 sm:top-3 sm:max-h-none sm:w-80">
                         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-border bg-card-head px-3 py-2">
@@ -180,6 +192,18 @@ export default function NearbyHomes({ homes, focusId = null }) {
                         <List className="size-4" /> {t('home.nearest')}
                     </button>
                 )}
+                {/* Near me: on the map's corner like the tree's Focus button, above the OpenStreetMap credit. On a
+                    phone the open list (a bottom sheet) covers that corner, so it hides until the list is closed. */}
+                <button
+                    type="button"
+                    onClick={locate}
+                    disabled={locating}
+                    aria-label={t('home.nearMe')}
+                    title={t('home.nearMe')}
+                    className={`absolute bottom-8 right-3 z-[1000] inline-flex size-10 items-center justify-center rounded-lg border border-surface-border bg-white text-primary shadow-md hover:bg-accent disabled:opacity-70 ${me && panelOpen ? 'max-sm:hidden' : ''}`}
+                >
+                    {locating ? <Loader2 className="size-5 animate-spin" /> : <Crosshair className="size-5" />}
+                </button>
             </div>
         </div>
     );

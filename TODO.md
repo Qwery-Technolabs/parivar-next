@@ -392,7 +392,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Mandal print: date range removed everywhere (schedules multi-select only)
 - [x] Settings → About: developer (Manthan Kanani, +91 86903 55381), privacy policy (also public /privacy-policy, en + gu), open-source licences
 - [x] Member page address: Copy · Map · Directions (Google Maps)
-- [ ] LATER: pin-point location per member (opt-in, set on the profile) + a members map view; "near me" = viewer enables location and sees members living nearby. Update lib/legal.js privacy policy when built.
+- [x] (Done as Nearby Homes) pin-point location per member (opt-in, set on the profile) + a members map view; "near me" = viewer enables location and sees members living nearby. Update lib/legal.js privacy policy when built.
 - [x] Member address: blue underlined link to Google Maps + plain grey copy icon (Directions removed)
 - [x] Group team roles (Members / Fundraise / Meetings / Group details / Discussion), danger zones for group leaders only, fundraise creator edits only, meeting edit/cancel by its creator or group leaders
 - [x] Qwery Technolabs link (qwerytechnolabs.com) in Settings → About and the privacy policy page
@@ -415,3 +415,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Nearby Homes (OpenStreetMap): men's home pins set from the profile address, person pins + mini profile, Near me, focus from the Members list
 - [x] Family tree: Focus button back to the person
 - [x] Mini loaders on tabs, money switch, print chips, calendar arrows, meetings view switch; past meetings + Mandal attendance load on open; Nearby full width
+- [x] Nearby Homes + family tree fill the page to its bottom edge (useFillHeight); Near me as an icon on the map corner
+- [x] Map mini profile: address + phone (not for family-added relatives), icon-only Profile / Directions / Call
+- [x] Sidebar Miscellaneous: My family tree · Nearby homes · Members; home pin button light grey background

@@ -66,7 +66,7 @@ export default function HomePinButton({ userId, initial = null }) {
                 aria-label={saved ? t('home.pinSet') : t('home.setPin')}
                 title={saved ? t('home.pinSet') : t('home.setPin')}
                 className={`inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors ${
-                    saved ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'text-ink-gray hover:bg-gray-100 hover:text-primary'
+                    saved ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-gray-100 text-ink-gray hover:bg-gray-200 hover:text-primary'
                 }`}
             >
                 <MapPin className="size-4" fill={saved ? 'currentColor' : 'none'} fillOpacity={saved ? 0.2 : 0} />

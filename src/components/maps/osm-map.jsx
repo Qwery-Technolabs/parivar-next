@@ -57,6 +57,7 @@ export default function OsmMap({
     // Create the map once (Leaflet needs the browser: loaded here, not on the server).
     useEffect(() => {
         let cancelled = false;
+        let ro = null;
         import('leaflet').then((mod) => {
             if (cancelled || !box.current || map.current) return;
             const L = mod.default ?? mod;
@@ -75,9 +76,13 @@ export default function OsmMap({
             // First draw of markers / pin happens in the effects below once the map exists.
             m.fire('pv-ready');
             setTimeout(() => m.invalidateSize(), 50);
+            // The box can change size (Nearby Homes fills the screen): redraw the tiles to fit.
+            ro = new ResizeObserver(() => m.invalidateSize());
+            ro.observe(box.current);
         });
         return () => {
             cancelled = true;
+            ro?.disconnect();
             map.current?.remove();
             map.current = null;
         };

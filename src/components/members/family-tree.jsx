@@ -3,6 +3,7 @@ import { Flower2, Focus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import Switch from '@/components/ui/switch';
+import useFillHeight from '@/components/ui/use-fill-height';
 import { age } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 import { birthName, MARRIED_LIKE } from '@/lib/names';
@@ -143,6 +144,8 @@ export default function FamilyTree({ tree }) {
     const [zoom, setZoom] = useState(1);
     const zoomRef = useRef(1);
     const box = useRef(null);
+    // The canvas reaches the bottom edge of the page.
+    const fill = useFillHeight();
     const drag = useRef(null);
     const pointers = useRef(new Map());
     const pinch = useRef(null);
@@ -270,14 +273,14 @@ export default function FamilyTree({ tree }) {
                     <Switch checked={showDetails} onChange={setShowDetails} label={t('members.details')} />
                 </div>
             </div>
-            <div className="relative">
+            <div ref={fill} className="relative h-[calc(100dvh-13rem)] min-h-80">
                 <div
                     ref={box}
                     onPointerDown={onPointerDown}
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerEnd}
                     onPointerCancel={onPointerEnd}
-                    className="h-[calc(100dvh-13rem)] min-h-80 cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-gray-100 shadow-inner select-none active:cursor-grabbing"
+                    className="h-full cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-gray-100 shadow-inner select-none active:cursor-grabbing"
                 >
                     <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
                         <ul>
