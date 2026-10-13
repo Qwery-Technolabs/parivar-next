@@ -257,3 +257,7 @@ body {
 .ftree > ul > li { padding-top: 0; }
 .ftree > ul > li::before,
 .ftree > ul > li::after { display: none; }
+
+/* Road map (OpenStreetMap's own tiles, osm-map.jsx): a softer colour theme — calmer greens / road oranges, a touch
+   lighter — closer to the clean look people know from Google Maps. Only the road tiles; pins and satellite untouched. */
+.pv-road-tiles { filter: saturate(0.72) brightness(1.04) contrast(0.94) hue-rotate(-6deg); }

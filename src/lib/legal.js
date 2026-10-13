@@ -57,7 +57,7 @@ export const PRIVACY_POLICY = {
                 'Hostinger — hosts the database (in India).',
                 'Google Input Tools — when you use the local-language spelling suggestions, the word you type is sent to Google to suggest its spelling.',
                 'Your browser’s push service (for example Google, Apple or Mozilla) — delivers notifications, only if you turn them on.',
-                'CARTO (road map, from OpenStreetMap data) and Esri (satellite view) — draw the map tiles on Nearby Homes and the location picker (your browser loads them; your own location from “Near me” stays on your device and is not saved).',
+                'OpenStreetMap (road map) and Esri (satellite view) — draw the map tiles on Nearby Homes and the location picker (your browser loads them; your own location from “Near me” stays on your device and is not saved).',
             ],
         },
         {
@@ -137,7 +137,7 @@ export const PRIVACY_POLICY = {
                 'Hostinger — ડેટાબેઝ હોસ્ટ કરે છે (ભારતમાં).',
                 'Google Input Tools — તમે સ્થાનિક ભાષાના સ્પેલિંગ સૂચનો વાપરો ત્યારે તમે લખેલો શબ્દ સ્પેલિંગ સૂચવવા Google ને મોકલાય છે.',
                 'તમારા બ્રાઉઝરની પુશ સેવા (દા.ત. Google, Apple કે Mozilla) — ફક્ત તમે નોટિફિકેશન ચાલુ કરો તો તે પહોંચાડે છે.',
-                'CARTO (રસ્તાનો નકશો, OpenStreetMap ડેટા પરથી) અને Esri (સેટેલાઇટ દૃશ્ય) — "નજીકનાં ઘર" અને સ્થાન પસંદ કરવાના નકશા બતાવે છે (તમારું બ્રાઉઝર લોડ કરે છે; "મારી નજીક" માટેનું તમારું સ્થાન તમારા ડિવાઇસ પર જ રહે છે, સાચવાતું નથી).',
+                'OpenStreetMap (રસ્તાનો નકશો) અને Esri (સેટેલાઇટ દૃશ્ય) — "નજીકનાં ઘર" અને સ્થાન પસંદ કરવાના નકશા બતાવે છે (તમારું બ્રાઉઝર લોડ કરે છે; "મારી નજીક" માટેનું તમારું સ્થાન તમારા ડિવાઇસ પર જ રહે છે, સાચવાતું નથી).',
             ],
         },
         {
@@ -188,7 +188,6 @@ export const OPEN_SOURCE = [
     { name: 'Lucide', pkg: 'lucide-react', license: 'ISC', url: 'https://lucide.dev' },
     { name: 'Leaflet', pkg: 'leaflet', license: 'BSD-2-Clause', url: 'https://leafletjs.com' },
     { name: 'OpenStreetMap (map data)', pkg: '© OpenStreetMap contributors', license: 'ODbL', url: 'https://www.openstreetmap.org/copyright' },
-    { name: 'CARTO basemaps (road map)', pkg: '© CARTO', license: 'CC BY 3.0', url: 'https://carto.com/attributions' },
     {
         name: 'Esri World Imagery (satellite)',
         pkg: '© Esri, Maxar, Earthstar Geographics',

@@ -25,20 +25,11 @@ function pinIcon(L, tone = '#172f56', person = false) {
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-// Base maps (free, no key). Road: CARTO Voyager — the clean Google-Maps-like look over OpenStreetMap data.
-// Satellite: Esri World Imagery with Esri's road + place-name overlays on top (a "hybrid" view, like Google's).
+// Base maps (free, no key). Road: OpenStreetMap's own open tiles (no third-party map style).
+// Satellite: Esri World Imagery with Esri's road + place-name overlays on top (a "hybrid" view).
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
 const BASEMAPS = {
-    road: [
-        {
-            url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-            opts: {
-                subdomains: 'abcd',
-                maxZoom: 20,
-                attribution: `${OSM} &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>`,
-            },
-        },
-    ],
+    road: [{ url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: OSM, className: 'pv-road-tiles' } }],
     satellite: [
         {
             url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

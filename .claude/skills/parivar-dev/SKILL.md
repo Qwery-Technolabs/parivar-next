@@ -208,14 +208,14 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   phone — not for a relative added via the family tree, like the profile — then icon-only Profile / Directions / Call).
   "Near me" is a square icon button on the map's bottom-right corner (like the tree's Focus), with the Map ⇄ Satellite
   toggle (`layerToggle`) just above it; the viewer's own spot is a dark dot with a soft ring (never orange / navy).
-  Tiles (free, no key): road = CARTO Voyager (Google-like look, OSM data); satellite = Esri World Imagery + Esri road
-  and place-name overlays. NOT Google's own tiles — those need a paid Maps API key (their terms forbid using the raw
-  tile URLs). The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
+  Tiles (free, no key): road = OpenStreetMap's own tiles (the user wants open source — NO CARTO, no keyed
+  providers, not Google), softened by a CSS colour theme (`.pv-road-tiles` filter in globals.css); satellite = Esri
+  World Imagery + Esri road and place-name overlays. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
   nearest to me after Near me, else to the map's middle — filtered client-side from the page's homes, so moving the
   map makes no request / DB connection. It starts open on sm+, closed on a phone (chip) until Near me.
   The pin picker button has a light grey background; the picker also has the Satellite toggle. ?focus=<id> opens on one home; the Members
   list shows a pin button (has_home) before ⋮. The profile's address link uses the pin when set. Privacy policy +
-  licences (Leaflet, OSM data, CARTO, Esri) say so.
+  licences (Leaflet, OSM data, Esri) say so.
 - **Family tree focus**: a square Focus button (bottom-right of the canvas) scrolls back to the tree's person.
 - **Full-screen canvases** (family tree, Nearby Homes map): `useFillHeight()` (components/ui/use-fill-height.js) on
   the canvas wrapper grows it to the bottom of #content (above the phone bar), measured live; keep a CSS
