@@ -16,7 +16,7 @@ export async function generateMetadata() {
  * OpenStreetMap map — men's profiles only (never a woman's home), active members, for every signed-in member.
  */
 export default async function NearbyPage({ searchParams }) {
-    await requireUser();
+    const user = await requireUser();
     const [{ t, locale }, rows] = await Promise.all([
         getT(),
         query(
@@ -50,7 +50,7 @@ export default async function NearbyPage({ searchParams }) {
     return (
         <div>
             <PageHeader title={t('home.title')} subtitle={t('home.subtitle')} />
-            <NearbyHomes homes={homes} focusId={focusId} />
+            <NearbyHomes homes={homes} focusId={focusId} meId={user.id} />
         </div>
     );
 }

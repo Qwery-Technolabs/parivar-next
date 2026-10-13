@@ -75,7 +75,7 @@ function km(a, b) {
  * `focusId` (?focus=<id>, e.g. the pin button on the Members list): open centred on that home with its card open.
  * @param {{ homes: Array<{ id: number, name: string, village: string|null, city?: string|null, lat: number, lng: number }>, focusId?: number|null }} props
  */
-export default function NearbyHomes({ homes, focusId = null }) {
+export default function NearbyHomes({ homes, focusId = null, meId = null }) {
     const { t } = useT();
     const [me, setMe] = useState(null);
     const [locating, setLocating] = useState(false);
@@ -92,11 +92,13 @@ export default function NearbyHomes({ homes, focusId = null }) {
                 lat: h.lat,
                 lng: h.lng,
                 title: h.name,
+                // My own home: orange (stands out on the road map and on satellite); everyone else navy.
+                tone: h.id === meId ? '#ea580c' : undefined,
                 subtitle: h.village ?? '',
                 href: `/members/${h.id}`,
                 popup: miniProfile(h, t),
             })),
-        [homes, t],
+        [homes, t, meId],
     );
     // Homes in the visible area, nearest first — to me after Near me, else to the middle of the map. Filtered here
     // from the homes the page already has: moving the map costs no request (and no database connection).

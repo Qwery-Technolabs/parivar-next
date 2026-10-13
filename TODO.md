@@ -427,3 +427,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Matrimony "Your family": family rules only (managers no longer see every eligible relative); Members map pin light grey
 - [x] On-demand parts cached in the browser tab for 3 min + fetched on hover/touch (history, minutes, attendance, past meetings); calendar months prefetched; visited pages reused 30 s
 - [x] Map road view: back to OpenStreetMap tiles (the MapLibre / OpenFreeMap vector map drew blank in production — reverted)
+- [x] Map remembers Map / Satellite per device (localStorage)
+- [x] Nearby: my own home pin orange (others navy)

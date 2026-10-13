@@ -23,6 +23,16 @@ function pinIcon(L, tone = '#172f56', person = false) {
     });
 }
 
+// Map / Satellite last chosen on this device (localStorage — a per-device convenience; unreadable = the road map).
+const VIEW_KEY = 'pv-map-view';
+const savedView = () => {
+    try {
+        return localStorage.getItem(VIEW_KEY) === 'satellite' ? 'satellite' : 'road';
+    } catch {
+        return 'road';
+    }
+};
+
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // Base maps (free, open source, no key). Road: OpenStreetMap's own tiles.
@@ -58,7 +68,7 @@ function baseLayers(L, view) {
  *   pick      { lat, lng } | null + onPick(lat, lng) — one draggable pin; tapping the map moves it there
  * `layerToggle`: a Map ⇄ Satellite button on the map (`toggleClass` places it, default bottom-right).
  * `onView({ s, w, n, e, lat, lng })`: the visible area (and its centre), after every pan / zoom.
- * `me` { lat, lng } draws the viewer's position (a dark dot with a soft ring, unlike the navy home pins). The map fits the markers, else centres on `center`.
+ * `me` { lat, lng } draws the viewer's position (a dark dot with a soft ring). A marker's `tone` colours its pin (own home: orange). The map fits the markers, else centres on `center`.
  * @param {{ markers?: any[], pick?: {lat:number,lng:number}|null, onPick?: (lat:number, lng:number) => void, me?: {lat:number,lng:number}|null,
  *           center?: [number, number], zoom?: number, className?: string, focus?: {lat:number,lng:number}|null }} props
  */
@@ -103,7 +113,10 @@ export default function OsmMap({
             const L = mod.default ?? mod;
             Lref.current = L;
             const m = L.map(box.current, { zoomControl: true, attributionControl: true }).setView(center, zoom);
-            base.current = L.layerGroup(baseLayers(L, 'road')).addTo(m);
+            // Open on the view chosen last time (only where the toggle is shown).
+            const first = layerToggle ? savedView() : 'road';
+            base.current = L.layerGroup(baseLayers(L, first)).addTo(m);
+            if (first !== 'road') setView(first);
             layer.current = L.layerGroup().addTo(m);
             if (pick !== undefined)
                 m.on('click', (e) => {
@@ -144,7 +157,7 @@ export default function OsmMap({
             const pts = [];
             let opened = null;
             for (const p of markers) {
-                const mk = L.marker([p.lat, p.lng], { icon: pinIcon(L, '#172f56', true) }).addTo(layer.current);
+                const mk = L.marker([p.lat, p.lng], { icon: pinIcon(L, p.tone ?? '#172f56', true), zIndexOffset: p.tone ? 1000 : 0 }).addTo(layer.current);
                 const title = p.href
                     ? `<a href="${escapeHtml(p.href)}" style="font-weight:600;color:#172f56">${escapeHtml(p.title)}</a>`
                     : `<b>${escapeHtml(p.title)}</b>`;
@@ -232,7 +245,15 @@ export default function OsmMap({
             {layerToggle && (
                 <button
                     type="button"
-                    onClick={() => setView(sat ? 'road' : 'satellite')}
+                    onClick={() => {
+                        const next = sat ? 'road' : 'satellite';
+                        setView(next);
+                        try {
+                            localStorage.setItem(VIEW_KEY, next);
+                        } catch {
+                            // Private window / blocked storage: just not remembered.
+                        }
+                    }}
                     aria-label={t(sat ? 'home.mapView' : 'home.satellite')}
                     title={t(sat ? 'home.mapView' : 'home.satellite')}
                     className={`absolute z-[1000] inline-flex size-10 items-center justify-center rounded-lg border border-surface-border bg-white text-primary shadow-md hover:bg-accent ${toggleClass}`}

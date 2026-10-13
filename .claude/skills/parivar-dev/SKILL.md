@@ -218,7 +218,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Tiles (free, open source, no key — the user wants NO CARTO, no keyed providers, not Google): road = OpenStreetMap's
   own picture tiles; satellite = Esri World Imagery + Esri road and place-name overlays. MapLibre + OpenFreeMap vector
   tiles were tried (Oct 2026) and drew a BLANK map in production (style background only, no tiles) — reverted; do not
-  bring a WebGL vector map back without checking it in a real browser first. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
+  bring a WebGL vector map back without checking it in a real browser first. The Map / Satellite choice is remembered per
+  device (localStorage `pv-map-view`, osm-map.jsx) for every map with the toggle. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
   nearest to me after Near me, else to the map's middle — filtered client-side from the page's homes, so moving the
   map makes no request / DB connection. It starts open on sm+, closed on a phone (chip) until Near me.
   The pin picker button has a light grey background; the picker also has the Satellite toggle. ?focus=<id> opens on one home; the Members
