@@ -178,6 +178,12 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   while its transition is pending; a collapsed part that loads on open shows Loader2 in place of its chevron.
 - **Pagination** (components/ui/pagination.jsx) renders nothing when there is one page or none (no "0–0 of 0", no
   rows-per-page) — still shown on a page past the end. Group Members tab is paginated (?page, per-page cookie).
+- **Browser cache for on-demand parts** (lib/client-cache.js `useOnDemand(key, fetcher)`): answers of the load-on-open
+  actions are kept in the TAB's memory for 3 min (never shared, gone on reload; only ok answers) and fetched early on
+  pointer-enter / touch-start / focus, so the loader rarely shows. Put what changes the data in the key (a count);
+  a write that keeps the key calls `forgetCached(prefix)`. Calendar arrows router.prefetch the next month on hover;
+  next.config staleTimes { static: 180, dynamic: 30 }. The DB is tiny — the wait is the Vercel→Hostinger round trip,
+  so caching / early fetching helps, more indexes do not.
 - **Load on open, not with the page**: content hidden behind a toggle is fetched when opened (server action), the page
   carries only counts. Meeting minutes: the meetings list gets `minutesCounts(campaignId)` ({eventId: n}); each card shows
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
@@ -208,14 +214,15 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   phone — not for a relative added via the family tree, like the profile — then icon-only Profile / Directions / Call).
   "Near me" is a square icon button on the map's bottom-right corner (like the tree's Focus), with the Map ⇄ Satellite
   toggle (`layerToggle`) just above it; the viewer's own spot is a dark dot with a soft ring (never orange / navy).
-  Tiles (free, no key): road = OpenStreetMap's own tiles (the user wants open source — NO CARTO, no keyed
-  providers, not Google), softened by a CSS colour theme (`.pv-road-tiles` filter in globals.css); satellite = Esri
-  World Imagery + Esri road and place-name overlays. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
+  Tiles (free, open source, no key — the user wants NO CARTO, no keyed providers, not Google): road = OpenFreeMap
+  vector tiles (OSM data) in its "Liberty" style drawn by MapLibre through @maplibre/maplibre-gl-leaflet (white /
+  light-grey streets, coloured road hierarchy, green parks, blue water, readable labels); no WebGL → OSM picture tiles.
+  Satellite = Esri World Imagery + Esri road and place-name overlays. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
   nearest to me after Near me, else to the map's middle — filtered client-side from the page's homes, so moving the
   map makes no request / DB connection. It starts open on sm+, closed on a phone (chip) until Near me.
   The pin picker button has a light grey background; the picker also has the Satellite toggle. ?focus=<id> opens on one home; the Members
   list shows a pin button (has_home) before ⋮. The profile's address link uses the pin when set. Privacy policy +
-  licences (Leaflet, OSM data, Esri) say so.
+  licences (Leaflet, MapLibre, OpenFreeMap, OSM data, Esri) say so.
 - **Family tree focus**: a square Focus button (bottom-right of the canvas) scrolls back to the tree's person.
 - **Full-screen canvases** (family tree, Nearby Homes map): `useFillHeight()` (components/ui/use-fill-height.js) on
   the canvas wrapper grows it to the bottom of #content (above the phone bar), measured live; keep a CSS

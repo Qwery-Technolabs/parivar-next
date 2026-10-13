@@ -3,6 +3,7 @@ import { Check, ChevronDown, Loader2, Minus, Users, X } from 'lucide-react';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { loadMandalAttendance, setMandalPresence } from '@/app/actions/mandal';
+import { forgetCached, useOnDemand } from '@/lib/client-cache';
 import { useT } from '@/lib/i18n/client';
 
 /**
@@ -15,8 +16,10 @@ import { useT } from '@/lib/i18n/client';
 export default function MandalAttendance({ campaignId, eventId, data, canMark }) {
     const { t, locale } = useT();
     const [open, setOpen] = useState(false);
-    const [people0, setPeople0] = useState(null); // null = not loaded yet
-    const [loading, startLoad] = useTransition();
+    // The list: kept in this tab for a few minutes, fetched early on pointer / touch (lib/client-cache.js).
+    const key = `att:${campaignId}:${eventId}`;
+    const { res, pending: loading, load, prefetch } = useOnDemand(key, () => loadMandalAttendance(campaignId, eventId));
+    const people0 = res?.ok ? res.people : null; // null = not loaded yet
     // Marked here: shown at once, put back if the save fails.
     const [local, setLocal] = useState({});
     const [busy, setBusy] = useState(null);
@@ -30,12 +33,7 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
     const toggle = () => {
         const next = !open;
         setOpen(next);
-        if (next && people0 == null)
-            startLoad(async () => {
-                const res = await loadMandalAttendance(campaignId, eventId);
-                if (res?.ok) setPeople0(res.people);
-                else toast.error(t(res?.error ?? 'common.error'));
-            });
+        if (next && !res) load();
     };
 
     const mark = (p, present) => {
@@ -44,6 +42,8 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
         setLocal((s) => ({ ...s, [p.id]: present }));
         startTransition(async () => {
             const res = await setMandalPresence(campaignId, eventId, p.id, present);
+            // The kept list is now behind: the next open (another visit) fetches it again.
+            if (res?.ok) forgetCached(key);
             if (!res?.ok) {
                 setLocal((s) => {
                     const n = { ...s };
@@ -61,6 +61,9 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
             <button
                 type="button"
                 onClick={toggle}
+                onPointerEnter={prefetch}
+                onTouchStart={prefetch}
+                onFocus={prefetch}
                 aria-expanded={open}
                 className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             >
@@ -72,6 +75,7 @@ export default function MandalAttendance({ campaignId, eventId, data, canMark })
                     <ChevronDown className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
                 )}
             </button>
+            {open && res && !res.ok && <p className="mt-1.5 text-xs text-destructive">{t(res.error ?? 'common.error')}</p>}
             {open && people && (
                 <ul className="mt-1.5 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {people.map((p) => {

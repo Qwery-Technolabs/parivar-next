@@ -7,7 +7,8 @@ const nextConfig = {
     experimental: {
         // Pages fetched in the background (components/shell/background-prefetch.jsx) are reused for
         // 3 minutes — instant to open, yet never far behind; any save (revalidatePath) drops them early.
-        staleTimes: { static: 180 },
+        // A page just visited (a tab, a calendar month) is reused for 30 s — going back is instant.
+        staleTimes: { static: 180, dynamic: 30 },
     },
     async headers() {
         return [

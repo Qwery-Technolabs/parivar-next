@@ -425,3 +425,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] History (group / fundraise / Mandal) loads on open; settings sections lazy; group Members paginated + per-tab member loading
 - [x] Meetings calendar: one month per load (?month=), arrow spinner, red Sundays; pagination hidden for a single page
 - [x] Matrimony "Your family": family rules only (managers no longer see every eligible relative); Members map pin light grey
+- [x] On-demand parts cached in the browser tab for 3 min + fetched on hover/touch (history, minutes, attendance, past meetings); calendar months prefetched; visited pages reused 30 s
+- [x] Map road view: OpenFreeMap "Liberty" vector style via MapLibre (open source, no key); no CARTO

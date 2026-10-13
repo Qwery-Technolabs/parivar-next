@@ -46,13 +46,18 @@ export default function MeetingCalendar({ meetings, birthdays = [], month, today
         (bdayByDay[day] ??= []).push({ ...b, turns: y - b.born });
     }
 
-    const shift = (n) => {
+    const hrefFor = (n) => {
         const d = new Date(Date.UTC(y, mo - 1 + n, 1));
         const params = new URLSearchParams(searchParams.toString());
         params.set('month', `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`);
-        setGoing(n);
-        startLoad(() => router.replace(`${pathname}?${params}`, { scroll: false }));
+        return `${pathname}?${params}`;
     };
+    const shift = (n) => {
+        setGoing(n);
+        startLoad(() => router.replace(hrefFor(n), { scroll: false }));
+    };
+    // The pointer / a finger on an arrow: that month starts loading already, so the tap usually finds it ready.
+    const warm = (n) => () => router.prefetch(hrefFor(n));
     const months = t('calendar.months').split(',');
     const weekdays = t('calendar.weekdays').split(',');
     const title = (m) => (locale !== 'en' && m.title_local) || m.title;
@@ -64,6 +69,8 @@ export default function MeetingCalendar({ meetings, birthdays = [], month, today
                     <button
                         type="button"
                         onClick={() => shift(-1)}
+                        onPointerEnter={warm(-1)}
+                        onTouchStart={warm(-1)}
                         aria-label={t('common.prev')}
                         disabled={loading}
                         className="flex size-8 items-center justify-center rounded-md text-primary hover:bg-white"
@@ -76,6 +83,8 @@ export default function MeetingCalendar({ meetings, birthdays = [], month, today
                     <button
                         type="button"
                         onClick={() => shift(1)}
+                        onPointerEnter={warm(1)}
+                        onTouchStart={warm(1)}
                         aria-label={t('common.next')}
                         disabled={loading}
                         className="flex size-8 items-center justify-center rounded-md text-primary hover:bg-white"

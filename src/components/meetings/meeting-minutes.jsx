@@ -1,40 +1,36 @@
 'use client';
 import { ChevronDown, Loader2 } from 'lucide-react';
-import { useEffect, useState, useTransition } from 'react';
+import { useState } from 'react';
 import { loadMeetingMinutes } from '@/app/actions/minutes';
+import { useOnDemand } from '@/lib/client-cache';
 import { useT } from '@/lib/i18n/client';
 
 /**
  * A meeting's minutes, collapsed: "Minutes (n)" opens them, and only then are they fetched from the server
- * (the list page carries just the count). Re-fetched when the count changes (one was just added).
+ * (the list page carries just the count). Kept in this tab for a few minutes and fetched early when the pointer / a
+ * finger reaches it (lib/client-cache.js); the count is in the key, so a new minute loads afresh.
  * @param {{ campaignId: number, eventId: number, count: number }} props
  */
 export default function MeetingMinutes({ campaignId, eventId, count }) {
     const { t, locale } = useT();
     const [open, setOpen] = useState(false);
-    const [rows, setRows] = useState(null); // null = not loaded yet
-    const [loadedFor, setLoadedFor] = useState(0); // the count they were loaded at
-    const [error, setError] = useState(false);
-    const [pending, startTransition] = useTransition();
-
-    useEffect(() => {
-        if (!open || (rows && loadedFor === count)) return;
-        startTransition(async () => {
-            const res = await loadMeetingMinutes(campaignId, eventId);
-            if (res?.ok) {
-                setRows(res.minutes);
-                setLoadedFor(count);
-                setError(false);
-            } else setError(true);
-        });
-    }, [open, count, rows, loadedFor, campaignId, eventId]);
+    const { res, pending, load, prefetch } = useOnDemand(`min:${campaignId}:${eventId}:${count}`, () => loadMeetingMinutes(campaignId, eventId));
+    const rows = res?.ok ? res.minutes : null; // null = not loaded yet
+    const error = Boolean(res && !res.ok);
+    const toggle = () => {
+        if (!open && !res) load();
+        setOpen((v) => !v);
+    };
 
     if (!count) return null;
     return (
         <div>
             <button
                 type="button"
-                onClick={() => setOpen((v) => !v)}
+                onClick={toggle}
+                onPointerEnter={prefetch}
+                onTouchStart={prefetch}
+                onFocus={prefetch}
                 aria-expanded={open}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             >

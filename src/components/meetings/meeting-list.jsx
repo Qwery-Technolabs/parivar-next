@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { cancelMeeting, loadPastMeetings, setRsvp } from '@/app/actions/meetings';
 import { date as fmtDate, time as fmtTime } from '@/lib/format';
+import { useOnDemand } from '@/lib/client-cache';
 import { useT } from '@/lib/i18n/client';
 import PostDialog from '@/components/fundraise/post-dialog';
 import MeetingCalendar from './meeting-calendar';
@@ -179,19 +180,15 @@ export default function MeetingList({
     const calBirthdays = show === 'meeting' ? [] : birthdays.filter((b) => !role || b.role === role);
     const upcoming = meetings.filter((m) => m.start_date >= today).reverse();
     // The list: past meetings load when opened (pastCount = how many); the calendar view has them all already.
-    const [pastLoaded, setPastLoaded] = useState(null);
-    const [pastPending, startPast] = useTransition();
-    const past = pastCount == null ? meetings.filter((m) => m.start_date < today) : (pastLoaded ?? []);
+    // Kept in this tab for a few minutes and fetched early on pointer / touch (lib/client-cache.js).
+    const pastData = useOnDemand(`past:${scope}:${scopeId}:${pastCount}`, () => loadPastMeetings(scope, scopeId));
+    const pastPending = pastData.pending;
+    const past = pastCount == null ? meetings.filter((m) => m.start_date < today) : pastData.res?.ok ? pastData.res.meetings : [];
     const pastTotal = pastCount ?? past.length;
     const togglePast = () => {
         const next = !showPast;
         setShowPast(next);
-        if (next && pastCount != null && pastLoaded == null)
-            startPast(async () => {
-                const res = await loadPastMeetings(scope, scopeId);
-                if (res?.ok) setPastLoaded(res.meetings);
-                else toast.error(t(res?.error ?? 'common.error'));
-            });
+        if (next && pastCount != null && !pastData.res) pastData.load();
     };
     const card = (m) => (
         <MeetingCard
@@ -340,6 +337,8 @@ export default function MeetingList({
                             <button
                                 type="button"
                                 onClick={togglePast}
+                                onPointerEnter={pastCount != null ? pastData.prefetch : undefined}
+                                onTouchStart={pastCount != null ? pastData.prefetch : undefined}
                                 className="inline-flex items-center gap-1 text-xs font-medium text-ink-gray hover:text-primary"
                             >
                                 {pastPending ? (
