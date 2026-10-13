@@ -1,6 +1,8 @@
 'use client';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useRef } from 'react';
+import { Map as MapIcon, Satellite } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useT } from '@/lib/i18n/client';
 
 // A small person (head + shoulders), white — inside a home pin.
 const PERSON_SVG =
@@ -23,12 +25,44 @@ function pinIcon(L, tone = '#172f56', person = false) {
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+// Base maps (free, no key). Road: CARTO Voyager — the clean Google-Maps-like look over OpenStreetMap data.
+// Satellite: Esri World Imagery with Esri's road + place-name overlays on top (a "hybrid" view, like Google's).
+const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
+const BASEMAPS = {
+    road: [
+        {
+            url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+            opts: {
+                subdomains: 'abcd',
+                maxZoom: 20,
+                attribution: `${OSM} &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>`,
+            },
+        },
+    ],
+    satellite: [
+        {
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            opts: { maxNativeZoom: 18, maxZoom: 20, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics' },
+        },
+        {
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+            opts: { maxNativeZoom: 18, maxZoom: 20 },
+        },
+        {
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+            opts: { maxNativeZoom: 18, maxZoom: 20 },
+        },
+    ],
+};
+
 /**
  * An OpenStreetMap map (Leaflet, open source — no key). Two uses:
  *   markers   [{ id, lat, lng, title, subtitle?, href?, popup? }] — homes (person pins), each opening a small card
  *             (`popup` = its ready HTML); `openId` = the home to centre on with its card open
  *   pick      { lat, lng } | null + onPick(lat, lng) — one draggable pin; tapping the map moves it there
- * `me` { lat, lng } draws the viewer's position (orange). The map fits the markers, else centres on `center`.
+ * `layerToggle`: a Map ⇄ Satellite button on the map (`toggleClass` places it, default bottom-right).
+ * `onView({ s, w, n, e, lat, lng })`: the visible area (and its centre), after every pan / zoom.
+ * `me` { lat, lng } draws the viewer's position (a dark dot with a soft ring, unlike the navy home pins). The map fits the markers, else centres on `center`.
  * @param {{ markers?: any[], pick?: {lat:number,lng:number}|null, onPick?: (lat:number, lng:number) => void, me?: {lat:number,lng:number}|null,
  *           center?: [number, number], zoom?: number, className?: string, focus?: {lat:number,lng:number}|null }} props
  */
@@ -42,7 +76,17 @@ export default function OsmMap({
     className = '',
     focus = null,
     openId = null,
+    layerToggle = false,
+    toggleClass = 'bottom-8 right-3',
+    onView,
 }) {
+    const onViewRef = useRef(onView);
+    useEffect(() => {
+        onViewRef.current = onView;
+    }, [onView]);
+    const { t } = useT();
+    const [view, setView] = useState('road');
+    const base = useRef(null);
     const box = useRef(null);
     const map = useRef(null);
     const layer = useRef(null);
@@ -63,16 +107,21 @@ export default function OsmMap({
             const L = mod.default ?? mod;
             Lref.current = L;
             const m = L.map(box.current, { zoomControl: true, attributionControl: true }).setView(center, zoom);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
-            }).addTo(m);
+            base.current = L.layerGroup(BASEMAPS.road.map((b) => L.tileLayer(b.url, b.opts))).addTo(m);
             layer.current = L.layerGroup().addTo(m);
             if (pick !== undefined)
                 m.on('click', (e) => {
                     onPickRef.current?.(e.latlng.lat, e.latlng.lng);
                 });
             map.current = m;
+            // The visible area, after every pan / zoom (and once now).
+            const report = () => {
+                const b = m.getBounds();
+                const c = m.getCenter();
+                onViewRef.current?.({ s: b.getSouth(), w: b.getWest(), n: b.getNorth(), e: b.getEast(), lat: c.lat, lng: c.lng });
+            };
+            m.on('moveend', report);
+            setTimeout(report, 60);
             // First draw of markers / pin happens in the effects below once the map exists.
             m.fire('pv-ready');
             setTimeout(() => m.invalidateSize(), 50);
@@ -156,7 +205,10 @@ export default function OsmMap({
             if (!L || !m) return false;
             meMarker.current?.remove();
             meMarker.current = me
-                ? L.circleMarker([me.lat, me.lng], { radius: 8, color: '#fff', weight: 2, fillColor: '#ea580c', fillOpacity: 1 }).addTo(m)
+                ? L.layerGroup([
+                      L.circleMarker([me.lat, me.lng], { radius: 18, stroke: false, fillColor: '#111827', fillOpacity: 0.15, interactive: false }),
+                      L.circleMarker([me.lat, me.lng], { radius: 8, color: '#fff', weight: 3, fillColor: '#111827', fillOpacity: 1 }),
+                  ]).addTo(m)
                 : null;
             if (focus) m.setView([focus.lat, focus.lng], Math.max(m.getZoom(), 15));
             return true;
@@ -167,5 +219,31 @@ export default function OsmMap({
         }
     }, [me, focus]);
 
-    return <div ref={box} className={`z-0 w-full overflow-hidden rounded-lg border border-surface-border ${className}`} />;
+    // Map ⇄ Satellite: swap the base tiles under the pins.
+    useEffect(() => {
+        const L = Lref.current;
+        const m = map.current;
+        if (!L || !m || !base.current) return;
+        base.current.remove();
+        base.current = L.layerGroup(BASEMAPS[view].map((b) => L.tileLayer(b.url, b.opts))).addTo(m);
+        base.current.eachLayer((l) => l.bringToBack());
+    }, [view]);
+
+    const sat = view === 'satellite';
+    return (
+        <div className={`relative ${className}`}>
+            <div ref={box} className="z-0 size-full overflow-hidden rounded-lg border border-surface-border" />
+            {layerToggle && (
+                <button
+                    type="button"
+                    onClick={() => setView(sat ? 'road' : 'satellite')}
+                    aria-label={t(sat ? 'home.mapView' : 'home.satellite')}
+                    title={t(sat ? 'home.mapView' : 'home.satellite')}
+                    className={`absolute z-[1000] inline-flex size-10 items-center justify-center rounded-lg border border-surface-border bg-white text-primary shadow-md hover:bg-accent ${toggleClass}`}
+                >
+                    {sat ? <MapIcon className="size-5" /> : <Satellite className="size-5" />}
+                </button>
+            )}
+        </div>
+    );
 }

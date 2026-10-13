@@ -24,6 +24,9 @@ export default function Pagination({ pathname, searchParams, page, perPage, tota
     const from = total === 0 ? 0 : (page - 1) * perPage + 1;
     const to = Math.min(total, page * perPage);
     const href = (p) => buildHref(pathname, searchParams, { [pageParam]: p === 1 ? null : p });
+    // One page (or none): no bar at all — no "0–0 of 0", no rows-per-page. Still shown on a page past the end,
+    // so there is a way back.
+    if (pages <= 1 && page <= 1) return null;
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 text-xs text-ink-gray">

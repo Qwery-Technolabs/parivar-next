@@ -1,6 +1,7 @@
 'use client';
 import { ChevronsDown } from 'lucide-react';
 import Link from 'next/link';
+import LinkSpinner from '@/components/ui/link-spinner';
 import { useState } from 'react';
 import { useT } from '@/lib/i18n/client';
 import { kinTerm } from '@/lib/kinship';
@@ -19,7 +20,7 @@ function initialOf(name) {
 
 const ordinal = (n) => {
     const v = n % 100;
-    const suffix = v >= 11 && v <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th';
+    const suffix = v >= 11 && v <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
     return `${n}${suffix}`;
 };
 
@@ -88,7 +89,9 @@ export default function RelationChain({ path }) {
     return (
         <div className="p-3">
             {term && (
-                <p className="mb-3 rounded-md bg-accent px-3 py-2 text-sm text-primary">{t('kin.summary', { name: name(target), term: t(`kin.terms.${term}`) })}</p>
+                <p className="mb-3 rounded-md bg-accent px-3 py-2 text-sm text-primary">
+                    {t('kin.summary', { name: name(target), term: t(`kin.terms.${term}`) })}
+                </p>
             )}
             <ol>
                 {shown.map((r, idx) => {
@@ -96,7 +99,11 @@ export default function RelationChain({ path }) {
                         const prev = shown[idx - 1];
                         return (
                             <li key="more" className="relative py-1" style={{ paddingLeft: prev.indent + AVATAR_X - 6 }}>
-                                <span aria-hidden className="absolute inset-y-0 w-0 border-l-2 border-dashed border-slate-300" style={{ left: prev.indent + AVATAR_X - 1 }} />
+                                <span
+                                    aria-hidden
+                                    className="absolute inset-y-0 w-0 border-l-2 border-dashed border-slate-300"
+                                    style={{ left: prev.indent + AVATAR_X - 1 }}
+                                />
                                 <button
                                     type="button"
                                     onClick={() => setOpen(true)}
@@ -129,7 +136,11 @@ export default function RelationChain({ path }) {
                                     <span className="flex min-w-0 flex-wrap items-center gap-x-1.5">
                                         <span className="truncate text-sm font-semibold text-primary">{nameFor(r)}</span>
                                         {r.i === 0 && <span className="text-xs font-medium text-brand-orange-strong">({t('kin.you')})</span>}
-                                        {r.kin && <span className="rounded bg-accent px-1.5 py-px text-[10px] font-semibold text-primary">{t(`kin.terms.${r.kin}`)}</span>}
+                                        {r.kin && (
+                                            <span className="rounded bg-accent px-1.5 py-px text-[10px] font-semibold text-primary">
+                                                {t(`kin.terms.${r.kin}`)}
+                                            </span>
+                                        )}
                                     </span>
                                     <span className="block truncate text-xs text-ink-gray">
                                         {[
@@ -142,6 +153,7 @@ export default function RelationChain({ path }) {
                                             .join(' · ')}
                                     </span>
                                 </span>
+                                <LinkSpinner className="size-4 text-ink-gray" />
                             </Link>
                         </li>
                     );

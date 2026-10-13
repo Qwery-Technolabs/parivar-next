@@ -9,7 +9,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { inList, query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { bool, date, id, money, oneOf, str, strOrNull } from '@/lib/forms';
 import { date as formatDate } from '@/lib/format';
-import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, listHistory, PAY_MODES } from '@/lib/fundraise';
+import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, canSeeCampaign, getCampaign, listHistory, PAY_MODES } from '@/lib/fundraise';
 import { ensureInvitedUser } from '@/lib/invite';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
 import { canManageAllFundraises, canClearHistory } from '@/lib/roles';
@@ -1224,4 +1224,18 @@ export async function addCampaignToGroups(prev, fd) {
     refreshCampaign(campaignId);
     for (const g of add) revalidatePath(`/groups/${g}`);
     return { ok: true, message: 'fundraise.addToGroupDone' };
+}
+
+/**
+ * A fundraise's / Mandal's History (About tab), fetched when the card is opened — the latest 50, as the page used
+ * to load. Same visibility as the page: its audience (canSeeCampaign); a draft or archived one only for managers.
+ */
+export async function loadFundraiseHistory(campaignId) {
+    const user = await getCurrentUser();
+    const cid = Number(campaignId);
+    if (!user || !Number.isInteger(cid) || cid <= 0) return FORBIDDEN;
+    const campaign = await getCampaign(cid);
+    if (!campaign || !(await canSeeCampaign(user, campaign.id))) return FORBIDDEN;
+    if ((campaign.status === 'draft' || campaign.archived_at) && !(await fundraisePermissions(user, campaign)).manage) return FORBIDDEN;
+    return { ok: true, rows: await listHistory(campaign.id, { limit: 50 }) };
 }

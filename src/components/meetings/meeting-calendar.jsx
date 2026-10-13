@@ -1,6 +1,7 @@
 'use client';
-import { Cake, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { Cake, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useState, useTransition } from 'react';
 import { time as fmtTime } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 
@@ -11,14 +12,21 @@ const pad = (n) => String(n).padStart(2, '0');
  * 7-column grid has no room for text); choosing a day hands its meetings to `renderDay`,
  * which draws the same cards as the list view below the grid.
  * Birthdays (month/day) are placed in whichever month is showing, as cake chips.
- * @param {{ meetings: any[], birthdays?: any[], today: string, renderDay: (day: string, meetings: any[], birthdays: any[]) => React.ReactNode }} props
+ * One month per load: `month` ('YYYY-MM', from ?month=) holds only that month's meetings / birthdays; the arrows
+ * load the next one (?month=), the arrow turning into the mini loader meanwhile. Sundays are red.
+ * @param {{ meetings: any[], birthdays?: any[], month: string, today: string, renderDay: (day: string, meetings: any[], birthdays: any[]) => React.ReactNode }} props
  */
-export default function MeetingCalendar({ meetings, birthdays = [], today, renderDay }) {
+export default function MeetingCalendar({ meetings, birthdays = [], month, today, renderDay }) {
     const { t, locale } = useT();
-    // Start on the month of the next meeting, else this month.
-    const firstUpcoming = [...meetings].filter((m) => m.start_date >= today).sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
-    const [month, setMonth] = useState((firstUpcoming?.start_date ?? today).slice(0, 7));
-    const [selected, setSelected] = useState(firstUpcoming?.start_date ?? today);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [loading, startLoad] = useTransition();
+    const [going, setGoing] = useState(0);
+    // The chosen day, kept inside the month shown: else today (this month), else its first meeting, else the 1st.
+    const [picked, setSelected] = useState(null);
+    const firstInMonth = [...meetings].sort((a, b) => a.start_date.localeCompare(b.start_date)).find((m) => m.start_date >= today) ?? meetings.at(-1);
+    const selected = picked?.startsWith(month) ? picked : today.startsWith(month) ? today : (firstInMonth?.start_date ?? `${month}-01`);
 
     const [y, mo] = month.split('-').map(Number);
     const first = new Date(Date.UTC(y, mo - 1, 1));
@@ -40,7 +48,10 @@ export default function MeetingCalendar({ meetings, birthdays = [], today, rende
 
     const shift = (n) => {
         const d = new Date(Date.UTC(y, mo - 1 + n, 1));
-        setMonth(`${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('month', `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`);
+        setGoing(n);
+        startLoad(() => router.replace(`${pathname}?${params}`, { scroll: false }));
     };
     const months = t('calendar.months').split(',');
     const weekdays = t('calendar.weekdays').split(',');
@@ -50,19 +61,34 @@ export default function MeetingCalendar({ meetings, birthdays = [], today, rende
         <div className="space-y-3">
             <div className="overflow-hidden rounded-lg border border-surface-border bg-white shadow-sm">
                 <div className="flex items-center justify-between border-b border-surface-border bg-card-head px-2 py-1.5">
-                    <button type="button" onClick={() => shift(-1)} aria-label={t('common.prev')} className="flex size-8 items-center justify-center rounded-md text-primary hover:bg-white">
-                        <ChevronLeft className="size-4" />
+                    <button
+                        type="button"
+                        onClick={() => shift(-1)}
+                        aria-label={t('common.prev')}
+                        disabled={loading}
+                        className="flex size-8 items-center justify-center rounded-md text-primary hover:bg-white"
+                    >
+                        {loading && going < 0 ? <Loader2 className="size-4 animate-spin" /> : <ChevronLeft className="size-4" />}
                     </button>
                     <p className="text-sm font-semibold text-primary">
                         {months[mo - 1]} {y}
                     </p>
-                    <button type="button" onClick={() => shift(1)} aria-label={t('common.next')} className="flex size-8 items-center justify-center rounded-md text-primary hover:bg-white">
-                        <ChevronRight className="size-4" />
+                    <button
+                        type="button"
+                        onClick={() => shift(1)}
+                        aria-label={t('common.next')}
+                        disabled={loading}
+                        className="flex size-8 items-center justify-center rounded-md text-primary hover:bg-white"
+                    >
+                        {loading && going > 0 ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
                     </button>
                 </div>
                 <div className="grid grid-cols-7 border-b border-surface-border bg-surface-login">
-                    {weekdays.map((w) => (
-                        <p key={w} className="py-1 text-center text-[11px] font-medium uppercase tracking-wide text-ink-gray">
+                    {weekdays.map((w, i) => (
+                        <p
+                            key={w}
+                            className={`py-1 text-center text-[11px] font-medium uppercase tracking-wide ${i === 0 ? 'text-rose-600' : 'text-ink-gray'}`}
+                        >
                             {w}
                         </p>
                     ))}
@@ -70,6 +96,7 @@ export default function MeetingCalendar({ meetings, birthdays = [], today, rende
                 <div className="grid grid-cols-7">
                     {cells.map((d, i) => {
                         if (!d) return <div key={`x${i}`} className="min-h-12 border-b border-r border-surface-border bg-surface-login/40 sm:min-h-20" />;
+                        const sunday = i % 7 === 0; // Sunday-first grid
                         const list = byDay[d] ?? [];
                         const bdays = bdayByDay[d] ?? [];
                         const isSel = d === selected;
@@ -81,12 +108,12 @@ export default function MeetingCalendar({ meetings, birthdays = [], today, rende
                                 aria-pressed={isSel}
                                 aria-label={`${d}${list.length ? ` · ${list.length}` : ''}`}
                                 className={`flex min-h-12 min-w-0 flex-col items-stretch gap-0.5 border-b border-r border-surface-border p-1 text-left sm:min-h-20 ${
-                                    isSel ? 'bg-orange-50' : 'hover:bg-accent/60'
+                                    isSel ? 'bg-orange-50' : sunday ? 'bg-rose-50/70 hover:bg-rose-100/70' : 'hover:bg-accent/60'
                                 }`}
                             >
                                 <span
                                     className={`flex size-6 items-center justify-center self-start rounded-full text-xs font-medium tabular-nums ${
-                                        d === today ? 'seg-active' : 'text-primary'
+                                        d === today ? 'seg-active' : sunday ? 'text-rose-600' : 'text-primary'
                                     }`}
                                 >
                                     {Number(d.slice(8))}

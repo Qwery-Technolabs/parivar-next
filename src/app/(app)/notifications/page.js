@@ -2,6 +2,7 @@ import { Bell, BellRing, CalendarDays, Droplet, HandCoins, ShieldCheck, Trash2, 
 import { cookies } from 'next/headers';
 import { deleteAllNotifications, deleteNotification, deleteReadNotifications, markAllRead, openNotification } from '@/app/actions/notifications';
 import PageHeader from '@/components/shell/page-header';
+import { FormIconSpinner } from '@/components/ui/form-spinner';
 import PageMenu from '@/components/shell/page-menu';
 import Pagination from '@/components/ui/pagination';
 import { requireUser } from '@/lib/auth';
@@ -80,12 +81,12 @@ export default async function NotificationsPage({ searchParams }) {
                                     <input type="hidden" name="id" value={n.id} />
                                     <button
                                         type="submit"
-                                        className={`flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-accent/60 ${
-                                            n.read_at ? '' : 'bg-accent/40'
-                                        }`}
+                                        className={`flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-accent/60 ${n.read_at ? '' : 'bg-accent/40'}`}
                                     >
                                         <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${tone}`}>
-                                            <Icon className="size-4" />
+                                            <FormIconSpinner className="size-4">
+                                                <Icon className="size-4" />
+                                            </FormIconSpinner>
                                         </span>
                                         <span className="min-w-0 flex-1">
                                             <span className={`block break-words text-sm text-primary ${n.read_at ? '' : 'font-semibold'}`}>
@@ -96,9 +97,7 @@ export default async function NotificationsPage({ searchParams }) {
                                                 {actor && ` · ${actor}`}
                                             </span>
                                         </span>
-                                        {!n.read_at && (
-                                            <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-brand-orange" />
-                                        )}
+                                        {!n.read_at && <span aria-hidden className="mt-2 size-2 shrink-0 rounded-full bg-brand-orange" />}
                                     </button>
                                 </form>
                                 {/* Delete just this one. */}

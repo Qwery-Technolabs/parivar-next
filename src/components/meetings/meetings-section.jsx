@@ -3,7 +3,7 @@ import { todayLocal } from '@/lib/forms';
 import { FUNDRAISE_TEAM_ROLES } from '@/lib/access';
 import { GROUP_ROLES } from '@/lib/group-roles';
 import { getT } from '@/lib/i18n/server';
-import { candidatePeople, countPastMeetings, listMeetings, meetingScope, scopeBirthdays } from '@/lib/meetings';
+import { candidatePeople, countPastMeetings, listMeetings, meetingScope, nextMeetingMonth, scopeBirthdays } from '@/lib/meetings';
 import MeetingList from './meeting-list';
 
 /**
@@ -21,16 +21,23 @@ export default async function MeetingsSection({
     attendance = null,
     // ?view= of the page: 'calendar' loads every meeting + birthdays; the list only upcoming ones (past on open).
     view = 'list',
+    // ?month=YYYY-MM of the calendar (default: the next meeting's month, else this one) — one month per load.
+    month = null,
 }) {
     const user = await getCurrentUser();
     const ctx = await meetingScope(user, scope, scopeId);
     if (!ctx) return null;
     // `minutes` / `attendance` may come as promises from the page: awaited together with the rest.
     const calendar = view === 'calendar';
+    const calMonth = calendar
+        ? /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? '')
+            ? month
+            : ((await nextMeetingMonth(scope, scopeId)) ?? todayLocal().slice(0, 7))
+        : null;
     const [meetings, people, birthdays, { t }, minutesList, attendanceData, pastCount] = await Promise.all([
-        listMeetings(scope, scopeId, user.id, { when: calendar ? 'all' : 'upcoming' }),
+        listMeetings(scope, scopeId, user.id, calendar ? { when: 'month', month: calMonth } : { when: 'upcoming' }),
         candidatePeople(ctx.candidateIds),
-        calendar ? scopeBirthdays(scope, scopeId) : [],
+        calendar ? scopeBirthdays(scope, scopeId, Number(calMonth.slice(5))) : [],
         getT(),
         minutes,
         attendance,
@@ -62,6 +69,7 @@ export default async function MeetingsSection({
             birthdayRoles={birthdayRoles}
             attendance={attendanceData}
             pastCount={pastCount}
+            calMonth={calMonth}
         />
     );
 }

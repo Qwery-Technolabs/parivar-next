@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { canEditGroupDetails, groupStanding } from '@/lib/access';
 import { canActOnRole, canAdminister, canSetTeam, GROUP_ROLES, GROUP_STATUSES, GROUP_TEAM_ROLES, GROUP_VISIBILITY, isGroupLeader } from '@/lib/group-roles';
 import { audit } from '@/lib/audit';
-import { recordGroupHistory } from '@/lib/group-history';
+import { listGroupHistory, recordGroupHistory } from '@/lib/group-history';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { getCurrentUser } from '@/lib/auth';
 import { ensureInvitedUser } from '@/lib/invite';
@@ -362,4 +362,18 @@ export async function deleteGroup(groupId) {
     revalidatePath('/groups');
     forget('groups'); // cached lists (lib/memo)
     redirect('/groups');
+}
+
+/**
+ * A group's History lines, fetched when its card is opened (the About tab carries only the count). Same rule as
+ * the page: the group's admins and app-level group managers (canAdminister).
+ */
+export async function loadGroupHistory(groupId) {
+    const actor = await getCurrentUser();
+    const gid = Number(groupId);
+    if (!Number.isInteger(gid) || gid <= 0) return FORBIDDEN;
+    if (!actor || !gid) return FORBIDDEN;
+    const { standing } = await groupStanding(actor, gid);
+    if (!canAdminister(standing)) return FORBIDDEN;
+    return { ok: true, rows: await listGroupHistory(gid) };
 }

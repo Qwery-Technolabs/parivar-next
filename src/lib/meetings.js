@@ -85,14 +85,21 @@ export async function candidatePeople(ids) {
  * or one fundraise, with RSVP counts and the viewer's own answer.
  */
 /**
- * `when`: 'all' (the calendar), 'upcoming' (the list — past ones load when opened), 'past'.
+ * `when`: 'all', 'upcoming' (the list — past ones load when opened), 'past', or 'month' with `month` 'YYYY-MM'
+ * (the calendar: one month at a time).
  */
-export async function listMeetings(scope, scopeId, viewerId, { when = 'all' } = {}) {
+export async function listMeetings(scope, scopeId, viewerId, { when = 'all', month = null } = {}) {
     // People who joined since: add them to upcoming "Everyone" meetings before listing (not needed for past ones).
     if (when !== 'past') await syncEveryoneMeetings({ scope, scopeId });
     const where =
         (scope === 'group' ? 'e.group_id = :scopeId AND e.campaign_id IS NULL' : 'e.campaign_id = :scopeId') +
-        (when === 'upcoming' ? ' AND e.start_date >= CURDATE()' : when === 'past' ? ' AND e.start_date < CURDATE()' : '');
+        (when === 'upcoming'
+            ? ' AND e.start_date >= CURDATE()'
+            : when === 'past'
+              ? ' AND e.start_date < CURDATE()'
+              : when === 'month'
+                ? ' AND e.start_date >= :from AND e.start_date < DATE_ADD(:from, INTERVAL 1 MONTH)'
+                : '');
     const rows = await query(
         `SELECT e.id, e.title, e.title_local, e.start_date, e.start_time, e.location, e.created_by,
                 COUNT(a.user_id) AS invited,
@@ -103,8 +110,8 @@ export async function listMeetings(scope, scopeId, viewerId, { when = 'all' } = 
           WHERE e.event_type = 'meeting' AND ${where}
           GROUP BY e.id, e.title, e.title_local, e.start_date, e.start_time, e.location, e.created_by
           ORDER BY e.start_date DESC, e.start_time DESC
-          LIMIT 50`,
-        { scopeId, viewerId },
+          LIMIT ${when === 'month' ? 200 : 50}`,
+        when === 'month' ? { scopeId, viewerId, from: `${month}-01` } : { scopeId, viewerId },
     );
     if (!rows.length) return [];
     const ids = rows.map((r) => r.id);
@@ -174,9 +181,20 @@ export async function upcomingMeetingCount(groupId, today) {
  * Month/day only — the calendar places them in whichever month is showing.
  * @returns {Promise<Array<{ id: number, name: string, nameLocal: string|null, month: number, day: number, born: number, role: string }>>}
  */
-export async function scopeBirthdays(scope, scopeId) {
+/** The month ('YYYY-MM') of the next meeting, else null — where the calendar opens. */
+export async function nextMeetingMonth(scope, scopeId) {
+    const where = scope === 'group' ? 'group_id = :scopeId AND campaign_id IS NULL' : 'campaign_id = :scopeId';
+    const [r] = await query(
+        `SELECT DATE_FORMAT(MIN(start_date), '%Y-%m') AS m FROM events_list WHERE event_type = 'meeting' AND ${where} AND start_date >= CURDATE()`,
+        { scopeId },
+    );
+    return r?.m ?? null;
+}
+
+export async function scopeBirthdays(scope, scopeId, month = null) {
     const cols = 'u.id, u.full_name, u.full_name_local, MONTH(u.dob) AS m, DAY(u.dob) AS d, YEAR(u.dob) AS born';
-    const alive = "u.status = 'active' AND u.dob IS NOT NULL";
+    // `month` (1–12): only that month's birthdays (the calendar shows one month at a time).
+    const alive = `u.status = 'active' AND u.dob IS NOT NULL${month ? ` AND MONTH(u.dob) = ${Number(month)}` : ''}`;
     let rows;
     if (scope === 'group') {
         rows = await query(

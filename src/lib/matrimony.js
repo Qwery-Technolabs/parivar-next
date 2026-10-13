@@ -35,10 +35,11 @@ export async function canBrowseMatrimony(user) {
  *   - when their father has passed away (marked late): anyone in their family tree (a guardian —
  *     elder brother, uncle, grandparent …).
  * No father recorded counts as "father alive" (strict): only the person, their mother, managers.
+ * `asFamily`: only the family rules (the "Your family" card) — a manager's app-wide right does not count there.
  */
-export async function canListFor(actor, personId) {
+export async function canListFor(actor, personId, { asFamily = false } = {}) {
     if (!actor) return false;
-    if (actor.id === personId || canManageMembers(actor.role)) return true;
+    if (actor.id === personId || (!asFamily && canManageMembers(actor.role))) return true;
     const parents = await query(
         `SELECT r.relation, u.id, u.status FROM users_relations r JOIN users_list u ON u.id = r.relative_id
           WHERE r.user_id = :personId AND r.relation IN ('father', 'mother')`,
@@ -54,7 +55,10 @@ export async function isEligible(personId) {
     return Boolean(await queryOne(`SELECT 1 AS ok FROM users_list u WHERE u.id = :personId AND ${ELIGIBLE}`, { personId }));
 }
 
-/** People in the actor's family (themselves included) whom the actor may list, with whether they are listed. */
+/**
+ * People in the actor's family (themselves included) whom the actor may list AS FAMILY (self, own child, or a
+ * guardian when the father has passed), with whether they are listed. Managers see only their own here too.
+ */
 export async function listableInFamily(actor) {
     const ids = [...(await familyIds(actor.id))];
     const l = inList(ids, 'e');
@@ -65,7 +69,7 @@ export async function listableInFamily(actor) {
           ORDER BY u.full_name`,
         l.params,
     );
-    const allowed = await Promise.all(rows.map((r) => canListFor(actor, r.id)));
+    const allowed = await Promise.all(rows.map((r) => canListFor(actor, r.id, { asFamily: true })));
     return rows.filter((_, i) => allowed[i]);
 }
 
@@ -110,7 +114,11 @@ export async function listProfiles(f = {}) {
           LIMIT 200`,
         params,
     );
-    const meta = await getMetaMany('users_list', rows.map((r) => r.id), ['education', 'occupation']);
+    const meta = await getMetaMany(
+        'users_list',
+        rows.map((r) => r.id),
+        ['education', 'occupation'],
+    );
     return rows.map((r) => ({ ...r, education: meta[r.id]?.education ?? null, occupation: meta[r.id]?.occupation ?? null }));
 }
 

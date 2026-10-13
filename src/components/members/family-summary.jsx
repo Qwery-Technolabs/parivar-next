@@ -1,5 +1,6 @@
 import { GitFork, Link2Off } from 'lucide-react';
 import Link from 'next/link';
+import LinkSpinner from '@/components/ui/link-spinner';
 import { removeRelative } from '@/app/actions/family';
 import ActionButton from '@/components/fundraise/action-button';
 import AddRelativeDialog from '@/components/members/add-relative-dialog';
@@ -28,7 +29,8 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
               list: kind === 'father' || kind === 'mother' ? [relatives[kind]].filter(Boolean) : relatives[kind],
           })).filter((g) => g.list.length)
         : [];
-    const detail = (p) => [p.dob && age(p.dob) != null && `${age(p.dob)}`, p.marital_status && t(`family.marital.${p.marital_status}`)].filter(Boolean).join(' · ');
+    const detail = (p) =>
+        [p.dob && age(p.dob) != null && `${age(p.dob)}`, p.marital_status && t(`family.marital.${p.marital_status}`)].filter(Boolean).join(' · ');
 
     // Only what the chain shows goes to the browser (no phone numbers).
     const relationView = relation && (
@@ -62,69 +64,68 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
             relation={relationView}
             actions={
                 // The tree is open to every member; adding relatives stays with those who may edit this family.
-                (
-                    <div className="flex items-center gap-1.5">
-                        <LinkButton
-                            href={`/members/${person.id}/tree`}
-                            icon={GitFork}
-                            variant="outline"
-                            className="h-8 gap-1.5 px-2.5 text-xs max-sm:size-8 max-sm:px-0"
-                        >
-                            <span className="max-sm:sr-only">{t('members.familyTree')}</span>
-                        </LinkButton>
-                        {canEdit && (
-                            <AddRelativeDialog
-                                person={person}
-                                spouse={relatives.spouse[0] ?? null}
-                                filled={{ father: Boolean(relatives.father), mother: Boolean(relatives.mother) }}
-                            />
-                        )}
-                    </div>
-                )
+                <div className="flex items-center gap-1.5">
+                    <LinkButton
+                        href={`/members/${person.id}/tree`}
+                        icon={GitFork}
+                        variant="outline"
+                        className="h-8 gap-1.5 px-2.5 text-xs max-sm:size-8 max-sm:px-0"
+                    >
+                        <span className="max-sm:sr-only">{t('members.familyTree')}</span>
+                    </LinkButton>
+                    {canEdit && (
+                        <AddRelativeDialog
+                            person={person}
+                            spouse={relatives.spouse[0] ?? null}
+                            filled={{ father: Boolean(relatives.father), mother: Boolean(relatives.mother) }}
+                        />
+                    )}
+                </div>
             }
             family={
-            !canSee ? (
-                <p className="px-4 py-5 text-sm text-ink-gray">{t('family.privateNote')}</p>
-            ) : groups.length === 0 ? (
-                <p className="px-4 py-5 text-sm text-ink-gray">{t('relations.empty')}</p>
-            ) : (
-                <ul className="divide-y divide-surface-border">
-                    {groups.map((g) =>
-                        g.list.map((p, i) => {
-                            // In her father's family a married daughter / sister goes by her maiden name.
-                            const name =
-                                ((g.kind === 'daughter' || g.kind === 'sister') && birthName(p, locale !== 'en')) || localized(p, 'full_name', locale);
-                            return (
-                                <li key={`${g.kind}-${p.id}`} className="flex items-center gap-3 px-4 py-2">
-                                    {/* The slot name once per group; later rows of the same group leave it blank. */}
-                                    <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray">{i === 0 ? g.title : ''}</span>
-                                    <div className="min-w-0 flex-1">
-                                        <Link href={`/members/${p.id}`} className="break-words font-medium text-primary hover:underline">
-                                            {name}
-                                        </Link>
-                                        {p.status === 'deceased' && (
-                                            <Badge tone="gray" className="ml-2">
-                                                {t('family.late')}
-                                            </Badge>
+                !canSee ? (
+                    <p className="px-4 py-5 text-sm text-ink-gray">{t('family.privateNote')}</p>
+                ) : groups.length === 0 ? (
+                    <p className="px-4 py-5 text-sm text-ink-gray">{t('relations.empty')}</p>
+                ) : (
+                    <ul className="divide-y divide-surface-border">
+                        {groups.map((g) =>
+                            g.list.map((p, i) => {
+                                // In her father's family a married daughter / sister goes by her maiden name.
+                                const name =
+                                    ((g.kind === 'daughter' || g.kind === 'sister') && birthName(p, locale !== 'en')) || localized(p, 'full_name', locale);
+                                return (
+                                    <li key={`${g.kind}-${p.id}`} className="flex items-center gap-3 px-4 py-2">
+                                        {/* The slot name once per group; later rows of the same group leave it blank. */}
+                                        <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray">{i === 0 ? g.title : ''}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <Link href={`/members/${p.id}`} className="break-words font-medium text-primary hover:underline">
+                                                {name}
+                                                <LinkSpinner className="ml-1.5 inline size-3.5 align-[-2px] text-ink-gray" />
+                                            </Link>
+                                            {p.status === 'deceased' && (
+                                                <Badge tone="gray" className="ml-2">
+                                                    {t('family.late')}
+                                                </Badge>
+                                            )}
+                                            {detail(p) && <p className="text-xs text-ink-gray tabular-nums">{detail(p)}</p>}
+                                        </div>
+                                        {canEdit && (
+                                            <ActionButton
+                                                action={removeRelative.bind(null, person.id, p.id)}
+                                                confirm={t('family.removeConfirm', { name })}
+                                                icon={<Link2Off className="size-4" />}
+                                                label={t('family.remove')}
+                                                plain
+                                                className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
+                                            />
                                         )}
-                                        {detail(p) && <p className="text-xs text-ink-gray tabular-nums">{detail(p)}</p>}
-                                    </div>
-                                    {canEdit && (
-                                        <ActionButton
-                                            action={removeRelative.bind(null, person.id, p.id)}
-                                            confirm={t('family.removeConfirm', { name })}
-                                            icon={<Link2Off className="size-4" />}
-                                            label={t('family.remove')}
-                                            plain
-                                            className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
-                                        />
-                                    )}
-                                </li>
-                            );
-                        }),
-                    )}
-                </ul>
-            )
+                                    </li>
+                                );
+                            }),
+                        )}
+                    </ul>
+                )
             }
         />
     );

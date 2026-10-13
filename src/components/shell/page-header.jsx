@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LinkSpinner, { LinkIconSpinner } from '@/components/ui/link-spinner';
 import HeaderBack from './header-back';
 import { cn } from '@/lib/utils';
 
@@ -78,7 +79,13 @@ export function LinkButton({ href, icon: Icon, children, variant = 'primary', cl
             // cn(): a caller's size override (h-8 px-3 text-xs) must replace the defaults, not race them.
             className={cn('inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium', v, className)}
         >
-            {Icon && <Icon className="size-4" />}
+            {Icon ? (
+                <LinkIconSpinner>
+                    <Icon className="size-4" />
+                </LinkIconSpinner>
+            ) : (
+                <LinkSpinner className="size-4" />
+            )}
             {children}
         </Link>
     );

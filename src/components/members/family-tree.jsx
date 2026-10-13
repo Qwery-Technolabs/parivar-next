@@ -140,7 +140,8 @@ const MAX_ZOOM = 1.8;
 export default function FamilyTree({ tree }) {
     const { t } = useT();
     const [showDetails, setShowDetails] = useState(false);
-    const [showMarried, setShowMarried] = useState(true);
+    // Married daughters start hidden (only the person whose tree it is stays, even if she is one); the switch shows them.
+    const [showMarried, setShowMarried] = useState(false);
     const [zoom, setZoom] = useState(1);
     const zoomRef = useRef(1);
     const box = useRef(null);

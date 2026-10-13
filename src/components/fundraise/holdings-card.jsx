@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Card } from '@/components/shell/page-header';
+import LinkSpinner from '@/components/ui/link-spinner';
 import Badge from '@/components/ui/badge';
 import { money } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
@@ -56,6 +57,7 @@ export default function HoldingsCard({ holdings }) {
                                         {p.user_id ? (
                                             <Link href={`/members/${p.user_id}`} className="font-medium text-primary hover:underline break-words">
                                                 {name(p)}
+                                                <LinkSpinner className="ml-1.5 inline size-3.5 align-[-2px] text-ink-gray" />
                                             </Link>
                                         ) : (
                                             <span className="font-medium text-primary">{name(p)}</span>

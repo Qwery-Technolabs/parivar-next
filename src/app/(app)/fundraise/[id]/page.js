@@ -26,7 +26,6 @@ import {
     getCampaign,
     listContributions,
     listExpenses,
-    listHistory,
     listHoldings,
     listTeam,
     canSeeCampaign,
@@ -293,6 +292,7 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                 scope="fundraise"
                 scopeId={campaign.id}
                 view={rawView}
+                month={sp1(sp.month)}
                 defaultTitle={`${campaign.title} — ${t('meetings.word')}`}
                 defaultPlace={campaign.location ?? ''}
                 minutes={minutes}
@@ -301,14 +301,13 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
             />
         );
     } else if (tab === 'details') {
-        const [audience, team, holdings, updates, history, messageCount, editCount, mandalParts] = await Promise.all([
+        const [audience, team, holdings, updates, messageCount, editCount, mandalParts] = await Promise.all([
             getAudience(campaign.id),
             listTeam(campaign.id),
             // Holdings card (everyone who sees the fundraise or Mandal), under Team.
             listHoldings(campaign),
             // A Mandal shows no News & minutes here — minutes live under each meeting (Meetings tab).
             isMandal ? [] : listUpdates(campaign.id),
-            listHistory(campaign.id, { limit: 50 }),
             countMessages('fundraise', campaign.id),
             historyCount(campaign.id),
             // A Mandal: its summary + Members and Schedules, placed into About's own two columns.
@@ -324,7 +323,8 @@ export default async function FundraiseDetailPage({ params, searchParams, asMand
                     holdings={holdings}
                     mandal={mandalParts}
                     updates={updates}
-                    history={history}
+                    // History: only how many — its lines load when opened (loadFundraiseHistory).
+                    historyTotal={editCount}
                     perms={perms}
                     userId={user.id}
                     today={today}

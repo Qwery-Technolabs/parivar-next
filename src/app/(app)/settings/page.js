@@ -38,6 +38,7 @@ import { NOTIFY_CATEGORIES, parseOff } from '@/lib/notification-prefs';
 import LanguageSelect from '@/components/settings/language-select';
 import AboutSection from '@/components/settings/about-section';
 import { sp1 } from '@/lib/url';
+import { LinkIconSpinner } from '@/components/ui/link-spinner';
 
 export async function generateMetadata() {
     const { t } = await getT();
@@ -106,7 +107,10 @@ export default async function SettingsPage({ searchParams }) {
                                                     active ? 'seg-active' : 'text-ink-gray hover:bg-accent hover:text-primary'
                                                 }`}
                                             >
-                                                <Icon className="size-4 shrink-0" />
+                                                {/* Opening a section: its icon turns into the mini spinner until it is drawn. */}
+                                                <LinkIconSpinner className="size-4">
+                                                    <Icon className="size-4 shrink-0" />
+                                                </LinkIconSpinner>
                                                 {t(`settings.sections.${s.key}.title`)}
                                             </Link>
                                         );

@@ -20,6 +20,7 @@ import {
     MapPinned,
 } from 'lucide-react';
 import Link from 'next/link';
+import { LinkIconSpinner } from '@/components/ui/link-spinner';
 import { usePathname } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import { logout } from '@/app/actions/session';
@@ -72,7 +73,10 @@ function NavItem({ item, pathname, collapsed, onNavigate, child = false }) {
             {/* Orange is a state colour on navy (5.99:1) — a bar, never text on white. */}
             {active && <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-brand-orange" />}
             {/* Active: the icon joins the orange bar (orange-400 on navy passes 3:1 for icons). */}
-            <Icon className={`size-4 shrink-0 ${active ? 'text-orange-400' : ''}`} />
+            {/* Opening this page: the icon turns into the mini loader until it arrives. */}
+            <LinkIconSpinner className="size-4">
+                <Icon className={`size-4 shrink-0 ${active ? 'text-orange-400' : ''}`} />
+            </LinkIconSpinner>
             {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
         </Link>
     );
@@ -112,7 +116,9 @@ function BottomNav({ sections, pathname }) {
                                 active ? 'bg-orange-100 text-orange-600' : ''
                             }`}
                         >
-                            <Icon className="size-5 shrink-0" />
+                            <LinkIconSpinner className="size-5">
+                                <Icon className="size-5 shrink-0" />
+                            </LinkIconSpinner>
                         </span>
                         <span className="max-w-full truncate px-1">{item.bottomLabel ?? item.label}</span>
                     </Link>
@@ -283,7 +289,9 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                             aria-current={pathname === '/notifications' ? 'page' : undefined}
                             className="relative flex size-9 shrink-0 items-center justify-center rounded-md text-white hover:bg-brand-navy-soft"
                         >
-                            <Bell className="size-5" />
+                            <LinkIconSpinner className="size-5">
+                                <Bell className="size-5" />
+                            </LinkIconSpinner>
                             {/* A count, capped: "9+" still says "go look" without a 3-digit pill. */}
                             {unread > 0 && (
                                 <span
@@ -304,7 +312,9 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                                 isActive(pathname, '/calendar') ? 'bg-brand-navy-soft' : ''
                             }`}
                         >
-                            <CalendarDays className="size-5" />
+                            <LinkIconSpinner className="size-5">
+                                <CalendarDays className="size-5" />
+                            </LinkIconSpinner>
                         </Link>
                         {/* A light divider: the tools (bell, calendar) on one side, the person on the other. */}
                         <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-white/25" />

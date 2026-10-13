@@ -80,7 +80,11 @@ export default function NearbyHomes({ homes, focusId = null }) {
     const [me, setMe] = useState(null);
     const [locating, setLocating] = useState(false);
     const [focus, setFocus] = useState(null);
-    const [panelOpen, setPanelOpen] = useState(true);
+    // The list: null = not chosen yet — open beside the map on sm+, closed on a phone (a bottom sheet would hide the
+    // map) until Near me or the chip; then true / false as the person sets it.
+    const [panelOpen, setPanelOpen] = useState(null);
+    // The visible part of the map: the list shows only the homes in it, refreshed as the map moves.
+    const [area, setArea] = useState(null);
     const markers = useMemo(
         () =>
             homes.map((h) => ({
@@ -94,16 +98,17 @@ export default function NearbyHomes({ homes, focusId = null }) {
             })),
         [homes, t],
     );
-    const nearest = useMemo(
-        () =>
-            me
-                ? homes
-                      .map((h) => ({ ...h, d: km(me, h) }))
-                      .sort((a, b) => a.d - b.d)
-                      .slice(0, 30)
-                : [],
-        [homes, me],
-    );
+    // Homes in the visible area, nearest first — to me after Near me, else to the middle of the map. Filtered here
+    // from the homes the page already has: moving the map costs no request (and no database connection).
+    const nearest = useMemo(() => {
+        if (!area) return [];
+        const from = me ?? { lat: area.lat, lng: area.lng };
+        return homes
+            .filter((h) => h.lat >= area.s && h.lat <= area.n && h.lng >= area.w && h.lng <= area.e)
+            .map((h) => ({ ...h, d: km(from, h) }))
+            .sort((a, b) => a.d - b.d)
+            .slice(0, 50);
+    }, [homes, me, area]);
 
     const locate = () => {
         if (!navigator.geolocation) return toast.error(t('home.noGeo'));
@@ -134,12 +139,23 @@ export default function NearbyHomes({ homes, focusId = null }) {
                 bottom-right corner (bottom-7) so the OpenStreetMap attribution stays visible. z-[1000] = above
                 Leaflet's panes and controls; as a sibling of the map, scrolling it never zooms the map. */}
             <div ref={fill} className="relative h-[calc(100dvh-15rem)] min-h-80">
-                <OsmMap markers={markers} me={me} focus={focus} openId={focusId} className="h-full" />
-                {me && panelOpen && (
-                    <div className="absolute inset-x-2 bottom-7 z-[1000] flex max-h-[45%] flex-col overflow-hidden rounded-xl border border-surface-border bg-white shadow-xl sm:inset-x-auto sm:bottom-7 sm:right-3 sm:top-3 sm:max-h-none sm:w-80">
+                <OsmMap
+                    markers={markers}
+                    me={me}
+                    focus={focus}
+                    openId={focusId}
+                    className="h-full"
+                    onView={setArea}
+                    layerToggle
+                    toggleClass={`bottom-[5.25rem] right-3 ${panelOpen === true ? 'max-sm:hidden' : ''}`}
+                />
+                {panelOpen !== false && (
+                    <div
+                        className={`absolute inset-x-2 bottom-7 z-[1000] flex max-h-[45%] flex-col overflow-hidden rounded-xl border border-surface-border bg-white shadow-xl sm:inset-x-auto sm:bottom-7 sm:right-3 sm:top-3 sm:max-h-none sm:w-80 ${panelOpen === null ? 'max-sm:hidden' : ''}`}
+                    >
                         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-surface-border bg-card-head px-3 py-2">
                             <p className="text-sm font-semibold text-primary">
-                                {t('home.nearest')} <span className="font-normal text-ink-gray tabular-nums">({nearest.length})</span>
+                                {t(me ? 'home.nearest' : 'home.inView')} <span className="font-normal text-ink-gray tabular-nums">({nearest.length})</span>
                             </p>
                             <button
                                 type="button"
@@ -152,7 +168,7 @@ export default function NearbyHomes({ homes, focusId = null }) {
                             </button>
                         </div>
                         {nearest.length === 0 ? (
-                            <p className="px-3 py-6 text-center text-sm text-ink-gray">{t('home.none')}</p>
+                            <p className="px-3 py-6 text-center text-sm text-ink-gray">{t('home.noneInView')}</p>
                         ) : (
                             <ul className="min-h-0 flex-1 divide-y divide-surface-border overflow-y-auto">
                                 {nearest.map((h) => (
@@ -160,8 +176,9 @@ export default function NearbyHomes({ homes, focusId = null }) {
                                         <button type="button" onClick={() => setFocus({ lat: h.lat, lng: h.lng })} className="min-w-0 flex-1 text-left">
                                             <span className="block truncate text-sm font-medium text-primary">{h.name}</span>
                                             <span className="block truncate text-xs text-ink-gray tabular-nums">
-                                                {h.d < 1 ? `${Math.round(h.d * 1000)} m` : `${h.d.toFixed(1)} km`}
-                                                {h.village ? ` · ${h.village}` : ''}
+                                                {[me ? (h.d < 1 ? `${Math.round(h.d * 1000)} m` : `${h.d.toFixed(1)} km`) : null, h.village, h.city]
+                                                    .filter(Boolean)
+                                                    .join(' · ')}
                                             </span>
                                         </button>
                                         <Link href={`/members/${h.id}`} className="shrink-0 text-xs font-medium text-primary hover:underline">
@@ -183,13 +200,14 @@ export default function NearbyHomes({ homes, focusId = null }) {
                         )}
                     </div>
                 )}
-                {me && !panelOpen && (
+                {panelOpen !== true && (
                     <button
                         type="button"
                         onClick={() => setPanelOpen(true)}
-                        className="absolute right-3 top-3 z-[1000] inline-flex h-9 items-center gap-1.5 rounded-md border border-black/20 bg-white px-3 text-sm font-medium text-primary shadow-md hover:bg-gray-50"
+                        className={`absolute right-3 top-3 z-[1000] inline-flex h-9 items-center gap-1.5 rounded-md border border-black/20 bg-white px-3 text-sm font-medium text-primary shadow-md hover:bg-gray-50 ${panelOpen === null ? 'sm:hidden' : ''}`}
                     >
-                        <List className="size-4" /> {t('home.nearest')}
+                        <List className="size-4" /> {t(me ? 'home.nearest' : 'home.inView')}{' '}
+                        <span className="font-normal text-ink-gray tabular-nums">({nearest.length})</span>
                     </button>
                 )}
                 {/* Near me: on the map's corner like the tree's Focus button, above the OpenStreetMap credit. On a
@@ -200,7 +218,7 @@ export default function NearbyHomes({ homes, focusId = null }) {
                     disabled={locating}
                     aria-label={t('home.nearMe')}
                     title={t('home.nearMe')}
-                    className={`absolute bottom-8 right-3 z-[1000] inline-flex size-10 items-center justify-center rounded-lg border border-surface-border bg-white text-primary shadow-md hover:bg-accent disabled:opacity-70 ${me && panelOpen ? 'max-sm:hidden' : ''}`}
+                    className={`absolute bottom-8 right-3 z-[1000] inline-flex size-10 items-center justify-center rounded-lg border border-surface-border bg-white text-primary shadow-md hover:bg-accent disabled:opacity-70 ${panelOpen === true ? 'max-sm:hidden' : ''}`}
                 >
                     {locating ? <Loader2 className="size-5 animate-spin" /> : <Crosshair className="size-5" />}
                 </button>

@@ -11,7 +11,7 @@ import GroupDangerCard from '@/components/groups/group-danger-card';
 import { DOT_SIZE } from '@/lib/status-dot';
 import GroupMembers from '@/components/groups/group-members';
 import GroupHistory from '@/components/groups/group-history';
-import { listGroupHistory } from '@/lib/group-history';
+import { countGroupHistory } from '@/lib/group-history';
 import GroupTeamPanel, { AddGroupTeamButton } from '@/components/groups/group-team-panel';
 import NewFundraiseMenu from '@/components/fundraise/new-fundraise-menu';
 import { Card } from '@/components/shell/page-header';
@@ -26,7 +26,10 @@ import { upcomingMeetingCount } from '@/lib/meetings';
 import { date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { getGroup, groupFundraises, groupMembers } from '@/lib/groups';
+import { getGroup, groupFundraises, groupMemberCount, groupMemberIds, groupMembers } from '@/lib/groups';
+import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
+import Pagination from '@/components/ui/pagination';
+import { cookies } from 'next/headers';
 import { sp1 } from '@/lib/url';
 import { canClearChats } from '@/lib/roles';
 
@@ -46,19 +49,29 @@ const TABS = ['discussion', 'meetings', 'fundraise', 'members', 'about'];
 export default async function GroupPage({ params, searchParams }) {
     const [{ id }, sp, user] = await Promise.all([params, searchParams, requireUser()]);
     const groupId = Number(id) || 0;
-    // Everything below only needs the id: one round of parallel queries (speed) instead of one after another.
-    const [group, { t, locale }, members, fundraises, { standing, myRole, team }, canFundraise, messages, upcoming] = await Promise.all([
-        getGroup(groupId),
-        getT(),
-        groupMembers(groupId),
-        groupFundraises(groupId, user),
-        groupStanding(user, groupId),
-        canCreateFundraiseIn(user, groupId),
-        messageCount('group', groupId),
-        upcomingMeetingCount(groupId, todayLocal()),
-    ]);
-    if (!group) notFound();
     const tab = TABS.includes(sp1(sp.tab)) ? sp1(sp.tab) : 'discussion';
+    // Members: a count on every tab; one page of them on Members (with every id, for the Add picker); all of them only
+    // on About (the Team card). Not the whole list on every tab.
+    const page = normalizePage(sp.page);
+    const perPage = tab === 'members' ? normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value) : 0;
+    const membersFor =
+        tab === 'members' ? groupMembers(groupId, { limit: perPage, offset: (page - 1) * perPage }) : tab === 'about' ? groupMembers(groupId) : [];
+    // Everything below only needs the id: one round of parallel queries (speed) instead of one after another.
+    const [group, { t, locale }, members, memberTotal, memberIds, fundraises, { standing, myRole, team }, canFundraise, messages, upcoming] = await Promise.all(
+        [
+            getGroup(groupId),
+            getT(),
+            membersFor,
+            groupMemberCount(groupId),
+            tab === 'members' ? groupMemberIds(groupId) : [],
+            groupFundraises(groupId, user),
+            groupStanding(user, groupId),
+            canCreateFundraiseIn(user, groupId),
+            messageCount('group', groupId),
+            upcomingMeetingCount(groupId, todayLocal()),
+        ],
+    );
+    if (!group) notFound();
     // A private group does not exist for outsiders.
     const isPrivate = group.meta.visibility === 'private';
     if (isPrivate && !standing && !myRole) notFound();
@@ -69,7 +82,8 @@ export default async function GroupPage({ params, searchParams }) {
     const canEditGroup = canEditDetails(standing, team);
     // The group's own History: its admins (and app-level group managers) only — loaded on the About tab.
     const seesHistory = canAdminister(standing);
-    const history = tab === 'about' && seesHistory ? await listGroupHistory(group.id) : [];
+    // Only how many: the lines load when History is opened (loadGroupHistory).
+    const historyN = tab === 'about' && seesHistory ? await countGroupHistory(group.id) : 0;
     const name = localized(group, 'name', locale);
     const base = `/groups/${group.id}`;
 
@@ -104,7 +118,7 @@ export default async function GroupPage({ params, searchParams }) {
                         </h1>
                         {/* white/70 on navy: 7.34:1 */}
                         <p className="truncate text-xs text-white/70">
-                            {t('groups.memberCount', { count: members.length })}
+                            {t('groups.memberCount', { count: memberTotal })}
                             {fundraises.length > 0 && ` · ${t('groups.fundraiseCount', { count: fundraises.length })}`}
                         </p>
                     </div>
@@ -117,7 +131,7 @@ export default async function GroupPage({ params, searchParams }) {
                             { key: 'discussion', label: t('groups.tabs.discussion'), href: base, count: messages, icon: MessageCircle },
                             { key: 'meetings', label: t('groups.tabs.meetings'), href: `${base}?tab=meetings`, count: upcoming, icon: CalendarClock },
                             { key: 'fundraise', label: t('groups.tabs.fundraise'), href: `${base}?tab=fundraise`, count: fundraises.length, icon: HandCoins },
-                            { key: 'members', label: t('groups.tabs.members'), href: `${base}?tab=members`, count: members.length, icon: Users },
+                            { key: 'members', label: t('groups.tabs.members'), href: `${base}?tab=members`, count: memberTotal, icon: Users },
                             { key: 'about', label: t('groups.tabs.about'), href: `${base}?tab=about`, icon: Info },
                         ]}
                     />
@@ -131,7 +145,9 @@ export default async function GroupPage({ params, searchParams }) {
                 </>
             )}
 
-            {tab === 'meetings' && <MeetingsSection scope="group" scopeId={group.id} defaultTitle={`${name} — ${t('meetings.word')}`} view={sp1(sp.view)} />}
+            {tab === 'meetings' && (
+                <MeetingsSection scope="group" scopeId={group.id} defaultTitle={`${name} — ${t('meetings.word')}`} view={sp1(sp.view)} month={sp1(sp.month)} />
+            )}
 
             {tab === 'fundraise' && (
                 <div className="theme-fundraise space-y-3">
@@ -192,7 +208,19 @@ export default async function GroupPage({ params, searchParams }) {
             )}
 
             {tab === 'members' && (
-                <GroupMembers groupId={group.id} members={members} standing={standing} team={team} currentUserId={user.id} creatorId={group.created_by} />
+                <>
+                    <GroupMembers
+                        groupId={group.id}
+                        members={members}
+                        total={memberTotal}
+                        memberIds={memberIds}
+                        standing={standing}
+                        team={team}
+                        currentUserId={user.id}
+                        creatorId={group.created_by}
+                    />
+                    <Pagination pathname={base} searchParams={sp} page={page} perPage={perPage} total={memberTotal} t={t} />
+                </>
             )}
 
             {tab === 'about' && (
@@ -205,7 +233,7 @@ export default async function GroupPage({ params, searchParams }) {
                             </p>
                             <p className="mt-3 text-xs text-ink-gray">{t('groups.createdOn', { date: date(String(group.created_at).slice(0, 10), locale) })}</p>
                         </Card>
-                        {seesHistory && <GroupHistory rows={history} t={t} locale={locale} />}
+                        {seesHistory && <GroupHistory groupId={group.id} count={historyN} />}
                     </div>
                     <div className="min-w-0 space-y-4">
                         {/* Team — like a fundraise team: admins, sub-admins and members with task roles (its leaders edit it). */}
@@ -229,7 +257,7 @@ export default async function GroupPage({ params, searchParams }) {
                                 // Clearing the discussion: app admins / sub-admins, and this group's admins and sub-admins.
                                 canClearChat={canClearChats(user.role) || canAdminister(standing) || standing === 'sub_admin'}
                                 messageCount={messages}
-                                historyCount={seesHistory ? history.length : 0}
+                                historyCount={historyN}
                                 t={t}
                             />
                         )}

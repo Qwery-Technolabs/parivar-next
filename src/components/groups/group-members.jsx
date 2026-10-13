@@ -25,9 +25,10 @@ const ROLE_UI = {
 /**
  * Members with their main role and, as badges, their team roles (set in the About tab's Team card).
  * `team` = the VIEWER's team roles: the "members" one lets them add / edit / remove plain members and speakers.
- * @param {{ groupId: number, members: any[], standing: 'app'|'admin'|'sub_admin'|null, team?: string[], currentUserId: number, creatorId?: number|null }} props
+ * `members` = the page shown (paginated by the page); `total` / `memberIds` = the whole group.
+ * @param {{ groupId: number, members: any[], total?: number, memberIds?: number[], standing: 'app'|'admin'|'sub_admin'|null, team?: string[], currentUserId: number, creatorId?: number|null }} props
  */
-export default function GroupMembers({ groupId, members, standing, team = [], currentUserId, creatorId = null }) {
+export default function GroupMembers({ groupId, members, total = members.length, memberIds = null, standing, team = [], currentUserId, creatorId = null }) {
     const { t, locale } = useT();
     const canManage = canManageMembership(standing, team);
     // Roles this actor may hand out when adding someone.
@@ -45,7 +46,7 @@ export default function GroupMembers({ groupId, members, standing, team = [], cu
         <section className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold text-primary">
-                    {t('groups.members')} <span className="font-normal text-ink-gray tabular-nums">({members.length})</span>
+                    {t('groups.members')} <span className="font-normal text-ink-gray tabular-nums">({total})</span>
                 </h2>
                 {canManage && (
                     <FormDialog
@@ -67,7 +68,7 @@ export default function GroupMembers({ groupId, members, standing, team = [], cu
                     >
                         {({ fieldError }) => (
                             <>
-                                <PersonOrPhone fieldError={fieldError} pickerName="user_id" exclude={members.map((m) => m.id)} />
+                                <PersonOrPhone fieldError={fieldError} pickerName="user_id" exclude={memberIds ?? members.map((m) => m.id)} />
                                 <Field label={t('members.role')}>
                                     <select name="member_role" defaultValue="member" className={`${selectInput()} w-full`}>
                                         {grantable.map((r) => (

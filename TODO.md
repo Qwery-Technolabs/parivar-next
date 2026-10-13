@@ -418,3 +418,10 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Nearby Homes + family tree fill the page to its bottom edge (useFillHeight); Near me as an icon on the map corner
 - [x] Map mini profile: address + phone (not for family-added relatives), icon-only Profile / Directions / Call
 - [x] Sidebar Miscellaneous: My family tree · Nearby homes · Members; home pin button light grey background
+- [x] Map: Google-like road tiles (CARTO Voyager) + Satellite toggle (Esri, also in the pin picker); list shows homes in the visible area; own location dark dot
+- [x] Family tree: "Married daughters" switch off by default (the viewed daughter still shows)
+- [x] Mini loaders on the profile: relation-chain cards, family names, LinkButton icons (e.g. Family tree)
+- [x] Loaders replace the icon/count (tabs, money counts, menu, notifications); only where there is a real wait
+- [x] History (group / fundraise / Mandal) loads on open; settings sections lazy; group Members paginated + per-tab member loading
+- [x] Meetings calendar: one month per load (?month=), arrow spinner, red Sundays; pagination hidden for a single page
+- [x] Matrimony "Your family": family rules only (managers no longer see every eligible relative); Members map pin light grey

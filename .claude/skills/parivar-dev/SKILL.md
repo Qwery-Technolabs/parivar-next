@@ -128,7 +128,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   memory — never one query per generation; that queued requests with 4+ users). Children (tree, Family card) and siblings are
   ordered by `byAge`: eldest first, left to right, among those with a birth date; people without one keep their added order.
   The tree opens centred on the person whose tree it is (their tile, aria-current, scrolled to the middle).
-  Tree page switches: "Married daughters" (on by default; off hides every married daughter — married/widowed/divorced or
+  Tree page switches: "Married daughters" (OFF by default — only the viewed person stays if she is one; off hides every married daughter — married/widowed/divorced or
   with a husband — and her branch, in every chain, except the person whose tree it is) and "Details". Tree-added people (meta added_via='family')
   hide phone / dob / marital status from others (profile, Members list, member search). Male-line picker
   (father / brother / son) searches the person's surname only (`/api/members/search?surname=…&family=1`).
@@ -140,7 +140,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   matrimony_profiles for **alive, unmarried (or unset), 18+ with a dob** members (`ELIGIBLE`); a listing drops off by
   itself when that stops being true. List / edit / remove (`canListFor`): the person, their **father or mother**,
   member managers — and, **only when the father is marked late**, anyone in their family tree (guardian). No father
-  recorded = strict. **Browse rule = `canBrowseMatrimony` only** (for now: member managers + families with a listed
+  recorded = strict. The "Your family" card uses `canListFor(..., { asFamily: true })` — family rules only, so a
+  manager sees just their own family there. **Browse rule = `canBrowseMatrimony` only** (for now: member managers + families with a listed
   profile — the user will decide; change it there). Profile shows basics, education & work (users_listmeta
   education / occupation), family names from the tree, preferences, about, and a family contact (default: father
   with a phone, else the person). No photos yet (no upload storage).
@@ -166,16 +167,30 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   other iOS browsers → open in Safari (copy link); already installed (getInstalledRelatedApps, manifest
   related_applications from VERCEL_PROJECT_PRODUCTION_URL) → "Open the app". Manifest: id / scope "/",
   launch_handler navigate-existing. Android opens in-scope links tapped in other apps in the installed app itself.
-- **Mini loaders**: every link that opens another view gets `<LinkSpinner />` (components/ui/link-spinner.jsx,
-  useLinkStatus) inside it — tab bars (WaTabs), the Income/Expense/By contributor switch, print chips, calendar month
-  arrows; filter chips use ChipLink; a client switch that navigates (meetings List/Calendar) shows Loader2 while its
-  transition is pending; a collapsed part that loads on open shows Loader2 in place of its chevron.
+- **Mini loaders — ONLY where there is a real wait** (a page load, a server action, a fetch). Never on something that
+  switches instantly in the browser (Relation / Family tab, Holdings Income / Expense) — the user asked for that.
+  The loader REPLACES the icon / number / chevron it belongs to and the original comes back when done:
+  `LinkIconSpinner` (components/ui/link-spinner.jsx, useLinkStatus) wraps a link's icon or count — WaTabs tab icons,
+  the money view-switch counts, LinkButton icons, sidebar / bottom-bar / bell / calendar icons, the Members-list map
+  pin; `<LinkSpinner />` sits beside a text link (relation-chain cards, family names, Holdings names, print chips,
+  calendar page arrows); `FormIconSpinner` (components/ui/form-spinner.jsx, useFormStatus) does it for a form submit
+  (opening a notification). A client switch that navigates (meetings List/Calendar, calendar month arrows) shows Loader2
+  while its transition is pending; a collapsed part that loads on open shows Loader2 in place of its chevron.
+- **Pagination** (components/ui/pagination.jsx) renders nothing when there is one page or none (no "0–0 of 0", no
+  rows-per-page) — still shown on a page past the end. Group Members tab is paginated (?page, per-page cookie).
 - **Load on open, not with the page**: content hidden behind a toggle is fetched when opened (server action), the page
   carries only counts. Meeting minutes: the meetings list gets `minutesCounts(campaignId)` ({eventId: n}); each card shows
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
   (actions/minutes.js — same visibility as the page). Past meetings: the list view loads only upcoming meetings + `countPastMeetings`; "Past meetings (n)" calls
   `loadPastMeetings` (actions/meetings.js, same visibility as the page); the calendar view (?view=calendar → MeetingsSection
-  `view`) loads all meetings and birthdays (the list view loads no birthdays). Mandal attendance: the page carries
+  `view`) loads ONE month (?month=YYYY-MM, default the next meeting's month via `nextMeetingMonth`, else this month):
+  `listMeetings({ when: 'month', month })` + `scopeBirthdays(scope, id, monthNumber)`; its arrows navigate to ?month=
+  (Loader2 in place of the arrow). Sundays are red text on a light-red cell (list view loads no birthdays).
+  History cards (group About, fundraise / Mandal About) carry only a count (`countGroupHistory` / `historyCount`) and
+  load on first open: `loadGroupHistory` (actions/groups.js, `canAdminister`) / `loadFundraiseHistory`
+  (actions/fundraise.js, `canSeeCampaign` + `manage` for a draft / archived one). Settings renders only the active
+  ?section= (Activity log paginated). Group page: member COUNT on every tab (`groupMemberCount`), one page of members
+  on Members (+ `groupMemberIds` for the Add picker), the full list only on About (Team card). Mandal attendance: the page carries
   `mandalAttendanceCounts`; opening a schedule's line calls `loadMandalAttendance`. A Mandal's About tab shows no News & minutes (they live under
   its meetings) and does not load them.
 - **Surnames** (/members/surnames, actions/surnames.js): editing (administrators) can change the English spelling too —
@@ -188,13 +203,19 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Home pins / Nearby Homes** (/nearby, nav Miscellaneous: My family tree · Nearby homes · Members): users_listmeta home_lat / home_lng, set ONLY on a man's
   profile — member edit → Details → the map-pin button beside the address (components/members/home-pin-button.jsx,
   actions/home.js `setHomeLocation`, canEditUser; saved on its own). The map shows active MEN only (never a woman's
-  home) to every signed-in member: Leaflet + OpenStreetMap tiles (components/maps/osm-map.jsx, browser-only via
+  home) to every signed-in member: Leaflet (components/maps/osm-map.jsx, browser-only via
   next/dynamic ssr:false; CSS pins, no images), person-icon pins with a mini profile card (name, village · city, address,
   phone — not for a relative added via the family tree, like the profile — then icon-only Profile / Directions / Call).
-  "Near me" is a square icon button on the map's bottom-right corner (like the tree's Focus); it lists the nearest by
-  distance (browser location, never stored). The pin picker button has a light grey background. ?focus=<id> opens on one home; the Members
+  "Near me" is a square icon button on the map's bottom-right corner (like the tree's Focus), with the Map ⇄ Satellite
+  toggle (`layerToggle`) just above it; the viewer's own spot is a dark dot with a soft ring (never orange / navy).
+  Tiles (free, no key): road = CARTO Voyager (Google-like look, OSM data); satellite = Esri World Imagery + Esri road
+  and place-name overlays. NOT Google's own tiles — those need a paid Maps API key (their terms forbid using the raw
+  tile URLs). The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
+  nearest to me after Near me, else to the map's middle — filtered client-side from the page's homes, so moving the
+  map makes no request / DB connection. It starts open on sm+, closed on a phone (chip) until Near me.
+  The pin picker button has a light grey background; the picker also has the Satellite toggle. ?focus=<id> opens on one home; the Members
   list shows a pin button (has_home) before ⋮. The profile's address link uses the pin when set. Privacy policy +
-  licences (Leaflet, OSM data) say so.
+  licences (Leaflet, OSM data, CARTO, Esri) say so.
 - **Family tree focus**: a square Focus button (bottom-right of the canvas) scrolls back to the tree's person.
 - **Full-screen canvases** (family tree, Nearby Homes map): `useFillHeight()` (components/ui/use-fill-height.js) on
   the canvas wrapper grows it to the bottom of #content (above the phone bar), measured live; keep a CSS

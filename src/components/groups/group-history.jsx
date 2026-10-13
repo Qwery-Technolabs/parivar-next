@@ -1,12 +1,31 @@
-import { ChevronDown } from 'lucide-react';
+'use client';
+import { ChevronDown, Loader2 } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { loadGroupHistory } from '@/app/actions/groups';
 import { historyWhen } from '@/components/fundraise/history-format';
+import { useT } from '@/lib/i18n/client';
 
 /**
  * A group's own History (About tab, its admins only) — collapsed like a fundraise's. Each line: who did what,
  * when (lib/group-history.js); an edit lists its changed fields, a team change the roles added / removed.
- * @param {{ rows: any[], t: Function, locale: string }} props
+ * The page carries only how many; the lines are fetched when it is first opened (a mini loader replaces the chevron).
+ * @param {{ groupId: number, count: number }} props
  */
-export default function GroupHistory({ rows, t, locale }) {
+export default function GroupHistory({ groupId, count }) {
+    const { t, locale } = useT();
+    const [rows, setRows] = useState(null); // null = not loaded yet
+    const [error, setError] = useState(false);
+    const [pending, startLoad] = useTransition();
+    const onToggle = (e) => {
+        if (!e.currentTarget.open || rows || pending) return;
+        startLoad(async () => {
+            const res = await loadGroupHistory(groupId);
+            if (res?.ok) {
+                setRows(res.rows);
+                setError(false);
+            } else setError(true);
+        });
+    };
     const nm = (en, local) => (locale !== 'en' && local) || en || t('groups.history.someone');
     const role = (r) => (r ? (r === 'admin' || r === 'sub_admin' || r === 'speaker' || r === 'member' ? t(`groups.roles.${r}`) : t(`groups.team.${r}`)) : '—');
     const line = (h) => {
@@ -22,17 +41,27 @@ export default function GroupHistory({ rows, t, locale }) {
     };
     const field = (c) => t(`groups.history.fields.${c.field}`);
     return (
-        <details id="history" className="group min-w-0 scroll-mt-4 rounded-lg border border-surface-border bg-white shadow-sm">
+        <details id="history" onToggle={onToggle} className="group min-w-0 scroll-mt-4 rounded-lg border border-surface-border bg-white shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg bg-card-head px-3.5 py-2.5 group-open:rounded-b-none group-open:border-b group-open:border-surface-border [&::-webkit-details-marker]:hidden">
                 <span className="text-sm font-semibold text-primary">
                     {t('groups.history.title')}
-                    {rows.length > 0 && <span className="ml-1.5 text-xs font-normal text-ink-gray tabular-nums">{rows.length}</span>}
+                    {count > 0 && <span className="ml-1.5 text-xs font-normal text-ink-gray tabular-nums">{count}</span>}
                 </span>
-                <ChevronDown className="size-4 text-ink-gray transition-transform group-open:rotate-180" />
+                {pending ? (
+                    <Loader2 className="size-4 animate-spin text-ink-gray" />
+                ) : (
+                    <ChevronDown className="size-4 text-ink-gray transition-transform group-open:rotate-180" />
+                )}
             </summary>
             <div className="p-4">
                 <p className="mb-3 text-xs text-ink-gray">{t('groups.history.hint')}</p>
-                {rows.length === 0 ? (
+                {error ? (
+                    <p className="text-center text-sm text-destructive">{t('common.error')}</p>
+                ) : rows == null ? (
+                    <p className="flex justify-center text-ink-gray">
+                        <Loader2 className="size-4 animate-spin" />
+                    </p>
+                ) : rows.length === 0 ? (
                     <p className="text-center text-sm text-ink-gray">{t('groups.history.empty')}</p>
                 ) : (
                     <ol className="space-y-3">

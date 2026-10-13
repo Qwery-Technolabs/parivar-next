@@ -26,14 +26,21 @@ export const getGroup = cache(async (id) => {
     return g ? { ...g, meta } : null;
 });
 
-export async function groupMembers(groupId) {
+/**
+ * A group's members (admins first), with their team roles. `page` { limit, offset }: one page of them (the Members
+ * tab); without it, all (the About tab's Team card needs everyone). Team roles come from ONE grouped read of the
+ * team table, not a subquery per member.
+ */
+export async function groupMembers(groupId, page = null) {
     return query(
-        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at,
-                (SELECT GROUP_CONCAT(t.team_role) FROM admin_group_team t WHERE t.group_id = gm.group_id AND t.user_id = gm.user_id) AS team
+        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at, gt.team
            FROM admin_group_members gm JOIN users_list u ON u.id = gm.user_id
+           LEFT JOIN (SELECT user_id, GROUP_CONCAT(team_role) AS team FROM admin_group_team WHERE group_id = :groupId GROUP BY user_id) gt
+                  ON gt.user_id = gm.user_id
           WHERE gm.group_id = :groupId
-          ORDER BY FIELD(gm.member_role, 'admin', 'sub_admin', 'speaker', 'member'), u.full_name`,
-        { groupId },
+          ORDER BY FIELD(gm.member_role, 'admin', 'sub_admin', 'speaker', 'member'), u.full_name, u.id
+          ${page ? 'LIMIT :limit OFFSET :offset' : ''}`,
+        page ? { groupId, limit: page.limit, offset: page.offset } : { groupId },
     ).then((rows) =>
         rows.map((r) => ({
             ...r,
@@ -44,6 +51,17 @@ export async function groupMembers(groupId) {
             ),
         })),
     );
+}
+
+/** How many members a group has (the tab badge and header) — no member rows needed. */
+export const groupMemberCount = cache(async (groupId) => {
+    const r = await queryOne('SELECT COUNT(*) AS n FROM admin_group_members WHERE group_id = :groupId', { groupId });
+    return Number(r?.n ?? 0);
+});
+
+/** Every member's id only — the Add member picker leaves them out while the tab shows one page. */
+export async function groupMemberIds(groupId) {
+    return (await query('SELECT user_id FROM admin_group_members WHERE group_id = :groupId', { groupId })).map((r) => r.user_id);
 }
 
 export async function groupFundraises(groupId, user) {

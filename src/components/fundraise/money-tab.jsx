@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import LinkSpinner from '@/components/ui/link-spinner';
+import LinkSpinner, { LinkIconSpinner } from '@/components/ui/link-spinner';
 import Badge from '@/components/ui/badge';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
@@ -99,9 +99,15 @@ export default function MoneyTab({
                                     : `text-ink-gray ${k === 'expenses' ? 'hover:text-expense' : 'hover:text-income'}`
                             }`}
                         >
-                            <LinkSpinner className="size-3" />
                             {labels[k]}
-                            {counts[k] != null && <span className="tabular-nums opacity-80">{counts[k]}</span>}
+                            {/* Opening this view: its count turns into the mini spinner (or one shows where it would be). */}
+                            {counts[k] != null ? (
+                                <LinkIconSpinner className="size-3">
+                                    <span className="tabular-nums opacity-80">{counts[k]}</span>
+                                </LinkIconSpinner>
+                            ) : (
+                                <LinkSpinner className="size-3" />
+                            )}
                         </Link>
                     ))}
                 </div>

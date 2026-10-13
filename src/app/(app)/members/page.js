@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { LinkIconSpinner } from '@/components/ui/link-spinner';
 import { Phone, MapPin } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import InviteMembersDialog from '@/components/members/invite-members-dialog';
@@ -226,9 +227,12 @@ export default async function MembersPage({ searchParams }) {
                                                     href={`/nearby?focus=${m.id}`}
                                                     aria-label={t('home.showOnMap')}
                                                     title={t('home.showOnMap')}
-                                                    className="btn-secondary inline-flex size-8 items-center justify-center rounded-md"
+                                                    // Light grey like the address box's pin button (not the orange action colour).
+                                                    className="inline-flex size-8 items-center justify-center rounded-md bg-gray-100 text-primary hover:bg-gray-200"
                                                 >
-                                                    <MapPin className="size-3.5" />
+                                                    <LinkIconSpinner className="size-3.5">
+                                                        <MapPin className="size-3.5" />
+                                                    </LinkIconSpinner>
                                                 </Link>
                                             )}
                                             <MemberRowActions

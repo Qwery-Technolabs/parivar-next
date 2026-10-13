@@ -163,6 +163,7 @@ export default function MeetingList({
     birthdayRoles = [],
     attendance = null,
     pastCount = null,
+    calMonth = null,
 }) {
     const minutesOf = (id) => minutes?.[id] ?? 0;
     const { t, locale } = useT();
@@ -218,6 +219,7 @@ export default function MeetingList({
         const params = new URLSearchParams(searchParams.toString());
         if (v === 'calendar') params.set('view', 'calendar');
         else params.delete('view');
+        params.delete('month');
         const qs = params.toString();
         setOpening(v);
         startView(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
@@ -299,6 +301,7 @@ export default function MeetingList({
                 <MeetingCalendar
                     meetings={calMeetings}
                     birthdays={calBirthdays}
+                    month={calMonth ?? today.slice(0, 7)}
                     today={today}
                     renderDay={(day, list, dayBirthdays) => (
                         <div className="space-y-2">

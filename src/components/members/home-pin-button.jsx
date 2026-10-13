@@ -82,7 +82,7 @@ export default function HomePinButton({ userId, initial = null }) {
                             bottom-right). z-[1000] sits above Leaflet's panes/controls; it is a sibling of the map, so a
                             tap on it never reaches the map as a pin drop. */}
                         <div className="relative">
-                            <OsmMap pick={pick ?? null} onPick={(lat, lng) => setPick({ lat, lng })} focus={pick} className="h-72 sm:h-96" />
+                            <OsmMap pick={pick ?? null} onPick={(lat, lng) => setPick({ lat, lng })} focus={pick} className="h-72 sm:h-96" layerToggle />
                             <button
                                 type="button"
                                 onClick={locate}
