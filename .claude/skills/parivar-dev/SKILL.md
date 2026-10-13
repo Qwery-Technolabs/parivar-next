@@ -207,8 +207,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Add-relative name suggestions**: father / mother / brother / sister take the person's OWN father (`ownFather`): for a
   married (widowed / divorced) woman that is her maiden father's name + maiden surname, never her husband's. Changing
   the marital status (single ↔ married name form) keeps what was typed (`carry`: father's name / surname ↔ maiden parts).
-- **Home pins / Nearby Homes** (/nearby, nav Miscellaneous: My family tree · Nearby homes · Members): users_listmeta home_lat / home_lng, set ONLY on a man's
-  profile — member edit → Details → the map-pin button beside the address (components/members/home-pin-button.jsx,
+- **Home pins / Nearby Homes** (/nearby, nav Miscellaneous: My family tree · Nearby homes · Members): users_listmeta home_lat / home_lng, set on ANY existing
+  profile (women too; theirs are saved but not shown on the map yet) — member edit → Details → the map-pin button beside the address (components/members/home-pin-button.jsx,
   actions/home.js `setHomeLocation`, canEditUser; saved on its own). The map shows active MEN only (never a woman's
   home) to every signed-in member: Leaflet (components/maps/osm-map.jsx, browser-only via
   next/dynamic ssr:false; CSS pins, no images), person-icon pins with a mini profile card (name, village · city, address,

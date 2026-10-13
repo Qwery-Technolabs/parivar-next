@@ -204,16 +204,16 @@ export function DetailFields({ member }) {
                         <input name="email" type="email" defaultValue={meta.email ?? ''} className={`${textInput()} w-full`} />
                     </Field>
                     <Field label={t('members.address')} className="sm:col-span-2">
-                        {/* A man's profile (an existing one): the home's exact spot, for Nearby Homes — saved on its own. */}
+                        {/* Any existing profile: the home's exact spot, saved on its own (Directions on the profile). Only men's pins show on Nearby Homes. */}
                         {/* The pin is an icon in the textarea's top-right corner; pr-11 keeps text from running under it. */}
                         <div className="relative">
                             <textarea
                                 name="address"
                                 rows={2}
                                 defaultValue={meta.address ?? ''}
-                                className={`${textArea()} w-full${member?.id && member.gender === 'male' ? ' pr-11' : ''}`}
+                                className={`${textArea()} w-full${member?.id ? ' pr-11' : ''}`}
                             />
-                            {member?.id && member.gender === 'male' && (
+                            {member?.id && (
                                 <div className="absolute right-1.5 top-1.5">
                                     <HomePinButton
                                         userId={member.id}
