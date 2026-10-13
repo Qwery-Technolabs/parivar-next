@@ -25,15 +25,11 @@ function pinIcon(L, tone = '#172f56', person = false) {
 
 const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-// Base maps (free, open source, no key).
-// Road: OpenStreetMap data as vector tiles from OpenFreeMap, drawn by MapLibre in its "Liberty" style — white /
-// light-grey streets, coloured main roads by importance, green parks, blue water, clear labels. Where the browser
-// cannot draw it (no WebGL), OpenStreetMap's own picture tiles.
+// Base maps (free, open source, no key). Road: OpenStreetMap's own tiles.
 // Satellite: Esri World Imagery with Esri's road + place-name overlays on top (a "hybrid" view).
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
-const ROAD_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-const ROAD_FALLBACK = { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: OSM } };
 const BASEMAPS = {
+    road: [{ url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19, attribution: OSM } }],
     satellite: [
         {
             url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -50,19 +46,9 @@ const BASEMAPS = {
     ],
 };
 
-/** The base layers of a view. `ML` = the MapLibre bridge (null until loaded / unsupported → picture tiles). */
-function baseLayers(L, ML, view) {
-    if (view === 'road') {
-        if (ML) {
-            try {
-                return [ML({ style: ROAD_STYLE, attribution: `${OSM} · <a href="https://openfreemap.org" target="_blank" rel="noreferrer">OpenFreeMap</a>` })];
-            } catch {
-                // No WebGL here: the picture tiles below.
-            }
-        }
-        return [L.tileLayer(ROAD_FALLBACK.url, ROAD_FALLBACK.opts)];
-    }
-    return BASEMAPS[view].map((b) => L.tileLayer(b.url, b.opts));
+/** The base layers of a view. */
+function baseLayers(L, view) {
+    return BASEMAPS[view].map((x) => L.tileLayer(x.url, x.opts));
 }
 
 /**
@@ -103,7 +89,6 @@ export default function OsmMap({
     const pickMarker = useRef(null);
     const meMarker = useRef(null);
     const Lref = useRef(null);
-    const MLref = useRef(null);
     const onPickRef = useRef(onPick);
     useEffect(() => {
         onPickRef.current = onPick;
@@ -113,18 +98,12 @@ export default function OsmMap({
     useEffect(() => {
         let cancelled = false;
         let ro = null;
-        // Leaflet, then the MapLibre bridge for the vector road map (its CSS with it); if that fails, picture tiles.
-        import('leaflet').then(async (mod) => {
-            const ml = await Promise.all([import('@maplibre/maplibre-gl-leaflet'), import('maplibre-gl/dist/maplibre-gl.css')]).then(
-                ([b]) => b.maplibreGL ?? b.default,
-                () => null,
-            );
+        import('leaflet').then((mod) => {
             if (cancelled || !box.current || map.current) return;
             const L = mod.default ?? mod;
             Lref.current = L;
-            MLref.current = ml;
             const m = L.map(box.current, { zoomControl: true, attributionControl: true }).setView(center, zoom);
-            base.current = L.layerGroup(baseLayers(L, ml, 'road')).addTo(m);
+            base.current = L.layerGroup(baseLayers(L, 'road')).addTo(m);
             layer.current = L.layerGroup().addTo(m);
             if (pick !== undefined)
                 m.on('click', (e) => {
@@ -242,7 +221,7 @@ export default function OsmMap({
         const m = map.current;
         if (!L || !m || !base.current) return;
         base.current.remove();
-        base.current = L.layerGroup(baseLayers(L, MLref.current, view)).addTo(m);
+        base.current = L.layerGroup(baseLayers(L, view)).addTo(m);
         base.current.eachLayer((l) => l.bringToBack?.());
     }, [view]);
 

@@ -13,9 +13,9 @@ import { useT } from '@/lib/i18n/client';
  */
 export default function GroupHistory({ groupId, count }) {
     const { t, locale } = useT();
-    // Kept in this tab for a few minutes (lib/client-cache.js); fetched early when the pointer / a finger reaches it.
+    // Kept in this tab for a few minutes (lib/client-cache.js); loaded ONLY when opened (no early fetch).
     // The count is in the key: a new line makes it load afresh.
-    const { res, pending, load, prefetch } = useOnDemand(`ghist:${groupId}:${count}`, () => loadGroupHistory(groupId));
+    const { res, pending, load } = useOnDemand(`ghist:${groupId}:${count}`, () => loadGroupHistory(groupId));
     const rows = res?.ok ? res.rows : null; // null = not loaded yet
     const error = Boolean(res && !res.ok);
     const onToggle = (e) => {
@@ -37,12 +37,7 @@ export default function GroupHistory({ groupId, count }) {
     const field = (c) => t(`groups.history.fields.${c.field}`);
     return (
         <details id="history" onToggle={onToggle} className="group min-w-0 scroll-mt-4 rounded-lg border border-surface-border bg-white shadow-sm">
-            <summary
-                onPointerEnter={prefetch}
-                onTouchStart={prefetch}
-                onFocus={prefetch}
-                className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg bg-card-head px-3.5 py-2.5 group-open:rounded-b-none group-open:border-b group-open:border-surface-border [&::-webkit-details-marker]:hidden"
-            >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg bg-card-head px-3.5 py-2.5 group-open:rounded-b-none group-open:border-b group-open:border-surface-border [&::-webkit-details-marker]:hidden">
                 <span className="text-sm font-semibold text-primary">
                     {t('groups.history.title')}
                     {count > 0 && <span className="ml-1.5 text-xs font-normal text-ink-gray tabular-nums">{count}</span>}
