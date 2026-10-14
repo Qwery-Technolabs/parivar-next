@@ -50,7 +50,7 @@ export function forgetCached(prefix) {
 /**
  * One on-demand part (a collapsed card): `prefetch` on intent (pointer over / touch / focus) starts the call early,
  * `load` on open shows the kept answer at once, else waits for it (`pending` = show the mini loader).
- * `res` is the action's answer ({ ok, … } or { error }), or null before the first load. A new `key` starts empty.
+ * `reload(nextKey?)` fetches afresh after a write. `res` is the action's answer ({ ok, … } or { error }), or null before the first load. A new `key` starts empty.
  * @param {string} key
  * @param {() => Promise<any>} fetcher
  */
@@ -72,5 +72,16 @@ export function useOnDemand(key, fetcher) {
             }
         });
     };
-    return { res, pending, load, prefetch, loaded: res != null };
+    // After a write: fetch afresh (dropping the kept answer) — under `next` when the write changes the key (a count),
+    // so the new answer is already there when the page brings the new key.
+    const reload = (next = key) =>
+        start(async () => {
+            store.delete(next);
+            try {
+                setState({ key: next, res: await fetchCached(next, fetcher) });
+            } catch {
+                setState({ key: next, res: { error: 'common.error' } });
+            }
+        });
+    return { res, pending, load, reload, prefetch, loaded: res != null };
 }

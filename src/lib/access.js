@@ -179,6 +179,27 @@ export const isLeaderOfFundraiseGroup = cache(async (userId, campaignId) => {
     return Boolean(row);
 });
 
+/**
+ * May edit / delete ANY meeting minutes of a fundraise or Mandal: app-level managers (super admin, administrator,
+ * sub-admin), whoever manages it, and in its group (its own group or one it is shown in) the admins, sub-admins
+ * and the "Meetings" team role. The author of a minute may always change their own (checked by the caller).
+ * @param {{id: number, role: string}} user
+ * @param {{id: number, group_id: number|null}} campaign
+ */
+export async function canModerateMinutes(user, campaign) {
+    if (!user || !campaign) return false;
+    if ((await fundraisePermissions(user, campaign)).manage) return true;
+    const row = await queryOne(
+        `SELECT 1 AS ok FROM (SELECT group_id FROM fundraise_groups WHERE campaign_id = :campaignId UNION SELECT :groupId) g
+          WHERE EXISTS (SELECT 1 FROM admin_group_members gm
+                         WHERE gm.group_id = g.group_id AND gm.user_id = :userId AND gm.member_role IN ('admin', 'sub_admin'))
+             OR EXISTS (SELECT 1 FROM admin_group_team gt WHERE gt.group_id = g.group_id AND gt.user_id = :userId AND gt.team_role = 'meetings')
+          LIMIT 1`,
+        { campaignId: campaign.id, groupId: campaign.group_id ?? 0, userId: user.id },
+    );
+    return Boolean(row);
+}
+
 /** Member (any role) of any group this fundraise is shown in? */
 export async function isInFundraiseGroup(userId, campaignId) {
     if (!userId || !campaignId) return false;

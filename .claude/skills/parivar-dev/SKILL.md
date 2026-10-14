@@ -188,7 +188,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Load on open, not with the page**: content hidden behind a toggle is fetched when opened (server action), the page
   carries only counts. Meeting minutes: the meetings list gets `minutesCounts(campaignId)` ({eventId: n}); each card shows
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
-  (actions/minutes.js — same visibility as the page). Past meetings: the list view loads only upcoming meetings + `countPastMeetings`; "Past meetings (n)" calls
+  (actions/minutes.js — same visibility as the page). One row: the Minutes (n) toggle left, Add minutes right (no "MINUTES" label); text 13px.
+  Edit / Delete icons on each minute (editMinutes / deleteMinutes) for its author and lib/access `canModerateMinutes`: app
+  super admin / administrator / sub-admin, whoever manages it, and in its group (own or shown-in) admins, sub-admins and
+  the Meetings team role. After a write the hook's `reload(nextKey)` fetches afresh (delete → under count − 1). Past meetings: the list view loads only upcoming meetings + `countPastMeetings`; "Past meetings (n)" calls
   `loadPastMeetings` (actions/meetings.js, same visibility as the page); the calendar view (?view=calendar → MeetingsSection
   `view`) loads ONE month (?month=YYYY-MM, default the next meeting's month via `nextMeetingMonth`, else this month):
   `listMeetings({ when: 'month', month })` + `scopeBirthdays(scope, id, monthNumber)`; its arrows navigate to ?month=

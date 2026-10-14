@@ -429,3 +429,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Map road view: back to OpenStreetMap tiles (the MapLibre / OpenFreeMap vector map drew blank in production — reverted)
 - [x] Map remembers Map / Satellite per device (localStorage)
 - [x] Nearby: my own home pin orange (others navy)
+- [x] Member profile redesigned as a public profile: navy header (picture, relation chip, Call / WhatsApp / Family tree / Edit), only filled details
+- [x] Meeting minutes: toggle + Add on one row, smaller text, Edit / Delete for author, app admins, managers, group admins / sub-admins / Meetings role

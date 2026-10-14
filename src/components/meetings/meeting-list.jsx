@@ -104,15 +104,23 @@ function MeetingCard({ m, scope, scopeId, canEdit, people, me, past, today, minu
                 )}
             </div>
             {(minutesCount > 0 || (canPostMinutes && past)) && (
-                <div className="mt-2.5 space-y-1.5 border-t border-surface-border pt-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                        <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('fundraise.minutes')}</p>
-                        {canPostMinutes && past && (
-                            <PostDialog campaignId={scopeId} meetingId={m.id} subtitle={t('fundraise.minutesOf', { date: fmtDate(m.start_date, locale) })} />
-                        )}
-                    </div>
-                    {/* Collapsed; opened → fetched (components/meetings/meeting-minutes.jsx). */}
-                    <MeetingMinutes campaignId={scopeId} eventId={m.id} count={minutesCount} />
+                <div className="mt-2.5 border-t border-surface-border pt-2.5">
+                    {/* One row: "Minutes (n)" toggle left (opened → fetched), Add minutes right (components/meetings/meeting-minutes.jsx). */}
+                    <MeetingMinutes
+                        campaignId={scopeId}
+                        eventId={m.id}
+                        count={minutesCount}
+                        addButton={
+                            canPostMinutes &&
+                            past && (
+                                <PostDialog
+                                    campaignId={scopeId}
+                                    meetingId={m.id}
+                                    subtitle={t('fundraise.minutesOf', { date: fmtDate(m.start_date, locale) })}
+                                />
+                            )
+                        }
+                    />
                 </div>
             )}
             {invited && !past && !attendance && (

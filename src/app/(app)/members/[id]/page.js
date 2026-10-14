@@ -1,15 +1,18 @@
-import { Phone, ShieldCheck } from 'lucide-react';
+import { GitFork, MessageCircle, Pencil, Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
-import PageHeader, { Card } from '@/components/shell/page-header';
+import HeaderBack from '@/components/shell/header-back';
+import { Card } from '@/components/shell/page-header';
 import PageMenu from '@/components/shell/page-menu';
 import Badge, { BloodBadge } from '@/components/ui/badge';
+import { LinkIconSpinner } from '@/components/ui/link-spinner';
 import { requireUser } from '@/lib/auth';
 import { queryOne } from '@/lib/db';
 import { age, date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
+import { kinTerm } from '@/lib/kinship';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { birthName, isMarriedWoman } from '@/lib/names';
 import AddressActions from '@/components/members/address-actions';
@@ -26,14 +29,57 @@ export async function generateMetadata({ params }) {
 }
 
 /** Phones: label left, value right on one line (a divided list). From sm up: label above value, two columns. */
-function Detail({ label, children }) {
+function Detail({ label, children, wide = false }) {
     return (
-        <div className="flex min-w-0 items-baseline justify-between gap-3 py-2 sm:block sm:py-0">
+        <div className={`flex min-w-0 items-baseline justify-between gap-3 py-2 sm:block sm:py-0${wide ? ' sm:col-span-2' : ''}`}>
             <dt className="w-2/5 shrink-0 text-[11px] uppercase tracking-wide text-ink-gray sm:w-auto">{label}</dt>
-            <dd className="min-w-0 break-words text-right text-sm text-ink sm:mt-0.5 sm:text-left">{children || <span className="text-ink-gray">—</span>}</dd>
+            <dd className="min-w-0 break-words text-right text-sm text-ink sm:mt-0.5 sm:text-left">{children}</dd>
         </div>
     );
 }
+
+/**
+ * A profile card of details: only the filled rows (a public profile shows no "—" lines). Nothing filled → the card is
+ * left out, except for whoever may edit, who gets a one-line "Nothing added yet · Edit".
+ */
+function DetailsCard({ title, rows, editHref, t }) {
+    const filled = rows.filter((r) => r && r.value);
+    if (filled.length === 0 && !editHref) return null;
+    return (
+        <Card title={title}>
+            {filled.length === 0 ? (
+                <p className="text-sm text-ink-gray">
+                    {t('members.profile.empty')}{' '}
+                    <Link href={editHref} className="font-medium text-primary underline">
+                        {t('common.edit')}
+                    </Link>
+                </p>
+            ) : (
+                <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
+                    {filled.map((r) => (
+                        <Detail key={r.key} label={r.label} wide={r.wide}>
+                            {r.value}
+                        </Detail>
+                    ))}
+                </dl>
+            )}
+        </Card>
+    );
+}
+
+/** First visible letter (whole grapheme, so Gujarati vowel signs stay attached). */
+function initialOf(name) {
+    const text = String(name ?? '').trim();
+    if (!text) return '?';
+    try {
+        return new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)[Symbol.iterator]().next().value.segment.toUpperCase();
+    } catch {
+        return Array.from(text)[0].toUpperCase();
+    }
+}
+
+/** Hero action on navy: icon + label (label hidden on the narrowest phones). */
+const heroBtn = 'inline-flex h-9 items-center gap-1.5 rounded-md bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20';
 
 export default async function MemberPage({ params }) {
     const [{ id }, user] = await Promise.all([params, requireUser()]);
@@ -68,27 +114,76 @@ export default async function MemberPage({ params }) {
     const name = localized(member, 'full_name', locale);
     const otherName = locale === 'gu' ? member.full_name : member.full_name_local;
     const m = member.meta;
-    // A relative added from a family tree: phone, birth date and marital status are for the family only.
+    // A relative added from a family tree: phone numbers, email, birth date and marital status are for the family only.
     const privateDetails = m.added_via === 'family' && !seeFamily;
+    const isMe = user.id === member.id;
+    const late = member.status === 'deceased';
+    const maiden = isMarriedWoman(member) ? birthName(member, locale !== 'en') : null;
+    // How this person is to the viewer, in one word (Kaka, Bhabhi …) when there is one.
+    const kin = relation ? kinTerm(relation.steps) : null;
+    const phone = !privateDetails && !late ? member.phone : null;
+    const editHref = canEdit ? `/members/${member.id}/edit` : null;
+    const caste =
+        member.caste_name &&
+        [
+            (locale === 'gu' && member.caste_name_local) || member.caste_name,
+            member.subcaste_name && ((locale === 'gu' && member.subcaste_name_local) || member.subcaste_name),
+        ]
+            .filter(Boolean)
+            .join(' · ');
+    // Under the name: age · village · city (age only while alive and not private).
+    const facts = [
+        !privateDetails && !late && member.dob && age(member.dob) != null ? t('members.profile.age', { n: age(member.dob) }) : null,
+        member.village,
+        member.city,
+    ]
+        .filter(Boolean)
+        .join(' · ');
 
     return (
         <div>
-            <PageHeader
-                title={name}
-                subtitle={
-                    [
-                        otherName && otherName !== name ? otherName : null,
-                        // A married woman: her maiden name (father's name + surname) under the married one.
-                        isMarriedWoman(member) && birthName(member, locale !== 'en') && birthName(member, locale !== 'en') !== name
-                            ? `${t('members.maidenName')}: ${birthName(member, locale !== 'en')}`
-                            : null,
-                        canInviteMembers(user.role) && !member.last_login_at ? t('groups.invite.notJoined') : null,
-                    ]
-                        .filter(Boolean)
-                        .join(' · ') || undefined
-                }
-                back={{ href: '/members', label: t('members.title') }}
-                menu={
+            <HeaderBack href="/members" label={t('members.title')} />
+            {/* Profile header: navy card like a group's — picture, name, how they are to me, quick actions. */}
+            <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
+                <div className="flex items-start gap-3 px-3 pt-3 sm:gap-4 sm:px-4 sm:pt-4">
+                    <span
+                        aria-hidden
+                        className={`flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-2xl font-bold text-white shadow ring-2 ring-white/30 sm:size-16 ${
+                            late ? 'from-gray-300 to-gray-500' : member.gender === 'female' ? 'from-rose-400 to-rose-600' : 'from-[#5a76a8] to-[#2b4a7e]'
+                        }`}
+                    >
+                        {initialOf(name)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-lg leading-snug font-semibold break-words sm:text-xl">
+                            {late && <span className="font-normal text-white/70">{t('status.deceased')} </span>}
+                            {name}
+                        </h1>
+                        {/* white/70 on navy: 7.34:1 */}
+                        {otherName && otherName !== name && <p className="text-sm break-words text-white/70">{otherName}</p>}
+                        {maiden && maiden !== name && (
+                            <p className="text-xs break-words text-white/70">
+                                {t('members.maidenName')}: {maiden}
+                            </p>
+                        )}
+                        {facts && <p className="mt-0.5 text-xs text-white/70">{facts}</p>}
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            {isMe ? (
+                                <span className="rounded-full bg-brand-orange-strong px-2 py-0.5 text-[11px] font-semibold text-white">{t('kin.you')}</span>
+                            ) : (
+                                kin && (
+                                    <span className="rounded-full bg-brand-orange-strong px-2 py-0.5 text-[11px] font-semibold text-white">
+                                        {t('members.profile.yourKin', { term: t(`kin.terms.${kin}`) })}
+                                    </span>
+                                )
+                            )}
+                            <Badge tone={member.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${member.role}`)}</Badge>
+                            {member.status !== 'active' && !late && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
+                            <BloodBadge group={member.blood_group} />
+                            {member.is_blood_donor && !late ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
+                            {canInviteMembers(user.role) && !member.last_login_at && !late && <Badge tone="amber">{t('groups.invite.notJoined')}</Badge>}
+                        </div>
+                    </div>
                     <PageMenu
                         items={[
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
@@ -124,25 +219,47 @@ export default async function MemberPage({ params }) {
                                 },
                         ]}
                     />
-                }
-            />
-
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-                <Badge tone={member.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${member.role}`)}</Badge>
-                {member.status !== 'active' && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
-                <BloodBadge group={member.blood_group} />
-                {member.is_blood_donor ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
-                {member.phone && !privateDetails && (
-                    <a href={`tel:${member.phone}`} className="ml-auto inline-flex h-9 items-center gap-2 rounded-md btn-secondary px-3 text-sm font-medium">
-                        <Phone className="size-4" />
-                        <span className="tabular-nums">{formatPhone(member.phone)}</span>
-                    </a>
-                )}
+                </div>
+                {/* Quick actions: Call / WhatsApp (when the number may be seen), the family tree, Edit. */}
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 px-3 py-2.5 sm:px-4">
+                    {phone && !isMe && (
+                        <>
+                            <a href={`tel:${phone}`} className={heroBtn}>
+                                <Phone className="size-4" />
+                                <span className="tabular-nums">{formatPhone(phone)}</span>
+                            </a>
+                            <a
+                                href={`https://wa.me/${phone.length === 10 ? `91${phone}` : phone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={heroBtn}
+                                aria-label="WhatsApp"
+                            >
+                                <MessageCircle className="size-4" />
+                                <span className="hidden min-[400px]:inline">WhatsApp</span>
+                            </a>
+                        </>
+                    )}
+                    <Link href={`/members/${member.id}/tree`} className={heroBtn}>
+                        <LinkIconSpinner>
+                            <GitFork className="size-4" />
+                        </LinkIconSpinner>
+                        {t('members.familyTree')}
+                    </Link>
+                    {canOpenEdit && (
+                        <Link href={`/members/${member.id}/edit`} className={`${heroBtn} sm:ml-auto`}>
+                            <LinkIconSpinner>
+                                <Pencil className="size-4" />
+                            </LinkIconSpinner>
+                            {t('common.edit')}
+                        </Link>
+                    )}
+                </div>
             </div>
 
             {/* No login yet (e.g. added from a family tree without a number): tell those who can fix it. */}
-            {!member.can_login && member.status !== 'deceased' && canEdit && (
-                <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {!member.can_login && !late && canEdit && (
+                <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
                     {t('members.noLogin')}{' '}
                     <Link href={`/members/${member.id}/edit`} className="font-medium underline">
                         {t('common.edit')}
@@ -150,36 +267,74 @@ export default async function MemberPage({ params }) {
                 </p>
             )}
             <div className="grid gap-4 xl:grid-cols-2">
-                <Card title={t('members.details')}>
-                    <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
-                        <Detail label={t('members.gender')}>{member.gender && t(`gender.${member.gender}`)}</Detail>
-                        <Detail label={t('members.dob')}>{!privateDetails && member.dob && `${date(member.dob, locale)} · ${age(member.dob)}`}</Detail>
-                        <Detail label={t('family.maritalStatus')}>
-                            {!privateDetails && member.marital_status && t(`family.marital.${member.marital_status}`)}
-                        </Detail>
-                        <Detail label={t('members.village')}>{member.village}</Detail>
-                        <Detail label={t('members.position')}>{m.position}</Detail>
-                        <Detail label={t('members.city')}>{member.city}</Detail>
-                        <Detail label={t('members.caste')}>
-                            {member.caste_name &&
-                                [
-                                    (locale === 'gu' && member.caste_name_local) || member.caste_name,
-                                    member.subcaste_name && ((locale === 'gu' && member.subcaste_name_local) || member.subcaste_name),
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                        </Detail>
-                        <Detail label={t('members.occupation')}>{m.occupation}</Detail>
-                        <Detail label={t('members.education')}>{m.education}</Detail>
-                        <Detail label={t('members.altPhone')}>{m.alt_phone}</Detail>
-                        <Detail label={t('members.email')}>{m.email}</Detail>
-                        <div className="sm:col-span-2">
-                            <Detail label={t('members.address')}>
-                                {/* Copy / Map / Directions (Google Maps; the city is added to the search when the address lacks it). */}
-                                {m.address && (
+                <div className="space-y-4">
+                    {/* About: only what is filled. A relative added from a family tree keeps birth date and marital status in the family. */}
+                    <DetailsCard
+                        title={t('members.details')}
+                        editHref={editHref}
+                        t={t}
+                        rows={[
+                            { key: 'gender', label: t('members.gender'), value: member.gender && t(`gender.${member.gender}`) },
+                            {
+                                key: 'dob',
+                                label: t('members.dob'),
+                                value: !privateDetails && member.dob && (late ? date(member.dob, locale) : `${date(member.dob, locale)} · ${age(member.dob)}`),
+                            },
+                            {
+                                key: 'marital',
+                                label: t('family.maritalStatus'),
+                                value: !privateDetails && member.marital_status && t(`family.marital.${member.marital_status}`),
+                            },
+                            { key: 'caste', label: t('members.caste'), value: caste },
+                            { key: 'position', label: t('members.position'), value: m.position },
+                            { key: 'occupation', label: t('members.occupation'), value: m.occupation },
+                            { key: 'education', label: t('members.education'), value: m.education },
+                            m.bio && { key: 'bio', label: t('members.bio'), value: <span className="whitespace-pre-line">{m.bio}</span>, wide: true },
+                        ]}
+                    />
+                    {/* Contact & place: the same family-only rule covers the other mobile and email as the main number. */}
+                    <DetailsCard
+                        title={t('members.parts.contact')}
+                        editHref={editHref}
+                        t={t}
+                        rows={[
+                            {
+                                key: 'phone',
+                                label: t('members.phone'),
+                                value: phone && (
+                                    <a href={`tel:${phone}`} className="text-primary tabular-nums hover:underline">
+                                        {formatPhone(phone)}
+                                    </a>
+                                ),
+                            },
+                            {
+                                key: 'alt',
+                                label: t('members.altPhone'),
+                                value: !privateDetails && m.alt_phone && (
+                                    <a href={`tel:${m.alt_phone}`} className="text-primary tabular-nums hover:underline">
+                                        {m.alt_phone}
+                                    </a>
+                                ),
+                            },
+                            {
+                                key: 'email',
+                                label: t('members.email'),
+                                value: !privateDetails && m.email && (
+                                    <a href={`mailto:${m.email}`} className="text-primary hover:underline">
+                                        {m.email}
+                                    </a>
+                                ),
+                            },
+                            { key: 'village', label: t('members.village'), value: member.village },
+                            { key: 'city', label: t('members.city'), value: member.city },
+                            {
+                                key: 'address',
+                                label: t('members.address'),
+                                wide: true,
+                                // Copy / Map (Google Maps; the exact home pin when set, else the address + city when it lacks it).
+                                value: m.address && (
                                     <AddressActions
                                         address={m.address}
-                                        // The exact home pin when one is set (Nearby Homes), else the address.
                                         query={
                                             m.home_lat && m.home_lng
                                                 ? `${m.home_lat},${m.home_lng}`
@@ -188,18 +343,11 @@ export default async function MemberPage({ params }) {
                                                   : m.address
                                         }
                                     />
-                                )}
-                            </Detail>
-                        </div>
-                        {m.bio && (
-                            <div className="sm:col-span-2">
-                                <Detail label={t('members.bio')}>
-                                    <span className="whitespace-pre-line">{m.bio}</span>
-                                </Detail>
-                            </div>
-                        )}
-                    </dl>
-                </Card>
+                                ),
+                            },
+                        ]}
+                    />
+                </div>
 
                 <div className="space-y-4">
                     <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} relation={relation} t={t} locale={locale} />

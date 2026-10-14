@@ -193,6 +193,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Group About tab → **Danger zone** card (`GroupDangerCard`): status now, Mark inactive/active, Archive/Restore,
   and "Delete permanently" once archived (app-level only), each with a one-line explanation. Buttons coloured by
   meaning — pause amber-700, archive slate-600, active/restore emerald-700, delete red — **icon-only on phones**.
+- **Member profile** (/members/[id], seen by every member — a public profile): navy header card like a group's (HeaderBack,
+  round initial picture navy men / rose women / grey late, name, other-script name, maiden name, age · village · city,
+  orange "You" / "Your Kaka" chip from kinTerm, role / blood / donor / not-joined badges, ⋮ at the right) with a
+  quick-action strip: Call (number) · WhatsApp · Family tree · Edit. Below: Details and Contact & place cards showing
+  ONLY filled rows (no "—"); an empty card is hidden, or "Nothing added yet · Edit" for editors. A family-added relative's
+  phones, email, birth date and marital status stay family-only.
 - **Family card** on the member profile (no separate page): near relatives only — Father, Mother, Wife/Husband,
   Brothers, Sisters, Sons, Daughters (slot name once per group; name → that person's profile; Late badge; age ·
   marital; unlink icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation
