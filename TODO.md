@@ -436,3 +436,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Nearby: list rows get icon buttons (Profile, orange Directions, Call); homes load by map area as it moves, never all at once
 - [x] Call buttons light green (profile, Nearby list + pin card, Matrimony contact)
 - [x] Directions light blue on Nearby (list + pin card); profile header gets a Directions button when a home pin is set
+- [x] Header no longer scrolls away on a profile (main#content relative); family Unlink moved into each row's ⋮; profile Directions glass

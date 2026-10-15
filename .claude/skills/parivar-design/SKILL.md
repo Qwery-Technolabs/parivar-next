@@ -198,8 +198,8 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   age · village · city; orange "You" / "Your Kaka" chip from kinTerm; role (a white glass chip — bg-white/15 ring-white/25; navy / grey Badge tints are invisible on navy) / blood / donor / not-joined badges (none for an empty blood group — no stray "—"); GLASS ⋮
   pinned in the card's top-right corner (absolute top-3 right-3; the name block keeps pr-9) (PageMenu `glass`: bg-white/10, border-white/20, white dots) holding Edit + admin actions — never Family tree).
   Action strip under a white/10 line: Call = light green button with the number (fills the row on phones), WhatsApp and
-  Family tree = glass buttons, Directions (only when a home pin is set — Google Maps to that lat,lng) = light blue
-  (bg-blue-100 / text-blue-800); next to Call they are icon-only squares on phones (labels from sm), without Call they keep labels. Edit is
+  Family tree = glass buttons, Directions (only when a home pin is set — Google Maps to that lat,lng) = the same glass
+  button as WhatsApp (NOT the map's light blue); next to Call they are icon-only squares on phones (labels from sm), without Call they keep labels. Edit is
   ONLY in ⋮. Below: Details and Contact & place cards showing ONLY filled rows (no "—"); an empty card is hidden, or
   "Nothing added yet · Edit" for editors. A family-added relative's phones, email, birth date and marital status stay family-only.
 - **Call buttons are green — everywhere**: a button that phones someone is light green — emerald-100 / text-emerald-800
@@ -207,12 +207,15 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   card inline #ecfdf5 / #a7f3d0 / #047857). Phone numbers written as plain links in tables stay text links.
 - **Map actions** (Nearby list rows + pin card): Profile navy (solid) · Directions LIGHT BLUE (blue-50, border-blue-200,
   blue-700 icon; card inline #eff6ff / #bfdbfe / #1d4ed8) · Call light green. Not grey, not orange (user's call).
+- **Absolute / sr-only inside a page**: main#content is `relative` (app-shell) so such elements stay inside the scroll box;
+  without it a hidden label was placed below the screen and the whole frame — header included — could scroll. Buttons
+  hiding their text with sr-only on phones are `relative` too.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.
 - **Family card** on the member profile (no separate page): near relatives only — Father, Mother, Wife/Husband,
   Brothers, Sisters, Sons, Daughters (slot name once per group; name → that person's profile; Late badge; age ·
-  marital; unlink icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation
+  marital; Unlink lives in the row's own ⋮ — PageMenu, red, asks first — never a loose icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation
   first**, then New person | Pick from members; it **stays open** after each save (FormDialog `keepOpen`).
 - **Family tree** (/members/[id]/tree): a real tree (`.ftree` CSS connectors in globals.css) from the oldest
   ancestor up the father's line down to the youngest descendant — couples boxed side by side (heart), children

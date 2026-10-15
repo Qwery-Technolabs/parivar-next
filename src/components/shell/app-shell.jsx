@@ -358,7 +358,10 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                         </Popover>
                     </div>
                 </header>
-                <main id="content" className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface-content">
+                {/* `relative`: the containing block of anything absolute inside a page (e.g. sr-only text). Without it such an
+                    element was placed against the whole frame, far below the screen, and the frame itself could scroll —
+                    taking the header up with it (seen on a member profile on phones). */}
+                <main id="content" className="relative min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface-content">
                     {/* Full width with slim side gutters: tables and the discussion get the room.
                         Forms keep their own max-w-* so lines stay readable. */}
                     <div className="w-full px-2 py-3 sm:px-3 lg:px-4">{children}</div>

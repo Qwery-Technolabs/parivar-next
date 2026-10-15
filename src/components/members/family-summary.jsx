@@ -1,8 +1,8 @@
-import { GitFork, Link2Off } from 'lucide-react';
+import { GitFork } from 'lucide-react';
 import Link from 'next/link';
 import LinkSpinner from '@/components/ui/link-spinner';
 import { removeRelative } from '@/app/actions/family';
-import ActionButton from '@/components/fundraise/action-button';
+import PageMenu from '@/components/shell/page-menu';
 import AddRelativeDialog from '@/components/members/add-relative-dialog';
 import { LinkButton } from '@/components/shell/page-header';
 import FamilyCardShell from '@/components/members/family-card-shell';
@@ -69,7 +69,8 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
                         href={`/members/${person.id}/tree`}
                         icon={GitFork}
                         variant="outline"
-                        className="h-8 gap-1.5 px-2.5 text-xs max-sm:size-8 max-sm:px-0"
+                        // relative: its hidden (sr-only) label stays inside the button, never placed far down the page.
+                        className="relative h-8 gap-1.5 px-2.5 text-xs max-sm:size-8 max-sm:px-0"
                     >
                         <span className="max-sm:sr-only">{t('members.familyTree')}</span>
                     </LinkButton>
@@ -110,14 +111,20 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
                                             )}
                                             {detail(p) && <p className="text-xs text-ink-gray tabular-nums">{detail(p)}</p>}
                                         </div>
+                                        {/* Unlink sits in the row's ⋮ (asks first), not as a loose icon. */}
                                         {canEdit && (
-                                            <ActionButton
-                                                action={removeRelative.bind(null, person.id, p.id)}
-                                                confirm={t('family.removeConfirm', { name })}
-                                                icon={<Link2Off className="size-4" />}
-                                                label={t('family.remove')}
-                                                plain
-                                                className="size-8 justify-center px-0 text-ink-gray hover:bg-destructive/10 hover:text-destructive"
+                                            <PageMenu
+                                                label={t('common.actions')}
+                                                items={[
+                                                    {
+                                                        key: 'unlink',
+                                                        label: t('family.remove'),
+                                                        icon: 'unlink',
+                                                        action: removeRelative.bind(null, person.id, p.id),
+                                                        confirm: t('family.removeConfirm', { name }),
+                                                        danger: true,
+                                                    },
+                                                ]}
                                             />
                                         )}
                                     </li>

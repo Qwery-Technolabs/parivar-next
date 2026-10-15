@@ -81,9 +81,6 @@ function initialOf(name) {
 /** Hero actions on navy: glass buttons; Call is the light green one (with the number) — every call button is green. */
 const glassBtn =
     'inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-9';
-/** Directions on navy: light blue, like the map's Directions buttons. */
-const dirBtn =
-    'inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-blue-100 text-sm font-medium text-blue-800 shadow-sm hover:bg-blue-200 sm:h-9';
 const callBtn =
     'inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-100 px-4 text-sm font-semibold text-emerald-800 shadow-sm hover:bg-emerald-200 sm:h-9 sm:flex-none';
 
@@ -266,7 +263,7 @@ export default async function MemberPage({ params }) {
                             rel="noopener noreferrer"
                             aria-label={t('home.directions')}
                             title={t('home.directions')}
-                            className={`${dirBtn} ${callable ? 'w-10 shrink-0 sm:w-auto sm:px-3' : 'px-3'}`}
+                            className={`${glassBtn} ${callable ? 'w-10 shrink-0 sm:w-auto sm:px-3' : 'px-3'}`}
                         >
                             <Navigation className="size-4 shrink-0" />
                             <span className={callable ? 'hidden sm:inline' : ''}>{t('home.directions')}</span>

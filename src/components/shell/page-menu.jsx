@@ -1,5 +1,5 @@
 'use client';
-import { Archive, ArchiveRestore, CheckCheck, GitFork, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
+import { Archive, ArchiveRestore, CheckCheck, GitFork, Link2Off, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Fragment, createContext, useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ const MENU_ICONS = {
     smartphone: Smartphone,
     tags: Tags,
     trash: Trash2,
+    unlink: Link2Off,
     'user-plus': UserPlus,
 };
 
