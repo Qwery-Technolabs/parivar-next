@@ -195,12 +195,15 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   meaning — pause amber-700, archive slate-600, active/restore emerald-700, delete red — **icon-only on phones**.
 - **Member profile** (/members/[id], seen by every member — a public profile): navy header card like a group's (HeaderBack,
   round initial picture navy men / rose women / grey late — size-14, sm size-20; name, other-script name, maiden name,
-  age · village · city; orange "You" / "Your Kaka" chip from kinTerm; role / blood / donor / not-joined badges; GLASS ⋮
-  at the right (PageMenu `glass`: bg-white/10, border-white/20, white dots) holding Edit + admin actions — never Family tree).
-  Action strip under a white/10 line: Call = solid white button with the number (fills the row on phones), WhatsApp and
+  age · village · city; orange "You" / "Your Kaka" chip from kinTerm; role / blood / donor / not-joined badges (none for an empty blood group — no stray "—"); GLASS ⋮
+  pinned in the card's top-right corner (absolute top-3 right-3; the name block keeps pr-9) (PageMenu `glass`: bg-white/10, border-white/20, white dots) holding Edit + admin actions — never Family tree).
+  Action strip under a white/10 line: Call = light green button with the number (fills the row on phones), WhatsApp and
   Family tree = glass buttons, icon-only squares on phones (labels from sm); Family tree alone keeps its label. Edit is
   ONLY in ⋮. Below: Details and Contact & place cards showing ONLY filled rows (no "—"); an empty card is hidden, or
   "Nothing added yet · Edit" for editors. A family-added relative's phones, email, birth date and marital status stay family-only.
+- **Call buttons are green — everywhere**: a button that phones someone is light green — emerald-100 / text-emerald-800
+  on navy (profile), emerald-50 + border-emerald-200 / text-emerald-700 on white (Nearby list, Matrimony contact; the pin
+  card inline #ecfdf5 / #a7f3d0 / #047857). Phone numbers written as plain links in tables stay text links.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.

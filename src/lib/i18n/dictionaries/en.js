@@ -1397,7 +1397,6 @@ const en = {
         inView: 'Homes in this area',
         noneInView: 'No homes in this part of the map. Move or zoom out the map.',
         none: 'No homes pinned yet.',
-        profile: 'Profile',
         viewProfile: 'View profile',
         showOnMap: 'Show home on the map',
         directions: 'Directions',

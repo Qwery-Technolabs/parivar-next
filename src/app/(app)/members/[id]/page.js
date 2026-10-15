@@ -78,11 +78,11 @@ function initialOf(name) {
     }
 }
 
-/** Hero actions on navy: glass buttons; Call is the solid white one (with the number). */
+/** Hero actions on navy: glass buttons; Call is the light green one (with the number) — every call button is green. */
 const glassBtn =
     'inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-9';
 const callBtn =
-    'inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-brand-navy shadow-sm hover:bg-white/90 sm:h-9 sm:flex-none';
+    'inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-100 px-4 text-sm font-semibold text-emerald-800 shadow-sm hover:bg-emerald-200 sm:h-9 sm:flex-none';
 
 export default async function MemberPage({ params }) {
     const [{ id }, user] = await Promise.all([params, requireUser()]);
@@ -148,7 +148,7 @@ export default async function MemberPage({ params }) {
         <div>
             <HeaderBack href="/members" label={t('members.title')} />
             {/* Profile header: navy card like a group's — picture, name, how they are to me, quick actions. */}
-            <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
+            <div className="relative mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
                 <div className="flex items-start gap-3 px-3 pt-3 sm:items-center sm:gap-4 sm:px-5 sm:pt-5">
                     <span
                         aria-hidden
@@ -158,7 +158,7 @@ export default async function MemberPage({ params }) {
                     >
                         {initialOf(name)}
                     </span>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-9">
                         <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">
                             {late && <span className="font-normal text-white/70">{t('status.deceased')} </span>}
                             {name}
@@ -183,47 +183,50 @@ export default async function MemberPage({ params }) {
                             )}
                             <Badge tone={member.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${member.role}`)}</Badge>
                             {member.status !== 'active' && !late && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
-                            <BloodBadge group={member.blood_group} />
+                            {member.blood_group && <BloodBadge group={member.blood_group} />}
                             {member.is_blood_donor && !late ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
                             {canInviteMembers(user.role) && !member.last_login_at && !late && <Badge tone="amber">{t('groups.invite.notJoined')}</Badge>}
                         </div>
                     </div>
-                    <PageMenu
-                        glass
-                        items={[
-                            // Edit only here; Family tree is a card button, so not repeated.
-                            canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
-                            // Archive first (super admins / administrators); only an archived member can be
-                            // restored or deleted for good (last, red, asks first).
-                            canDeleteMember(user, member) &&
-                                member.status !== 'archived' && {
-                                    key: 'archive',
-                                    label: t('members.archive'),
-                                    icon: 'archive',
-                                    action: setMemberArchived.bind(null, member.id, true),
-                                    confirm: t('members.archiveConfirm', { name }),
-                                    group: 'danger',
-                                },
-                            canDeleteMember(user, member) &&
-                                member.status === 'archived' && {
-                                    key: 'restore',
-                                    label: t('members.restore'),
-                                    icon: 'archive-restore',
-                                    action: setMemberArchived.bind(null, member.id, false),
-                                    group: 'danger',
-                                },
-                            canDeleteMember(user, member) &&
-                                member.status === 'archived' && {
-                                    key: 'delete',
-                                    group: 'danger',
-                                    label: t('members.delete'),
-                                    icon: 'trash',
-                                    action: deleteMember.bind(null, member.id, true),
-                                    confirm: t('members.deleteConfirm', { name }),
-                                    danger: true,
-                                },
-                        ]}
-                    />
+                    <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
+                        {/* Top-right corner of the card, whatever the height of the name block. */}
+                        <PageMenu
+                            glass
+                            items={[
+                                // Edit only here; Family tree is a card button, so not repeated.
+                                canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
+                                // Archive first (super admins / administrators); only an archived member can be
+                                // restored or deleted for good (last, red, asks first).
+                                canDeleteMember(user, member) &&
+                                    member.status !== 'archived' && {
+                                        key: 'archive',
+                                        label: t('members.archive'),
+                                        icon: 'archive',
+                                        action: setMemberArchived.bind(null, member.id, true),
+                                        confirm: t('members.archiveConfirm', { name }),
+                                        group: 'danger',
+                                    },
+                                canDeleteMember(user, member) &&
+                                    member.status === 'archived' && {
+                                        key: 'restore',
+                                        label: t('members.restore'),
+                                        icon: 'archive-restore',
+                                        action: setMemberArchived.bind(null, member.id, false),
+                                        group: 'danger',
+                                    },
+                                canDeleteMember(user, member) &&
+                                    member.status === 'archived' && {
+                                        key: 'delete',
+                                        group: 'danger',
+                                        label: t('members.delete'),
+                                        icon: 'trash',
+                                        action: deleteMember.bind(null, member.id, true),
+                                        confirm: t('members.deleteConfirm', { name }),
+                                        danger: true,
+                                    },
+                            ]}
+                        />
+                    </div>
                 </div>
                 {/* Quick actions: Call (the number) + WhatsApp when the number may be seen, and the family tree. On phones Call
                     fills the row and WhatsApp / Family tree are icon-only squares (labelled from sm). Edit lives in the ⋮ menu. */}

@@ -51,7 +51,9 @@ export default async function MatrimonyProfilePage({ params }) {
         <div className="theme-fundraise">
             <PageHeader
                 title={name}
-                subtitle={[p.gender && t(`matrimony.${p.gender === 'female' ? 'bride' : 'groom'}`), p.dob && `${age(p.dob)} ${t('matrimony.years')}`].filter(Boolean).join(' · ')}
+                subtitle={[p.gender && t(`matrimony.${p.gender === 'female' ? 'bride' : 'groom'}`), p.dob && `${age(p.dob)} ${t('matrimony.years')}`]
+                    .filter(Boolean)
+                    .join(' · ')}
                 back={{ href: '/matrimony', label: t('matrimony.title') }}
                 actions={
                     canList && (
@@ -80,7 +82,9 @@ export default async function MatrimonyProfilePage({ params }) {
                 }
             />
             {!p.has_profile || !listed ? (
-                <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">{t(p.has_profile ? 'matrimony.notListed' : 'matrimony.noProfile')}</p>
+                <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {t(p.has_profile ? 'matrimony.notListed' : 'matrimony.noProfile')}
+                </p>
             ) : null}
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -96,7 +100,9 @@ export default async function MatrimonyProfilePage({ params }) {
                         <dl className="grid divide-y divide-surface-border sm:grid-cols-3 sm:gap-4 sm:divide-y-0">
                             <Row label={t('members.dob')}>{p.dob && `${date(p.dob, locale)} · ${age(p.dob)}`}</Row>
                             <Row label={t('matrimony.height')}>{p.height_cm && `${p.height_cm} cm`}</Row>
-                            <Row label={t('members.caste')}>{[loc(p.caste_name, p.caste_name_local), loc(p.subcaste_name, p.subcaste_name_local)].filter(Boolean).join(' · ')}</Row>
+                            <Row label={t('members.caste')}>
+                                {[loc(p.caste_name, p.caste_name_local), loc(p.subcaste_name, p.subcaste_name_local)].filter(Boolean).join(' · ')}
+                            </Row>
                             <Row label={t('members.city')}>{p.city}</Row>
                             <Row label={t('members.village')}>{p.village}</Row>
                         </dl>
@@ -118,7 +124,9 @@ export default async function MatrimonyProfilePage({ params }) {
                     </Card>
                     <Card title={t('matrimony.sections.preferences')}>
                         <dl className="grid divide-y divide-surface-border sm:grid-cols-2 sm:gap-4 sm:divide-y-0">
-                            <Row label={t('matrimony.prefAge')}>{(p.pref_age_min || p.pref_age_max) && `${p.pref_age_min ?? '…'} – ${p.pref_age_max ?? '…'}`}</Row>
+                            <Row label={t('matrimony.prefAge')}>
+                                {(p.pref_age_min || p.pref_age_max) && `${p.pref_age_min ?? '…'} – ${p.pref_age_max ?? '…'}`}
+                            </Row>
                             <Row label={t('members.caste')}>{loc(p.pref_caste_name, p.pref_caste_name_local)}</Row>
                             <Row label={t('members.city')}>{p.pref_city}</Row>
                             <Row label={t('members.education')}>{p.pref_education}</Row>
@@ -137,7 +145,7 @@ export default async function MatrimonyProfilePage({ params }) {
                                 <p className="text-sm font-medium text-primary">{p.contact_name}</p>
                                 <a
                                     href={`tel:${p.contact_phone}`}
-                                    className="btn-secondary mt-2 inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium tabular-nums"
+                                    className="mt-2 inline-flex h-9 items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-800 tabular-nums hover:bg-emerald-100"
                                 >
                                     <Phone className="size-4" /> {formatPhone(p.contact_phone)}
                                 </a>

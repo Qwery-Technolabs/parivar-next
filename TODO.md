@@ -434,3 +434,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Profile header: glass ⋮ (Edit inside), white Call button with the number, icon-only WhatsApp / Family tree on phones
 - [x] Dashboard: the 4 stat boxes softly coloured (navy, rose, blue, amber)
 - [x] Nearby: list rows get icon buttons (Profile, orange Directions, Call); homes load by map area as it moves, never all at once
+- [x] Call buttons light green (profile, Nearby list + pin card, Matrimony contact)

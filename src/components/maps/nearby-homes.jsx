@@ -22,7 +22,8 @@ const OsmMap = dynamic(() => import('./osm-map'), {
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /**
- * The card a pin opens: a person icon, the name, village · city, then View profile and Directions.
+ * The card a pin opens: a person icon, the name, village · city, address, phone, then icon-only Profile (navy),
+ * Directions (orange) and Call (light green).
  * Leaflet's popup sets its own font (Helvetica/Arial), which made this read heavy — so the card uses the app's
  * font (Geist + the Gujarati/Devanagari fallbacks; --font-sans itself is @theme inline, not a real var) and lighter weights: name 600, buttons 500, place 400.
  */
@@ -56,7 +57,7 @@ ${h.phone ? `<div style="${line}"><span style="color:#5b6b85;margin-top:1px">${s
 <div style="display:flex;gap:6px;margin-top:10px">
   <a href="/members/${h.id}" title="${esc(t('home.viewProfile'))}" aria-label="${esc(t('home.viewProfile'))}" style="${icon};background:#172f56;color:#fff">${svg('user')}</a>
   <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}" target="_blank" rel="noreferrer" title="${esc(t('home.directions'))}" aria-label="${esc(t('home.directions'))}" style="${icon};background:#b85d09;color:#fff">${svg('nav')}</a>
-  ${h.phone ? `<a href="tel:${esc(h.phone.tel)}" title="${esc(t('members.call'))}" aria-label="${esc(t('members.call'))}" style="${icon};border:1px solid #d6dbe4;background:#f3f4f6;color:#172f56">${svg('phone')}</a>` : ''}
+  ${h.phone ? `<a href="tel:${esc(h.phone.tel)}" title="${esc(t('members.call'))}" aria-label="${esc(t('members.call'))}" style="${icon};border:1px solid #a7f3d0;background:#ecfdf5;color:#047857">${svg('phone')}</a>` : ''}
 </div>
 </div>`;
 }
@@ -252,7 +253,7 @@ export default function NearbyHomes({ count, start = null, bounds = null, seed =
                                                     .join(' · ')}
                                             </span>
                                         </button>
-                                        {/* Icon-only, like the pin's card: Profile (navy), Directions (orange), Call (when there is a number). */}
+                                        {/* Icon-only, like the pin's card: Profile (navy), Directions (orange), Call (light green, when there is a number). */}
                                         <Link
                                             href={`/members/${h.id}`}
                                             aria-label={t('home.viewProfile')}
@@ -278,7 +279,7 @@ export default function NearbyHomes({ count, start = null, bounds = null, seed =
                                                 href={`tel:${h.phone.tel}`}
                                                 aria-label={`${t('members.call')} ${h.phone.text}`}
                                                 title={`${t('members.call')} · ${h.phone.text}`}
-                                                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-surface-border bg-gray-100 text-primary hover:bg-gray-200"
+                                                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                             >
                                                 <Phone className="size-3.5" />
                                             </a>
