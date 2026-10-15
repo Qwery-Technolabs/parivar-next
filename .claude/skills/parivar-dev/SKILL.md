@@ -225,8 +225,15 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   tiles were tried (Oct 2026) and drew a BLANK map in production (style background only, no tiles) — reverted; do not
   bring a WebGL vector map back without checking it in a real browser first. The Map / Satellite choice is remembered per
   device (localStorage `pv-map-view`, osm-map.jsx) for every map with the toggle. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
-  nearest to me after Near me, else to the map's middle — filtered client-side from the page's homes, so moving the
-  map makes no request / DB connection. It starts open on sm+, closed on a phone (chip) until Near me.
+  nearest to me after Near me, else to the map's middle — from the homes fetched so far. Each row: name + distance /
+  village · city, then icon buttons Profile (navy) · Directions (orange) · Call (grey, only with a number); the pin's card
+  uses the same colours. NEVER all homes at once: the page sends only the count, where to open (?focus home, else my own
+  home, else the box around all — lib/homes.js homesSummary / homeOf) and those homes; the rest load BY AREA as the map
+  moves (actions/home.js `loadHomesInArea`, lib/homes.js homesInArea, max AREA_LIMIT 300, `full` when capped). The
+  client waits 350 ms after a move, asks for the view padded by half on each side snapped to a 0.01° grid (fetchCached
+  key `homes:s:w:n:e`), skips a view inside the last box (unless that one was full and the view is now < 1/3 of it), keeps
+  every home fetched, and shows a mini loader (top middle) while asking. OsmMap `fit={false}` + `bounds` / `center`:
+  markers are kept by id (an open card survives a load). It starts open on sm+, closed on a phone (chip) until Near me.
   The pin picker button has a light grey background; the picker also has the Satellite toggle. ?focus=<id> opens on one home; the Members
   list shows a pin button (has_home) before ⋮. The profile's address link uses the pin when set. Privacy policy +
   licences (Leaflet, OSM data, Esri) say so.

@@ -3,6 +3,8 @@ import { revalidatePath } from 'next/cache';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { queryOne, setMeta } from '@/lib/db';
+import { AREA_LIMIT, homesInArea } from '@/lib/homes';
+import { getT } from '@/lib/i18n/server';
 import { canEditUser } from '@/lib/roles';
 
 /**
@@ -29,4 +31,20 @@ export async function setHomeLocation(userId, lat, lng) {
     revalidatePath(`/members/${uid}`);
     revalidatePath('/nearby');
     return { ok: true, message: clear ? 'home.cleared' : 'home.saved' };
+}
+
+/**
+ * Nearby Homes: the homes inside the box on screen { s, w, n, e } (the map asks as it is moved / zoomed; the client
+ * pads the box and keeps answers, so small moves ask nothing). Any signed-in member.
+ * Returns { ok, homes, full } — full: the area held more than AREA_LIMIT (zooming in loads the rest).
+ */
+export async function loadHomesInArea(box) {
+    const user = await getCurrentUser();
+    if (!user) return { error: 'common.forbidden' };
+    const num = (v, max) => Math.max(-max, Math.min(max, Number(v)));
+    const b = { s: num(box?.s, 90), n: num(box?.n, 90), w: num(box?.w, 180), e: num(box?.e, 180) };
+    if (![b.s, b.n, b.w, b.e].every(Number.isFinite) || b.s > b.n || b.w > b.e) return { error: 'common.error' };
+    const { locale } = await getT();
+    const homes = await homesInArea(b, locale);
+    return { ok: true, homes, full: homes.length >= AREA_LIMIT };
 }

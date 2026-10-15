@@ -1,10 +1,13 @@
 'use client';
-import { Crosshair, List, Loader2, Navigation, X } from 'lucide-react';
+import { Crosshair, List, Loader2, Navigation, Phone, User, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { loadHomesInArea } from '@/app/actions/home';
+import { LinkIconSpinner } from '@/components/ui/link-spinner';
 import useFillHeight from '@/components/ui/use-fill-height';
+import { fetchCached } from '@/lib/client-cache';
 import { useT } from '@/lib/i18n/client';
 
 const OsmMap = dynamic(() => import('./osm-map'), {
@@ -52,7 +55,7 @@ ${h.address ? `<div style="${line}"><span style="color:#5b6b85;margin-top:1px">$
 ${h.phone ? `<div style="${line}"><span style="color:#5b6b85;margin-top:1px">${svg('phone', 13)}</span><a href="tel:${esc(h.phone.tel)}" style="color:#172f56;font-variant-numeric:tabular-nums;text-decoration:none">${esc(h.phone.text)}</a></div>` : ''}
 <div style="display:flex;gap:6px;margin-top:10px">
   <a href="/members/${h.id}" title="${esc(t('home.viewProfile'))}" aria-label="${esc(t('home.viewProfile'))}" style="${icon};background:#172f56;color:#fff">${svg('user')}</a>
-  <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}" target="_blank" rel="noreferrer" title="${esc(t('home.directions'))}" aria-label="${esc(t('home.directions'))}" style="${icon};border:1px solid #d6dbe4;background:#f3f4f6;color:#172f56">${svg('nav')}</a>
+  <a href="https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}" target="_blank" rel="noreferrer" title="${esc(t('home.directions'))}" aria-label="${esc(t('home.directions'))}" style="${icon};background:#b85d09;color:#fff">${svg('nav')}</a>
   ${h.phone ? `<a href="tel:${esc(h.phone.tel)}" title="${esc(t('members.call'))}" aria-label="${esc(t('members.call'))}" style="${icon};border:1px solid #d6dbe4;background:#f3f4f6;color:#172f56">${svg('phone')}</a>` : ''}
 </div>
 </div>`;
@@ -68,15 +71,66 @@ function km(a, b) {
 }
 
 /**
- * Nearby Homes: every home pinned on the map (men's profiles only), each opening the profile. "Near me" asks
+ * Nearby Homes: the homes pinned on the map (men's profiles only), each opening the profile. Never all at once: the
+ * homes of the area on screen are fetched as the map moves / zooms (loadHomesInArea) — the box asked is the view padded
+ * by half on each side and snapped to a ~1 km grid, so small moves ask nothing and a view seen before comes from this
+ * tab's memory (lib/client-cache.js); homes fetched once stay on the map. A mini loader shows while an area loads.
+ * "Near me" asks
  * for the viewer's location (the browser asks first; nothing is stored) and lists the nearest homes with
  * distance and Directions (Google Maps) in a panel floating INSIDE the map — right side on sm+, a bottom sheet on a
  * phone — like Google Maps' results list. It can be closed (the map is then fully visible) and reopened from a chip.
  * `focusId` (?focus=<id>, e.g. the pin button on the Members list): open centred on that home with its card open.
- * @param {{ homes: Array<{ id: number, name: string, village: string|null, city?: string|null, lat: number, lng: number }>, focusId?: number|null }} props
+ * @param {{ count: number, start?: {lat:number,lng:number,zoom:number}|null, bounds?: number[][]|null, seed?: any[], focusId?: number|null, meId?: number|null }} props
  */
-export default function NearbyHomes({ homes, focusId = null, meId = null }) {
+export default function NearbyHomes({ count, start = null, bounds = null, seed = [], focusId = null, meId = null }) {
     const { t } = useT();
+    // Every home fetched so far (id -> home), starting with the focused one and my own.
+    const [loaded, setLoaded] = useState(() => new Map(seed.map((h) => [h.id, h])));
+    const homes = useMemo(() => [...loaded.values()], [loaded]);
+    const [loading, setLoading] = useState(false);
+    const covered = useRef(null); // the last box fetched { s, w, n, e, full }
+    const seq = useRef(0);
+    const timer = useRef(null);
+    useEffect(() => () => clearTimeout(timer.current), []);
+    const fetchArea = (v) => {
+        const c = covered.current;
+        const inside = c && v.s >= c.s && v.n <= c.n && v.w >= c.w && v.e <= c.e;
+        // Inside the last box: nothing to ask — unless that box was capped (full) and the view is now much smaller.
+        if (inside && (!c.full || v.n - v.s > (c.n - c.s) / 3)) return;
+        const dLat = (v.n - v.s) / 2;
+        const dLng = (v.e - v.w) / 2;
+        const box = {
+            s: Math.floor((v.s - dLat) * 100) / 100,
+            w: Math.floor((v.w - dLng) * 100) / 100,
+            n: Math.ceil((v.n + dLat) * 100) / 100,
+            e: Math.ceil((v.e + dLng) * 100) / 100,
+        };
+        const id = ++seq.current;
+        setLoading(true);
+        fetchCached(`homes:${box.s}:${box.w}:${box.n}:${box.e}`, () => loadHomesInArea(box))
+            .then((res) => {
+                if (id !== seq.current) return;
+                setLoading(false);
+                if (!res?.ok) return void toast.error(t(res?.error ?? 'common.error'));
+                covered.current = { ...box, full: res.full };
+                setLoaded((prev) => {
+                    const next = new Map(prev);
+                    for (const h of res.homes) next.set(h.id, h);
+                    return next;
+                });
+            })
+            .catch(() => {
+                if (id !== seq.current) return;
+                setLoading(false);
+                toast.error(t('common.error'));
+            });
+    };
+    // The map reports its view after every pan / zoom: list from it at once, fetch once the map has settled.
+    const onView = (v) => {
+        setArea(v);
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => fetchArea(v), 350);
+    };
     const [me, setMe] = useState(null);
     const [locating, setLocating] = useState(false);
     const [focus, setFocus] = useState(null);
@@ -100,8 +154,8 @@ export default function NearbyHomes({ homes, focusId = null, meId = null }) {
             })),
         [homes, t, meId],
     );
-    // Homes in the visible area, nearest first — to me after Near me, else to the middle of the map. Filtered here
-    // from the homes the page already has: moving the map costs no request (and no database connection).
+    // Homes in the visible area, nearest first — to me after Near me, else to the middle of the map (from the homes
+    // fetched so far).
     const nearest = useMemo(() => {
         if (!area) return [];
         const from = me ?? { lat: area.lat, lng: area.lng };
@@ -136,7 +190,7 @@ export default function NearbyHomes({ homes, focusId = null, meId = null }) {
 
     return (
         <div className="space-y-3">
-            <p className="text-xs text-ink-gray">{t('home.mapHint', { count: homes.length })}</p>
+            <p className="text-xs text-ink-gray">{t('home.mapHint', { count })}</p>
             {/* The list floats over the map: right column on sm+, a bottom sheet on a phone. It stops short of the
                 bottom-right corner (bottom-7) so the OpenStreetMap attribution stays visible. z-[1000] = above
                 Leaflet's panes and controls; as a sibling of the map, scrolling it never zooms the map. */}
@@ -147,10 +201,25 @@ export default function NearbyHomes({ homes, focusId = null, meId = null }) {
                     focus={focus}
                     openId={focusId}
                     className="h-full"
-                    onView={setArea}
+                    onView={onView}
+                    fit={false}
+                    center={start ? [start.lat, start.lng] : undefined}
+                    zoom={start?.zoom}
+                    bounds={bounds}
                     layerToggle
                     toggleClass={`bottom-[5.25rem] right-3 ${panelOpen === true ? 'max-sm:hidden' : ''}`}
                 />
+                {/* Homes of this area on their way: a mini loader at the top middle (zoom buttons are top-left). */}
+                {loading && (
+                    <span
+                        role="status"
+                        aria-label={t('home.loadingArea')}
+                        title={t('home.loadingArea')}
+                        className="absolute top-3 left-1/2 z-[1000] inline-flex size-8 -translate-x-1/2 items-center justify-center rounded-full border border-black/10 bg-white text-primary shadow-md"
+                    >
+                        <Loader2 className="size-4 animate-spin" />
+                    </span>
+                )}
                 {panelOpen !== false && (
                     <div
                         className={`absolute inset-x-2 bottom-7 z-[1000] flex max-h-[45%] flex-col overflow-hidden rounded-xl border border-surface-border bg-white shadow-xl sm:inset-x-auto sm:bottom-7 sm:right-3 sm:top-3 sm:max-h-none sm:w-80 ${panelOpen === null ? 'max-sm:hidden' : ''}`}
@@ -183,8 +252,16 @@ export default function NearbyHomes({ homes, focusId = null, meId = null }) {
                                                     .join(' · ')}
                                             </span>
                                         </button>
-                                        <Link href={`/members/${h.id}`} className="shrink-0 text-xs font-medium text-primary hover:underline">
-                                            {t('home.profile')}
+                                        {/* Icon-only, like the pin's card: Profile (navy), Directions (orange), Call (when there is a number). */}
+                                        <Link
+                                            href={`/members/${h.id}`}
+                                            aria-label={t('home.viewProfile')}
+                                            title={t('home.viewProfile')}
+                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+                                        >
+                                            <LinkIconSpinner className="size-3.5">
+                                                <User className="size-3.5" />
+                                            </LinkIconSpinner>
                                         </Link>
                                         <a
                                             href={`https://www.google.com/maps/dir/?api=1&destination=${h.lat},${h.lng}`}
@@ -196,6 +273,16 @@ export default function NearbyHomes({ homes, focusId = null, meId = null }) {
                                         >
                                             <Navigation className="size-3.5" />
                                         </a>
+                                        {h.phone && (
+                                            <a
+                                                href={`tel:${h.phone.tel}`}
+                                                aria-label={`${t('members.call')} ${h.phone.text}`}
+                                                title={`${t('members.call')} · ${h.phone.text}`}
+                                                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-surface-border bg-gray-100 text-primary hover:bg-gray-200"
+                                            >
+                                                <Phone className="size-3.5" />
+                                            </a>
+                                        )}
                                     </li>
                                 ))}
                             </ul>

@@ -68,7 +68,10 @@ function baseLayers(L, view) {
  *   pick      { lat, lng } | null + onPick(lat, lng) — one draggable pin; tapping the map moves it there
  * `layerToggle`: a Map ⇄ Satellite button on the map (`toggleClass` places it, default bottom-right).
  * `onView({ s, w, n, e, lat, lng })`: the visible area (and its centre), after every pan / zoom.
- * `me` { lat, lng } draws the viewer's position (a dark dot with a soft ring). A marker's `tone` colours its pin (own home: orange). The map fits the markers, else centres on `center`.
+ * `me` { lat, lng } draws the viewer's position (a dark dot with a soft ring). A marker's `tone` colours its pin (own home: orange).
+ * Opens on `bounds` [[s, w], [n, e]] when given, else `center` / `zoom`. `fit` (default): fit the view to the markers
+ * whenever they change — off when the markers are loaded BY the view (Nearby Homes), or every load would move the map.
+ * Markers are kept by id: new ones are added, gone ones removed, the rest (and an open card) stay.
  * @param {{ markers?: any[], pick?: {lat:number,lng:number}|null, onPick?: (lat:number, lng:number) => void, me?: {lat:number,lng:number}|null,
  *           center?: [number, number], zoom?: number, className?: string, focus?: {lat:number,lng:number}|null }} props
  */
@@ -85,6 +88,8 @@ export default function OsmMap({
     layerToggle = false,
     toggleClass = 'bottom-8 right-3',
     onView,
+    fit = true,
+    bounds = null,
 }) {
     const onViewRef = useRef(onView);
     useEffect(() => {
@@ -99,6 +104,8 @@ export default function OsmMap({
     const pickMarker = useRef(null);
     const meMarker = useRef(null);
     const Lref = useRef(null);
+    const drawn = useRef(new Map()); // marker id -> Leaflet marker
+    const openedOnce = useRef(false);
     const onPickRef = useRef(onPick);
     useEffect(() => {
         onPickRef.current = onPick;
@@ -113,6 +120,7 @@ export default function OsmMap({
             const L = mod.default ?? mod;
             Lref.current = L;
             const m = L.map(box.current, { zoomControl: true, attributionControl: true }).setView(center, zoom);
+            if (bounds) m.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
             // Open on the view chosen last time (only where the toggle is shown).
             const first = layerToggle ? savedView() : 'road';
             base.current = L.layerGroup(baseLayers(L, first)).addTo(m);
@@ -153,30 +161,45 @@ export default function OsmMap({
             const L = Lref.current;
             const m = map.current;
             if (!L || !m) return false;
-            layer.current.clearLayers();
             const pts = [];
+            const keep = new Set();
             let opened = null;
             for (const p of markers) {
-                const mk = L.marker([p.lat, p.lng], { icon: pinIcon(L, p.tone ?? '#172f56', true), zIndexOffset: p.tone ? 1000 : 0 }).addTo(layer.current);
-                const title = p.href
-                    ? `<a href="${escapeHtml(p.href)}" style="font-weight:600;color:#172f56">${escapeHtml(p.title)}</a>`
-                    : `<b>${escapeHtml(p.title)}</b>`;
-                mk.bindPopup(p.popup ?? `${title}${p.subtitle ? `<br><span style="color:#5b6b85">${escapeHtml(p.subtitle)}</span>` : ''}`, { minWidth: 200 });
+                const id = p.id ?? `${p.lat},${p.lng}`;
+                keep.add(id);
+                let mk = drawn.current.get(id);
+                if (!mk) {
+                    mk = L.marker([p.lat, p.lng], { icon: pinIcon(L, p.tone ?? '#172f56', true), zIndexOffset: p.tone ? 1000 : 0 }).addTo(layer.current);
+                    const title = p.href
+                        ? `<a href="${escapeHtml(p.href)}" style="font-weight:600;color:#172f56">${escapeHtml(p.title)}</a>`
+                        : `<b>${escapeHtml(p.title)}</b>`;
+                    mk.bindPopup(p.popup ?? `${title}${p.subtitle ? `<br><span style="color:#5b6b85">${escapeHtml(p.subtitle)}</span>` : ''}`, {
+                        minWidth: 200,
+                    });
+                    drawn.current.set(id, mk);
+                }
                 if (openId != null && p.id === openId) opened = mk;
                 pts.push([p.lat, p.lng]);
             }
-            // ?focus=<id>: that home in the middle, its card open; else every home in view.
-            if (opened) {
+            for (const [id, mk] of drawn.current) {
+                if (!keep.has(id)) {
+                    mk.remove();
+                    drawn.current.delete(id);
+                }
+            }
+            // ?focus=<id>: that home in the middle, its card open (once); else (with `fit`) every home in view.
+            if (opened && !openedOnce.current) {
+                openedOnce.current = true;
                 m.setView(opened.getLatLng(), 16);
                 opened.openPopup();
-            } else if (pts.length && !focus) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+            } else if (fit && !opened && pts.length && !focus) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
             return true;
         };
         if (!draw()) {
             const id = setInterval(() => draw() && clearInterval(id), 100);
             return () => clearInterval(id);
         }
-    }, [markers, focus, openId]);
+    }, [markers, focus, openId, fit]);
 
     // The pin being placed.
     useEffect(() => {

@@ -433,3 +433,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Meeting minutes: toggle + Add on one row, smaller text, Edit / Delete for author, app admins, managers, group admins / sub-admins / Meetings role
 - [x] Profile header: glass ⋮ (Edit inside), white Call button with the number, icon-only WhatsApp / Family tree on phones
 - [x] Dashboard: the 4 stat boxes softly coloured (navy, rose, blue, amber)
+- [x] Nearby: list rows get icon buttons (Profile, orange Directions, Call); homes load by map area as it moves, never all at once

@@ -1393,6 +1393,7 @@ const en = {
         },
         nearMe: 'Near me',
         nearest: 'Nearest homes',
+        loadingArea: 'Loading the homes of this area',
         inView: 'Homes in this area',
         noneInView: 'No homes in this part of the map. Move or zoom out the map.',
         none: 'No homes pinned yet.',
