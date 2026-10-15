@@ -1,4 +1,4 @@
-import { GitFork, MessageCircle, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { GitFork, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
@@ -78,8 +78,11 @@ function initialOf(name) {
     }
 }
 
-/** Hero action on navy: icon + label (label hidden on the narrowest phones). */
-const heroBtn = 'inline-flex h-9 items-center gap-1.5 rounded-md bg-white/10 px-3 text-sm font-medium text-white hover:bg-white/20';
+/** Hero actions on navy: glass buttons; Call is the solid white one (with the number). */
+const glassBtn =
+    'inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-9';
+const callBtn =
+    'inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm font-semibold text-brand-navy shadow-sm hover:bg-white/90 sm:h-9 sm:flex-none';
 
 export default async function MemberPage({ params }) {
     const [{ id }, user] = await Promise.all([params, requireUser()]);
@@ -122,6 +125,7 @@ export default async function MemberPage({ params }) {
     // How this person is to the viewer, in one word (Kaka, Bhabhi …) when there is one.
     const kin = relation ? kinTerm(relation.steps) : null;
     const phone = !privateDetails && !late ? member.phone : null;
+    const callable = Boolean(phone) && !isMe;
     const editHref = canEdit ? `/members/${member.id}/edit` : null;
     const caste =
         member.caste_name &&
@@ -145,17 +149,17 @@ export default async function MemberPage({ params }) {
             <HeaderBack href="/members" label={t('members.title')} />
             {/* Profile header: navy card like a group's — picture, name, how they are to me, quick actions. */}
             <div className="mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
-                <div className="flex items-start gap-3 px-3 pt-3 sm:gap-4 sm:px-4 sm:pt-4">
+                <div className="flex items-start gap-3 px-3 pt-3 sm:items-center sm:gap-4 sm:px-5 sm:pt-5">
                     <span
                         aria-hidden
-                        className={`flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-2xl font-bold text-white shadow ring-2 ring-white/30 sm:size-16 ${
+                        className={`flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-2xl font-bold text-white shadow ring-2 ring-white/30 sm:size-20 sm:text-3xl ${
                             late ? 'from-gray-300 to-gray-500' : member.gender === 'female' ? 'from-rose-400 to-rose-600' : 'from-[#5a76a8] to-[#2b4a7e]'
                         }`}
                     >
                         {initialOf(name)}
                     </span>
                     <div className="min-w-0 flex-1">
-                        <h1 className="text-lg leading-snug font-semibold break-words sm:text-xl">
+                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">
                             {late && <span className="font-normal text-white/70">{t('status.deceased')} </span>}
                             {name}
                         </h1>
@@ -166,7 +170,7 @@ export default async function MemberPage({ params }) {
                                 {t('members.maidenName')}: {maiden}
                             </p>
                         )}
-                        {facts && <p className="mt-0.5 text-xs text-white/70">{facts}</p>}
+                        {facts && <p className="mt-0.5 text-xs text-white/70 sm:text-sm">{facts}</p>}
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             {isMe ? (
                                 <span className="rounded-full bg-brand-orange-strong px-2 py-0.5 text-[11px] font-semibold text-white">{t('kin.you')}</span>
@@ -185,9 +189,10 @@ export default async function MemberPage({ params }) {
                         </div>
                     </div>
                     <PageMenu
+                        glass
                         items={[
+                            // Edit only here; Family tree is a card button, so not repeated.
                             canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
-                            { key: 'tree', label: t('members.familyTree'), icon: 'git-fork', href: `/members/${member.id}/tree` },
                             // Archive first (super admins / administrators); only an archived member can be
                             // restored or deleted for good (last, red, asks first).
                             canDeleteMember(user, member) &&
@@ -220,40 +225,40 @@ export default async function MemberPage({ params }) {
                         ]}
                     />
                 </div>
-                {/* Quick actions: Call / WhatsApp (when the number may be seen), the family tree, Edit. */}
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 px-3 py-2.5 sm:px-4">
-                    {phone && !isMe && (
+                {/* Quick actions: Call (the number) + WhatsApp when the number may be seen, and the family tree. On phones Call
+                    fills the row and WhatsApp / Family tree are icon-only squares (labelled from sm). Edit lives in the ⋮ menu. */}
+                <div className="mt-3 flex gap-2 border-t border-white/10 px-3 py-2.5 sm:mt-4 sm:px-5 sm:py-3">
+                    {callable && (
                         <>
-                            <a href={`tel:${phone}`} className={heroBtn}>
-                                <Phone className="size-4" />
-                                <span className="tabular-nums">{formatPhone(phone)}</span>
+                            <a href={`tel:${phone}`} className={callBtn}>
+                                <Phone className="size-4 shrink-0" />
+                                <span className="truncate tabular-nums">{formatPhone(phone)}</span>
                             </a>
                             <a
                                 href={`https://wa.me/${phone.length === 10 ? `91${phone}` : phone}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={heroBtn}
+                                className={`${glassBtn} w-10 shrink-0 sm:w-auto sm:px-3`}
                                 aria-label="WhatsApp"
+                                title="WhatsApp"
                             >
-                                <MessageCircle className="size-4" />
-                                <span className="hidden min-[400px]:inline">WhatsApp</span>
+                                <MessageCircle className="size-4 shrink-0" />
+                                <span className="hidden sm:inline">WhatsApp</span>
                             </a>
                         </>
                     )}
-                    <Link href={`/members/${member.id}/tree`} className={heroBtn}>
+                    {/* Alone (no Call), it keeps its label on phones too. */}
+                    <Link
+                        href={`/members/${member.id}/tree`}
+                        aria-label={t('members.familyTree')}
+                        title={t('members.familyTree')}
+                        className={`${glassBtn} ${callable ? 'w-10 shrink-0 sm:w-auto sm:px-3' : 'px-3'}`}
+                    >
                         <LinkIconSpinner>
                             <GitFork className="size-4" />
                         </LinkIconSpinner>
-                        {t('members.familyTree')}
+                        <span className={callable ? 'hidden sm:inline' : ''}>{t('members.familyTree')}</span>
                     </Link>
-                    {canOpenEdit && (
-                        <Link href={`/members/${member.id}/edit`} className={`${heroBtn} sm:ml-auto`}>
-                            <LinkIconSpinner>
-                                <Pencil className="size-4" />
-                            </LinkIconSpinner>
-                            {t('common.edit')}
-                        </Link>
-                    )}
                 </div>
             </div>
 

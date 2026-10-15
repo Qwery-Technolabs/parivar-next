@@ -90,13 +90,7 @@ export function Popover({ trigger, children, align = 'right', width = 'w-52', ro
             {open &&
                 createPortal(
                     <>
-                        <button
-                            type="button"
-                            aria-hidden
-                            tabIndex={-1}
-                            onClick={() => setPos(null)}
-                            className="fixed inset-0 z-40 cursor-default"
-                        />
+                        <button type="button" aria-hidden tabIndex={-1} onClick={() => setPos(null)} className="fixed inset-0 z-40 cursor-default" />
                         <div
                             ref={panelRef}
                             role={role}
@@ -118,7 +112,8 @@ export function Popover({ trigger, children, align = 'right', width = 'w-52', ro
 }
 
 /** The kebab (⋮). Keep every kebab in the app identical. */
-export function KebabMenu({ label, children, align = 'right' }) {
+/** `glass`: on a navy card — translucent white, white dots (instead of the white button). */
+export function KebabMenu({ label, children, align = 'right', glass = false }) {
     return (
         <Popover
             align={align}
@@ -131,7 +126,11 @@ export function KebabMenu({ label, children, align = 'right' }) {
                     aria-expanded={open}
                     aria-label={label}
                     // White with a slightly dark border and one grey for the dots, on every page.
-                    className="flex size-8 items-center justify-center rounded-md border border-ink-gray/35 bg-white text-ink-gray shadow-xs hover:border-ink-gray/60 hover:bg-surface-bggray/60 aria-expanded:border-ink-gray/60 aria-expanded:bg-surface-bggray/60"
+                    className={
+                        glass
+                            ? 'flex size-8 items-center justify-center rounded-md border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 aria-expanded:bg-white/20'
+                            : 'flex size-8 items-center justify-center rounded-md border border-ink-gray/35 bg-white text-ink-gray shadow-xs hover:border-ink-gray/60 hover:bg-surface-bggray/60 aria-expanded:border-ink-gray/60 aria-expanded:bg-surface-bggray/60'
+                    }
                 >
                     <MoreVertical className="size-4" />
                 </button>

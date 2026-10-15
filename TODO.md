@@ -425,9 +425,11 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] History (group / fundraise / Mandal) loads on open; settings sections lazy; group Members paginated + per-tab member loading
 - [x] Meetings calendar: one month per load (?month=), arrow spinner, red Sundays; pagination hidden for a single page
 - [x] Matrimony "Your family": family rules only (managers no longer see every eligible relative); Members map pin light grey
-- [x] On-demand parts cached in the browser tab for 3 min + fetched on hover/touch (history, minutes, attendance, past meetings); calendar months prefetched; visited pages reused 30 s
+- [x] On-demand parts cached in the browser tab for 3 min + fetched on hover/touch (attendance, past meetings; history and minutes only on open); calendar months prefetched; visited pages reused 30 s
 - [x] Map road view: back to OpenStreetMap tiles (the MapLibre / OpenFreeMap vector map drew blank in production — reverted)
 - [x] Map remembers Map / Satellite per device (localStorage)
 - [x] Nearby: my own home pin orange (others navy)
 - [x] Member profile redesigned as a public profile: navy header (picture, relation chip, Call / WhatsApp / Family tree / Edit), only filled details
 - [x] Meeting minutes: toggle + Add on one row, smaller text, Edit / Delete for author, app admins, managers, group admins / sub-admins / Meetings role
+- [x] Profile header: glass ⋮ (Edit inside), white Call button with the number, icon-only WhatsApp / Family tree on phones
+- [x] Dashboard: the 4 stat boxes softly coloured (navy, rose, blue, amber)

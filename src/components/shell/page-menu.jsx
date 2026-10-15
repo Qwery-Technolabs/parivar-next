@@ -39,7 +39,7 @@ const MENU_ICONS = {
 
 const Ctx = createContext(null);
 
-export default function PageMenu({ items, children, label }) {
+export default function PageMenu({ items, children, label, glass = false }) {
     const { t } = useT();
     const router = useRouter();
     const openers = useRef({});
@@ -60,7 +60,7 @@ export default function PageMenu({ items, children, label }) {
         <Ctx.Provider value={registry}>
             {children}
             {visible.length > 0 && (
-                <KebabMenu label={label ?? t('common.more')}>
+                <KebabMenu label={label ?? t('common.more')} glass={glass}>
                     {(close) =>
                         visible.map((item, i) => (
                             <Fragment key={item.key}>

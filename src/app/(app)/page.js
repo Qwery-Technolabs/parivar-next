@@ -38,14 +38,12 @@ export default async function DashboardPage() {
 
     return (
         <div className="space-y-5">
-            <h1 className="text-lg font-semibold text-primary">
-                {t('dashboard.welcome', { name: localized(user, 'full_name', locale) })}
-            </h1>
+            <h1 className="text-lg font-semibold text-primary">{t('dashboard.welcome', { name: localized(user, 'full_name', locale) })}</h1>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <StatCard label={t('dashboard.members')} value={counts.members} href="/members" icon={Users} />
-                <StatCard label={t('dashboard.openBlood')} value={counts.blood} href="/blood" icon={Droplet} />
-                <StatCard label={t('dashboard.activeFundraise')} value={counts.fundraise} href="/fundraise" icon={HandCoins} />
-                <StatCard label={t('dashboard.upcoming')} value={counts.events} href="/calendar" icon={CalendarDays} />
+                <StatCard label={t('dashboard.members')} value={counts.members} href="/members" icon={Users} color="navy" />
+                <StatCard label={t('dashboard.openBlood')} value={counts.blood} href="/blood" icon={Droplet} color="rose" />
+                <StatCard label={t('dashboard.activeFundraise')} value={counts.fundraise} href="/fundraise" icon={HandCoins} color="blue" />
+                <StatCard label={t('dashboard.upcoming')} value={counts.events} href="/calendar" icon={CalendarDays} color="amber" />
             </div>
             <div className="grid gap-4 xl:grid-cols-2">
                 <Card
@@ -64,9 +62,7 @@ export default async function DashboardPage() {
                             {events.map((e) => (
                                 <li key={e.id} className="flex items-center gap-3 px-4 py-3">
                                     <div className="w-14 shrink-0 rounded-md bg-accent py-1 text-center">
-                                        <p className="text-[11px] uppercase tracking-wide text-ink-gray">
-                                            {date(e.start_date, locale).split(' ')[1]}
-                                        </p>
+                                        <p className="text-[11px] uppercase tracking-wide text-ink-gray">{date(e.start_date, locale).split(' ')[1]}</p>
                                         <p className="text-base font-semibold text-primary tabular-nums">{Number(e.start_date.slice(8, 10))}</p>
                                     </div>
                                     <div className="min-w-0">

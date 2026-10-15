@@ -181,14 +181,16 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Browser cache for on-demand parts** (lib/client-cache.js `useOnDemand(key, fetcher)`): answers of the load-on-open
   actions are kept in the TAB's memory for 3 min (never shared, gone on reload; only ok answers) and fetched early on
   pointer-enter / touch-start / focus, so the loader rarely shows. Put what changes the data in the key (a count);
-  a write that keeps the key calls `forgetCached(prefix)`. History cards (group / fundraise / Mandal) do NOT
-  fetch early — the user wants them loaded only when opened. Calendar arrows router.prefetch the next month on hover;
+  a write that keeps the key calls `forgetCached(prefix)`. History cards (group / fundraise / Mandal) and meeting
+  minutes do NOT fetch early — the user wants them loaded only when opened. Calendar arrows router.prefetch the next month on hover;
   next.config staleTimes { static: 180, dynamic: 30 }. The DB is tiny — the wait is the Vercel→Hostinger round trip,
   so caching / early fetching helps, more indexes do not.
 - **Load on open, not with the page**: content hidden behind a toggle is fetched when opened (server action), the page
   carries only counts. Meeting minutes: the meetings list gets `minutesCounts(campaignId)` ({eventId: n}); each card shows
   "Minutes (n)" collapsed (components/meetings/meeting-minutes.jsx) and opening it calls `loadMeetingMinutes`
-  (actions/minutes.js — same visibility as the page). One row: the Minutes (n) toggle left, Add minutes right (no "MINUTES" label); text 13px.
+  (actions/minutes.js — same visibility as the page). One row: the Minutes (n) toggle left, Add minutes right; with no minutes yet a plain grey uppercase
+  "Minutes" label instead of the toggle; text 13px. Loaded ONLY on open (no hover prefetch): Loader2 replaces the chevron
+  and shows in the body until it arrives.
   Edit / Delete icons on each minute (editMinutes / deleteMinutes) for its author and lib/access `canModerateMinutes`: app
   super admin / administrator / sub-admin, whoever manages it, and in its group (own or shown-in) admins, sub-admins and
   the Meetings team role. After a write the hook's `reload(nextKey)` fetches afresh (delete → under count − 1). Past meetings: the list view loads only upcoming meetings + `countPastMeetings`; "Past meetings (n)" calls

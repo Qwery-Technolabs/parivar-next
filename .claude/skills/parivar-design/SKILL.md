@@ -194,11 +194,16 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   and "Delete permanently" once archived (app-level only), each with a one-line explanation. Buttons coloured by
   meaning — pause amber-700, archive slate-600, active/restore emerald-700, delete red — **icon-only on phones**.
 - **Member profile** (/members/[id], seen by every member — a public profile): navy header card like a group's (HeaderBack,
-  round initial picture navy men / rose women / grey late, name, other-script name, maiden name, age · village · city,
-  orange "You" / "Your Kaka" chip from kinTerm, role / blood / donor / not-joined badges, ⋮ at the right) with a
-  quick-action strip: Call (number) · WhatsApp · Family tree · Edit. Below: Details and Contact & place cards showing
-  ONLY filled rows (no "—"); an empty card is hidden, or "Nothing added yet · Edit" for editors. A family-added relative's
-  phones, email, birth date and marital status stay family-only.
+  round initial picture navy men / rose women / grey late — size-14, sm size-20; name, other-script name, maiden name,
+  age · village · city; orange "You" / "Your Kaka" chip from kinTerm; role / blood / donor / not-joined badges; GLASS ⋮
+  at the right (PageMenu `glass`: bg-white/10, border-white/20, white dots) holding Edit + admin actions — never Family tree).
+  Action strip under a white/10 line: Call = solid white button with the number (fills the row on phones), WhatsApp and
+  Family tree = glass buttons, icon-only squares on phones (labels from sm); Family tree alone keeps its label. Edit is
+  ONLY in ⋮. Below: Details and Contact & place cards showing ONLY filled rows (no "—"); an empty card is hidden, or
+  "Nothing added yet · Edit" for editors. A family-added relative's phones, email, birth date and marital status stay family-only.
+- **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
+- **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
+  number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.
 - **Family card** on the member profile (no separate page): near relatives only — Father, Mother, Wife/Husband,
   Brothers, Sisters, Sons, Daughters (slot name once per group; name → that person's profile; Late badge; age ·
   marital; unlink icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation

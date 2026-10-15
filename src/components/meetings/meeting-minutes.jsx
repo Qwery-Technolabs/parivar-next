@@ -11,7 +11,8 @@ import { useT } from '@/lib/i18n/client';
 /**
  * A meeting's minutes, collapsed: the "Minutes (n)" button (left) opens them, and only then are they fetched from the
  * server (the list page carries just the count); `addButton` (Add minutes) sits at the right of the same row. Kept in
- * this tab for a few minutes and fetched early when the pointer / a finger reaches it (lib/client-cache.js); the count
+ * this tab for a few minutes (lib/client-cache.js) and loaded ONLY when opened — no early fetch, a mini loader replaces the
+ * chevron while it comes; with none yet, a plain grey "Minutes" label instead of the button. The count
  * is in the key, so a new minute loads afresh. Each minute shows Edit / Delete (icons, right) to whoever may change it
  * (its author, app admins / sub-admins, those who manage it, its group's admins / sub-admins / Meetings team role).
  * @param {{ campaignId: number, eventId: number, count: number, addButton?: React.ReactNode }} props
@@ -21,7 +22,7 @@ export default function MeetingMinutes({ campaignId, eventId, count, addButton =
     const [open, setOpen] = useState(false);
     const [busy, startBusy] = useTransition();
     const key = (n) => `min:${campaignId}:${eventId}:${n}`;
-    const { res, pending, load, reload, prefetch } = useOnDemand(key(count), () => loadMeetingMinutes(campaignId, eventId));
+    const { res, pending, load, reload } = useOnDemand(key(count), () => loadMeetingMinutes(campaignId, eventId));
     const rows = res?.ok ? res.minutes : null; // null = not loaded yet
     const error = Boolean(res && !res.ok);
     const toggle = () => {
@@ -47,9 +48,6 @@ export default function MeetingMinutes({ campaignId, eventId, count, addButton =
                     <button
                         type="button"
                         onClick={toggle}
-                        onPointerEnter={prefetch}
-                        onTouchStart={prefetch}
-                        onFocus={prefetch}
                         aria-expanded={open}
                         className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
                     >
@@ -61,13 +59,18 @@ export default function MeetingMinutes({ campaignId, eventId, count, addButton =
                         )}
                     </button>
                 ) : (
-                    <span />
+                    <p className="text-[11px] uppercase tracking-wide text-ink-gray">{t('fundraise.minutes')}</p>
                 )}
                 {addButton}
             </div>
             {open && count > 0 && (
                 <div className={`mt-1.5 space-y-1.5 ${busy ? 'cursor-wait opacity-70' : ''}`}>
                     {error && <p className="text-xs text-destructive">{t('common.error')}</p>}
+                    {!rows && !error && (
+                        <p className="flex justify-center py-1 text-ink-gray">
+                            <Loader2 className="size-4 animate-spin" />
+                        </p>
+                    )}
                     {rows?.map((u) => (
                         <div key={u.id} className="flex items-start gap-2 rounded-md bg-surface-login px-2.5 py-1.5">
                             <div className="min-w-0 flex-1">

@@ -27,15 +27,31 @@ export default function PageHeader({ title, subtitle, back, actions, menu }) {
     );
 }
 
+/** Soft colour sets for StatCard `color` (dashboard): tinted card, icon in a tinted circle, coloured number. */
+const STAT_COLORS = {
+    navy: ['border-indigo-100 bg-indigo-50/70', 'bg-indigo-100 text-brand-navy', 'text-brand-navy'],
+    rose: ['border-rose-100 bg-rose-50/70', 'bg-rose-100 text-rose-700', 'text-rose-700'],
+    blue: ['border-blue-100 bg-blue-50/70', 'bg-blue-100 text-blue-700', 'text-blue-700'],
+    amber: ['border-amber-100 bg-amber-50/70', 'bg-amber-100 text-amber-800', 'text-amber-800'],
+};
+
 /** design-system.md §3 caption idiom + §4 stat-card number. */
-export function StatCard({ label, value, href, icon: Icon, tone = 'text-primary' }) {
+export function StatCard({ label, value, href, icon: Icon, tone = 'text-primary', color = null }) {
+    const c = STAT_COLORS[color];
     const body = (
-        <div className="flex items-start justify-between gap-3 rounded-lg border border-surface-border bg-white p-3.5 shadow-sm">
+        <div className={`flex items-start justify-between gap-3 rounded-lg border p-3.5 shadow-sm ${c ? c[0] : 'border-surface-border bg-white'}`}>
             <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wide text-ink-gray">{label}</p>
-                <p className={`mt-1 text-2xl font-semibold tabular-nums ${tone}`}>{value}</p>
+                <p className={`mt-1 text-2xl font-semibold tabular-nums ${c ? c[2] : tone}`}>{value}</p>
             </div>
-            {Icon && <Icon className="size-5 shrink-0 text-ink-gray" />}
+            {Icon &&
+                (c ? (
+                    <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${c[1]}`}>
+                        <Icon className="size-4.5" />
+                    </span>
+                ) : (
+                    <Icon className="size-5 shrink-0 text-ink-gray" />
+                ))}
         </div>
     );
     return href ? (
