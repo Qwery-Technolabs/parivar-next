@@ -1,4 +1,4 @@
-import { GitFork, MessageCircle, Phone, ShieldCheck } from 'lucide-react';
+import { GitFork, MessageCircle, Navigation, Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
@@ -81,6 +81,9 @@ function initialOf(name) {
 /** Hero actions on navy: glass buttons; Call is the light green one (with the number) — every call button is green. */
 const glassBtn =
     'inline-flex h-10 items-center justify-center gap-1.5 rounded-md border border-white/20 bg-white/10 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-9';
+/** Directions on navy: light blue, like the map's Directions buttons. */
+const dirBtn =
+    'inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-blue-100 text-sm font-medium text-blue-800 shadow-sm hover:bg-blue-200 sm:h-9';
 const callBtn =
     'inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-100 px-4 text-sm font-semibold text-emerald-800 shadow-sm hover:bg-emerald-200 sm:h-9 sm:flex-none';
 
@@ -126,6 +129,8 @@ export default async function MemberPage({ params }) {
     const kin = relation ? kinTerm(relation.steps) : null;
     const phone = !privateDetails && !late ? member.phone : null;
     const callable = Boolean(phone) && !isMe;
+    // The home pin (set with the map picker on the edit page): a Directions button (Google Maps) to that exact spot.
+    const pin = m.home_lat && m.home_lng ? `${m.home_lat},${m.home_lng}` : null;
     const editHref = canEdit ? `/members/${member.id}/edit` : null;
     const caste =
         member.caste_name &&
@@ -181,7 +186,10 @@ export default async function MemberPage({ params }) {
                                     </span>
                                 )
                             )}
-                            <Badge tone={member.role === 'sabhyo' ? 'gray' : 'navy'}>{t(`roles.${member.role}`)}</Badge>
+                            {/* The role as a glass chip: the navy / grey Badge tints vanish on the navy card (an empty gap). */}
+                            <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white ring-1 ring-white/25 ring-inset">
+                                {t(`roles.${member.role}`)}
+                            </span>
                             {member.status !== 'active' && !late && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
                             {member.blood_group && <BloodBadge group={member.blood_group} />}
                             {member.is_blood_donor && !late ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
@@ -228,8 +236,9 @@ export default async function MemberPage({ params }) {
                         />
                     </div>
                 </div>
-                {/* Quick actions: Call (the number) + WhatsApp when the number may be seen, and the family tree. On phones Call
-                    fills the row and WhatsApp / Family tree are icon-only squares (labelled from sm). Edit lives in the ⋮ menu. */}
+                {/* Quick actions: Call (the number) + WhatsApp when the number may be seen, Directions when a home pin is set,
+                    and the family tree. On phones Call fills the row and the others are icon-only squares (labelled from sm);
+                    without Call they keep their labels. Edit lives in the ⋮ menu. */}
                 <div className="mt-3 flex gap-2 border-t border-white/10 px-3 py-2.5 sm:mt-4 sm:px-5 sm:py-3">
                     {callable && (
                         <>
@@ -250,7 +259,20 @@ export default async function MemberPage({ params }) {
                             </a>
                         </>
                     )}
-                    {/* Alone (no Call), it keeps its label on phones too. */}
+                    {pin && (
+                        <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${pin}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={t('home.directions')}
+                            title={t('home.directions')}
+                            className={`${dirBtn} ${callable ? 'w-10 shrink-0 sm:w-auto sm:px-3' : 'px-3'}`}
+                        >
+                            <Navigation className="size-4 shrink-0" />
+                            <span className={callable ? 'hidden sm:inline' : ''}>{t('home.directions')}</span>
+                        </a>
+                    )}
+                    {/* Without Call it keeps its label on phones too. */}
                     <Link
                         href={`/members/${member.id}/tree`}
                         aria-label={t('members.familyTree')}

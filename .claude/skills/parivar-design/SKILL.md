@@ -195,15 +195,18 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   meaning — pause amber-700, archive slate-600, active/restore emerald-700, delete red — **icon-only on phones**.
 - **Member profile** (/members/[id], seen by every member — a public profile): navy header card like a group's (HeaderBack,
   round initial picture navy men / rose women / grey late — size-14, sm size-20; name, other-script name, maiden name,
-  age · village · city; orange "You" / "Your Kaka" chip from kinTerm; role / blood / donor / not-joined badges (none for an empty blood group — no stray "—"); GLASS ⋮
+  age · village · city; orange "You" / "Your Kaka" chip from kinTerm; role (a white glass chip — bg-white/15 ring-white/25; navy / grey Badge tints are invisible on navy) / blood / donor / not-joined badges (none for an empty blood group — no stray "—"); GLASS ⋮
   pinned in the card's top-right corner (absolute top-3 right-3; the name block keeps pr-9) (PageMenu `glass`: bg-white/10, border-white/20, white dots) holding Edit + admin actions — never Family tree).
   Action strip under a white/10 line: Call = light green button with the number (fills the row on phones), WhatsApp and
-  Family tree = glass buttons, icon-only squares on phones (labels from sm); Family tree alone keeps its label. Edit is
+  Family tree = glass buttons, Directions (only when a home pin is set — Google Maps to that lat,lng) = light blue
+  (bg-blue-100 / text-blue-800); next to Call they are icon-only squares on phones (labels from sm), without Call they keep labels. Edit is
   ONLY in ⋮. Below: Details and Contact & place cards showing ONLY filled rows (no "—"); an empty card is hidden, or
   "Nothing added yet · Edit" for editors. A family-added relative's phones, email, birth date and marital status stay family-only.
 - **Call buttons are green — everywhere**: a button that phones someone is light green — emerald-100 / text-emerald-800
   on navy (profile), emerald-50 + border-emerald-200 / text-emerald-700 on white (Nearby list, Matrimony contact; the pin
   card inline #ecfdf5 / #a7f3d0 / #047857). Phone numbers written as plain links in tables stay text links.
+- **Map actions** (Nearby list rows + pin card): Profile navy (solid) · Directions LIGHT BLUE (blue-50, border-blue-200,
+  blue-700 icon; card inline #eff6ff / #bfdbfe / #1d4ed8) · Call light green. Not grey, not orange (user's call).
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.
@@ -288,7 +291,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   then two plain links: Privacy policy (public page, new tab) · Open-source licences (link-styled toggle, hidden by
   default; the table appears below — components/settings/about-links.jsx). The policy text: components/legal/privacy-policy.jsx over lib/legal.js (en + gu). lib/legal.js must change WITH the app whenever what it stores, shows or sends changes.
 - **Address** (member page): the address itself is the link — navy theme colour (text-primary), underlined — opening Google Maps (search); a plain
-  grey copy icon beside it (no background). No Directions button. components/members/address-actions.jsx; the city is
+  grey copy icon beside it (no background). No Directions button in the address row (the header has one when a pin is set). components/members/address-actions.jsx; the city is
   added to the map search when the address lacks it.
 - Public pages: navy header, Samaj logo + name, language toggle on navy.
 - Public fundraise / Mandal page actions: icon-only blue squares (bg-primary, size-9), Download PDF then (a Mandal) Filters at
