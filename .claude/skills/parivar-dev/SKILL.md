@@ -226,8 +226,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   bring a WebGL vector map back without checking it in a real browser first. The Map / Satellite choice is remembered per
   device (localStorage `pv-map-view`, osm-map.jsx) for every map with the toggle. The list floats on the map and shows only the homes in the VISIBLE area (`onView` on every pan / zoom),
   nearest to me after Near me, else to the map's middle — from the homes fetched so far. Each row: name + distance /
-  village · city, then icon buttons Profile (navy) · Directions (orange) · Call (grey, only with a number); the pin's card
-  uses the same colours. NEVER all homes at once: the page sends only the count, where to open (?focus home, else my own
+  village · city, then icon buttons Profile (navy) · Directions (light grey, bordered — NOT orange in the list) · Call (light green, only
+  with a number); the pin's card has an orange Directions. NEVER all homes at once: the page sends only the count, where to open (?focus home, else my own
   home, else the box around all — lib/homes.js homesSummary / homeOf) and those homes; the rest load BY AREA as the map
   moves (actions/home.js `loadHomesInArea`, lib/homes.js homesInArea, max AREA_LIMIT 300, `full` when capped). The
   client waits 350 ms after a move, asks for the view padded by half on each side snapped to a 0.01° grid (fetchCached

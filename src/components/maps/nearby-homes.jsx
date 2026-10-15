@@ -253,7 +253,7 @@ export default function NearbyHomes({ count, start = null, bounds = null, seed =
                                                     .join(' · ')}
                                             </span>
                                         </button>
-                                        {/* Icon-only, like the pin's card: Profile (navy), Directions (orange), Call (light green, when there is a number). */}
+                                        {/* Icon-only, like the pin's card: Profile (navy), Directions (light grey, bordered), Call (light green, when there is a number). */}
                                         <Link
                                             href={`/members/${h.id}`}
                                             aria-label={t('home.viewProfile')}
@@ -270,7 +270,7 @@ export default function NearbyHomes({ count, start = null, bounds = null, seed =
                                             rel="noreferrer"
                                             aria-label={t('home.directions')}
                                             title={t('home.directions')}
-                                            className="btn-secondary inline-flex size-8 shrink-0 items-center justify-center rounded-md"
+                                            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-[#d6dbe4] bg-[#f3f4f6] text-primary hover:bg-gray-200"
                                         >
                                             <Navigation className="size-3.5" />
                                         </a>
