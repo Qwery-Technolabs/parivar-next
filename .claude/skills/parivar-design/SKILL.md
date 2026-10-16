@@ -210,6 +210,10 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **Absolute / sr-only inside a page**: main#content is `relative` (app-shell) so such elements stay inside the scroll box;
   without it a hidden label was placed below the screen and the whole frame — header included — could scroll. Buttons
   hiding their text with sr-only on phones are `relative` too.
+- **Installed app (PWA)**: no context menu — components/shell/no-context-menu.jsx (root layout) blocks `contextmenu` when
+  display-mode is standalone (fields excepted, for paste) and adds .pv-installed (-webkit-touch-callout: none on links and
+  pictures). Text selection is NOT disabled. A normal browser tab keeps its menu.
+- **Home pin picker**: the chosen lat, lng sits on the button row, left, centred with Remove / Save (never a line below).
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.

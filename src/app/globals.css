@@ -257,3 +257,10 @@ body {
 .ftree > ul > li { padding-top: 0; }
 .ftree > ul > li::before,
 .ftree > ul > li::after { display: none; }
+
+/* Installed app (components/shell/no-context-menu.jsx): iOS shows its long-press link / picture preview without a
+   contextmenu event, so it is switched off here too — on links and pictures only, never on text (selection stays). */
+.pv-installed a,
+.pv-installed img {
+  -webkit-touch-callout: none;
+}

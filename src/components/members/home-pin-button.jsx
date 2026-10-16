@@ -95,8 +95,10 @@ export default function HomePinButton({ userId, initial = null }) {
                                 <span className="hidden sm:inline">{t('home.useMyLocation')}</span>
                             </button>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                            <div className="flex items-center gap-2">
+                        {/* One row: the chosen spot's lat, lng on the left (centred with the buttons), Remove / Save on the right. */}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="min-w-0 text-[11px] text-ink-gray tabular-nums">{pick ? `${pick.lat.toFixed(5)}, ${pick.lng.toFixed(5)}` : ''}</p>
+                            <div className="ml-auto flex items-center gap-2">
                                 {saved && (
                                     <button
                                         type="button"
@@ -117,11 +119,6 @@ export default function HomePinButton({ userId, initial = null }) {
                                 </button>
                             </div>
                         </div>
-                        {pick && (
-                            <p className="text-[11px] text-ink-gray tabular-nums">
-                                {pick.lat.toFixed(5)}, {pick.lng.toFixed(5)}
-                            </p>
-                        )}
                     </div>
                 </DialogContent>
             </Dialog>
