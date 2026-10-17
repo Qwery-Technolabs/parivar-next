@@ -11,6 +11,31 @@ export const MEMBER_META_KEYS = ['position', 'address', 'occupation', 'education
 const STATUSES = ['active', 'inactive', 'deceased', 'archived'];
 const GENDERS = ['male', 'female', 'other'];
 
+/** ?sort= of the Members list → ORDER BY (default: name A–Z). Age: people without a birth date go last. */
+export const MEMBER_SORTS = {
+    name: 'u.full_name, u.id',
+    name_desc: 'u.full_name DESC, u.id DESC',
+    newest: 'u.created_at DESC, u.id DESC',
+    oldest: 'u.created_at, u.id',
+    age_young: 'u.dob IS NULL, u.dob DESC, u.full_name',
+    age_old: 'u.dob IS NULL, u.dob, u.full_name',
+};
+
+const metaFilled = (key) => `EXISTS (SELECT 1 FROM users_listmeta dm WHERE dm.user_id = u.id AND dm.meta_key = '${key}' AND dm.meta_value <> '')`;
+const blank = (col) => `(${col} IS NULL OR ${col} = '')`;
+/** ?data= of the Members list: has / is missing one piece of data (finding profiles to complete). */
+export const MEMBER_DATA = {
+    has_address: metaFilled('address'),
+    has_pin: metaFilled('home_lat'),
+    has_phone: `NOT ${blank('u.phone')}`,
+    no_phone: blank('u.phone'),
+    no_surname: blank('u.surname'),
+    no_middle: blank('u.middle_name'),
+    no_dob: 'u.dob IS NULL',
+    no_caste: 'u.caste_id IS NULL',
+    no_alt_phone: `NOT ${metaFilled('alt_phone')}`,
+};
+
 /**
  * Parse the directory's URL params once, so the page and the filter control cannot
  * disagree about what a param means. Unknown values fall back to the default (absence).
@@ -39,6 +64,8 @@ export function resolveMemberFilters(sp = {}) {
         reg: pick(sp.reg, ['unregistered', 'all']) || 'registered',
         // Added by one person (users_list.created_by) — the page limits members to themselves.
         createdBy: posInt(sp.by),
+        sort: pick(sp.sort, Object.keys(MEMBER_SORTS)) || 'name',
+        data: pick(sp.data, Object.keys(MEMBER_DATA)),
     };
 }
 
@@ -65,7 +92,8 @@ export function activeFilterCount(f) {
         f.status !== 'active',
         f.reg !== 'registered',
         f.createdBy,
-    ].filter(Boolean).length;
+        f.data,
+    ].filter(Boolean).length; // the sort order is not a filter
 }
 
 function whereFor(f) {
@@ -141,6 +169,7 @@ function whereFor(f) {
         where.push('u.created_by = :createdBy AND u.id <> :createdBy');
         params.createdBy = f.createdBy;
     }
+    if (f.data) where.push(MEMBER_DATA[f.data]); // fixed SQL from the map, never the raw param
     return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
 }
 
@@ -174,7 +203,7 @@ export async function listMembers(f, page, perPage) {
                LEFT JOIN admin_castes c ON c.id = u.caste_id
                LEFT JOIN admin_castes sc ON sc.id = u.subcaste_id
                ${w.sql}
-              ORDER BY u.full_name, u.id
+              ORDER BY ${MEMBER_SORTS[f.sort] ?? MEMBER_SORTS.name}
               LIMIT ${perPage} OFFSET ${offset}`,
             w.params,
         ),

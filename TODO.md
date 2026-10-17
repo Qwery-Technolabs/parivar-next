@@ -438,3 +438,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Directions light blue on Nearby (list + pin card); profile header gets a Directions button when a home pin is set
 - [x] Header no longer scrolls away on a profile (main#content relative); family Unlink moved into each row's ⋮; profile Directions glass
 - [x] Installed app: context menu off (text selection kept); pin picker lat, lng aligned with its buttons
+- [x] Members filters: 2 per row on phones, Sort (name / added / age) + Has / missing data; Added by no longer closes the panel on phones
+- [x] Divider before archive / delete in every ⋮; Late chip on profiles; 1px white loading line; bottom bar on Blood; tree names weight 500

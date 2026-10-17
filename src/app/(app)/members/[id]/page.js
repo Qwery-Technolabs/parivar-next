@@ -161,10 +161,7 @@ export default async function MemberPage({ params }) {
                         {initialOf(name)}
                     </span>
                     <div className="min-w-0 flex-1 pr-9">
-                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">
-                            {late && <span className="font-normal text-white/70">{t('status.deceased')} </span>}
-                            {name}
-                        </h1>
+                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">{name}</h1>
                         {/* white/70 on navy: 7.34:1 */}
                         {otherName && otherName !== name && <p className="text-sm break-words text-white/70">{otherName}</p>}
                         {maiden && maiden !== name && (
@@ -187,6 +184,12 @@ export default async function MemberPage({ params }) {
                             <span className="inline-flex items-center rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white ring-1 ring-white/25 ring-inset">
                                 {t(`roles.${member.role}`)}
                             </span>
+                            {/* Late: a chip beside the role (not a word before the name, which wrapped badly on phones). */}
+                            {late && (
+                                <span className="inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-gray-700">
+                                    {t('status.deceased')}
+                                </span>
+                            )}
                             {member.status !== 'active' && !late && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
                             {member.blood_group && <BloodBadge group={member.blood_group} />}
                             {member.is_blood_donor && !late ? <Badge tone="blood">{t('members.donor')}</Badge> : null}

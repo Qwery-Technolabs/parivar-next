@@ -65,7 +65,7 @@ function PersonTile({ p, isRoot, showDetails, leaf = false, birth = false }) {
             }`}
         >
             <Figure className="size-12 text-white/90" />
-            <span className="-mt-0.5 block w-full truncate px-0.5 text-[10px] font-semibold leading-tight text-white">{name}</span>
+            <span className="-mt-0.5 block w-full truncate px-0.5 text-[10px] font-medium leading-tight text-white">{name}</span>
             {/* Details: always two lines (blank when empty) so every tile in a row is the same height. */}
             {showDetails && (
                 <span className="block h-3 w-full truncate px-0.5 text-[9px] leading-3 text-white/80">

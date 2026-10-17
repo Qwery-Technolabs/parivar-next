@@ -72,6 +72,8 @@ export default function ScheduleRowMenu({ pdfHref, sheet = null, manage = null }
                                         {t('common.edit')}
                                     </MenuItem>
                                 )}
+                                {/* Archive set apart from Edit: never tapped by mistake. */}
+                                {!archived && <MenuSeparator />}
                                 <MenuItem icon={archived ? ArchiveRestore : Archive} disabled={pending} onClick={() => toggleArchive(close)}>
                                     {archived ? t('mandal.restoreSchedule') : t('mandal.archiveSchedule')}
                                 </MenuItem>

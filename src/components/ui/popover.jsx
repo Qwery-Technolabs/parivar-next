@@ -59,19 +59,29 @@ export function Popover({ trigger, children, align = 'right', width = 'w-52', ro
 
     // A fixed panel would drift away from its trigger when the page scrolls, so it closes
     // instead — except when the scroll is inside the panel itself (a long filter list).
+    // Typing inside the panel on a phone opens the keyboard, which resizes the window and may scroll the page: that
+    // must NOT close it (the "Added by" search shut the whole filter panel). While focus is inside the panel, a resize
+    // re-places it instead; scrolls inside the panel or its search list (FloatingList, portalled) are ignored.
     useEffect(() => {
         if (!open) return undefined;
+        const typingInside = () => Boolean(panelRef.current?.contains(document.activeElement));
         const onScroll = (e) => {
-            if (!panelRef.current?.contains(e.target)) setPos(null);
+            const el = e.target instanceof Element ? e.target : null;
+            if (panelRef.current?.contains(e.target) || el?.closest('[data-floating-list]') || typingInside()) return;
+            setPos(null);
         };
-        const onResize = () => setPos(null);
+        const onResize = () => {
+            if (!typingInside()) return setPos(null);
+            const el = document.getElementById(triggerId);
+            if (el) setPos(place(el.getBoundingClientRect(), align));
+        };
         window.addEventListener('scroll', onScroll, true);
         window.addEventListener('resize', onResize);
         return () => {
             window.removeEventListener('scroll', onScroll, true);
             window.removeEventListener('resize', onResize);
         };
-    }, [open]);
+    }, [open, triggerId, align]);
 
     const toggle = () => {
         if (open) return setPos(null);

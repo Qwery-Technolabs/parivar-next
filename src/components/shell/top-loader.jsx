@@ -24,11 +24,11 @@ function isAppRequest(input, init) {
 
 /**
  * The thin line across the top while the app waits on the server — opening a page, filtering,
- * saving, any action button. In the Samaj logo's colour (Settings → General). It watches the
+ * saving, any action button. A 1px WHITE line over the navy header (user's call). It watches the
  * app's own requests (window.fetch), so no page needs to opt in. Appears only after 150 ms,
  * creeps towards the end while waiting, then completes and fades out.
  */
-export default function TopLoader({ color = '#b85d09' }) {
+export default function TopLoader({ color = '#ffffff' }) {
     const [phase, setPhase] = useState('idle'); // idle | loading | done
     const [width, setWidth] = useState(0);
     const pending = useRef(0);
@@ -82,10 +82,16 @@ export default function TopLoader({ color = '#b85d09' }) {
 
     if (phase === 'idle') return null;
     return (
-        <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-[3px]">
+        <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[200] h-px">
             <div
-                className="h-full rounded-r-full shadow-[0_0_6px_currentColor] transition-[width,opacity] duration-200 ease-out"
-                style={{ width: `${width}%`, backgroundColor: color, color, opacity: phase === 'done' ? 0 : 1, transitionDuration: phase === 'done' ? '300ms' : '200ms' }}
+                className="h-full shadow-[0_0_4px_currentColor] transition-[width,opacity] duration-200 ease-out"
+                style={{
+                    width: `${width}%`,
+                    backgroundColor: color,
+                    color,
+                    opacity: phase === 'done' ? 0 : 1,
+                    transitionDuration: phase === 'done' ? '300ms' : '200ms',
+                }}
             />
         </div>
     );

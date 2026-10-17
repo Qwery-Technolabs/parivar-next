@@ -64,18 +64,11 @@ export async function generateViewport() {
 
 export default async function RootLayout({ children }) {
     const [locale, localLang] = await Promise.all([getLocale(), getLocalLanguage()]);
-    // The loading line takes the Samaj logo's colour (Settings → General).
-    let loaderColor = '#b85d09';
-    try {
-        loaderColor = (await getSettings('admin')).logo_color || loaderColor;
-    } catch {
-        // No database (build time): the default orange.
-    }
     return (
         <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} ${gujarati.variable} ${devanagari.variable} h-full antialiased`}>
             <body className="min-h-full bg-white text-sm text-ink">
                 <I18nProvider locale={locale} dict={getDictionary(locale)} localLang={localLang}>
-                    <TopLoader color={loaderColor} />
+                    <TopLoader />
                     {children}
                     <Toaster />
                     {/* Connection lost: clicks paused + a small notice; back online: refresh. */}

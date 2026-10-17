@@ -15,7 +15,7 @@ or "everywhere", change the code *and* add or amend the rule here (see "Changelo
 ## Brand and colour
 
 - Navy `#172f56` (`bg-brand-navy`) = app header, sidebar, group/fundraise header cards, public header.
-- Loading: one thin line at the very top (TopLoader in the root layout), in the Samaj logo colour (admin logo_color),
+- Loading: one 1px WHITE line at the very top (TopLoader in the root layout; user's call — no longer the logo colour),
   shown for any app request > 150 ms (page data / server actions / own /api) — it watches window.fetch, so pages need
   nothing; typing-time lookups (transliterate, member search) and prefetches are excluded. No per-page spinners for this.
 - Page area behind the cards (`main#content`) = `#f5f6fa` (`bg-surface-content`).
@@ -214,6 +214,16 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   display-mode is standalone (fields excepted, for paste) and adds .pv-installed (-webkit-touch-callout: none on links and
   pictures). Text selection is NOT disabled. A normal browser tab keeps its menu.
 - **Home pin picker**: the chosen lat, lng sits on the button row, left, centred with Remove / Save (never a line below).
+- **Every ⋮ menu: a divider before destructive items** (archive, delete, cancel, remove — red or not). PageMenu does it
+  by itself (groupOf: `group`, else 'danger' for a red item, else 'main' — a divider between blocks); hand-built
+  KebabMenus put a <MenuSeparator /> before them. Never an archive / delete right under a safe item.
+- **Filter panel on phones**: FilterPopover `phoneCols={2}` (Members) puts small fields two per row; wide ones (Gender
+  segments, Age range, Surname, long switches) add `max-sm:col-span-2`. Other panels stay one column on phones.
+- **Popover + phone keyboard**: typing inside a popover (a search field) must not close it — the keyboard resizes the
+  window; Popover re-places itself while focus is inside, and ignores scrolls inside it or its FloatingList.
+- **Late on a profile**: a white "Late" chip beside the role chip, never a word in front of the name.
+- **Bottom bar** also shows on /blood (BOTTOM_ALSO; no tab highlighted there).
+- **Family tree names**: weight 500 (font-medium), not semibold.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.

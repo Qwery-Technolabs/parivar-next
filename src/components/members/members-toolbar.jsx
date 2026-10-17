@@ -82,6 +82,8 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
         ageMin: filters.ageMin != null ? String(filters.ageMin) : '',
         ageMax: filters.ageMax != null ? String(filters.ageMax) : '',
         by: filters.createdBy ? String(filters.createdBy) : '',
+        sort: filters.sort ?? 'name',
+        data: filters.data ?? '',
     });
     const [draft, setDraft] = useState(initial);
     // "Added by" choices (searchable): me first, then — for admins — everyone who added members, with counts.
@@ -95,6 +97,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
         <FilterPopover
             activeCount={activeCount}
             disabled={disabled}
+            phoneCols={2}
             onOpen={() => setDraft(initial())}
             onClear={() =>
                 setDraft({
@@ -114,6 +117,8 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     status: 'active',
                     reg: 'registered',
                     by: '',
+                    sort: 'name',
+                    data: '',
                 })
             }
             onApply={() =>
@@ -133,9 +138,32 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     status: draft.status === 'active' ? null : draft.status,
                     reg: draft.reg === 'registered' ? null : draft.reg,
                     by: draft.by || null,
+                    sort: draft.sort === 'name' ? null : draft.sort,
+                    data: draft.data || null,
                 })
             }
         >
+            {/* Sort order and "has / is missing" data first: the two questions asked most when tidying the list. */}
+            <FilterSection title={t('members.filterSections.sort')} />
+            <Field label={t('members.sortBy')}>
+                <select value={draft.sort} onChange={(e) => set('sort', e.target.value)} className={`${selectInput()} w-full`}>
+                    {['name', 'name_desc', 'newest', 'oldest', 'age_young', 'age_old'].map((k) => (
+                        <option key={k} value={k}>
+                            {t(`members.sorts.${k}`)}
+                        </option>
+                    ))}
+                </select>
+            </Field>
+            <Field label={t('members.hasData')}>
+                <select value={draft.data} onChange={(e) => set('data', e.target.value)} className={`${selectInput()} w-full`}>
+                    <option value="">{t('common.any')}</option>
+                    {['has_address', 'has_pin', 'has_phone', 'no_phone', 'no_surname', 'no_middle', 'no_dob', 'no_caste', 'no_alt_phone'].map((k) => (
+                        <option key={k} value={k}>
+                            {t(`members.dataFilter.${k}`)}
+                        </option>
+                    ))}
+                </select>
+            </Field>
             <FilterSection title={t('members.filterSections.person')} />
             <Field label={t('members.role')}>
                 <select value={draft.role} onChange={(e) => set('role', e.target.value)} className={`${selectInput()} w-full`}>
@@ -179,7 +207,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     emptyText={t('mandal.searchNone')}
                 />
             </Field>
-            <Field label={t('members.gender')}>
+            <Field label={t('members.gender')} className="max-sm:col-span-2">
                 <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
                     {[
                         ['', t('common.any')],
@@ -200,7 +228,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                 </div>
             </Field>
             {/* A min/max pair answers one question, so it is one Field with one label. */}
-            <Field label={t('members.ageRange')}>
+            <Field label={t('members.ageRange')} className="max-sm:col-span-2">
                 <div className="flex items-center gap-2">
                     <input
                         type="number"
@@ -249,7 +277,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                 </select>
             </Field>
             <FilterSection title={t('members.filterSections.community')} />
-            <Field label={t('members.surname')}>
+            <Field label={t('members.surname')} className="max-sm:col-span-2">
                 <input value={draft.surname ?? ''} onChange={(e) => set('surname', e.target.value)} className={`${textInput()} w-full`} />
             </Field>
             {castes.castes.length > 0 && (
@@ -276,7 +304,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                 <Switch checked={draft.donor} onChange={(v) => set('donor', v)} label={t('members.donorsOnly')} />
             </div>
             {draft.blood && (
-                <div className="flex flex-col justify-end pb-1">
+                <div className="flex flex-col justify-end pb-1 max-sm:col-span-2">
                     <Switch checked={draft.compat} onChange={(v) => set('compat', v)} label={t('members.compatible')} />
                     <p className="mt-1 text-xs text-ink-gray">{t('members.compatibleHint')}</p>
                 </div>

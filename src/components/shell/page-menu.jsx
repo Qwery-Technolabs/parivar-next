@@ -38,6 +38,12 @@ const MENU_ICONS = {
     'user-plus': UserPlus,
 };
 
+/**
+ * Which block of the menu an item belongs to: its `group`, else 'danger' for a red item (delete, archive …), else the
+ * main block. A divider goes between blocks — so a destructive item is ALWAYS set apart and not tapped by mistake.
+ */
+const groupOf = (item) => item.group ?? (item.danger ? 'danger' : 'main');
+
 const Ctx = createContext(null);
 
 export default function PageMenu({ items, children, label, glass = false }) {
@@ -65,7 +71,7 @@ export default function PageMenu({ items, children, label, glass = false }) {
                     {(close) =>
                         visible.map((item, i) => (
                             <Fragment key={item.key}>
-                                {i > 0 && item.group && visible[i - 1].group && item.group !== visible[i - 1].group && <MenuSeparator />}
+                                {i > 0 && groupOf(item) !== groupOf(visible[i - 1]) && <MenuSeparator />}
                                 <MenuItem
                                     icon={typeof item.icon === 'string' ? MENU_ICONS[item.icon] : item.icon}
                                     href={item.href}

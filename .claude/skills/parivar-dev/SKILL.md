@@ -212,6 +212,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Add-relative name suggestions**: father / mother / brother / sister take the person's OWN father (`ownFather`): for a
   married (widowed / divorced) woman that is her maiden father's name + maiden surname, never her husband's. Changing
   the marital status (single ↔ married name form) keeps what was typed (`carry`: father's name / surname ↔ maiden parts).
+- **Members list sort + data filter** (lib/members.js): ?sort= MEMBER_SORTS (name default, name_desc, newest / oldest
+  by created_at, age_young / age_old with no-birth-date last) — not counted as a filter; ?data= MEMBER_DATA (has_address,
+  has_pin, has_phone, no_phone, no_surname, no_middle, no_dob, no_caste, no_alt_phone) — fixed SQL picked from the map,
+  never the raw param. Both sit in the filter panel's first section "Sort & data".
 - **Home pins / Nearby Homes** (/nearby, nav Miscellaneous: My family tree · Nearby homes · Members): users_listmeta home_lat / home_lng, set on ANY existing
   profile (women too; theirs are saved but not shown on the map yet) — member edit → Details → the map-pin button beside the address (components/members/home-pin-button.jsx,
   actions/home.js `setHomeLocation`, canEditUser; saved on its own). The map shows active MEN only (never a woman's

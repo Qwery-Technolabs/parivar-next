@@ -85,15 +85,17 @@ function NavItem({ item, pathname, collapsed, onNavigate, child = false }) {
 // Mobile bottom bar: the main sections, in this order (only those this person can see).
 // 'tree' = the person's own family tree (its href holds their id); Blood stays in the side menu.
 const BOTTOM_TABS = ['/', '/groups', '/fundraise', 'tree', '/members'];
+// Section home pages that are not a tab but still keep the bar (none of its tabs is highlighted there).
+const BOTTOM_ALSO = ['/blood'];
 
 /**
- * Mobile only, and only on the section home pages themselves. Inside a group, a fundraise, a
+ * Mobile only, and only on the section home pages themselves (the tabs' pages, and Blood). Inside a group, a fundraise, a
  * discussion, etc. it steps aside (like a chat app) and the header's back link takes over.
  */
 function BottomNav({ sections, pathname }) {
     const items = sections.flatMap((s) => s.items);
     const tabs = BOTTOM_TABS.map((key) => items.find((i) => (key === 'tree' ? i.icon === 'tree' : i.href === key))).filter(Boolean);
-    if (tabs.length < 2 || !tabs.some((i) => i.href === pathname)) return null;
+    if (tabs.length < 2 || !(tabs.some((i) => i.href === pathname) || BOTTOM_ALSO.includes(pathname))) return null;
     return (
         <nav className="flex shrink-0 border-t border-surface-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
             {tabs.map((item) => {

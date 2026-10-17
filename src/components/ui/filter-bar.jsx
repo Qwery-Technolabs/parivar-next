@@ -23,7 +23,8 @@ import { useDebouncedCallback } from './use-debounce';
  * Filters button (dot when any filter is on) and its scrolling panel with a pinned footer.
  * `onOpen` resets the draft to what is applied; `children` renders the fields.
  */
-export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onClear, onApply, children }) {
+/** `phoneCols={2}`: two columns on phones as well (small fields side by side; wide ones add `max-sm:col-span-2`). */
+export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onClear, onApply, phoneCols = 1, children }) {
     const { t } = useT();
     return (
         <Popover
@@ -72,7 +73,7 @@ export function FilterPopover({ activeCount = 0, disabled = false, onOpen, onCle
                         </button>
                     </div>
                     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                        <div className="grid grid-cols-1 gap-x-3 gap-y-3 px-3 py-3 sm:grid-cols-2">{children}</div>
+                        <div className={`grid ${phoneCols === 2 ? 'grid-cols-2' : 'grid-cols-1'} gap-x-3 gap-y-3 px-3 py-3 sm:grid-cols-2`}>{children}</div>
                     </div>
                     {/* Tinted footer: Clear / Apply always in reach. */}
                     <div className="flex shrink-0 justify-end gap-2 border-t border-surface-border bg-card-head px-3 py-2">
