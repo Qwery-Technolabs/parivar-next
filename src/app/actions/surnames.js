@@ -6,7 +6,8 @@ import { query, queryOne, withTransaction } from '@/lib/db';
 import { id, str, strOrNull } from '@/lib/forms';
 import { composeName, nameCase } from '@/lib/names';
 import { atLeast, canManageSettings } from '@/lib/roles';
-import { applySurnameCastes } from '@/lib/surnames';
+import { applySurnameCastes, listSurnames } from '@/lib/surnames';
+import { memo } from '@/lib/memo';
 
 /**
  * Save one surname's caste / sub-caste (Members ⋮ → Surnames). Fields: name, name_local, caste_id,
@@ -159,4 +160,18 @@ export async function deleteSurname(name) {
     await audit(actor.id, 'surname.delete', 'surname', null, { name: n });
     revalidatePath('/members/surnames');
     return { ok: true, message: 'surnames.deleted' };
+}
+
+/**
+ * Suggestions for every surname box (components/members/surname-input.jsx): the saved surnames and every surname
+ * members already use, most-used first — { name, local, n }. Signed-in people only (empty on the sign-up page).
+ * Cached a minute (lib/memo 'places', cleared when members are saved).
+ */
+export async function loadSurnameSuggestions() {
+    const user = await getCurrentUser();
+    if (!user) return [];
+    const rows = await memo('places:surnames', listSurnames);
+    return rows
+        .map((r) => ({ name: r.name, local: r.name_local || null, n: Number(r.members) || 0 }))
+        .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
 }

@@ -1,10 +1,12 @@
 'use client';
-import { Loader2, Monitor, Smartphone, Trash2 } from 'lucide-react';
-import { useCallback, useState, useTransition } from 'react';
+import { Loader2, Monitor, Send, Smartphone, Trash2 } from 'lucide-react';
+import { useActionState, useCallback, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { deletePushDevice, loadPushDevices } from '@/app/actions/push';
+import { deletePushDevice, loadPushDevices, sendPushMessage } from '@/app/actions/push';
 import { MenuOpener } from '@/components/shell/page-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Field, textArea, textInput } from '@/components/ui/field';
+import SubmitButton from '@/components/ui/submit-button';
 import { date, time } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 
@@ -44,13 +46,24 @@ const when = (v, locale) => (v ? `${date(v, locale)}, ${time(String(v).slice(11,
 /**
  * Member profile ⋮ → Notification devices (admins, and the member themself): each device (push token) with when it
  * was turned on and when a notification last reached it; remove one. Loaded when it opens, never with the page.
+ * `canSend` (administrators): a Title + Description form under the list sends a push to this member's devices only
+ * (Settings → Samaj → Push notification, target = this member; push only, no bell copy).
  */
-export default function PushDevicesDialog({ userId, menuKey }) {
+export default function PushDevicesDialog({ userId, menuKey, canSend = false }) {
     const { t, locale } = useT();
     const [open, setOpen] = useState(false);
     const [devices, setDevices] = useState(null);
     const [busy, setBusy] = useState(null);
     const [, startTransition] = useTransition();
+
+    const reload = useCallback(
+        () =>
+            startTransition(async () => {
+                const res = await loadPushDevices(userId);
+                if (!res?.error) setDevices(res.devices);
+            }),
+        [userId],
+    );
 
     const show = useCallback(() => {
         setOpen(true);
@@ -121,8 +134,52 @@ export default function PushDevicesDialog({ userId, menuKey }) {
                             })}
                         </ul>
                     )}
+                    {canSend && devices?.length > 0 && <SendToMember userId={userId} onSent={reload} />}
                 </DialogContent>
             </Dialog>
         </>
+    );
+}
+
+/** Title + Description → this member's devices (sendPushMessage, target 'members'). Clears and refreshes on success. */
+function SendToMember({ userId, onSent }) {
+    const { t } = useT();
+    const [title, setTitle] = useState('');
+    const [body, setBody] = useState('');
+    const [state, action, pending] = useActionState(async (prev, fd) => {
+        const res = await sendPushMessage(prev, fd);
+        if (res?.ok) {
+            toast.success(t(res.message, res.vars));
+            setTitle('');
+            setBody('');
+            onSent();
+        } else if (res?.error) toast.error(t(res.error));
+        return res;
+    }, null);
+    const err = (name) => (state?.fieldErrors?.[name] ? t(state.fieldErrors[name]) : null);
+    return (
+        <form action={action} className="space-y-2.5 border-t border-surface-border pt-3">
+            <p className="text-sm font-semibold text-primary">{t('push.devices.send')}</p>
+            <input type="hidden" name="target" value="members" />
+            <input type="hidden" name="member_ids" value={userId} />
+            <Field label={t('push.admin.title')} error={err('title')} required>
+                <input name="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} className={`${textInput(!!err('title'))} w-full`} />
+            </Field>
+            <Field label={t('push.admin.body')} error={err('body')} required>
+                <textarea
+                    name="body"
+                    rows={3}
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    maxLength={300}
+                    className={`${textArea(!!err('body'))} w-full`}
+                />
+            </Field>
+            <div className="flex justify-end">
+                <SubmitButton icon={Send} pending={pending} pendingText={t('push.admin.sending')}>
+                    {t('push.admin.send')}
+                </SubmitButton>
+            </div>
+        </form>
     );
 }

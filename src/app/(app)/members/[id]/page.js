@@ -171,7 +171,20 @@ export default async function MemberPage({ params }) {
                         {initialOf(name)}
                     </span>
                     <div className="min-w-0 flex-1 pr-9">
-                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">{name}</h1>
+                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">
+                            {name}
+                            {/* Notifications on (a device token): a small green bell right after the name (admins + self). */}
+                            {pushCount > 0 && (
+                                <span
+                                    role="img"
+                                    title={t('push.devices.on')}
+                                    aria-label={t('push.devices.on')}
+                                    className="ml-2 inline-flex size-6 items-center justify-center rounded-full bg-emerald-100 align-[3px] text-emerald-700 sm:size-7 sm:align-[4px]"
+                                >
+                                    <BellRing className="size-3.5 sm:size-4" />
+                                </span>
+                            )}
+                        </h1>
                         {/* white/70 on navy: 7.34:1 */}
                         {otherName && otherName !== name && <p className="text-sm break-words text-white/70">{otherName}</p>}
                         {maiden && maiden !== name && (
@@ -201,11 +214,6 @@ export default async function MemberPage({ params }) {
                                 </span>
                             )}
                             {member.status !== 'active' && !late && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
-                            {pushCount > 0 && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
-                                    <BellRing className="size-3" /> {t('push.devices.on')}
-                                </span>
-                            )}
                             {member.blood_group && <BloodBadge group={member.blood_group} />}
                             {member.is_blood_donor && !late ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
                             {canInviteMembers(user.role) && !member.last_login_at && !late && <Badge tone="amber">{t('groups.invite.notJoined')}</Badge>}
@@ -251,7 +259,7 @@ export default async function MemberPage({ params }) {
                                     },
                             ]}
                         >
-                            {seesPush && <PushDevicesDialog userId={member.id} menuKey="push-devices" />}
+                            {seesPush && <PushDevicesDialog userId={member.id} menuKey="push-devices" canSend={canManageSettings(user.role)} />}
                         </PageMenu>
                     </div>
                 </div>

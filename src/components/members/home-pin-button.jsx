@@ -109,6 +109,15 @@ export default function HomePinButton({ userId, initial = null }) {
                                         <Trash2 className="size-4" /> <span className="hidden sm:inline">{t('home.clear')}</span>
                                     </button>
                                 )}
+                                {/* Cancel: close without saving (same as ×), before Save like every other dialog. */}
+                                <button
+                                    type="button"
+                                    disabled={pending}
+                                    onClick={() => setOpen(false)}
+                                    className="inline-flex h-9 items-center rounded-md border border-surface-border bg-white px-3 text-sm font-medium text-primary hover:bg-accent disabled:opacity-60"
+                                >
+                                    {t('common.cancel')}
+                                </button>
                                 <button
                                     type="button"
                                     disabled={!pick || pending}

@@ -175,6 +175,26 @@ export function useAutoGujarati(initialEn = '', initialGu = '', example = null) 
                 setActive(-1);
             },
         },
+        /**
+         * A value picked from a list (e.g. a known surname): the English text and its KNOWN local spelling, used as is
+         * (no Google guess). Without a local spelling the usual rule + Google suggestion runs. The caller sets the
+         * English input's own value (it is uncontrolled).
+         */
+        adopt: (enText, localText) => {
+            suggestLater.cancel();
+            setEn(enText);
+            enRef.current = enText;
+            presses.current = 0;
+            setChoices([]);
+            setActive(-1);
+            setManual(false);
+            manualRef.current = false;
+            if (localText) setGu(localText);
+            else {
+                setGu(local(enText));
+                if (/[A-Za-z]/.test(enText)) suggestLater(enText);
+            }
+        },
         /** ↻: the next suggestion for the current English text (the 1st after typing or a manual edit). */
         regenerate: async () => {
             const text = enRef.current;

@@ -203,6 +203,7 @@ const en = {
             age_old: 'Eldest first',
         },
         hasData: 'Has / missing',
+        newSurname: '“{name}” is new — it will be added when you save.',
         pushFilter: 'Notifications',
         pushOn: 'Turned on (has a device)',
         pushOff: 'Not turned on',
@@ -1794,6 +1795,7 @@ const en = {
             sent: 'Sent to {sent} of {devices} devices ({people} people).',
         },
         devices: {
+            send: 'Send a notification',
             menu: 'Notification devices',
             title: 'Notification devices',
             hint: 'Each browser or phone where notifications are on. Removing one stops notifications there until it is turned on again.',

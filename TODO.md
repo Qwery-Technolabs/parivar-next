@@ -453,3 +453,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Push for new fundraise / Mandal, contributions received, group removed / team role, new Mandal meeting
 - [x] Multi-choice settings as a select2-style multi-select
 - [x] Push prompt once per phone (after login); faster token save; batched push DB writes; Samaj badge icon
+- [x] Profile: bell beside the name; ⋮ → Notification devices can send a notification (admins)
+- [x] Home-pin picker: Cancel button
+- [x] Surname suggestions from the community's surnames on every surname box (new ones allowed)

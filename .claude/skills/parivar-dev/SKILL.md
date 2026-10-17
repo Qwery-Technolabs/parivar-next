@@ -157,8 +157,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     group.member / admin / sub_admin, group.removed, group.team (new task roles).
   - **Admin push** (Settings → Samaj → Push notification, administrators): Title, Description, Target (Everyone /
     Groups / Selected members) → `sendPushMessage` → lib/push `pushMessage` — push ONLY, no bell copy; only active
-    people with a token. Profile ⋮ → Notification devices (admins + self): each token, turned on / last notification,
-    remove. Members filter `?push=on|off` + a green bell by the name — administrators only.
+    people with a token. Profile: a green bell beside the name when on (admins + self); ⋮ → Notification devices: each token, turned on / last notification, a Send a notification form (title + description, administrators),
+    remove. Members filter `?push=on|off` + a light-green bell square in the row's end cluster (before the home pin) — administrators only.
 - **System chat notes**: `postSystemMessage` / `postMemberNote` (meeting scheduled, member added/removed).
 - **Names**: `composeName` / `splitName` (lib/names.js); full_name / full_name_local are the joins.
 - **Timezone**: `todayLocal()` (admin setting, default IST); DB pool follows the offset.

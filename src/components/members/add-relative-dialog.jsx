@@ -8,6 +8,7 @@ import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
 import GujaratiField from '@/components/ui/gujarati-field';
 import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
+import SurnameInput from './surname-input';
 import { useT } from '@/lib/i18n/client';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
 import { MARRIED_LIKE } from '@/lib/names';
@@ -176,14 +177,25 @@ function MarriedName({ defaults, fe }) {
                 className={shown ? `${translationPair} grid grid-cols-2 items-start content-start gap-2 sm:col-span-1 sm:grid-cols-1 sm:gap-1.5` : 'hidden'}
             >
                 <Field label={`${t(labels[name])} (${t('lang.en')})`} error={fe(name)} required={name === 'first_name' || name === 'surname'}>
-                    <input
-                        name={name}
-                        maxLength={60}
-                        autoComplete="off"
-                        {...parts[name].enProps}
-                        required={shown && (name === 'first_name' || name === 'surname')}
-                        className={`${textInput(!!fe(name))} w-full`}
-                    />
+                    {name === 'surname' || name === 'maiden_surname' ? (
+                        // Suggestions from the community's surnames (a new one is still fine).
+                        <SurnameInput
+                            auto={parts[name]}
+                            name={name}
+                            maxLength={60}
+                            required={shown && name === 'surname'}
+                            className={`${textInput(!!fe(name))} w-full`}
+                        />
+                    ) : (
+                        <input
+                            name={name}
+                            maxLength={60}
+                            autoComplete="off"
+                            {...parts[name].enProps}
+                            required={shown && name === 'first_name'}
+                            className={`${textInput(!!fe(name))} w-full`}
+                        />
+                    )}
                 </Field>
                 <GujaratiField label={`${t(labels[name])} (${lang})`} name={`${name}_local`} auto={parts[name]} maxLength={60} />
             </div>
@@ -226,14 +238,18 @@ function QuickName({ defaults, fe }) {
     const firstProps = { ...first.enProps, onChange: (e) => (first.enProps.onChange(e), setFirstEn(e.target.value)) };
     const en = (name, label, auto, props = {}) => (
         <Field label={`${t(label)} (${t('lang.en')})`} error={fe(name)} required={props.required}>
-            <input
-                name={name}
-                maxLength={60}
-                autoComplete="off"
-                {...(props.enProps ?? auto.enProps)}
-                required={props.required}
-                className={`${textInput(!!fe(name))} w-full`}
-            />
+            {name === 'surname' ? (
+                <SurnameInput auto={auto} name={name} maxLength={60} required={props.required} className={`${textInput(!!fe(name))} w-full`} />
+            ) : (
+                <input
+                    name={name}
+                    maxLength={60}
+                    autoComplete="off"
+                    {...(props.enProps ?? auto.enProps)}
+                    required={props.required}
+                    className={`${textInput(!!fe(name))} w-full`}
+                />
+            )}
         </Field>
     );
     return (

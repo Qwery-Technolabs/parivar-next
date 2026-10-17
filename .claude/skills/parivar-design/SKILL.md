@@ -382,3 +382,10 @@ They are **meant to change**: whenever the logic, a rule, a component or a conve
 especially when the user says "apply this like this" for several places — edit the matching SKILL.md
 in the same piece of work (add the rule, fix what is now wrong, drop what no longer applies), and say so
 in the reply. Code and skills must never disagree.
+- **Surname box**: every English surname input (NameFields, Add relative — both layouts) is SurnameInput
+  (components/members/surname-input.jsx): FloatingList of the community's surnames (Members ⋮ → Surnames + every
+  surname in use, most-used first, starts-with before contains, 8 shown): English · local spelling (grey) · member
+  count. Picking fills BOTH boxes with the known local spelling (useAutoGujarati `adopt`). A new surname is allowed —
+  the last line says "“X” is new — it will be added when you save" (it then shows up in the list for everyone).
+- **Cancel in a dialog footer**: white outlined button left of the primary one (e.g. home-pin picker: Remove ·
+  Cancel · Save location).

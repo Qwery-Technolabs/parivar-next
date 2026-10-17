@@ -178,16 +178,6 @@ export default async function MembersPage({ searchParams }) {
                                                 {t(`status.${m.status}`)}
                                             </Badge>
                                         )}
-                                        {/* Notifications on (a device token) — administrators see it. */}
-                                        {seesPush && Boolean(m.has_push) && (
-                                            <span
-                                                title={t('push.devices.on')}
-                                                aria-label={t('push.devices.on')}
-                                                className="ml-1 inline-flex align-[-2px] text-emerald-600"
-                                            >
-                                                <BellRing className="size-3.5" />
-                                            </span>
-                                        )}
                                         {seesRegistration && !m.last_login_at && (
                                             <Badge tone="amber" className="mt-1 ml-1">
                                                 {t('groups.invite.notJoined')}
@@ -240,6 +230,18 @@ export default async function MembersPage({ searchParams }) {
                                     <Td className="text-right">
                                         <span className="inline-flex items-center gap-1.5">
                                             {/* A pinned home: open Nearby Homes on it. */}
+                                            {/* Notifications on (a device token) — administrators see it: a status square at the row's end,
+                                                beside the home pin (not by the name, where it pushed the profession about). Not a button. */}
+                                            {seesPush && Boolean(m.has_push) && (
+                                                <span
+                                                    role="img"
+                                                    title={t('push.devices.on')}
+                                                    aria-label={t('push.devices.on')}
+                                                    className="inline-flex size-8 items-center justify-center rounded-md bg-emerald-50 text-emerald-700"
+                                                >
+                                                    <BellRing className="size-3.5" />
+                                                </span>
+                                            )}
                                             {Boolean(m.has_home) && (
                                                 <Link
                                                     href={`/nearby?focus=${m.id}`}

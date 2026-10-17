@@ -5,6 +5,9 @@ import { useAutoGujarati } from '@/components/ui/use-auto-gujarati';
 import { useT } from '@/lib/i18n/client';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
 import { nameCase } from '@/lib/names';
+import SurnameInput from './surname-input';
+
+const SURNAMES = ['surname', 'maiden_surname'];
 
 /**
  * A member's name in three required parts — first name, father's name, surname (Gujarati:
@@ -30,20 +33,25 @@ export default function NameFields({ member, fe, optional = [], married = false 
 
     const english = (name, labelKey, auto) => (
         <Field label={`${t(labelKey)} (${t('lang.en')})`} error={fe(name)} required={!optional.includes(name)}>
-            <input
-                name={name}
-                required={!optional.includes(name)}
-                maxLength={60}
-                autoComplete="off"
-                autoCapitalize="words"
-                {...auto.enProps}
-                // Name Case on leaving the box ("MANTHAN" → "Manthan"); the server does the same when saving.
-                onBlur={(e) => {
-                    e.target.value = nameCase(e.target.value);
-                    auto.enProps.onBlur?.(e);
-                }}
-                className={`${textInput(!!fe(name))} w-full`}
-            />
+            {/* Surnames: suggestions from the community's surnames (a new one is still fine). */}
+            {SURNAMES.includes(name) ? (
+                <SurnameInput auto={auto} name={name} required={!optional.includes(name)} maxLength={60} className={`${textInput(!!fe(name))} w-full`} />
+            ) : (
+                <input
+                    name={name}
+                    required={!optional.includes(name)}
+                    maxLength={60}
+                    autoComplete="off"
+                    autoCapitalize="words"
+                    {...auto.enProps}
+                    // Name Case on leaving the box ("MANTHAN" → "Manthan"); the server does the same when saving.
+                    onBlur={(e) => {
+                        e.target.value = nameCase(e.target.value);
+                        auto.enProps.onBlur?.(e);
+                    }}
+                    className={`${textInput(!!fe(name))} w-full`}
+                />
+            )}
         </Field>
     );
     const local = (name, labelKey, auto) => <GujaratiField label={`${t(labelKey)} (${lang})`} name={name} auto={auto} maxLength={60} />;
