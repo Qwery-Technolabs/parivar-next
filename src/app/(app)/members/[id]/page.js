@@ -162,29 +162,30 @@ export default async function MemberPage({ params }) {
             {/* Profile header: navy card like a group's — picture, name, how they are to me, quick actions. */}
             <div className="relative mb-3 overflow-hidden rounded-lg bg-brand-navy text-white shadow-sm">
                 <div className="flex items-start gap-3 px-3 pt-3 sm:items-center sm:gap-4 sm:px-5 sm:pt-5">
-                    <span
-                        aria-hidden
-                        className={`flex size-14 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-2xl font-bold text-white shadow ring-2 ring-white/30 sm:size-20 sm:text-3xl ${
-                            late ? 'from-gray-300 to-gray-500' : member.gender === 'female' ? 'from-rose-400 to-rose-600' : 'from-[#5a76a8] to-[#2b4a7e]'
-                        }`}
-                    >
-                        {initialOf(name)}
+                    <span className="relative shrink-0">
+                        <span
+                            aria-hidden
+                            className={`flex size-14 items-center justify-center rounded-full bg-linear-to-br text-2xl font-bold text-white shadow ring-2 ring-white/30 sm:size-20 sm:text-3xl ${
+                                late ? 'from-gray-300 to-gray-500' : member.gender === 'female' ? 'from-rose-400 to-rose-600' : 'from-[#5a76a8] to-[#2b4a7e]'
+                            }`}
+                        >
+                            {initialOf(name)}
+                        </span>
+                        {/* Notifications on (a device token): a green bell badge on the avatar's bottom-right, like an
+                            "online" dot — ringed in navy so it reads as sitting on the picture (admins + self). */}
+                        {pushCount > 0 && (
+                            <span
+                                role="img"
+                                title={t('push.devices.on')}
+                                aria-label={t('push.devices.on')}
+                                className="absolute -right-0.5 -bottom-0.5 flex size-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-brand-navy sm:right-0 sm:bottom-0 sm:size-6"
+                            >
+                                <BellRing className="size-3 sm:size-3.5" />
+                            </span>
+                        )}
                     </span>
                     <div className="min-w-0 flex-1 pr-9">
-                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">
-                            {name}
-                            {/* Notifications on (a device token): a small green bell right after the name (admins + self). */}
-                            {pushCount > 0 && (
-                                <span
-                                    role="img"
-                                    title={t('push.devices.on')}
-                                    aria-label={t('push.devices.on')}
-                                    className="ml-2 inline-flex size-6 items-center justify-center rounded-full bg-emerald-100 align-[3px] text-emerald-700 sm:size-7 sm:align-[4px]"
-                                >
-                                    <BellRing className="size-3.5 sm:size-4" />
-                                </span>
-                            )}
-                        </h1>
+                        <h1 className="pr-1 text-lg leading-snug font-semibold break-words sm:text-2xl">{name}</h1>
                         {/* white/70 on navy: 7.34:1 */}
                         {otherName && otherName !== name && <p className="text-sm break-words text-white/70">{otherName}</p>}
                         {maiden && maiden !== name && (

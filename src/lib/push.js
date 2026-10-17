@@ -119,14 +119,16 @@ export async function pushToUsers(userIds, n) {
 
 /**
  * An admin's own message (Settings → Samaj → Push notification): the same title and text for everyone, push only —
- * no bell copy. Returns { people, devices, sent }.
+ * no bell copy. `deviceIds` narrows it to those tokens. Returns { people, devices, sent }.
  * @param {number[]} userIds
  * @param {{ title: string, body: string, link?: string|null }} m
  */
-export async function pushMessage(userIds, { title, body, link = null }) {
+export async function pushMessage(userIds, { title, body, link = null, deviceIds = null }) {
     const ids = [...new Set(userIds.map(Number))].filter((n) => n > 0);
     if (!ids.length) return { people: 0, devices: 0, sent: 0 };
-    const subs = await subscriptionsOf(ids);
+    // deviceIds: only these tokens (one member's chosen devices); null = every device of these people.
+    const only = deviceIds ? new Set(deviceIds.map(Number)) : null;
+    const subs = (await subscriptionsOf(ids)).filter((s) => !only || only.has(s.id));
     const people = new Set(subs.map((s) => s.user_id)).size;
     if (!ready()) return { people, devices: subs.length, sent: 0 };
     const tag = `custom:${Date.now()}`; // each message stays (never replaces the previous one)

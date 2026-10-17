@@ -456,3 +456,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Profile: bell beside the name; ⋮ → Notification devices can send a notification (admins)
 - [x] Home-pin picker: Cancel button
 - [x] Surname suggestions from the community's surnames on every surname box (new ones allowed)
+- [x] Notification devices pop-up: Devices / Send tabs, send to all or chosen devices
+- [x] Mandal sheet: ticking Came fills pending + current amount

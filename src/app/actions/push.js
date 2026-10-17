@@ -12,7 +12,8 @@ const ids = (fd, name) => [...new Set(fd.getAll(name).map(Number))].filter((n) =
 
 /**
  * Settings → Samaj → Push notification: an admin's own message to people's devices — push only, no bell copy.
- * Fields: title, body, target (all | groups | members), group_ids[], member_ids[].
+ * Fields: title, body, target (all | groups | members), group_ids[], member_ids[]; for ONE member also devices
+ * (all | selected) + device_ids[].
  * Only active members with notifications turned on are reached; the result says how many.
  */
 export async function sendPushMessage(prev, fd) {
@@ -28,6 +29,10 @@ export async function sendPushMessage(prev, fd) {
     if (!body) fieldErrors.body = 'common.required';
     if (target === 'groups' && !groupIds.length) fieldErrors.target = 'push.admin.pickGroups';
     if (target === 'members' && !memberIds.length) fieldErrors.target = 'push.admin.pickMembers';
+    // One member's chosen devices (profile ⋮ → Notification devices → Send): devices = 'selected' + device_ids[].
+    const someDevices = target === 'members' && memberIds.length === 1 && fd.get('devices') === 'selected';
+    const deviceIds = someDevices ? ids(fd, 'device_ids') : null;
+    if (someDevices && !deviceIds.length) fieldErrors.devices = 'push.devices.pickDevices';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
     // Only people who have a device turned on (and are active) — everyone else could not receive it anyway.
@@ -44,7 +49,7 @@ export async function sendPushMessage(prev, fd) {
     }
     const people = (await query(sql, params)).map((r) => r.user_id);
     if (!people.length) return { error: 'push.admin.nobody' };
-    const r = await pushMessage(people, { title, body });
+    const r = await pushMessage(people, { title, body, deviceIds });
     await audit(actor.id, 'push.send', 'settings', null, { title, target, groups: groupIds.length || undefined, people: r.people, sent: r.sent });
     return { ok: true, message: 'push.admin.sent', vars: { sent: r.sent, devices: r.devices, people: r.people } };
 }

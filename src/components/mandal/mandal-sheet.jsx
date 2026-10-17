@@ -210,7 +210,16 @@ export default function MandalSheet({
                                                         <input
                                                             type="checkbox"
                                                             checked={r.present}
-                                                            onChange={(e) => setRow(m.id, { present: e.target.checked })}
+                                                            // Ticking "came" with no amount yet fills what is due: pending before this
+                                                            // schedule + this schedule's amount (still editable). A typed amount is kept.
+                                                            onChange={(e) =>
+                                                                setRow(m.id, {
+                                                                    present: e.target.checked,
+                                                                    ...(e.target.checked && !r.paid.trim() && each + owed > 0
+                                                                        ? { paid: String(Math.round((each + owed) * 100) / 100) }
+                                                                        : {}),
+                                                                })
+                                                            }
                                                             className="size-4 accent-brand-orange-strong"
                                                         />
                                                         {t('mandal.present')}

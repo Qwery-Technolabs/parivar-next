@@ -157,7 +157,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     group.member / admin / sub_admin, group.removed, group.team (new task roles).
   - **Admin push** (Settings → Samaj → Push notification, administrators): Title, Description, Target (Everyone /
     Groups / Selected members) → `sendPushMessage` → lib/push `pushMessage` — push ONLY, no bell copy; only active
-    people with a token. Profile: a green bell beside the name when on (admins + self); ⋮ → Notification devices: each token, turned on / last notification, a Send a notification form (title + description, administrators),
+    people with a token. Profile: a green bell badge on the avatar's bottom-right (navy ring) when on (admins + self); ⋮ → Notification devices: each token, turned on / last notification, for administrators two tabs — Devices · Send notification (title + description; more than one device: All devices (default) or Choose → device_ids),
     remove. Members filter `?push=on|off` + a light-green bell square in the row's end cluster (before the home pin) — administrators only.
 - **System chat notes**: `postSystemMessage` / `postMemberNote` (meeting scheduled, member added/removed).
 - **Names**: `composeName` / `splitName` (lib/names.js); full_name / full_name_local are the joins.
@@ -580,3 +580,5 @@ They are **meant to change**: whenever the logic, a rule, a component or a conve
 especially when the user says "apply this like this" for several places — edit the matching SKILL.md
 in the same piece of work (add the rule, fix what is now wrong, drop what no longer applies), and say so
 in the reply. Code and skills must never disagree.
+- **Mandal sheet edit mode** (components/mandal/mandal-sheet.jsx): ticking "Came" on a row with no amount fills Paid with
+  pending before this schedule + this schedule's amount (still editable); a typed amount is never overwritten.

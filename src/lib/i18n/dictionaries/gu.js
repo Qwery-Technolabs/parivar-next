@@ -1766,6 +1766,13 @@ const gu = {
             sent: '{devices} માંથી {sent} ઉપકરણો પર મોકલાઈ ({people} સભ્યો).',
         },
         devices: {
+            tabDevices: 'ઉપકરણો',
+            tabSend: 'સૂચના મોકલો',
+            sendHint: 'આ સભ્યના ફોન કે બ્રાઉઝર પર સીધી સૂચના. ઘંટડીમાં સચવાતી નથી.',
+            sendTo: 'કયા ઉપકરણ પર',
+            allDevices: 'બધા ઉપકરણો ({count})',
+            chooseDevices: 'ઉપકરણ પસંદ કરો',
+            pickDevices: 'ઓછામાં ઓછું એક ઉપકરણ પસંદ કરો.',
             send: 'સૂચના મોકલો',
             menu: 'સૂચના ઉપકરણો',
             title: 'સૂચના ઉપકરણો',

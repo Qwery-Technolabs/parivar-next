@@ -1795,6 +1795,13 @@ const en = {
             sent: 'Sent to {sent} of {devices} devices ({people} people).',
         },
         devices: {
+            tabDevices: 'Devices',
+            tabSend: 'Send notification',
+            sendHint: 'A notification straight to this member’s phone or browser. Not saved in the bell.',
+            sendTo: 'Send to',
+            allDevices: 'All devices ({count})',
+            chooseDevices: 'Choose devices',
+            pickDevices: 'Tick at least one device.',
             send: 'Send a notification',
             menu: 'Notification devices',
             title: 'Notification devices',
