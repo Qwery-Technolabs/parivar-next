@@ -67,6 +67,27 @@ const AUDIENCE_OK = `(
     ))
 )`;
 
+/**
+ * Everyone connected to a fundraise / Mandal who may also SEE it (its audience rules, lib AUDIENCE_OK): its team, the
+ * members of its groups, a Mandal's own group and members. Active people only. For "a new fundraise" notices.
+ */
+export async function campaignViewerIds(campaignId) {
+    const rows = await query(
+        `SELECT u.id FROM users_list u
+           JOIN fundraise_campaigns c ON c.id = :campaignId
+          WHERE u.status = 'active'
+            AND u.id IN (
+                SELECT user_id FROM fundraise_members WHERE campaign_id = :campaignId
+                UNION SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :campaignId
+                UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_groups fg ON fg.group_id = gm.group_id WHERE fg.campaign_id = :campaignId
+                UNION SELECT gm.user_id FROM admin_group_members gm JOIN fundraise_campaigns h ON h.group_id = gm.group_id WHERE h.id = :campaignId
+            )
+            AND (u.role IN ('super_admin', 'administrator', 'sub_admin') OR ${AUDIENCE_OK.replaceAll(':viewerId', 'u.id')})`,
+        { campaignId },
+    );
+    return rows.map((r) => r.id);
+}
+
 /** The audience filter for one viewer, as { sql, params } over alias `c` (app-level managers: none). */
 export function audienceFilter(user) {
     if (canManageAllFundraises(user.role)) return { sql: '1 = 1', params: {} };

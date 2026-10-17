@@ -1,10 +1,11 @@
-import { GitFork, MessageCircle, Navigation, Phone, ShieldCheck } from 'lucide-react';
+import { BellRing, GitFork, MessageCircle, Navigation, Phone, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import FamilySummary from '@/components/members/family-summary';
 import HeaderBack from '@/components/shell/header-back';
 import { Card } from '@/components/shell/page-header';
 import PageMenu from '@/components/shell/page-menu';
+import PushDevicesDialog from '@/components/members/push-devices-dialog';
 import Badge, { BloodBadge } from '@/components/ui/badge';
 import { LinkIconSpinner } from '@/components/ui/link-spinner';
 import { requireUser } from '@/lib/auth';
@@ -20,7 +21,7 @@ import { birthName, isMarriedWoman } from '@/lib/names';
 import AddressActions from '@/components/members/address-actions';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
 import { countryName, formatPhone, waNumber } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast, canManageSettings } from '@/lib/roles';
 import { deleteMember, setMemberArchived } from '@/app/actions/members';
 
 export async function generateMetadata({ params }) {
@@ -107,7 +108,9 @@ export default async function MemberPage({ params }) {
     // this profile themselves (e.g. a relative from their family tree) sees "Added by you"; nobody else sees it.
     const addedByMe = Boolean(member.created_by) && member.created_by === user.id && member.id !== user.id;
     const seesAddedBy = atLeast(user.role, 'sub_admin');
-    const [seeFamily, addedBy, canAddPhone, contactOk] = await Promise.all([
+    // Notification devices (push tokens): administrators and the member themself.
+    const seesPush = user.id === memberId || canManageSettings(user.role);
+    const [seeFamily, addedBy, canAddPhone, contactOk, pushCount] = await Promise.all([
         canSeeFamily(user, member),
         seesAddedBy && !addedByMe && member.created_by && member.created_by !== member.id
             ? queryOne('SELECT id, full_name, full_name_local FROM users_list WHERE id = :id', { id: member.created_by })
@@ -116,6 +119,7 @@ export default async function MemberPage({ params }) {
         canAddRelativePhone(user, { familyOf: member, steps: user.id === member.id ? 0 : relation ? relation.steps.length : null }),
         // A woman's numbers: Settings → Permissions → Women's contact numbers (lib/contact-privacy.js).
         canSeeContact(user, member, relation),
+        seesPush ? queryOne('SELECT COUNT(*) AS n FROM users_push_subscriptions WHERE user_id = :id', { id: memberId }).then((r) => Number(r.n)) : 0,
     ]);
     const canEdit = canEditUser(user, member);
     // The Edit page also opens for a password-only reset (it then shows just that tab).
@@ -197,6 +201,11 @@ export default async function MemberPage({ params }) {
                                 </span>
                             )}
                             {member.status !== 'active' && !late && <Badge status={member.status}>{t(`status.${member.status}`)}</Badge>}
+                            {pushCount > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
+                                    <BellRing className="size-3" /> {t('push.devices.on')}
+                                </span>
+                            )}
                             {member.blood_group && <BloodBadge group={member.blood_group} />}
                             {member.is_blood_donor && !late ? <Badge tone="blood">{t('members.donor')}</Badge> : null}
                             {canInviteMembers(user.role) && !member.last_login_at && !late && <Badge tone="amber">{t('groups.invite.notJoined')}</Badge>}
@@ -209,6 +218,8 @@ export default async function MemberPage({ params }) {
                             items={[
                                 // Edit only here; Family tree is a card button, so not repeated.
                                 canOpenEdit && { key: 'edit', label: t('common.edit'), icon: 'pencil', href: `/members/${member.id}/edit` },
+                                // Each device with notifications on: turned on when, last notification when; remove one.
+                                seesPush && { key: 'push-devices', label: t('push.devices.menu'), icon: 'bell' },
                                 // Archive first (super admins / administrators); only an archived member can be
                                 // restored or deleted for good (last, red, asks first).
                                 canDeleteMember(user, member) &&
@@ -239,7 +250,9 @@ export default async function MemberPage({ params }) {
                                         danger: true,
                                     },
                             ]}
-                        />
+                        >
+                            {seesPush && <PushDevicesDialog userId={member.id} menuKey="push-devices" />}
+                        </PageMenu>
                     </div>
                 </div>
                 {/* Quick actions: Call (the number) + WhatsApp when the number may be seen, Directions when a home pin is set,

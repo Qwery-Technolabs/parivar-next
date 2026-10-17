@@ -447,3 +447,8 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Women's contact numbers: who may see / whose are shown (Settings → Permissions); lists show them to admins only
 - [x] Group team: only the group's members can get a team role
 - [x] Slim navy scrollbar everywhere
+- [x] Push: ask after login, token per person (moves on another login), cleared on logout
+- [x] Settings → Samaj → Push notification (title, description, target; push only)
+- [x] Profile ⋮ → Notification devices; Members filter / bell for notifications on (admins)
+- [x] Push for new fundraise / Mandal, contributions received, group removed / team role, new Mandal meeting
+- [x] Multi-choice settings as a select2-style multi-select

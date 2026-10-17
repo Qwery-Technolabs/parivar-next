@@ -77,6 +77,8 @@ export function resolveMemberFilters(sp = {}) {
         createdBy: posInt(sp.by),
         sort: pick(sp.sort, Object.keys(MEMBER_SORTS)) || 'name',
         data: pick(sp.data, Object.keys(MEMBER_DATA)),
+        // Notifications turned on (a device token) or not — administrators only (the page drops it for others).
+        push: pick(sp.push, ['on', 'off']),
     };
 }
 
@@ -104,6 +106,7 @@ export function activeFilterCount(f) {
         f.reg !== 'registered',
         f.createdBy,
         f.data,
+        f.push,
     ].filter(Boolean).length; // the sort order is not a filter
 }
 
@@ -182,6 +185,7 @@ function whereFor(f) {
         params.createdBy = f.createdBy;
     }
     if (f.data) where.push(MEMBER_DATA[f.data]); // fixed SQL from the map, never the raw param
+    if (f.push) where.push(`${f.push === 'off' ? 'NOT ' : ''}EXISTS (SELECT 1 FROM users_push_subscriptions ps WHERE ps.user_id = u.id)`);
     return { sql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
 }
 
@@ -210,6 +214,7 @@ export async function listMembers(f, page, perPage) {
             `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.role, u.village, u.city, u.blood_group,
                     u.gender, u.dob, u.status, u.is_blood_donor, (u.password_hash IS NOT NULL) AS can_login, u.last_login_at, u.created_by,
                     (u.gender = 'male' AND EXISTS (SELECT 1 FROM users_listmeta hm WHERE hm.user_id = u.id AND hm.meta_key = 'home_lat' AND hm.meta_value <> '')) AS has_home,
+                    EXISTS (SELECT 1 FROM users_push_subscriptions ps WHERE ps.user_id = u.id) AS has_push,
                     c.name AS caste_name, c.name_local AS caste_name_local, sc.name AS subcaste_name, sc.name_local AS subcaste_name_local
                FROM users_list u
                LEFT JOIN admin_castes c ON c.id = u.caste_id

@@ -16,7 +16,18 @@ const DATA_DETAILS = ['phone', 'alt_phone', 'address', 'pin', 'city', 'village',
  * design-system.md §5 "combining several controls" + §6 draft panel: one <form> so the search
  * and the filter button wrap as a unit; type → narrow → go.
  */
-export default function MembersToolbar({ filters, activeCount, villages, cities = [], roles, castes, seesArchived = false, creators = null, meId = null }) {
+export default function MembersToolbar({
+    filters,
+    activeCount,
+    villages,
+    cities = [],
+    roles,
+    castes,
+    seesArchived = false,
+    seesPush = false,
+    creators = null,
+    meId = null,
+}) {
     const { t } = useT();
     const { navigate, pending } = useUrlFilters();
     const [q, setQ] = useState(filters.q);
@@ -61,6 +72,7 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
                     roles={roles}
                     castes={castes}
                     seesArchived={seesArchived}
+                    seesPush={seesPush}
                     creators={creators}
                     meId={meId}
                     onApply={navigate}
@@ -75,7 +87,20 @@ export default function MembersToolbar({ filters, activeCount, villages, cities 
  * `creators` (app admins / sub-admins): everyone who added members, as options — any of them can be picked;
  * null (members): "Added by" offers only themselves (`meId`).
  */
-function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, seesArchived = false, creators = null, meId = null, onApply, disabled }) {
+function FiltersPanel({
+    filters,
+    activeCount,
+    villages,
+    cities,
+    roles,
+    castes,
+    seesArchived = false,
+    seesPush = false,
+    creators = null,
+    meId = null,
+    onApply,
+    disabled,
+}) {
     const { t } = useT();
     // Ids travel as strings in the draft so they match <option value>.
     const initial = () => ({
@@ -87,6 +112,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
         by: filters.createdBy ? String(filters.createdBy) : '',
         sort: filters.sort ?? 'name',
         data: filters.data ?? '',
+        push: filters.push ?? '',
     });
     const [draft, setDraft] = useState(initial);
     // "Added by" choices (searchable): me first, then — for admins — everyone who added members, with counts.
@@ -122,6 +148,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     by: '',
                     sort: 'name',
                     data: '',
+                    push: '',
                 })
             }
             onApply={() =>
@@ -143,6 +170,7 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     by: draft.by || null,
                     sort: draft.sort === 'name' ? null : draft.sort,
                     data: draft.data || null,
+                    push: (seesPush && draft.push) || null,
                 })
             }
         >
@@ -193,6 +221,16 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
                     <option value="all">{t('common.all')}</option>
                 </select>
             </Field>
+            {/* Notifications turned on (a device token) — administrators only. */}
+            {seesPush && (
+                <Field label={t('members.pushFilter')}>
+                    <select value={draft.push} onChange={(e) => set('push', e.target.value)} className={`${selectInput()} w-full`}>
+                        <option value="">{t('common.any')}</option>
+                        <option value="on">{t('members.pushOn')}</option>
+                        <option value="off">{t('members.pushOff')}</option>
+                    </select>
+                </Field>
+            )}
             {/* Registration | Added by — one grid cell each, so they share a row (Gender | Age follow). */}
             <Field label={t('members.registration')}>
                 <select value={draft.reg} onChange={(e) => set('reg', e.target.value)} className={`${selectInput()} w-full`}>

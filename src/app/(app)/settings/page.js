@@ -7,6 +7,7 @@ import {
     Info,
     Languages,
     Megaphone,
+    Send,
     ShieldCheck,
     SlidersHorizontal,
     UserCircle,
@@ -19,6 +20,9 @@ import { setLanguage } from '@/app/actions/session';
 import PageHeader, { Card } from '@/components/shell/page-header';
 import { ChangePasswordForm, ChangePhoneForm } from '@/components/profile/profile-forms';
 import PushToggle from '@/components/settings/push-toggle';
+import PushComposer from '@/components/settings/push-composer';
+import { listGroups } from '@/lib/groups';
+import { localized } from '@/lib/i18n/config';
 import SettingsForm from '@/components/settings/settings-form';
 import { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
@@ -63,6 +67,8 @@ const SECTIONS = [
     { key: 'fundraise', group: 'admin', icon: HandCoins, module: 'fundraise', admin: true },
     // App-wide sending switches (blood donors, new events) — under Samaj, not the personal Notifications.
     { key: 'alerts', group: 'admin', icon: Megaphone, admin: true },
+    // An admin's own push message (title, description, who) to the devices that turned notifications on — no bell copy.
+    { key: 'push', group: 'admin', icon: Send, admin: true },
     // Blood and Calendar had only their notify switches; those now live under Notifications.
     // Kept out of the sidebar: an internal record, shown here (sub-admins and up).
     { key: 'audit', group: 'admin', icon: History, audit: true },
@@ -138,12 +144,13 @@ export default async function SettingsPage({ searchParams }) {
                             <Card title={t('settings.notify.pushTitle')}>
                                 <p className="mb-3 text-xs text-ink-gray">{t('push.hint')}</p>
                                 {/* The VAPID public key is not secret; it identifies this server to the browser push service. */}
-                                <PushToggle publicKey={vapidPublicKey()} />
+                                <PushToggle publicKey={vapidPublicKey()} userId={user.id} />
                             </Card>
                             <NotificationPrefsSection user={user} />
                         </div>
                     )}
                     {current.key === 'alerts' && <AdminNotifySection />}
+                    {current.key === 'push' && <PushSection locale={locale} />}
                     {current.key === 'language' && <LanguageSection t={t} locale={locale} />}
                     {current.module && <ModuleSection module={current.module} title={t(`settings.sections.${current.key}.title`)} t={t} />}
                     {current.key === 'permissions' && <PermissionsSection title={t('settings.sections.permissions.title')} t={t} />}
@@ -355,4 +362,21 @@ async function NotificationPrefsSection({ user }) {
 async function AdminNotifySection() {
     const [blood, events] = await Promise.all([getSettings('blood'), getSettings('events')]);
     return <AdminNotifySettings values={{ notify_donors: blood.notify_donors, notify_new_event: events.notify_new_event }} />;
+}
+
+/** Settings → Samaj → Push notification: who can be reached (active people / devices with it on) + the form. */
+async function PushSection({ locale }) {
+    const [stats, groups] = await Promise.all([
+        queryOne(
+            `SELECT COUNT(*) AS devices, COUNT(DISTINCT s.user_id) AS people
+               FROM users_push_subscriptions s JOIN users_list u ON u.id = s.user_id WHERE u.status = 'active'`,
+        ),
+        listGroups(),
+    ]);
+    return (
+        <PushComposer
+            stats={{ people: Number(stats.people), devices: Number(stats.devices) }}
+            groups={groups.filter((g) => g.status === 'active').map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }))}
+        />
+    );
 }

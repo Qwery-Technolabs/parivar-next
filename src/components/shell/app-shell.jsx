@@ -24,6 +24,7 @@ import { LinkIconSpinner } from '@/components/ui/link-spinner';
 import { usePathname } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import { logout } from '@/app/actions/session';
+import { disablePush } from '@/lib/push-client';
 import { Popover } from '@/components/ui/popover';
 import BackgroundPrefetch from './background-prefetch';
 import { BACK_SLOT_ID } from './header-back';
@@ -348,7 +349,13 @@ export default function AppShell({ sections, footer, user, labels, logo = {}, un
                                 <Settings className="size-4 text-ink-gray" /> {labels.profile}
                             </Link>
                             <div className="my-1 border-t border-surface-border" />
-                            <form action={logout}>
+                            {/* This browser's push token is dropped first (lib/push-client), then the session. */}
+                            <form
+                                action={async () => {
+                                    await disablePush();
+                                    await logout();
+                                }}
+                            >
                                 <button
                                     role="menuitem"
                                     type="submit"

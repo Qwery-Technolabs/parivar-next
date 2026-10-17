@@ -10,6 +10,7 @@ import { canRunMandal, isFor, mandalAttendance, mandalMeetings } from '@/lib/man
 import { canSeeCampaign } from '@/lib/fundraise';
 import { syncEveryoneMeetings } from '@/lib/meetings';
 import { normalizePhone } from '@/lib/phone';
+import { notify, notifyMany } from '@/lib/notifications';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 
@@ -40,7 +41,7 @@ async function payHistory(q, campaignId, contributionId, action, actorId, before
 const MODES = ['cash', 'upi', 'bank', 'cheque', 'other'];
 
 async function loadMandal(campaignId) {
-    return queryOne("SELECT id, group_id, title, kind FROM fundraise_campaigns WHERE id = :campaignId AND kind = 'mandal'", { campaignId });
+    return queryOne("SELECT id, group_id, title, title_local, kind FROM fundraise_campaigns WHERE id = :campaignId AND kind = 'mandal'", { campaignId });
 }
 const refresh = (campaignId) => {
     revalidatePath(`/mandal/${campaignId}`);
@@ -143,6 +144,7 @@ export async function saveMandalMeeting(prev, fd) {
     // so the Savings tab's Holdings card can say who holds how much.
     const keeper = target?.holder?.id ?? actor.id;
 
+    const paidNow = []; // new payments, each member told after the save
     await withTransaction(async (q) => {
         for (const r of rows) {
             let contributionId = existing.get(r.user_id) ?? null;
@@ -190,6 +192,7 @@ export async function saveMandalMeeting(prev, fd) {
                         },
                     );
                     contributionId = ins.insertId;
+                    paidNow.push(r);
                     await payHistory(q, campaign.id, contributionId, 'add', actor.id);
                 }
             } else if (contributionId) {
@@ -214,6 +217,14 @@ export async function saveMandalMeeting(prev, fd) {
             );
         }
     });
+    for (const r of paidNow) {
+        await notify(r.user_id, {
+            type: 'fundraise.received',
+            data: { title: campaign.title, title_local: campaign.title_local, amount: r.paid },
+            link: `/mandal/${campaign.id}`,
+            actorId: actor.id,
+        });
+    }
     await audit(actor.id, 'mandal.meeting.save', 'fundraise', campaign.id, {
         eventId,
         collect: Boolean(target?.collect),
@@ -317,6 +328,19 @@ export async function saveMandalSchedule(prev, fd) {
         return evId;
     });
     await audit(actor.id, eventId ? 'mandal.schedule.update' : 'mandal.schedule.create', 'fundraise', campaign.id, { event: saved, day, installment: amount });
+    // A new Mandal meeting: every member is told the day, the place and what to bring.
+    if (!eventId) {
+        const members = await query('SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c', { c: campaign.id });
+        await notifyMany(
+            members.map((m) => m.user_id),
+            {
+                type: collect ? 'fundraise.mandal_collect' : 'fundraise.mandal_meeting',
+                data: { title: campaign.title, title_local: campaign.title_local, date: day, place, amount: collect ? Number(amount) : null },
+                link: `/mandal/${campaign.id}`,
+                actorId: actor.id,
+            },
+        );
+    }
     refresh(campaign.id);
     return { ok: true, message: 'mandal.scheduleSaved' };
 }

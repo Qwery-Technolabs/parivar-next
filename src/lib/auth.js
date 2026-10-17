@@ -8,6 +8,9 @@ import { query, queryOne } from './db';
 import { atLeast } from './roles';
 
 export const SESSION_COOKIE = 'pv_session';
+/** This browser's push token (endpoint hash), so Log out can delete it. */
+export const PUSH_COOKIE = 'pv_push';
+const PUSH_ASK_COOKIE = 'pv_push_ask';
 const SESSION_DAYS = 30;
 // "Remember me" on the login form: the cookie (and the session row) last a year.
 const REMEMBER_DAYS = 365;
@@ -56,11 +59,23 @@ export async function createSession(userId, { remember = false } = {}) {
         path: '/',
         ...(remember ? { maxAge: days * 24 * 60 * 60 } : {}),
     });
+    // Read once by the browser (components/shell/push-prompt.jsx): "just signed in — ask about notifications".
+    (await cookies()).set(PUSH_ASK_COOKIE, '1', { sameSite: 'lax', path: '/', maxAge: 10 * 60 });
 }
 
 export async function destroySession() {
     const jar = await cookies();
     const token = jar.get(SESSION_COOKIE)?.value;
+    // This browser's push token goes with the session (saved in a cookie by /api/push) — the next person to sign in
+    // here never gets the last one's notifications. The browser also unsubscribes itself on Log out (app shell).
+    const push = jar.get(PUSH_COOKIE)?.value;
+    if (token && push && /^[0-9a-f]{64}$/.test(push)) {
+        await query(
+            'DELETE p FROM users_push_subscriptions p JOIN users_sessions s ON s.user_id = p.user_id WHERE s.token_hash = :h AND p.endpoint_hash = :p',
+            { h: sha256(token), p: push },
+        );
+    }
+    jar.delete(PUSH_COOKIE);
     if (token) await query('DELETE FROM users_sessions WHERE token_hash = :h', { h: sha256(token) });
     jar.delete(SESSION_COOKIE);
 }

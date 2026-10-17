@@ -1,5 +1,5 @@
 'use client';
-import { Archive, ArchiveRestore, CheckCheck, GitFork, Link2Off, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
+import { Archive, ArchiveRestore, BellRing, CheckCheck, GitFork, Link2Off, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Fragment, createContext, useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ import { useT } from '@/lib/i18n/client';
 const MENU_ICONS = {
     archive: Archive,
     'archive-restore': ArchiveRestore,
+    bell: BellRing,
     'check-check': CheckCheck,
     'git-fork': GitFork,
     network: Network,

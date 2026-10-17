@@ -229,8 +229,12 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   track, rounded; light (white 30%) inside .bg-brand-navy areas. `.scrollbar-none` hides it where a strip scrolls sideways.
 - **Phone box**: PhoneInput — a grey "+91 ▾" code part joined to the number field (one control, rounded outer corners);
   the code opens the device's own country list. Never a plain tel input for a number someone types.
-- **Multi-choice setting** (Settings form, type 'multi'): tick chips — bordered pills with a checkbox; ticked = navy
-  border on the accent tint, medium weight. One row, wrapping.
+- **Multi-choice setting** (Settings form, type 'multi'): MultiSelect (components/ui/multi-select.jsx) — select2-style:
+  chosen options as accent chips with × in one box, a drop-down tick list (search past 6). "Everyone" / "Anyone" stands
+  alone (picking it clears the rest). Never wrap buttons in Field's <label> (a click on the label text hits the
+  first button) — use a div + label span.
+- **Push prompt**: after a login, a small white card above the bottom bar (bottom-right on desktop): orange bell
+  circle, title, one line, Allow (primary) / Not now (ghost), ×.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.

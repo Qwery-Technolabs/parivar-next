@@ -10,6 +10,7 @@ import FormPart from '@/components/ui/form-part';
 import Switch from '@/components/ui/switch';
 import AvatarPicker from '@/components/groups/avatar-picker';
 import { renderLogoPngs } from '@/lib/app-icon-canvas';
+import MultiSelect from '@/components/ui/multi-select';
 import { useT } from '@/lib/i18n/client';
 
 // The icon before each group's title (lib/settings.js `group`).
@@ -64,30 +65,20 @@ export default function SettingsForm({ module, title, fields }) {
                 <BoolSetting name={f.key} label={f.label} hint={f.hint} initial={f.value} />
             </div>
         ) : f.type === 'multi' ? (
-            // Any of the options, as tick chips (ticked = navy border on a tint). The empty hidden value makes
-            // "none ticked" still post the field (actions/settings.js reads getAll).
-            <fieldset key={f.key} className="min-w-0 sm:col-span-2">
-                <legend className="mb-1 block text-xs font-medium text-ink-gray">{f.label}</legend>
-                <input type="hidden" name={f.key} value="" />
-                <div className="flex flex-wrap gap-2">
-                    {f.options.map((o) => (
-                        <label
-                            key={o.value}
-                            className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-md border border-surface-border bg-white px-3 py-1.5 text-sm text-ink hover:bg-accent has-checked:border-primary has-checked:bg-accent has-checked:font-medium has-checked:text-primary"
-                        >
-                            <input
-                                type="checkbox"
-                                name={f.key}
-                                value={o.value}
-                                defaultChecked={f.value.includes(o.value)}
-                                className="size-4 accent-[#172f56]"
-                            />
-                            {o.label}
-                        </label>
-                    ))}
-                </div>
+            // A select2-style multi-select (chips in one box, a searchable tick list). "Everyone" / "Anyone" stands
+            // alone: picking it clears the rest (components/ui/multi-select.jsx). A div, not Field's <label>: a label
+            // would pass a click on its text to the first chip's × button.
+            <div key={f.key} className="min-w-0 sm:col-span-2">
+                <span className="mb-1 block text-xs font-medium text-ink-gray">{f.label}</span>
+                <MultiSelect
+                    name={f.key}
+                    options={f.options}
+                    defaultValue={f.value}
+                    exclusive={f.options.find((x) => x.value === 'everyone' || x.value === 'anyone')?.value ?? null}
+                    placeholder={t('settings.pickAny')}
+                />
                 {f.hint && <p className="mt-1 text-xs text-ink-gray">{f.hint}</p>}
-            </fieldset>
+            </div>
         ) : f.type === 'list' ? (
             <Field key={f.key} label={f.label} hint={f.hint ?? t('settings.onePerLine')} className="sm:col-span-2">
                 <textarea name={f.key} rows={5} defaultValue={f.value.join('\n')} className={`${textArea()} w-full`} />

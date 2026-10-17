@@ -28,6 +28,12 @@ async function notifyGroupRole(userId, groupId, memberRole, actorId) {
     });
 }
 
+/** One group notice to one person (bell + push), with the group's name in both spellings. */
+async function notifyGroup(userId, groupId, type, actorId, extra = {}, link = `/groups/${groupId}`) {
+    const g = await queryOne('SELECT name, name_local FROM admin_groups WHERE id = :groupId', { groupId });
+    if (g) await notify(userId, { type, data: { group: g.name, group_local: g.name_local, ...extra }, link, actorId });
+}
+
 const FORBIDDEN = { error: 'common.forbidden' };
 
 export async function saveGroup(prev, fd) {
@@ -246,6 +252,8 @@ export async function saveGroupTeam(prev, fd) {
         await recordGroupHistory(gid, actor.id, 'team', { userId: uid, from: current, to: nextRole, added, removed });
     // A new admin / sub-admin is told; joining the group shows in its discussion.
     if (lead && lead !== current) await notifyGroupRole(uid, gid, lead, actor.id);
+    // New team tasks (Members, Meetings …) are news too.
+    if (added.length) await notifyGroup(uid, gid, 'group.team', actor.id, { tasks: added });
     if (!current) {
         await postMemberNote(gid, actor.id, 'added', [uid]);
         await syncGroupJoin(gid);
@@ -302,6 +310,7 @@ export async function removeGroupMember(groupId, userId) {
     await audit(actor.id, 'group.member.remove', 'group', gid, { userId: uid });
     if (r.affectedRows) await recordGroupHistory(gid, actor.id, 'member_remove', { userId: uid, role: row.member_role });
     if (r.affectedRows) await postMemberNote(gid, actor.id, 'removed', [uid]);
+    if (r.affectedRows) await notifyGroup(uid, gid, 'group.removed', actor.id, {}, '/groups');
     revalidatePath(`/groups/${gid}`);
     return { ok: true, message: 'common.deleted' };
 }

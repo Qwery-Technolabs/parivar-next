@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { LinkIconSpinner } from '@/components/ui/link-spinner';
-import { Phone, MapPin } from 'lucide-react';
+import { BellRing, Phone, MapPin } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import InviteMembersDialog from '@/components/members/invite-members-dialog';
 import MemberRowActions from '@/components/members/member-row-actions';
@@ -49,6 +49,9 @@ export default async function MembersPage({ searchParams }) {
     // Archived members are for administrators (and up) only — anyone else asking for them sees active members.
     const seesArchived = atLeast(user.role, 'administrator');
     if (filters.status === 'archived' && !seesArchived) filters.status = 'active';
+    // Who turned notifications on: administrators (Settings → Samaj → Push notification) only.
+    const seesPush = canManageSettings(user.role);
+    if (!seesPush) filters.push = '';
     // "Added by": app admins / sub-admins filter by anyone; a member only by themselves.
     const filtersAnyCreator = atLeast(user.role, 'sub_admin');
     if (filters.createdBy && !filtersAnyCreator && filters.createdBy !== user.id) filters.createdBy = null;
@@ -118,6 +121,7 @@ export default async function MembersPage({ searchParams }) {
                 castes={castes}
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
                 seesArchived={seesArchived}
+                seesPush={seesPush}
                 // "Added by": everyone who added members (admins) — a member gets only "Added by me".
                 creators={filtersAnyCreator ? creators.map((c) => ({ value: String(c.id), label: `${localized(c, 'full_name', locale)} (${c.n})` })) : null}
                 meId={user.id}
@@ -173,6 +177,16 @@ export default async function MembersPage({ searchParams }) {
                                             <Badge status={m.status} className="mt-1">
                                                 {t(`status.${m.status}`)}
                                             </Badge>
+                                        )}
+                                        {/* Notifications on (a device token) — administrators see it. */}
+                                        {seesPush && Boolean(m.has_push) && (
+                                            <span
+                                                title={t('push.devices.on')}
+                                                aria-label={t('push.devices.on')}
+                                                className="ml-1 inline-flex align-[-2px] text-emerald-600"
+                                            >
+                                                <BellRing className="size-3.5" />
+                                            </span>
                                         )}
                                         {seesRegistration && !m.last_login_at && (
                                             <Badge tone="amber" className="mt-1 ml-1">

@@ -8,6 +8,8 @@ import { kickReminders } from '@/lib/reminders';
 import { getSettings } from '@/lib/settings';
 import { SIDEBAR_COOKIE } from '@/lib/ui-prefs';
 import AppShell from '@/components/shell/app-shell';
+import PushPrompt from '@/components/shell/push-prompt';
+import { vapidPublicKey } from '@/lib/push';
 
 export default async function AppLayout({ children }) {
     const user = await requireUser();
@@ -65,6 +67,8 @@ export default async function AppLayout({ children }) {
             }}
         >
             {children}
+            {/* After a login: notifications on this device? (the VAPID public key is not secret) */}
+            <PushPrompt publicKey={vapidPublicKey()} userId={user.id} />
         </AppShell>
     );
 }

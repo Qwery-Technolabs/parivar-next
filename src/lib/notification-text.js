@@ -1,5 +1,5 @@
 // Pure module — renders a stored notification in the READER's language.
-import { date as fmtDate, time as fmtTime } from './format';
+import { date as fmtDate, money, time as fmtTime } from './format';
 
 /**
  * @param {{ type: string, data: object|string|null }} n
@@ -14,6 +14,10 @@ export function notificationText(n, t, locale) {
     vars.place = d.place ? ` · ${d.place}` : '';
     vars.time = d.time ? `, ${fmtTime(d.time)}` : '';
     if (d.date) vars.date = fmtDate(d.date, locale);
+    if (d.amount != null) vars.amount = money(d.amount);
+    vars.target = d.target ? ` · ${t('notifications.target')} ${money(d.target)}` : '';
+    vars.summary = d.summary ? ` — ${d.summary}` : '';
+    if (Array.isArray(d.tasks)) vars.tasks = d.tasks.map((r) => t(`groups.team.${r}`)).join(', ');
     if (d.role) {
         const key = `fundraise.teamRoles.${d.role}`;
         const label = t(key);

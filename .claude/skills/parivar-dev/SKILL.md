@@ -136,6 +136,20 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     (no notice, no push). New type prefix → add it to the map and a label under `settings.notify.categories`.
   - Push (lib/push.js): title = the source (`data.title` / `data.group`, local spelling for non-English
     readers), else the app name; icon/badge = the Samaj logo via `/api/app-icon` (public/sw.js).
+  - **Push tokens** (users_push_subscriptions, one row per browser): ONE person per token — saving it from another
+    account moves it (created_at restarts, last_used_at cleared); many tokens per person (each device). last_used_at =
+    last notification that reached it. /api/push sets the `pv_push` cookie (endpoint hash); Log out unsubscribes the
+    browser (lib/push-client disablePush) AND destroySession deletes that token server-side. createSession sets
+    `pv_push_ask` → PushPrompt (shell) after a login: already said yes on this device + browser allowed → on again
+    silently; else a card Allow / Not now (also once for people never asked here). Browser code: lib/push-client.js only.
+  - Event notices (bell + push): fundraise.new / fundraise.mandal (on create, not drafts, to campaignViewerIds —
+    the audience rules), fundraise.received / fundraise.pledged (the registered donor: contribution added, marked
+    paid, paid at a Mandal meeting), fundraise.mandal_meeting / _collect (new Mandal schedule → its members),
+    group.member / admin / sub_admin, group.removed, group.team (new task roles).
+  - **Admin push** (Settings → Samaj → Push notification, administrators): Title, Description, Target (Everyone /
+    Groups / Selected members) → `sendPushMessage` → lib/push `pushMessage` — push ONLY, no bell copy; only active
+    people with a token. Profile ⋮ → Notification devices (admins + self): each token, turned on / last notification,
+    remove. Members filter `?push=on|off` + a green bell by the name — administrators only.
 - **System chat notes**: `postSystemMessage` / `postMemberNote` (meeting scheduled, member added/removed).
 - **Names**: `composeName` / `splitName` (lib/names.js); full_name / full_name_local are the joins.
 - **Timezone**: `todayLocal()` (admin setting, default IST); DB pool follows the offset.

@@ -4,23 +4,13 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import Switch from '@/components/ui/switch';
 import { useT } from '@/lib/i18n/client';
-
-/** The VAPID public key is base64url; PushManager wants the raw bytes. */
-function keyBytes(base64url) {
-    const pad = '='.repeat((4 - (base64url.length % 4)) % 4);
-    const raw = atob((base64url + pad).replace(/-/g, '+').replace(/_/g, '/'));
-    return Uint8Array.from(raw, (c) => c.charCodeAt(0));
-}
-
-async function registration() {
-    return (await navigator.serviceWorker.getRegistration('/')) || navigator.serviceWorker.register('/sw.js', { scope: '/' });
-}
+import { currentSubscription, disablePush, enablePush, pushSupported, rememberPushChoice } from '@/lib/push-client';
 
 /**
  * Browser notifications on/off for THIS device. States: checking → unsupported | denied |
  * off | on. The switch reflects what the browser really has, not a stored preference.
  */
-export default function PushToggle({ publicKey }) {
+export default function PushToggle({ publicKey, userId }) {
     const { t } = useT();
     const [state, setState] = useState('checking');
     const [busy, setBusy] = useState(false);
@@ -30,12 +20,9 @@ export default function PushToggle({ publicKey }) {
         let alive = true;
         (async () => {
             let next = 'off';
-            if (!publicKey || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) next = 'unsupported';
+            if (!publicKey || !pushSupported()) next = 'unsupported';
             else if (Notification.permission === 'denied') next = 'denied';
-            else {
-                const reg = await navigator.serviceWorker.getRegistration('/');
-                next = (await reg?.pushManager.getSubscription()) ? 'on' : 'off';
-            }
+            else next = (await currentSubscription()) ? 'on' : 'off';
             if (alive) setState(next);
         })();
         return () => {
@@ -43,27 +30,15 @@ export default function PushToggle({ publicKey }) {
         };
     }, [publicKey]);
 
-    async function enable(test = true) {
+    async function enable() {
         setBusy(true);
         try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                setState(permission === 'denied' ? 'denied' : 'off');
-                return;
+            const next = await enablePush(publicKey, { test: true });
+            setState(next);
+            if (next === 'on') {
+                rememberPushChoice(userId, true);
+                toast.success(t('push.enabledTest'));
             }
-            const reg = await registration();
-            await navigator.serviceWorker.ready;
-            const sub =
-                (await reg.pushManager.getSubscription()) ||
-                (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }));
-            const res = await fetch('/api/push', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...sub.toJSON(), test }),
-            });
-            if (!res.ok) throw new Error(String(res.status));
-            setState('on');
-            toast.success(t(test ? 'push.enabledTest' : 'push.enabled'));
         } catch {
             toast.error(t('push.failed'));
         } finally {
@@ -73,17 +48,11 @@ export default function PushToggle({ publicKey }) {
 
     async function disable() {
         setBusy(true);
-        try {
-            const reg = await navigator.serviceWorker.getRegistration('/');
-            const sub = await reg?.pushManager.getSubscription();
-            if (sub) {
-                await fetch('/api/push', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) });
-                await sub.unsubscribe();
-            }
-            setState('off');
-        } finally {
-            setBusy(false);
-        }
+        await disablePush();
+        // Turned off by hand: not switched back on silently at the next login.
+        rememberPushChoice(userId, false);
+        setState('off');
+        setBusy(false);
     }
 
     if (state === 'checking') return <Loader2 className="size-4 animate-spin text-ink-gray" />;
@@ -95,7 +64,7 @@ export default function PushToggle({ publicKey }) {
             <Switch
                 checked={state === 'on'}
                 disabled={busy}
-                onChange={(v) => (v ? enable(true) : disable())}
+                onChange={(v) => (v ? enable() : disable())}
                 label={
                     <span className="inline-flex items-center gap-1.5">
                         <BellRing className="size-4" /> {t('push.label')}
@@ -106,7 +75,7 @@ export default function PushToggle({ publicKey }) {
                 <button
                     type="button"
                     disabled={busy}
-                    onClick={() => enable(true)}
+                    onClick={enable}
                     className="btn-secondary inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium disabled:opacity-60"
                 >
                     {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} {t('push.test')}

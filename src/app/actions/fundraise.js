@@ -12,6 +12,7 @@ import { date as formatDate } from '@/lib/format';
 import { AUDIENCE_KINDS, CAMPAIGN_STATUSES, canSeeCampaign, getCampaign, listHistory, PAY_MODES } from '@/lib/fundraise';
 import { ensureInvitedUser } from '@/lib/invite';
 import { fundraiseAudienceIds, notify, notifyMany } from '@/lib/notifications';
+import { campaignViewerIds } from '@/lib/fundraise';
 import { canManageAllFundraises, canClearHistory } from '@/lib/roles';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { normalizePhone } from '@/lib/phone';
@@ -482,6 +483,16 @@ export async function saveCampaign(prev, fd) {
         title,
         audience: audience.length,
     });
+    // Everyone who may see it hears about it (bell + push on their devices) — not a draft. The push shows its title,
+    // the start of its description and the target.
+    if (row.status !== 'draft') {
+        await notifyMany(await campaignViewerIds(newId), {
+            type: kind === 'mandal' ? 'fundraise.mandal' : 'fundraise.new',
+            data: { title, title_local: row.titleLocal, summary: summaryOf(meta.description), target: target ?? null },
+            link: kind === 'mandal' ? `/mandal/${newId}` : `/fundraise/${newId}`,
+            actorId: user.id,
+        });
+    }
     // The groups' own History: started in its home group, shown in the others.
     await recordFundraiseInGroups([groupId], user.id, 'fundraise_create', { campaignId: newId, title, kind });
     await recordFundraiseInGroups(
@@ -713,6 +724,9 @@ export async function markContributionPaid(prev, fd) {
         contribution: contributionId,
         mode,
     });
+    // The member who gave it: "your contribution was received".
+    const paid = await queryOne('SELECT user_id, amount FROM fundraise_contributions WHERE id = :contributionId', { contributionId });
+    if (paid?.user_id) await notifyMoney(paid.user_id, campaign, Number(paid.amount), false, user.id);
     refreshCampaign(campaignId);
     return { ok: true, message: 'fundraise.markedPaid' };
 }
@@ -852,6 +866,8 @@ export async function saveContribution(prev, fd) {
         amount,
     });
     refreshCampaign(campaignId);
+    // A registered member's own contribution / pledge: told it was recorded (push on their devices too).
+    if (result.action === 'add' && values.userId && !invitedId) await notifyMoney(values.userId, campaign, amount, values.mode === 'unpaid', user.id);
     // Point the newly invited person at the fundraise: they see it on first sign-in.
     if (invitedId) {
         await notifyMany([invitedId], {
@@ -1055,6 +1071,25 @@ export async function entryHistory(campaignId, entity, entityId) {
 // ── team ──────────────────────────────────────────────────────────────────────
 
 const campaignLink = (campaignId, tab) => `/fundraise/${campaignId}${tab ? `?tab=${tab}` : ''}`;
+
+/** The first ~140 characters of a description, on one line (a notification's preview). */
+function summaryOf(text) {
+    const s = String(text ?? '')
+        .replace(/[#*_>`~-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return s.length > 140 ? `${s.slice(0, 139).trimEnd()}…` : s;
+}
+
+/** "Your contribution of ₹X to <fundraise> was received" (or a pledge recorded) — to the member who gave it. */
+async function notifyMoney(userId, campaign, amount, pledged, actorId) {
+    await notify(userId, {
+        type: pledged ? 'fundraise.pledged' : 'fundraise.received',
+        data: { title: campaign.title, title_local: campaign.title_local, amount },
+        link: campaign.kind === 'mandal' ? `/mandal/${campaign.id}` : campaignLink(campaign.id, 'contributions'),
+        actorId,
+    });
+}
 
 /**
  * Add a team member or change their roles — a person can hold several (member_roles[] ticks):
