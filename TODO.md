@@ -440,3 +440,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Installed app: context menu off (text selection kept); pin picker lat, lng aligned with its buttons
 - [x] Members filters: 2 per row on phones, Sort (name / added / age) + Has / missing data; Added by no longer closes the panel on phones
 - [x] Divider before archive / delete in every ⋮; Late chip on profiles; 1px white loading line; bottom bar on Blood; tree names weight 500
+- [x] Settings → General → Members: who can add a relative's phone number (admins / who added / close relatives ≤ 4 steps / anyone), enforced + phone box hidden

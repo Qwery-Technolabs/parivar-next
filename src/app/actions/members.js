@@ -14,6 +14,7 @@ import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
 import { ensureInvitedUser } from '@/lib/invite';
 import { normalizePhone } from '@/lib/phone';
+import { canAddRelativePhone } from '@/lib/relative-phone';
 import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword, canDeleteMember } from '@/lib/roles';
 import { syncGroupJoin } from '@/lib/meetings';
 import { redirect } from 'next/navigation';
@@ -168,6 +169,8 @@ export async function updateMemberSection(prev, fd) {
         if (!marriedWoman) Object.assign(m, { maiden_middle_name: null, maiden_surname: null, maiden_middle_name_local: null, maiden_surname_local: null });
         const bad = validate({ ...m, password: '' }, { requirePhone: !relativeOnly || Boolean(m.phoneRaw), requireMiddle: !relativeOnly && !marriedWoman });
         if (bad) return bad;
+        // Giving a number to someone without one (= a login): only whom Settings → General allows (lib/relative-phone.js).
+        if (m.phone && !target.phone && !(await canAddRelativePhone(actor, { target }))) return { fieldErrors: { phone: 'members.phoneNotAllowed' } };
         if (m.phone !== target.phone && (await phoneTaken(m.phone, target.id))) return { fieldErrors: { phone: 'auth.errors.phoneTaken' } };
         await query(
             `UPDATE users_list SET phone = :phone, full_name = :full_name, full_name_local = :full_name_local,

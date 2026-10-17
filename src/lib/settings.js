@@ -10,6 +10,7 @@ import { DEFAULT_TIMEZONE, setAppTimeZone, TIMEZONES } from './timezone';
  * reads a setting cannot drift apart.
  *
  * type: 'bool' | 'text' | 'number' | 'list' (list = array of strings, edited one per line)
+ *       | 'multi' (any of `options`, ticked as chips; `optionKey` = the i18n prefix of their labels)
  * group: the part of the Settings form it sits in (settings.formGroups.<group>, with an icon in SettingsForm)
  */
 export const SETTINGS = {
@@ -30,6 +31,14 @@ export const SETTINGS = {
             local_language: { type: 'text', default: 'gu', options: ['gu', 'hi'], group: 'language' }, // script for names, per person overridable
             // One timezone for the whole project: "today", meeting reminders, DB clock (lib/timezone.js).
             timezone: { type: 'text', default: DEFAULT_TIMEZONE, options: Object.keys(TIMEZONES), labels: TIMEZONES, group: 'language' },
+            // Who may give a relative without a number a phone (= a login) — lib/relative-phone.js. Super admins always.
+            relative_phone_by: {
+                type: 'multi',
+                default: ['admins', 'added_by', 'close', 'anyone'],
+                options: ['admins', 'added_by', 'close', 'anyone'],
+                optionKey: 'settings.relativePhone',
+                group: 'members',
+            },
         },
     },
     fundraise: {
@@ -61,6 +70,7 @@ function decode(def, raw) {
         if (def.type === 'bool') return Boolean(v);
         if (def.type === 'number') return Number.isFinite(Number(v)) ? Number(v) : def.default;
         if (def.type === 'list') return Array.isArray(v) ? v.map(String) : def.default;
+        if (def.type === 'multi') return Array.isArray(v) ? v.map(String).filter((x) => def.options.includes(x)) : def.default;
         return String(v ?? '');
     } catch {
         return def.default;
@@ -110,10 +120,23 @@ export function coerceSetting(mod, key, raw) {
         if (!Number.isFinite(n)) return def.default;
         return Math.min(def.max ?? Infinity, Math.max(def.min ?? -Infinity, Math.round(n)));
     }
-    if (def.type === 'list') {
-        return [...new Set(String(raw ?? '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean))].slice(0, 50);
+    if (def.type === 'multi') {
+        const picked = (Array.isArray(raw) ? raw : [raw]).map(String);
+        return def.options.filter((x) => picked.includes(x)); // in the registry's order; nothing ticked = []
     }
-    const s = String(raw ?? '').trim().slice(0, 500);
+    if (def.type === 'list') {
+        return [
+            ...new Set(
+                String(raw ?? '')
+                    .split(/\r?\n/)
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+            ),
+        ].slice(0, 50);
+    }
+    const s = String(raw ?? '')
+        .trim()
+        .slice(0, 500);
     return def.options && !def.options.includes(s) ? def.default : s;
 }
 

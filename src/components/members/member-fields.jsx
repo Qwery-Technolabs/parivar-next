@@ -74,21 +74,24 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
             </FormPart>
             <FormPart title={t('members.parts.contact')} icon={MapPin}>
                 <div className={NAME_GRID}>
-                    <Field
-                        label={relativeOnly ? `${t('members.phone')} (${t('common.optional')})` : t('members.phone')}
-                        hint={relativeOnly ? t('members.phoneGivesLogin') : t('auth.phoneHint')}
-                        error={fe('phone')}
-                        required={!relativeOnly}
-                    >
-                        <input
-                            name="phone"
-                            type="tel"
-                            inputMode="numeric"
-                            defaultValue={member?.phone ?? ''}
+                    {/* A relative without a number, and Settings → General does not let this person add one: no phone box. */}
+                    {!(relativeOnly && member?.canAddPhone === false) && (
+                        <Field
+                            label={relativeOnly ? `${t('members.phone')} (${t('common.optional')})` : t('members.phone')}
+                            hint={relativeOnly ? t('members.phoneGivesLogin') : t('auth.phoneHint')}
+                            error={fe('phone')}
                             required={!relativeOnly}
-                            className={`${textInput(!!fe('phone'))} w-full tabular-nums`}
-                        />
-                    </Field>
+                        >
+                            <input
+                                name="phone"
+                                type="tel"
+                                inputMode="numeric"
+                                defaultValue={member?.phone ?? ''}
+                                required={!relativeOnly}
+                                className={`${textInput(!!fe('phone'))} w-full tabular-nums`}
+                            />
+                        </Field>
+                    )}
                     <Field label={t('members.village')}>
                         <PickOrType name="village" defaultValue={member?.village ?? ''} suggestions={villages} label={t('members.village')} />
                     </Field>

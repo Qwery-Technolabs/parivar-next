@@ -164,6 +164,7 @@ const en = {
         viewAll: 'View all',
     },
     members: {
+        phoneNotAllowed: 'You cannot add a phone number for this relative. Ask an admin or a close relative.',
         manageSurnames: 'Surnames',
         delete: 'Delete member',
         deleteConfirm:
@@ -1448,7 +1449,14 @@ const en = {
         license: 'Licence',
     },
     settings: {
+        relativePhone: {
+            admins: 'App admins & sub-admins',
+            added_by: 'Whoever added that relative',
+            close: 'Close relatives (up to 4 steps)',
+            anyone: 'Anyone who can edit that family',
+        },
         formGroups: {
+            members: 'Members',
             samaj: 'Samaj',
             signup: 'Sign-up',
             language: 'Language & time',
@@ -1539,6 +1547,7 @@ const en = {
             admin_samaj_name_local: 'Samaj name ({lang})',
             admin_contact_phone: 'Contact number',
             admin_timezone: 'Timezone for everyone',
+            admin_relative_phone_by: 'Who can add a phone number to a relative',
             admin_allow_registration: 'Allow new members to register',
             admin_registration_approval: 'New registrations need approval',
             admin_default_language: 'Default language for new members',
@@ -1552,6 +1561,7 @@ const en = {
             admin_allow_registration: 'Shows “Create an account” on login',
             admin_registration_approval: 'New accounts stay inactive until an admin activates them',
             admin_timezone: 'Used for dates, meetings, reminders',
+            admin_relative_phone_by: 'For a relative added without a number: the number gives them a login. Super admins always can.',
             admin_local_language: "For members who haven't chosen",
             admin_samaj_name: 'Shown in the header',
             fundraise_allow_anonymous: 'Contributors can hide their name',

@@ -7,6 +7,7 @@ import { canEditFamily, fillCastes, fillFatherNames, genderFor, getPerson, linkP
 import { date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { composeName, nameCase } from '@/lib/names';
 import { normalizePhone } from '@/lib/phone';
+import { canAddRelativePhone } from '@/lib/relative-phone';
 import { applySurnameCastes } from '@/lib/surnames';
 import { forget } from '@/lib/memo';
 
@@ -57,6 +58,8 @@ export async function addRelative(prev, fd) {
         const rawDob = str(fd, 'dob');
         const dob = date(fd, 'dob');
         if (rawDob && !dob) fieldErrors.dob = 'fundraise.errors.date';
+        // A number gives the new relative a login: only whom Settings → General allows (lib/relative-phone.js).
+        if (phone && !(await canAddRelativePhone(actor, { familyOf: person }))) fieldErrors.phone = 'members.phoneNotAllowed';
         if (Object.keys(fieldErrors).length) return { fieldErrors };
 
         const late = fd.get('alive') === 'late';

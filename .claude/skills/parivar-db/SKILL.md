@@ -67,7 +67,8 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
   (registered in the `META` map in lib/db.js: users_list, admin_groups, blood_requests,
   fundraise_campaigns, fundraise_expenses, fundraise_updates, events_list, chat_messages).
 - Module settings: key/value tables `admin_settings`, `fundraise_settings`, `blood_settings`,
-  `events_settings`; keys declared in `SETTINGS` (lib/settings.js) with type and default.
+  `events_settings`; keys declared in `SETTINGS` (lib/settings.js) with type and default. Types: bool, text, number,
+  list (one per line), multi (any of `options`, stored as a JSON array; the form posts getAll + an empty marker).
 - Link tables for many-to-many: e.g. `fundraise_groups(campaign_id, group_id)` (home group stays
   `fundraise_campaigns.group_id`, NULL = standalone).
 - Soft deletes via `deleted_at` (contributions, expenses, chat); archive via `archived_at` (fundraises).

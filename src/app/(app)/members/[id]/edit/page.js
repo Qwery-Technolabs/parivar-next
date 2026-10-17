@@ -6,6 +6,7 @@ import { localized } from '@/lib/i18n/config';
 import { casteOptions } from '@/lib/castes';
 import { getT } from '@/lib/i18n/server';
 import { getMember, listCities, listVillages } from '@/lib/members';
+import { canAddRelativePhone } from '@/lib/relative-phone';
 import { assignableRoles, canEditUser, canManageMembers, canResetPassword } from '@/lib/roles';
 
 export async function generateMetadata() {
@@ -23,7 +24,13 @@ export default async function EditMemberPage({ params, searchParams }) {
     const canReset = canResetPassword(user, member);
     if (!canEdit && !canReset) redirect(`/members/${member.id}`);
     const { t, locale } = await getT();
-    const [villages, cities, castes] = await Promise.all([listVillages(), listCities(), casteOptions(locale)]);
+    const [villages, cities, castes, canAddPhone] = await Promise.all([
+        listVillages(),
+        listCities(),
+        casteOptions(locale),
+        // Someone without a number: may this person give them one (Settings → General)? Else the phone box is hidden.
+        member.phone ? true : canAddRelativePhone(user, { target: member }),
+    ]);
     const self = user.id === member.id;
     return (
         <div>
@@ -38,7 +45,7 @@ export default async function EditMemberPage({ params, searchParams }) {
             )}
             <MemberEditTabs
                 // Invited without a name, the phone number stood in: show an empty (required) name to fill.
-                member={member.full_name === member.phone ? { ...member, full_name: '' } : member}
+                member={{ ...member, ...(member.full_name === member.phone ? { full_name: '' } : {}), canAddPhone }}
                 initialTab={typeof tab === 'string' ? tab : undefined}
                 roles={assignableRoles(user.role)}
                 // Password-only access (an admin resetting a peer) shows just that tab.

@@ -13,6 +13,7 @@ import { age, date, money } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { kinTerm } from '@/lib/kinship';
+import { canAddRelativePhone } from '@/lib/relative-phone';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { birthName, isMarriedWoman } from '@/lib/names';
 import AddressActions from '@/components/members/address-actions';
@@ -105,11 +106,13 @@ export default async function MemberPage({ params }) {
     // this profile themselves (e.g. a relative from their family tree) sees "Added by you"; nobody else sees it.
     const addedByMe = Boolean(member.created_by) && member.created_by === user.id && member.id !== user.id;
     const seesAddedBy = atLeast(user.role, 'sub_admin');
-    const [seeFamily, addedBy] = await Promise.all([
+    const [seeFamily, addedBy, canAddPhone] = await Promise.all([
         canSeeFamily(user, member),
         seesAddedBy && !addedByMe && member.created_by && member.created_by !== member.id
             ? queryOne('SELECT id, full_name, full_name_local FROM users_list WHERE id = :id', { id: member.created_by })
             : null,
+        // A new relative's phone (= a login): Settings → General decides who (the relation is already known here).
+        canAddRelativePhone(user, { familyOf: member, steps: user.id === member.id ? 0 : relation ? relation.steps.length : null }),
     ]);
     const canEdit = canEditUser(user, member);
     // The Edit page also opens for a password-only reset (it then shows just that tab).
@@ -380,7 +383,16 @@ export default async function MemberPage({ params }) {
                 </div>
 
                 <div className="space-y-4">
-                    <FamilySummary person={member} relatives={relatives} canSee={seeFamily} canEdit={seeFamily} relation={relation} t={t} locale={locale} />
+                    <FamilySummary
+                        person={member}
+                        relatives={relatives}
+                        canSee={seeFamily}
+                        canEdit={seeFamily}
+                        canAddPhone={canAddPhone}
+                        relation={relation}
+                        t={t}
+                        locale={locale}
+                    />
                     <Card title={t('members.groups')} bodyClass="">
                         {groups.length === 0 ? (
                             <p className="px-4 py-5 text-sm text-ink-gray">{t('common.none')}</p>

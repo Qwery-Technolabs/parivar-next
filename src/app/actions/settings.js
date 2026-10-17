@@ -21,7 +21,8 @@ export async function saveModuleSettings(prev, fd) {
     for (const key of Object.keys(spec.keys)) {
         // A switch always posts its hidden input; a field that is absent means "leave as is".
         if (!fd.has(key)) continue;
-        values[key] = coerceSetting(mod, key, fd.get(key));
+        // A multi-choice posts every ticked value (plus an empty marker, so "none ticked" still arrives).
+        values[key] = coerceSetting(mod, key, spec.keys[key].type === 'multi' ? fd.getAll(key) : fd.get(key));
     }
     // General carries the Samaj logo picker (same values and checks as a group picture).
     if (mod === 'admin' && fd.has('avatar_kind')) {
@@ -39,7 +40,6 @@ export async function saveModuleSettings(prev, fd) {
     if (mod === 'admin') revalidatePath('/manifest.webmanifest');
     return { ok: true, message: 'common.saved' };
 }
-
 
 /** Settings → Notifications: the categories this person wants (the rest are stored as off). */
 export async function saveNotificationPrefs(prev, fd) {

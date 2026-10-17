@@ -77,6 +77,12 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Decided (user, Oct 2026): a group's creator gets NO danger rights unless they are a leader — keep it leaders only.
 - **Login phone**: only its owner changes it (actions/profile.js, needs their password). Whoever added a relative may
   edit that relative's profile but never their mobile number once the relative signs in (decided, Oct 2026).
+- **Adding a phone to a relative who has none** (= a login): Settings → General → Members, `relative_phone_by` (multi):
+  admins (sub-admin+) · added_by (who added them; for a new relative the adder) · close (≤ 4 family steps from that
+  relative, a new one counting one step past the person) · anyone (whoever may edit that family). Super admins always.
+  lib/relative-phone.js `canAddRelativePhone` — checked in actions (members basic tab, family addRelative →
+  members.phoneNotAllowed) and used to HIDE the phone box (edit page `member.canAddPhone`, AddRelativeDialog
+  `canAddPhone`). Default: all four (as before).
 - **Group history** (admin_group_history, lib/group-history.js `recordGroupHistory` — never throws): every group action
   writes one entry — edit (changed fields), status, member_add / member_remove, role, team, team_remove, and from
   fundraise actions (`recordFundraiseInGroups`) fundraise_create / fundraise_link / fundraise_unlink. Shown on the About

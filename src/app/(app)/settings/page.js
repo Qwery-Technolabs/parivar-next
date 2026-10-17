@@ -278,7 +278,10 @@ async function ModuleSection({ module: mod, title, t }) {
                             hint: hint === hintKey ? undefined : hint,
                             group: def.group ?? null,
                             groupTitle: def.group ? t(`settings.formGroups.${def.group}`) : null,
-                            options: def.options?.map((o) => ({ value: o, label: def.labels?.[o] ?? t(`lang.${o}`) })),
+                            options: def.options?.map((o) => ({
+                                value: o,
+                                label: def.labels?.[o] ?? (def.optionKey ? t(`${def.optionKey}.${o}`) : t(`lang.${o}`)),
+                            })),
                         };
                     }),
             ]}

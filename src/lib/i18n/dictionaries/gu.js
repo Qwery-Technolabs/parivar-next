@@ -165,6 +165,7 @@ const gu = {
         viewAll: 'બધું જુઓ',
     },
     members: {
+        phoneNotAllowed: 'તમે આ સગાનો ફોન નંબર ઉમેરી શકતા નથી. એડમિન કે નજીકના સગાને કહો.',
         manageSurnames: 'અટક',
         delete: 'સભ્ય કાઢી નાખો',
         deleteConfirm: '{name} ને કાયમ માટે કાઢી નાખવા છે? તેમના જૂથ, પરિવારની કડી અને ભૂમિકા પણ જશે; આપેલી રકમ હિસાબમાં રહેશે. પાછું નહીં આવે.',
@@ -1434,7 +1435,14 @@ const gu = {
         license: 'લાઇસન્સ',
     },
     settings: {
+        relativePhone: {
+            admins: 'એપ એડમિન અને સબ-એડમિન',
+            added_by: 'જેમણે એ સગાને ઉમેર્યા',
+            close: 'નજીકના સગા (૪ પગથિયાં સુધી)',
+            anyone: 'એ પરિવારમાં ફેરફાર કરી શકે તે કોઈપણ',
+        },
         formGroups: {
+            members: 'સભ્યો',
             samaj: 'સમાજ',
             signup: 'નોંધણી',
             language: 'ભાષા અને સમય',
@@ -1516,6 +1524,7 @@ const gu = {
             admin_samaj_name_local: 'સમાજનું નામ ({lang})',
             admin_contact_phone: 'સંપર્ક નંબર',
             admin_timezone: 'બધા માટે સમય ઝોન',
+            admin_relative_phone_by: 'સગાનો ફોન નંબર કોણ ઉમેરી શકે',
             admin_allow_registration: 'નવા સભ્યોને નોંધણી કરવા દો',
             admin_registration_approval: 'નવી નોંધણી માટે મંજૂરી જરૂરી',
             admin_default_language: 'નવા સભ્યો માટે મૂળ ભાષા',
@@ -1529,6 +1538,7 @@ const gu = {
             admin_allow_registration: 'લૉગિન પર “એકાઉન્ટ બનાવો” બતાવે',
             admin_registration_approval: 'એડમિન સક્રિય ન કરે ત્યાં સુધી નવા એકાઉન્ટ નિષ્ક્રિય',
             admin_timezone: 'તારીખ, બેઠક, રિમાઇન્ડર માટે',
+            admin_relative_phone_by: 'નંબર વગર ઉમેરેલા સગા માટે: નંબરથી તેમનું લૉગિન બને છે. સુપર એડમિન હંમેશા ઉમેરી શકે.',
             admin_local_language: 'જેમણે પસંદ ન કરી હોય તેમના માટે',
             admin_samaj_name: 'હેડરમાં દેખાય',
             fundraise_allow_anonymous: 'દાતા નામ છુપાવી શકે',

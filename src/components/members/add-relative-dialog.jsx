@@ -275,7 +275,8 @@ function QuickName({ defaults, fe }) {
  * The popup stays open after each save, so a whole family can be added in one go.
  * `person`: { id, first_name, middle_name, surname, *_local, gender }; `filled`: { father, mother }.
  */
-export default function AddRelativeDialog({ person, filled = {}, spouse = null }) {
+/** `canAddPhone`: Settings → General lets this person give a new relative a number (else no phone box). */
+export default function AddRelativeDialog({ person, filled = {}, spouse = null, canAddPhone = true }) {
     const { t, locale } = useT();
     const [kind, setKind] = useState('');
     const [marital, setMarital] = useState('unmarried');
@@ -413,15 +414,17 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null }
                                         />
                                     )}
                                     <div className="grid gap-3 sm:grid-cols-2">
-                                        <Field label={t('family.phoneOptional')} hint={t('family.phoneHint')} error={fieldError('phone')}>
-                                            <input
-                                                name="phone"
-                                                type="tel"
-                                                inputMode="numeric"
-                                                autoComplete="off"
-                                                className={`${textInput(!!fieldError('phone'))} w-full tabular-nums`}
-                                            />
-                                        </Field>
+                                        {canAddPhone && (
+                                            <Field label={t('family.phoneOptional')} hint={t('family.phoneHint')} error={fieldError('phone')}>
+                                                <input
+                                                    name="phone"
+                                                    type="tel"
+                                                    inputMode="numeric"
+                                                    autoComplete="off"
+                                                    className={`${textInput(!!fieldError('phone'))} w-full tabular-nums`}
+                                                />
+                                            </Field>
+                                        )}
                                         <Field label={t('members.dob')} error={fieldError('dob')}>
                                             <input name="dob" type="date" className={`${textInput(!!fieldError('dob'))} w-full`} />
                                         </Field>

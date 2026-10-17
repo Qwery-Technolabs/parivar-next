@@ -1,5 +1,5 @@
 'use client';
-import { Building2, Languages, Receipt, Save, Share2, SlidersHorizontal, UserPlus } from 'lucide-react';
+import { Building2, Languages, Receipt, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
 import { startTransition, useActionState, useState } from 'react';
 import { toast } from 'sonner';
 import { saveModuleSettings } from '@/app/actions/settings';
@@ -13,7 +13,7 @@ import { renderLogoPngs } from '@/lib/app-icon-canvas';
 import { useT } from '@/lib/i18n/client';
 
 // The icon before each group's title (lib/settings.js `group`).
-const GROUP_ICONS = { samaj: Building2, signup: UserPlus, language: Languages, sharing: Share2, expenses: Receipt };
+const GROUP_ICONS = { samaj: Building2, signup: UserPlus, language: Languages, members: Users, sharing: Share2, expenses: Receipt };
 
 function BoolSetting({ name, label, hint, initial }) {
     const [on, setOn] = useState(initial);
@@ -63,6 +63,31 @@ export default function SettingsForm({ module, title, fields }) {
             <div key={f.key} className="sm:col-span-2">
                 <BoolSetting name={f.key} label={f.label} hint={f.hint} initial={f.value} />
             </div>
+        ) : f.type === 'multi' ? (
+            // Any of the options, as tick chips (ticked = navy border on a tint). The empty hidden value makes
+            // "none ticked" still post the field (actions/settings.js reads getAll).
+            <fieldset key={f.key} className="min-w-0 sm:col-span-2">
+                <legend className="mb-1 block text-xs font-medium text-ink-gray">{f.label}</legend>
+                <input type="hidden" name={f.key} value="" />
+                <div className="flex flex-wrap gap-2">
+                    {f.options.map((o) => (
+                        <label
+                            key={o.value}
+                            className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-md border border-surface-border bg-white px-3 py-1.5 text-sm text-ink hover:bg-accent has-checked:border-primary has-checked:bg-accent has-checked:font-medium has-checked:text-primary"
+                        >
+                            <input
+                                type="checkbox"
+                                name={f.key}
+                                value={o.value}
+                                defaultChecked={f.value.includes(o.value)}
+                                className="size-4 accent-[#172f56]"
+                            />
+                            {o.label}
+                        </label>
+                    ))}
+                </div>
+                {f.hint && <p className="mt-1 text-xs text-ink-gray">{f.hint}</p>}
+            </fieldset>
         ) : f.type === 'list' ? (
             <Field key={f.key} label={f.label} hint={f.hint ?? t('settings.onePerLine')} className="sm:col-span-2">
                 <textarea name={f.key} rows={5} defaultValue={f.value.join('\n')} className={`${textArea()} w-full`} />

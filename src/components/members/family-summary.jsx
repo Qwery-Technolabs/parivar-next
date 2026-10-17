@@ -20,7 +20,7 @@ import { birthName } from '@/lib/names';
  * name opening that person's profile (to add to their family in turn). People outside the family
  * see only a note: the family is private to it.
  */
-export default function FamilySummary({ person, relatives, canSee, canEdit, relation = null, t, locale }) {
+export default function FamilySummary({ person, relatives, canSee, canEdit, canAddPhone = true, relation = null, t, locale }) {
     const spouseKey = person.gender === 'female' ? 'husband' : person.gender === 'male' ? 'wife' : 'spouse';
     const groups = canSee
         ? RELATIVE_KINDS.map((kind) => ({
@@ -77,6 +77,7 @@ export default function FamilySummary({ person, relatives, canSee, canEdit, rela
                     {canEdit && (
                         <AddRelativeDialog
                             person={person}
+                            canAddPhone={canAddPhone}
                             spouse={relatives.spouse[0] ?? null}
                             filled={{ father: Boolean(relatives.father), mother: Boolean(relatives.mother) }}
                         />
