@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS admin_castes (
 
 CREATE TABLE IF NOT EXISTS users_list (
     id             INT UNSIGNED     NOT NULL AUTO_INCREMENT,
-    phone          VARCHAR(15)      NULL,                     -- login id, digits only, 10–15; NULL = family-tree relative without a number (no login)
+    phone          VARCHAR(16)      NULL,                     -- login id: Indian = 10 digits; other countries = +<country code><number>; NULL = family-tree relative without a number (no login)
     password_hash  VARCHAR(100)     NULL,                     -- NULL = listed member who cannot log in yet
     full_name      VARCHAR(150)     NOT NULL,
     full_name_local VARCHAR(150)    NULL,                     -- local-language script (Gujarati default), shown when UI is not English
@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS blood_requests (
     patient_name  VARCHAR(150) NOT NULL,
     hospital      VARCHAR(200) NULL,
     city          VARCHAR(100) NULL,
-    contact_phone VARCHAR(15)  NOT NULL,
+    contact_phone VARCHAR(16)  NOT NULL,   -- same form as users_list.phone
     needed_by     DATE         NULL,
     status        ENUM('open','fulfilled','cancelled') NOT NULL DEFAULT 'open',
     created_by    INT UNSIGNED NULL,
@@ -611,7 +611,7 @@ CREATE TABLE IF NOT EXISTS matrimony_profiles (
     height_cm      SMALLINT UNSIGNED NULL,
     income_range   ENUM('lt3','3to6','6to10','10to20','gt20') NULL,   -- lakh per year
     contact_name   VARCHAR(150) NULL,                                  -- family contact shown on the profile
-    contact_phone  VARCHAR(15)  NULL,
+    contact_phone  VARCHAR(16)  NULL,   -- same form as users_list.phone
     pref_age_min   TINYINT UNSIGNED NULL,
     pref_age_max   TINYINT UNSIGNED NULL,
     pref_caste_id  INT UNSIGNED NULL,

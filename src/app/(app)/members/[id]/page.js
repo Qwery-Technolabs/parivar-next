@@ -14,11 +14,12 @@ import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 import { kinTerm } from '@/lib/kinship';
 import { canAddRelativePhone } from '@/lib/relative-phone';
+import { canSeeContact } from '@/lib/contact-privacy';
 import { getMember, memberDonations, memberGroups } from '@/lib/members';
 import { birthName, isMarriedWoman } from '@/lib/names';
 import AddressActions from '@/components/members/address-actions';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
-import { formatPhone } from '@/lib/phone';
+import { countryName, formatPhone, waNumber } from '@/lib/phone';
 import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast } from '@/lib/roles';
 import { deleteMember, setMemberArchived } from '@/app/actions/members';
 
@@ -106,13 +107,15 @@ export default async function MemberPage({ params }) {
     // this profile themselves (e.g. a relative from their family tree) sees "Added by you"; nobody else sees it.
     const addedByMe = Boolean(member.created_by) && member.created_by === user.id && member.id !== user.id;
     const seesAddedBy = atLeast(user.role, 'sub_admin');
-    const [seeFamily, addedBy, canAddPhone] = await Promise.all([
+    const [seeFamily, addedBy, canAddPhone, contactOk] = await Promise.all([
         canSeeFamily(user, member),
         seesAddedBy && !addedByMe && member.created_by && member.created_by !== member.id
             ? queryOne('SELECT id, full_name, full_name_local FROM users_list WHERE id = :id', { id: member.created_by })
             : null,
         // A new relative's phone (= a login): Settings → General decides who (the relation is already known here).
         canAddRelativePhone(user, { familyOf: member, steps: user.id === member.id ? 0 : relation ? relation.steps.length : null }),
+        // A woman's numbers: Settings → Permissions → Women's contact numbers (lib/contact-privacy.js).
+        canSeeContact(user, member, relation),
     ]);
     const canEdit = canEditUser(user, member);
     // The Edit page also opens for a password-only reset (it then shows just that tab).
@@ -127,7 +130,7 @@ export default async function MemberPage({ params }) {
     const maiden = isMarriedWoman(member) ? birthName(member, locale !== 'en') : null;
     // How this person is to the viewer, in one word (Kaka, Bhabhi …) when there is one.
     const kin = relation ? kinTerm(relation.steps) : null;
-    const phone = !privateDetails && !late ? member.phone : null;
+    const phone = !privateDetails && !late && contactOk ? member.phone : null;
     const callable = Boolean(phone) && !isMe;
     // The home pin (set with the map picker on the edit page): a Directions button (Google Maps) to that exact spot.
     const pin = m.home_lat && m.home_lng ? `${m.home_lat},${m.home_lng}` : null;
@@ -250,7 +253,7 @@ export default async function MemberPage({ params }) {
                                 <span className="truncate tabular-nums">{formatPhone(phone)}</span>
                             </a>
                             <a
-                                href={`https://wa.me/${phone.length === 10 ? `91${phone}` : phone}`}
+                                href={`https://wa.me/${waNumber(phone)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`${glassBtn} w-10 shrink-0 sm:w-auto sm:px-3`}
@@ -343,7 +346,7 @@ export default async function MemberPage({ params }) {
                             {
                                 key: 'alt',
                                 label: t('members.altPhone'),
-                                value: !privateDetails && m.alt_phone && (
+                                value: !privateDetails && contactOk && m.alt_phone && (
                                     <a href={`tel:${m.alt_phone}`} className="text-primary tabular-nums hover:underline">
                                         {m.alt_phone}
                                     </a>
@@ -360,6 +363,8 @@ export default async function MemberPage({ params }) {
                             },
                             { key: 'village', label: t('members.village'), value: member.village },
                             { key: 'city', label: t('members.city'), value: member.city },
+                            // Lives abroad: the country (empty = India, not shown).
+                            { key: 'country', label: t('members.country'), value: m.country && countryName(m.country, locale) },
                             {
                                 key: 'address',
                                 label: t('members.address'),

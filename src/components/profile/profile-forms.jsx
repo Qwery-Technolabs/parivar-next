@@ -4,6 +4,7 @@ import { startTransition, useActionState, useRef } from 'react';
 import { toast } from 'sonner';
 import { changePassword, changePhone } from '@/app/actions/profile';
 import { Field, textInput } from '@/components/ui/field';
+import PhoneInput from '@/components/ui/phone-input';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
 import PasswordInput from '@/components/ui/password-input';
@@ -39,23 +40,10 @@ export function ChangePhoneForm({ currentPhone }) {
     return (
         <form ref={ref} onSubmit={onSubmit} className="space-y-3">
             <Field label={t('profile.newPhone')} hint={t('auth.phoneHint')} error={fe('phone')} required>
-                <input
-                    name="phone"
-                    type="tel"
-                    inputMode="numeric"
-                    autoComplete="tel"
-                    required
-                    placeholder={currentPhone}
-                    className={`${textInput(!!fe('phone'))} w-full tabular-nums`}
-                />
+                <PhoneInput name="phone" required placeholder={currentPhone} hasError={!!fe('phone')} />
             </Field>
             <Field label={t('profile.currentPassword')} error={fe('current_password')} required>
-                <PasswordInput
-                    name="current_password"
-                    autoComplete="current-password"
-                    required
-                    className={`${textInput(!!fe('current_password'))} w-full`}
-                />
+                <PasswordInput name="current_password" autoComplete="current-password" required className={`${textInput(!!fe('current_password'))} w-full`} />
             </Field>
             <SubmitButton icon={Phone} pendingText={t('common.saving')} pending={pending} className="w-full sm:w-auto">
                 {t('profile.changePhone')}
@@ -70,12 +58,7 @@ export function ChangePasswordForm() {
     return (
         <form ref={ref} onSubmit={onSubmit} className="space-y-3">
             <Field label={t('profile.currentPassword')} error={fe('current_password')} required>
-                <PasswordInput
-                    name="current_password"
-                    autoComplete="current-password"
-                    required
-                    className={`${textInput(!!fe('current_password'))} w-full`}
-                />
+                <PasswordInput name="current_password" autoComplete="current-password" required className={`${textInput(!!fe('current_password'))} w-full`} />
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={t('profile.newPassword')} error={fe('new_password')} required>

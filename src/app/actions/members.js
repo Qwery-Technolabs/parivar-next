@@ -13,7 +13,7 @@ import { composeName, nameCase } from '@/lib/names';
 import { getSetting } from '@/lib/settings';
 import { notify, notifyMany } from '@/lib/notifications';
 import { ensureInvitedUser } from '@/lib/invite';
-import { normalizePhone } from '@/lib/phone';
+import { COUNTRY_CODES, normalizePhone, phonePassword } from '@/lib/phone';
 import { canAddRelativePhone } from '@/lib/relative-phone';
 import { assignableRoles, BLOOD_GROUPS, canChangeRole, canEditUser, canInviteMembers, canManageMembers, canResetPassword, canDeleteMember } from '@/lib/roles';
 import { syncGroupJoin } from '@/lib/meetings';
@@ -61,6 +61,12 @@ function readMember(fd) {
         password: String(fd.get('password') ?? ''),
         meta: Object.fromEntries(MEMBER_META_KEYS.map((k) => [k, str(fd, k, k === 'bio' || k === 'address' ? 2000 : 150)])),
     };
+}
+
+/** A known country other than India, else '' (India is the default and is not stored). */
+function cleanCountry(meta) {
+    if (!COUNTRY_CODES.includes(meta.country) || meta.country === 'IN') meta.country = '';
+    return meta;
 }
 
 function validate(m, { requirePhone = true, requireMiddle = true } = {}) {
@@ -186,7 +192,7 @@ export async function updateMemberSection(prev, fd) {
         // Someone without a login (a family-tree relative added with no number): giving them a number
         // turns the login on — the number is their first password, changed at first sign-in.
         if (m.phone && !target.can_login && target.status !== 'deceased') {
-            await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(m.phone), id: target.id });
+            await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(phonePassword(m.phone)), id: target.id });
             await setMeta('users_list', target.id, { must_change_password: '1', invited_by: String(actor.id) });
             await audit(actor.id, 'user.login_enabled', 'user', target.id, {});
             message = 'members.loginEnabled';
@@ -200,7 +206,7 @@ export async function updateMemberSection(prev, fd) {
             { ...m, id: target.id },
         );
     } else if (section === 'details') {
-        await setMeta('users_list', target.id, m.meta);
+        await setMeta('users_list', target.id, cleanCountry(m.meta));
     } else if (section === 'access') {
         // Nobody changes their own role or status — that is someone else's decision; and only member administrators
         // do (someone who added a relative edits their details, not their access).
@@ -411,7 +417,7 @@ export async function bulkResetPasswords(prev, fd) {
             skipped++;
             continue;
         }
-        await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(target.phone), id: target.id });
+        await query('UPDATE users_list SET password_hash = :hash WHERE id = :id', { hash: await hashPassword(phonePassword(target.phone)), id: target.id });
         await setMeta('users_list', target.id, { must_change_password: '1' });
         await revokeUserSessions(target.id, false);
         await audit(actor.id, 'user.password_reset', 'user', target.id, { to: 'phone', bulk: true });

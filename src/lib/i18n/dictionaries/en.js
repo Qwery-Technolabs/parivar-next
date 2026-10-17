@@ -1,5 +1,6 @@
 const en = {
     app: { name: 'Parivar', tagline: 'Our family, together' },
+    phone: { country: 'Country code' },
     common: {
         remove: 'Remove',
         open: 'Open',
@@ -117,7 +118,7 @@ const en = {
         loginTitle: 'Log in',
         loginSubtitle: 'Use your registered mobile number and password.',
         phone: 'Mobile number',
-        phoneHint: '10-digit mobile number',
+        phoneHint: 'Mobile number — pick the country code if it is not Indian',
         password: 'Password',
         login: 'Log in',
         loggingIn: 'Logging in…',
@@ -164,6 +165,8 @@ const en = {
         viewAll: 'View all',
     },
     members: {
+        country: 'Country (lives in)',
+        countryHint: 'Where they live now',
         phoneNotAllowed: 'You cannot add a phone number for this relative. Ask an admin or a close relative.',
         manageSurnames: 'Surnames',
         delete: 'Delete member',
@@ -745,6 +748,8 @@ const en = {
         teamRolesHint: 'Tasks this member may do in the group. Admins and sub-admins can already do all of them.',
         teamTitle: 'Team',
         addTeamMember: 'Add to team',
+        teamFromMembers: 'Only members of this group — add someone on the Members tab first.',
+        noTeamCandidates: 'No member left to add — everyone is on the team.',
         editRoles: 'Edit roles',
         removeFromTeam: 'Remove from team',
         removeFromTeamConfirm: 'Remove {name} from the team? They stay in the group as a member.',
@@ -847,6 +852,7 @@ const en = {
             done: 'Done',
         },
         errors: {
+            memberFirst: 'Add them to the group first (Members tab), then give a team role.',
             selfDemote: 'You cannot remove your own admin role. Ask another admin.',
             pickRole: 'Pick at least one role.',
         },
@@ -1462,6 +1468,24 @@ const en = {
         license: 'Licence',
     },
     settings: {
+        femaleViewers: {
+            women: 'Other women',
+            same_surname: 'Same surname',
+            close: 'Close relatives (up to 5 steps)',
+            married: 'Married members',
+            over35: 'Members over 35',
+            same_village: 'Same native village',
+            same_city: 'Same current city',
+            everyone: 'Everyone',
+        },
+        femaleShown: {
+            over30: 'Women over 30',
+            married: 'Married women',
+            daughter: 'Daughters in the family (up to 5 steps)',
+            sister: 'Sisters in the family (up to 5 steps)',
+            aunt: 'Aunts in the family (up to 5 steps)',
+            everyone: 'Every woman',
+        },
         relativePhone: {
             admins: 'App admins & sub-admins',
             added_by: 'Whoever added that relative',
@@ -1469,6 +1493,7 @@ const en = {
             anyone: 'Anyone who can edit that family',
         },
         formGroups: {
+            privacy: "Women's contact numbers",
             members: 'Members',
             samaj: 'Samaj',
             signup: 'Sign-up',
@@ -1562,6 +1587,8 @@ const en = {
             admin_contact_phone: 'Contact number',
             admin_timezone: 'Timezone for everyone',
             admin_relative_phone_by: 'Who can add a phone number to a relative',
+            admin_female_phone_viewers: "Who can see a woman's number",
+            admin_female_phone_shown: 'Whose numbers can be seen',
             admin_allow_registration: 'Allow new members to register',
             admin_registration_approval: 'New registrations need approval',
             admin_default_language: 'Default language for new members',
@@ -1576,6 +1603,8 @@ const en = {
             admin_registration_approval: 'New accounts stay inactive until an admin activates them',
             admin_timezone: 'Used for dates, meetings, reminders',
             admin_relative_phone_by: 'For a relative added without a number: the number gives them a login. Super admins always can.',
+            admin_female_phone_viewers: 'On her profile only. App admins always can; in lists only admins see women’s numbers.',
+            admin_female_phone_shown: 'The number shows when the viewer AND she both match. An admin woman’s number always shows.',
             admin_local_language: "For members who haven't chosen",
             admin_samaj_name: 'Shown in the header',
             fundraise_allow_anonymous: 'Contributors can hide their name',

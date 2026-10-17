@@ -160,6 +160,42 @@ body {
   line-height: 1.6;
 }
 
+/* One slim scrollbar everywhere, in the brand navy: a soft thumb on a clear track, darker on hover.
+   Standard properties (Chrome / Edge / Firefox); the ::-webkit-scrollbar rules cover Safari. On navy areas (sidebar,
+   drawer, header cards) the thumb turns light so it stays visible. .scrollbar-none (below) still hides it. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(23 47 86 / 0.35) transparent;
+}
+*:hover {
+  scrollbar-color: rgb(23 47 86 / 0.55) transparent;
+}
+.bg-brand-navy,
+.bg-brand-navy * {
+  scrollbar-color: rgb(255 255 255 / 0.3) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(23 47 86 / 0.35);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(23 47 86 / 0.6);
+  background-clip: padding-box;
+}
+.bg-brand-navy ::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.3);
+  background-clip: padding-box;
+}
+
 .scrollbar-none {
   scrollbar-width: none;
 }

@@ -7,7 +7,7 @@ import { removeFromGroupTeam, saveGroupTeam } from '@/app/actions/groups';
 import Badge from '@/components/ui/badge';
 import { Field } from '@/components/ui/field';
 import FormDialog, { OpenOnMount } from '@/components/ui/form-dialog';
-import MemberPicker from '@/components/ui/member-picker';
+import Combobox from '@/components/ui/combobox';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { canActOnRole, canAdminister, GROUP_TEAM_ROLES, isGroupLeader, teamOf } from '@/lib/group-roles';
 import { useT } from '@/lib/i18n/client';
@@ -191,8 +191,32 @@ function TeamRow({ groupId, m, standing, self, locale, creatorId }) {
     );
 }
 
-/** "Add to team" — in the Team card's header. Pick a member (not on the team yet), tick their roles. */
-export function AddGroupTeamButton({ groupId, standing, exclude }) {
+/** Searchable pick among the group's members (local list — they are on the page already). */
+function TeamCandidate({ candidates, hasError }) {
+    const { t } = useT();
+    const [sel, setSel] = useState(null);
+    return (
+        <Combobox
+            name="user_id"
+            value={sel?.value ?? ''}
+            valueLabel={sel?.label ?? ''}
+            onSelect={setSel}
+            fetchOptions={async (q) => {
+                const needle = q.trim().toLowerCase();
+                return needle ? candidates.filter((c) => c.label.toLowerCase().includes(needle)) : candidates;
+            }}
+            placeholder={t('groups.pickMember')}
+            emptyText={t('groups.noTeamCandidates')}
+            hasError={hasError}
+        />
+    );
+}
+
+/**
+ * "Add to team" — in the Team card's header. Pick one of the group's MEMBERS who is not on the team yet (someone
+ * outside the group is added on the Members tab first), tick their roles. `candidates`: [{ value, label }].
+ */
+export function AddGroupTeamButton({ groupId, standing, candidates = [] }) {
     const { t } = useT();
     return (
         <FormDialog
@@ -214,8 +238,8 @@ export function AddGroupTeamButton({ groupId, standing, exclude }) {
         >
             {({ fieldError }) => (
                 <>
-                    <Field label={t('members.fullName')} error={fieldError('user_id')} required>
-                        <MemberPicker name="user_id" exclude={exclude} hasError={!!fieldError('user_id')} />
+                    <Field label={t('members.fullName')} hint={t('groups.teamFromMembers')} error={fieldError('user_id')} required>
+                        <TeamCandidate candidates={candidates} hasError={!!fieldError('user_id')} />
                     </Field>
                     <RoleChecks initial={[]} canLead={canAdminister(standing)} error={fieldError('roles')} />
                 </>

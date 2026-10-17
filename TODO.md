@@ -443,3 +443,7 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Settings → General → Members: who can add a relative's phone number (admins / who added / close relatives ≤ 4 steps / anyone), enforced + phone box hidden
 - [x] Settings → Permissions: Sign-up, Members (relative phone) and Fundraise sharing in one section
 - [x] Members "Has / missing": every detail both ways (phone, alt mobile, address, home pin, city, village, birth date, caste, surname, father's name)
+- [x] Numbers from any country: +code picker on every phone box, "+<code><number>" stored (VARCHAR(16) on live), member Country (lives in)
+- [x] Women's contact numbers: who may see / whose are shown (Settings → Permissions); lists show them to admins only
+- [x] Group team: only the group's members can get a team role
+- [x] Slim navy scrollbar everywhere

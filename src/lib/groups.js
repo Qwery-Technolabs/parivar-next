@@ -33,7 +33,7 @@ export const getGroup = cache(async (id) => {
  */
 export async function groupMembers(groupId, page = null) {
     return query(
-        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at, gt.team
+        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.gender, u.village, u.role, u.last_login_at, gm.member_role, gm.added_at, gt.team
            FROM admin_group_members gm JOIN users_list u ON u.id = gm.user_id
            LEFT JOIN (SELECT user_id, GROUP_CONCAT(team_role) AS team FROM admin_group_team WHERE group_id = :groupId GROUP BY user_id) gt
                   ON gt.user_id = gm.user_id

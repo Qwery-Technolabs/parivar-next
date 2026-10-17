@@ -3,6 +3,7 @@ import { Plus, UserPlus, UserRoundSearch } from 'lucide-react';
 import { useState } from 'react';
 import { addRelative } from '@/app/actions/family';
 import { Field, selectInput, textInput, translationPair } from '@/components/ui/field';
+import PhoneInput from '@/components/ui/phone-input';
 import FormDialog from '@/components/ui/form-dialog';
 import MemberPicker from '@/components/ui/member-picker';
 import GujaratiField from '@/components/ui/gujarati-field';
@@ -416,13 +417,7 @@ export default function AddRelativeDialog({ person, filled = {}, spouse = null, 
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         {canAddPhone && (
                                             <Field label={t('family.phoneOptional')} hint={t('family.phoneHint')} error={fieldError('phone')}>
-                                                <input
-                                                    name="phone"
-                                                    type="tel"
-                                                    inputMode="numeric"
-                                                    autoComplete="off"
-                                                    className={`${textInput(!!fieldError('phone'))} w-full tabular-nums`}
-                                                />
+                                                <PhoneInput name="phone" autoComplete="off" hasError={!!fieldError('phone')} />
                                             </Field>
                                         )}
                                         <Field label={t('members.dob')} error={fieldError('dob')}>

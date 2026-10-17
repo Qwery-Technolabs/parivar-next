@@ -9,6 +9,7 @@ import FilterBar from '@/components/ui/filter-bar';
 import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { requireUser } from '@/lib/auth';
+import { hideWomenPhones } from '@/lib/contact-privacy';
 import { listDonors, listRequests, resolveBloodFilters } from '@/lib/blood';
 import { date } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
@@ -66,7 +67,7 @@ export default async function BloodPage({ searchParams }) {
             {f.tab === 'requests' ? (
                 <Requests user={user} f={f} sp={sp} t={t} locale={locale} pathname={pathname} />
             ) : (
-                <Donors f={f} t={t} locale={locale} />
+                <Donors f={f} t={t} locale={locale} user={user} />
             )}
         </div>
     );
@@ -120,9 +121,7 @@ async function Requests({ user, f, sp, t, locale, pathname }) {
                                 </span>
                                 {r.notes && <span className="mt-0.5 block text-xs text-ink-gray">{r.notes}</span>}
                             </Td>
-                            <Td className="max-w-56">
-                                {r.hospital || r.city ? [r.hospital, r.city].filter(Boolean).join(', ') : null}
-                            </Td>
+                            <Td className="max-w-56">{r.hospital || r.city ? [r.hospital, r.city].filter(Boolean).join(', ') : null}</Td>
                             <Td className="whitespace-nowrap">{r.needed_by ? date(r.needed_by, locale) : null}</Td>
                             <Td className="whitespace-nowrap">
                                 <a
@@ -159,8 +158,9 @@ async function Requests({ user, f, sp, t, locale, pathname }) {
     );
 }
 
-async function Donors({ f, t, locale }) {
-    const donors = await listDonors(f);
+async function Donors({ f, t, locale, user }) {
+    // A woman donor's number: admins only here; others open her profile (lib/contact-privacy.js).
+    const donors = hideWomenPhones(await listDonors(f), user);
     return (
         <div className="space-y-4">
             <FilterBar
@@ -168,7 +168,13 @@ async function Donors({ f, t, locale }) {
                 fixed={{ tab: 'donors' }}
                 search={{ placeholder: t('blood.searchDonors') }}
                 filters={[
-                    { param: 'group', label: t('members.bloodGroup'), type: 'select', allLabel: t('common.any'), options: BLOOD_GROUPS.map((g) => ({ value: g, label: g })) },
+                    {
+                        param: 'group',
+                        label: t('members.bloodGroup'),
+                        type: 'select',
+                        allLabel: t('common.any'),
+                        options: BLOOD_GROUPS.map((g) => ({ value: g, label: g })),
+                    },
                     { param: 'compatible', label: t('members.compatible'), hint: t('members.compatibleHint'), type: 'switch', showIf: { param: 'group' } },
                     { param: 'city', label: t('members.city'), type: 'text' },
                 ]}
@@ -201,10 +207,7 @@ async function Donors({ f, t, locale }) {
                             <Td>{d.city || null}</Td>
                             <Td className="whitespace-nowrap">
                                 {d.phone ? (
-                                    <a
-                                        href={`tel:${d.phone}`}
-                                        className="inline-flex items-center gap-1 font-medium text-primary tabular-nums hover:underline"
-                                    >
+                                    <a href={`tel:${d.phone}`} className="inline-flex items-center gap-1 font-medium text-primary tabular-nums hover:underline">
                                         <Phone className="size-3.5" /> {formatPhone(d.phone)}
                                     </a>
                                 ) : null}

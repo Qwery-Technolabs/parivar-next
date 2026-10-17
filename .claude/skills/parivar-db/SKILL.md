@@ -66,6 +66,8 @@ always write settings through saveSettings, never raw SQL, or readers stay stale
 - Filterable facts are columns; everything else goes in `<table>meta(meta_id, <fk>, meta_key, meta_value)`
   (registered in the `META` map in lib/db.js: users_list, admin_groups, blood_requests,
   fundraise_campaigns, fundraise_expenses, fundraise_updates, events_list, chat_messages).
+- Phone columns (users_list.phone, blood_requests / matrimony_profiles.contact_phone) are VARCHAR(16): Indian 10
+  digits or "+<country code><number>" (Oct 2026). Meta `country` on users_listmeta (empty = India).
 - Module settings: key/value tables `admin_settings`, `fundraise_settings`, `blood_settings`,
   `events_settings`; keys declared in `SETTINGS` (lib/settings.js) with type and default. Types: bool, text, number,
   list (one per line), multi (any of `options`, stored as a JSON array; the form posts getAll + an empty marker).

@@ -20,6 +20,7 @@ import WaTabs from '@/components/ui/wa-tabs';
 import { canCreateFundraiseIn, groupStanding } from '@/lib/access';
 import { canAdminister, canEditDetails, canManageMembership, GROUP_STATUS_DOT, isGroupLeader, teamOf } from '@/lib/group-roles';
 import { requireUser } from '@/lib/auth';
+import { hideWomenPhones } from '@/lib/contact-privacy';
 import { messageCount } from '@/lib/chat';
 import { todayLocal } from '@/lib/forms';
 import { upcomingMeetingCount } from '@/lib/meetings';
@@ -54,8 +55,14 @@ export default async function GroupPage({ params, searchParams }) {
     // on About (the Team card). Not the whole list on every tab.
     const page = normalizePage(sp.page);
     const perPage = tab === 'members' ? normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value) : 0;
-    const membersFor =
-        tab === 'members' ? groupMembers(groupId, { limit: perPage, offset: (page - 1) * perPage }) : tab === 'about' ? groupMembers(groupId) : [];
+    // A woman's number reaches the page only for admins (lib/contact-privacy.js hideWomenPhones).
+    const membersFor = (
+        tab === 'members'
+            ? groupMembers(groupId, { limit: perPage, offset: (page - 1) * perPage })
+            : tab === 'about'
+              ? groupMembers(groupId)
+              : Promise.resolve([])
+    ).then((rows) => hideWomenPhones(rows, user));
     // Everything below only needs the id: one round of parallel queries (speed) instead of one after another.
     const [group, { t, locale }, members, memberTotal, memberIds, fundraises, { standing, myRole, team }, canFundraise, messages, upcoming] = await Promise.all(
         [
@@ -241,7 +248,14 @@ export default async function GroupPage({ params, searchParams }) {
                             title={t('groups.teamTitle')}
                             actions={
                                 isGroupLeader(standing) && (
-                                    <AddGroupTeamButton groupId={group.id} standing={standing} exclude={teamOf(members).map((m) => m.id)} />
+                                    <AddGroupTeamButton
+                                        groupId={group.id}
+                                        standing={standing}
+                                        // Only the group's members who are not on the team yet (a member first, then a role).
+                                        candidates={members
+                                            .filter((m) => !teamOf([m]).length)
+                                            .map((m) => ({ value: String(m.id), label: localized(m, 'full_name', locale) }))}
+                                    />
                                 )
                             }
                         >

@@ -2,6 +2,7 @@
 import { Plus } from 'lucide-react';
 import { createBloodRequest } from '@/app/actions/blood';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
+import PhoneInput from '@/components/ui/phone-input';
 import FormDialog from '@/components/ui/form-dialog';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
@@ -19,13 +20,13 @@ export default function PostRequestButton({ menuKey } = {}) {
                 menuKey ? (
                     <MenuOpener id={menuKey} open={open} />
                 ) : (
-                <button
-                    type="button"
-                    onClick={open}
-                    className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
-                >
-                    <Plus className="size-4" /> {t('blood.add')}
-                </button>
+                    <button
+                        type="button"
+                        onClick={open}
+                        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
+                    >
+                        <Plus className="size-4" /> {t('blood.add')}
+                    </button>
                 )
             }
         >
@@ -69,13 +70,7 @@ export default function PostRequestButton({ menuKey } = {}) {
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                         <Field label={t('blood.contact')} required error={fieldError('contact_phone')}>
-                            <input
-                                name="contact_phone"
-                                type="tel"
-                                inputMode="numeric"
-                                required
-                                className={`${textInput(!!fieldError('contact_phone'))} w-full tabular-nums`}
-                            />
+                            <PhoneInput name="contact_phone" required hasError={!!fieldError('contact_phone')} />
                         </Field>
                         <Field label={t('blood.neededBy')} error={fieldError('needed_by')}>
                             <input name="needed_by" type="date" className={`${textInput(!!fieldError('needed_by'))} w-full`} />

@@ -9,7 +9,7 @@ import { atLeast } from '@/lib/roles';
 import { getSettings } from '@/lib/settings';
 import { LANG_COOKIE, LANG_MAX_AGE, normalizeLocale } from '@/lib/i18n/config';
 import { composeName, nameCase } from '@/lib/names';
-import { normalizePhone } from '@/lib/phone';
+import { normalizePhone, phonePassword } from '@/lib/phone';
 import { applySurnameCastes } from '@/lib/surnames';
 import { safeNext } from '@/lib/url';
 import { forget } from '@/lib/memo';
@@ -48,7 +48,10 @@ export async function login(prev, formData) {
            FROM users_list u WHERE u.phone = :phone AND u.status <> 'deceased'`,
         { phone },
     );
-    const ok = await verifyPassword(password, user?.password_hash);
+    // Still on the first password (their number): accept it typed with "+", spaces or dashes too.
+    const ok =
+        (await verifyPassword(password, user?.password_hash)) ||
+        Boolean(user?.must_change && /\D/.test(password) && (await verifyPassword(phonePassword(password), user.password_hash)));
     if (!user || !ok) {
         attempts.set(phone, rec && now - rec.first < WINDOW_MS ? { ...rec, count: rec.count + 1 } : { first: now, count: 1 });
         return { error: 'auth.errors.invalid', values };

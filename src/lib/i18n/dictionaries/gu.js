@@ -1,6 +1,7 @@
 /** @type {typeof import('./en').default} */
 const gu = {
     app: { name: 'પરિવાર', tagline: 'આપણો પરિવાર, સાથે' },
+    phone: { country: 'દેશનો કોડ' },
     common: {
         remove: 'દૂર કરો',
         open: 'ખોલો',
@@ -118,7 +119,7 @@ const gu = {
         loginTitle: 'લૉગ ઇન',
         loginSubtitle: 'તમારા નોંધાયેલા મોબાઇલ નંબર અને પાસવર્ડનો ઉપયોગ કરો.',
         phone: 'મોબાઇલ નંબર',
-        phoneHint: '10 અંકનો મોબાઇલ નંબર',
+        phoneHint: 'મોબાઇલ નંબર — ભારતનો ન હોય તો દેશનો કોડ પસંદ કરો',
         password: 'પાસવર્ડ',
         login: 'લૉગ ઇન',
         loggingIn: 'લૉગ ઇન થઈ રહ્યું છે…',
@@ -165,6 +166,8 @@ const gu = {
         viewAll: 'બધું જુઓ',
     },
     members: {
+        country: 'દેશ (જ્યાં રહે છે)',
+        countryHint: 'હાલ ક્યાં રહે છે',
         phoneNotAllowed: 'તમે આ સગાનો ફોન નંબર ઉમેરી શકતા નથી. એડમિન કે નજીકના સગાને કહો.',
         manageSurnames: 'અટક',
         delete: 'સભ્ય કાઢી નાખો',
@@ -738,6 +741,8 @@ const gu = {
         teamRolesHint: 'આ સભ્ય ગ્રુપમાં કયા કામ કરી શકે. એડમિન અને સહ-એડમિન તો આ બધું કરી જ શકે છે.',
         teamTitle: 'ટીમ',
         addTeamMember: 'ટીમમાં ઉમેરો',
+        teamFromMembers: 'ફક્ત આ ગ્રુપના સભ્યો — કોઈને પહેલાં સભ્યો ટૅબમાં ઉમેરો.',
+        noTeamCandidates: 'ઉમેરવા માટે કોઈ સભ્ય બાકી નથી — બધા ટીમમાં છે.',
         editRoles: 'ભૂમિકાઓ બદલો',
         removeFromTeam: 'ટીમમાંથી દૂર કરો',
         removeFromTeamConfirm: '{name} ને ટીમમાંથી દૂર કરવા છે? તેઓ ગ્રુપમાં સભ્ય તરીકે રહેશે.',
@@ -839,6 +844,7 @@ const gu = {
             done: 'થઈ ગયું',
         },
         errors: {
+            memberFirst: 'પહેલાં તેમને ગ્રુપમાં ઉમેરો (સભ્યો ટૅબ), પછી ટીમ ભૂમિકા આપો.',
             selfDemote: 'તમે તમારી પોતાની એડમિન ભૂમિકા દૂર ન કરી શકો. બીજા એડમિનને કહો.',
             pickRole: 'ઓછામાં ઓછી એક ભૂમિકા પસંદ કરો.',
         },
@@ -1448,6 +1454,24 @@ const gu = {
         license: 'લાઇસન્સ',
     },
     settings: {
+        femaleViewers: {
+            women: 'અન્ય મહિલાઓ',
+            same_surname: 'સમાન અટક',
+            close: 'નજીકના સગા (૫ પગથિયાં સુધી)',
+            married: 'પરિણીત સભ્યો',
+            over35: '૩૫ થી વધુ ઉંમરના',
+            same_village: 'સમાન વતન',
+            same_city: 'સમાન હાલનું શહેર',
+            everyone: 'બધા',
+        },
+        femaleShown: {
+            over30: '૩૦ થી વધુ ઉંમરની મહિલાઓ',
+            married: 'પરિણીત મહિલાઓ',
+            daughter: 'પરિવારની દીકરીઓ (૫ પગથિયાં સુધી)',
+            sister: 'પરિવારની બહેનો (૫ પગથિયાં સુધી)',
+            aunt: 'પરિવારનાં ફોઈ / માસી / કાકી (૫ પગથિયાં સુધી)',
+            everyone: 'દરેક મહિલા',
+        },
         relativePhone: {
             admins: 'એપ એડમિન અને સબ-એડમિન',
             added_by: 'જેમણે એ સગાને ઉમેર્યા',
@@ -1455,6 +1479,7 @@ const gu = {
             anyone: 'એ પરિવારમાં ફેરફાર કરી શકે તે કોઈપણ',
         },
         formGroups: {
+            privacy: 'મહિલાઓના સંપર્ક નંબર',
             members: 'સભ્યો',
             samaj: 'સમાજ',
             signup: 'નોંધણી',
@@ -1539,6 +1564,8 @@ const gu = {
             admin_contact_phone: 'સંપર્ક નંબર',
             admin_timezone: 'બધા માટે સમય ઝોન',
             admin_relative_phone_by: 'સગાનો ફોન નંબર કોણ ઉમેરી શકે',
+            admin_female_phone_viewers: 'મહિલાનો નંબર કોણ જોઈ શકે',
+            admin_female_phone_shown: 'કોના નંબર દેખાય',
             admin_allow_registration: 'નવા સભ્યોને નોંધણી કરવા દો',
             admin_registration_approval: 'નવી નોંધણી માટે મંજૂરી જરૂરી',
             admin_default_language: 'નવા સભ્યો માટે મૂળ ભાષા',
@@ -1553,6 +1580,8 @@ const gu = {
             admin_registration_approval: 'એડમિન સક્રિય ન કરે ત્યાં સુધી નવા એકાઉન્ટ નિષ્ક્રિય',
             admin_timezone: 'તારીખ, બેઠક, રિમાઇન્ડર માટે',
             admin_relative_phone_by: 'નંબર વગર ઉમેરેલા સગા માટે: નંબરથી તેમનું લૉગિન બને છે. સુપર એડમિન હંમેશા ઉમેરી શકે.',
+            admin_female_phone_viewers: 'ફક્ત તેમની પ્રોફાઇલ પર. એપ એડમિન હંમેશા જોઈ શકે; યાદીઓમાં મહિલાઓના નંબર ફક્ત એડમિનને દેખાય.',
+            admin_female_phone_shown: 'જોનાર અને તે મહિલા બંને મેળ ખાય ત્યારે જ નંબર દેખાય. એડમિન મહિલાનો નંબર હંમેશા દેખાય.',
             admin_local_language: 'જેમણે પસંદ ન કરી હોય તેમના માટે',
             admin_samaj_name: 'હેડરમાં દેખાય',
             fundraise_allow_anonymous: 'દાતા નામ છુપાવી શકે',

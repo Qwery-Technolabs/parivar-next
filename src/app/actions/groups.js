@@ -200,7 +200,7 @@ export async function setGroupMemberRole(groupId, userId, memberRole) {
  * The group's Team card (About tab), like a fundraise team: one person, every role they hold, by tick boxes —
  * Admin or Sub-admin (their main role, admin_group_members.member_role) and the tasks (admin_group_team:
  * Members, Fundraise, Meetings, Group details, Discussion). Admins and sub-admins already do every task, so
- * their task rows are cleared. Someone not in the group yet joins it as a member. Only the group's leaders
+ * their task rows are cleared. Only someone already IN the group (a member first) can be given a role. Only the group's leaders
  * use it; making an admin / sub-admin (or changing one) is for its admins (canActOnRole). Fields: group_id,
  * user_id, roles[].
  */
@@ -221,6 +221,8 @@ export async function saveGroupTeam(prev, fd) {
     ]);
     if (!person) return { fieldErrors: { user_id: 'common.required' } };
     if (!isGroupLeader(standing)) return FORBIDDEN;
+    // A member of the group first (Members tab), then a role on its team.
+    if (!row) return { fieldErrors: { user_id: 'groups.errors.memberFirst' } };
     const current = row?.member_role ?? null;
     // Main role: the lead role ticked; else a former admin / sub-admin becomes a member, a speaker stays one.
     const nextRole = lead ?? (current === 'speaker' ? 'speaker' : 'member');
@@ -234,11 +236,7 @@ export async function saveGroupTeam(prev, fd) {
     const added = tasks.filter((r) => !before.has(r));
     const removed = [...before].filter((r) => !tasks.includes(r));
     await withTransaction(async (q) => {
-        await q(
-            `INSERT INTO admin_group_members (group_id, user_id, member_role, added_by) VALUES (:gid, :uid, :role, :by)
-             ON DUPLICATE KEY UPDATE member_role = VALUES(member_role)`,
-            { gid, uid, role: nextRole, by: actor.id },
-        );
+        await q('UPDATE admin_group_members SET member_role = :role WHERE group_id = :gid AND user_id = :uid', { gid, uid, role: nextRole });
         for (const r of added)
             await q('INSERT IGNORE INTO admin_group_team (group_id, user_id, team_role, added_by) VALUES (:gid, :uid, :r, :by)', { gid, uid, r, by: actor.id });
         for (const r of removed) await q('DELETE FROM admin_group_team WHERE group_id = :gid AND user_id = :uid AND team_role = :r', { gid, uid, r });

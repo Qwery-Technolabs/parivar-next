@@ -39,6 +39,21 @@ export const SETTINGS = {
                 optionKey: 'settings.relativePhone',
                 group: 'members',
             },
+            // Women's contact numbers on a profile — lib/contact-privacy.js (admins always; lists: admins only).
+            female_phone_viewers: {
+                type: 'multi',
+                default: ['everyone'],
+                options: ['women', 'same_surname', 'close', 'married', 'over35', 'same_village', 'same_city', 'everyone'],
+                optionKey: 'settings.femaleViewers',
+                group: 'privacy',
+            },
+            female_phone_shown: {
+                type: 'multi',
+                default: ['everyone'],
+                options: ['over30', 'married', 'daughter', 'sister', 'aunt', 'everyone'],
+                optionKey: 'settings.femaleShown',
+                group: 'privacy',
+            },
         },
     },
     fundraise: {
@@ -70,6 +85,7 @@ export const SETTINGS = {
 export const PERMISSION_GROUPS = [
     ['admin', 'signup'],
     ['admin', 'members'],
+    ['admin', 'privacy'],
     ['fundraise', 'sharing'],
 ];
 export const isPermissionGroup = (mod, group) => PERMISSION_GROUPS.some(([m, g]) => m === mod && g === group);

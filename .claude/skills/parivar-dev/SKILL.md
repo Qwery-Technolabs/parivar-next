@@ -75,6 +75,26 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   = app-level or a leader of a group it is shown in (NOT its creator / team admins, who only edit it); setCampaignStatus /
   setCampaignArchived use `authorize(id, 'danger')`. A Mandal keeps danger = manage (run by its own team).
   Decided (user, Oct 2026): a group's creator gets NO danger rights unless they are a leader — keep it leaders only.
+- **Group team = members first**: saveGroupTeam refuses someone not in admin_group_members (groups.errors.memberFirst)
+  — it never adds them to the group any more; "Add to team" picks only from the group's members not on the team
+  (AddGroupTeamButton `candidates`, local Combobox). Outsiders are added on the Members tab first.
+- **Women's contact numbers** (lib/contact-privacy.js; Settings → Permissions → "Women's contact numbers", admin
+  multi settings female_phone_viewers = WHO: women · same_surname (hers or her maiden surname) · close (≤ 5 steps) ·
+  married · over35 · same_village · same_city · everyone; female_phone_shown = WHOSE: over30 · married · daughter /
+  sister / aunt in the viewer's family (≤ 5 steps, from the viewer → her steps) · everyone). Shown when viewer AND she
+  match. Always: admins (sub-admin+) see all, an admin woman's number shows, everyone sees their own. canSeeContact
+  gates the PROFILE (Call / WhatsApp, Mobile, Alternate mobile). LISTS show a woman's number to admins only:
+  hideWomenPhones (group members, blood donors — stripped server-side), Members list phoneShown + phone search
+  (f.phoneWomen). Defaults everyone / everyone. Privacy policy (lib/legal.js) says so.
+- **Phone numbers, any country** (lib/phone.js): stored Indian = 10 digits (unchanged), any other = "+<code><number>"
+  (the "+" keeps e.g. +65 8… apart from an Indian 10-digit number); columns VARCHAR(16). normalizePhone reads "+…"/"00…"
+  as international (+91 → 10 digits), no code = Indian, 11–15 bare digits = already with a code. formatPhone shows
+  "+1 2025550123"; waNumber for wa.me; phonePassword = the digits (first password of a login made from a number — login
+  also accepts it typed with "+"/spaces while must_change_password). Every phone box is components/ui/phone-input.jsx
+  (+91 ▾ code picker over a hidden native select, posts ONE value under the field name) — login, register, member
+  edit/new, add relative, change phone, blood contact, matrimony contact. Invite rows stay a plain box ("+1 …" works).
+  Members' Country = users_listmeta `country` (COUNTRIES code, empty = India), Details → Other contact; profile shows it
+  when abroad.
 - **Login phone**: only its owner changes it (actions/profile.js, needs their password). Whoever added a relative may
   edit that relative's profile but never their mobile number once the relative signs in (decided, Oct 2026).
 - **Settings → Permissions** (admin section, KeyRound): who-may-do-what settings of every module in ONE form —

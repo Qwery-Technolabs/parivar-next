@@ -6,7 +6,8 @@ import { memo } from './memo';
 
 // `position` is the person's current post (Talati, ward member, trustee…) — free text,
 // deliberately separate from the app role, which only decides permissions.
-export const MEMBER_META_KEYS = ['position', 'address', 'occupation', 'education', 'email', 'alt_phone', 'bio'];
+// `country`: where they live (lib/phone.js COUNTRIES code), stored only when not India (empty = India).
+export const MEMBER_META_KEYS = ['position', 'address', 'occupation', 'education', 'email', 'alt_phone', 'bio', 'country'];
 // 'archived' is a filter only administrators get (the Members page downgrades it for everyone else).
 const STATUSES = ['active', 'inactive', 'deceased', 'archived'];
 const GENDERS = ['male', 'female', 'other'];
@@ -125,7 +126,8 @@ function whereFor(f) {
         const parts = ['u.full_name LIKE :like', 'u.full_name_local LIKE :like', 'u.village LIKE :like', 'u.city LIKE :like'];
         if (digits.length >= 3) {
             params.phone = `%${digits}%`;
-            parts.push('u.phone LIKE :phone');
+            // A woman's number is found by phone search only for admins (f.phoneWomen, set by the page) — lib/contact-privacy.js.
+            parts.push(f.phoneWomen === false ? "(u.phone LIKE :phone AND (u.gender IS NULL OR u.gender <> 'female'))" : 'u.phone LIKE :phone');
         }
         where.push(`(${parts.join(' OR ')})`);
     }

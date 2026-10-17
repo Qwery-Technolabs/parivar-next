@@ -38,7 +38,11 @@ export async function listRequests({ status, q = '', page, perPage }) {
           LIMIT ${perPage} OFFSET ${offset}`,
         params,
     );
-    const meta = await getMetaMany('blood_requests', rows.map((r) => r.id), ['notes']);
+    const meta = await getMetaMany(
+        'blood_requests',
+        rows.map((r) => r.id),
+        ['notes'],
+    );
     return { total, rows: rows.map((r) => ({ ...r, notes: meta[r.id]?.notes ?? '' })) };
 }
 
@@ -67,7 +71,7 @@ export async function listDonors({ group, compatible, city, q = '' }) {
         params.city = `%${city}%`;
     }
     return query(
-        `SELECT id, full_name, full_name_local, phone, city, blood_group
+        `SELECT id, full_name, full_name_local, phone, gender, city, blood_group
            FROM users_list WHERE ${where}
           ORDER BY blood_group = :exact DESC, full_name LIMIT 200`,
         { ...params, exact: group || '' },

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { saveMatrimonyProfile } from '@/app/actions/matrimony';
 import { Card } from '@/components/shell/page-header';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
+import PhoneInput from '@/components/ui/phone-input';
 import SubmitButton from '@/components/ui/submit-button';
 import { useT } from '@/lib/i18n/client';
 
@@ -38,7 +39,13 @@ export default function MatrimonyForm({ profile, contact, castes }) {
     };
     const input = (name, label, props = {}) => (
         <Field label={label} error={fe(name)} required={props.required}>
-            <input name={name} defaultValue={props.defaultValue ?? p[name] ?? ''} {...props.attrs} required={props.required} className={`${textInput(!!fe(name))} w-full`} />
+            <input
+                name={name}
+                defaultValue={props.defaultValue ?? p[name] ?? ''}
+                {...props.attrs}
+                required={props.required}
+                className={`${textInput(!!fe(name))} w-full`}
+            />
         </Field>
     );
 
@@ -66,8 +73,14 @@ export default function MatrimonyForm({ profile, contact, castes }) {
                 <Card title={t('matrimony.contact')}>
                     <p className="mb-3 text-xs text-ink-gray">{t('matrimony.contactHint')}</p>
                     <div className="grid gap-3 sm:grid-cols-2">
-                        {input('contact_name', t('matrimony.contactName'), { required: true, defaultValue: p.contact_name ?? contact.name, attrs: { maxLength: 150 } })}
-                        {input('contact_phone', t('members.phone'), { required: true, defaultValue: p.contact_phone ?? contact.phone, attrs: { type: 'tel', inputMode: 'numeric' } })}
+                        {input('contact_name', t('matrimony.contactName'), {
+                            required: true,
+                            defaultValue: p.contact_name ?? contact.name,
+                            attrs: { maxLength: 150 },
+                        })}
+                        <Field label={t('members.phone')} error={fe('contact_phone')} required>
+                            <PhoneInput name="contact_phone" defaultValue={p.contact_phone ?? contact.phone ?? ''} required hasError={!!fe('contact_phone')} />
+                        </Field>
                     </div>
                 </Card>
                 <Card title={t('matrimony.sections.preferences')}>
@@ -89,12 +102,26 @@ export default function MatrimonyForm({ profile, contact, castes }) {
                     </div>
                 </Card>
                 <Card title={t('matrimony.about')}>
-                    <textarea name="about" rows={6} maxLength={2000} defaultValue={p.about ?? ''} placeholder={t('matrimony.aboutHint')} className={`${textArea()} w-full`} />
+                    <textarea
+                        name="about"
+                        rows={6}
+                        maxLength={2000}
+                        defaultValue={p.about ?? ''}
+                        placeholder={t('matrimony.aboutHint')}
+                        className={`${textArea()} w-full`}
+                    />
                 </Card>
             </div>
-            {state?.error && <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">{t(state.error)}</p>}
+            {state?.error && (
+                <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                    {t(state.error)}
+                </p>
+            )}
             <div className="sticky bottom-0 z-10 -mx-2 -mb-3 flex flex-row gap-2 border-t border-surface-border bg-white/95 px-2 py-2.5 backdrop-blur *:flex-1 sm:-mx-3 sm:justify-end sm:px-3 sm:*:flex-none lg:-mx-4 lg:px-4">
-                <Link href={`/matrimony/${p.id}`} className="inline-flex h-9 items-center justify-center rounded-md border border-surface-border bg-white px-4 text-sm font-medium text-primary hover:bg-accent">
+                <Link
+                    href={`/matrimony/${p.id}`}
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-surface-border bg-white px-4 text-sm font-medium text-primary hover:bg-accent"
+                >
                     {t('common.cancel')}
                 </Link>
                 <SubmitButton icon={HeartHandshake} pendingText={t('common.saving')} pending={pending}>

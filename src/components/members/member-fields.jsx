@@ -3,12 +3,14 @@ import { Droplet, FileText, GraduationCap, IdCard, Mail, MapPin, UserRound, User
 import HomePinButton from './home-pin-button';
 import { useState } from 'react';
 import { Field, selectInput, textArea, textInput } from '@/components/ui/field';
+import PhoneInput from '@/components/ui/phone-input';
 import FormPart from '@/components/ui/form-part';
 import Switch from '@/components/ui/switch';
 import PickOrType from '@/components/ui/pick-or-type';
 import CasteSelect from './caste-select';
 import NameFields from './name-fields';
 import { useT } from '@/lib/i18n/client';
+import { COUNTRIES } from '@/lib/phone';
 import { BLOOD_GROUPS } from '@/lib/roles';
 import PasswordInput from '@/components/ui/password-input';
 
@@ -82,14 +84,7 @@ export function BasicFields({ member, fe, villages = [], cities = [] }) {
                             error={fe('phone')}
                             required={!relativeOnly}
                         >
-                            <input
-                                name="phone"
-                                type="tel"
-                                inputMode="numeric"
-                                defaultValue={member?.phone ?? ''}
-                                required={!relativeOnly}
-                                className={`${textInput(!!fe('phone'))} w-full tabular-nums`}
-                            />
+                            <PhoneInput name="phone" defaultValue={member?.phone ?? ''} hasError={!!fe('phone')} />
                         </Field>
                     )}
                     <Field label={t('members.village')}>
@@ -181,7 +176,7 @@ export function AccessFields({ member, roles, withStatus = false }) {
 
 /** In parts: Work & education, Other contact (alt phone, email, address), About (bio) — users_listmeta. */
 export function DetailFields({ member }) {
-    const { t } = useT();
+    const { t, locale } = useT();
     const meta = member?.meta ?? {};
     return (
         <div className="space-y-3">
@@ -205,6 +200,16 @@ export function DetailFields({ member }) {
                     </Field>
                     <Field label={t('members.email')}>
                         <input name="email" type="email" defaultValue={meta.email ?? ''} className={`${textInput()} w-full`} />
+                    </Field>
+                    {/* Where they live (empty = India): shown on the profile when abroad. Phone codes are picked per number. */}
+                    <Field label={t('members.country')} hint={t('members.countryHint')}>
+                        <select name="country" defaultValue={meta.country || 'IN'} className={`${selectInput()} w-full`}>
+                            {COUNTRIES.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {(locale !== 'en' && c.gu) || c.name}
+                                </option>
+                            ))}
+                        </select>
                     </Field>
                     <Field label={t('members.address')} className="sm:col-span-2">
                         {/* Any existing profile: the home's exact spot, saved on its own (Directions on the profile). Only men's pins show on Nearby Homes. */}

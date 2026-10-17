@@ -225,6 +225,10 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **Bottom bar** also shows on /blood (BOTTOM_ALSO; no tab highlighted there).
 - **Family tree names**: weight 500 (font-medium), not semibold.
 - **Settings → Permissions**: Sign-up, Members and Sharing together in one card (one Save), right after General.
+- **Scrollbars**: one slim themed scrollbar app-wide (globals.css): thin, navy thumb at 35% (55–60% on hover) on a clear
+  track, rounded; light (white 30%) inside .bg-brand-navy areas. `.scrollbar-none` hides it where a strip scrolls sideways.
+- **Phone box**: PhoneInput — a grey "+91 ▾" code part joined to the number field (one control, rounded outer corners);
+  the code opens the device's own country list. Never a plain tel input for a number someone types.
 - **Multi-choice setting** (Settings form, type 'multi'): tick chips — bordered pills with a checkbox; ticked = navy
   border on the accent tint, medium weight. One row, wrapping.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.

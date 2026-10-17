@@ -1,5 +1,5 @@
 'use client';
-import { Building2, Languages, Receipt, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
+import { Building2, Languages, Lock, Receipt, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
 import { startTransition, useActionState, useState } from 'react';
 import { toast } from 'sonner';
 import { saveModuleSettings } from '@/app/actions/settings';
@@ -13,7 +13,7 @@ import { renderLogoPngs } from '@/lib/app-icon-canvas';
 import { useT } from '@/lib/i18n/client';
 
 // The icon before each group's title (lib/settings.js `group`).
-const GROUP_ICONS = { samaj: Building2, signup: UserPlus, language: Languages, members: Users, sharing: Share2, expenses: Receipt };
+const GROUP_ICONS = { samaj: Building2, signup: UserPlus, language: Languages, members: Users, privacy: Lock, sharing: Share2, expenses: Receipt };
 
 function BoolSetting({ name, label, hint, initial }) {
     const [on, setOn] = useState(initial);

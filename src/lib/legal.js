@@ -28,7 +28,7 @@ export const PRIVACY_POLICY = {
             title: 'What we keep about you',
             body: ['Only what members and administrators enter into the app:'],
             list: [
-                'Account: your name (in English and your local language), mobile number and a password (stored only as a one-way hash, never readable).',
+                'Account: your name (in English and your local language), mobile number (with its country code when it is not Indian), the country you live in if not India, and a password (stored only as a one-way hash, never readable).',
                 'Profile: date of birth, gender, blood group and whether you are willing to donate blood, village and city, caste / sub-caste, marital status.',
                 'Family: the relatives you or an administrator link to you (parents, spouse, children, brothers, sisters) for the family tree.',
                 'Matrimony: only if a profile is listed for you — the details written in it.',
@@ -46,7 +46,7 @@ export const PRIVACY_POLICY = {
         {
             title: 'Who can see it',
             body: [
-                'Signed-in members of the Samaj can see the member directory, including members’ names, villages, mobile numbers and profile details such as birth date and blood group (so members can reach each other), and the blood-donor list with contact numbers. For relatives added through the family tree, the phone number, birth date and marital status are shown only to their family, to whoever added them and to member administrators. Administrators can see and edit what their role allows, and every change is recorded in the activity log.',
+                'Signed-in members of the Samaj can see the member directory, including members’ names, villages, mobile numbers and profile details such as birth date and blood group (so members can reach each other), and the blood-donor list with contact numbers. For relatives added through the family tree, the phone number, birth date and marital status are shown only to their family, to whoever added them and to member administrators. A woman’s phone numbers are not shown in lists to anyone but administrators; on her profile they are shown only to the members the Samaj’s administrators allow in Settings (for example women, close relatives or the same village). Administrators can see and edit what their role allows, and every change is recorded in the activity log.',
                 'A fundraiser or Mandal can be given a public link by its administrators: anyone with that link can see its statement — contributor names and amounts (except gifts marked anonymous), expenses and, for a Mandal, who came to each meeting and what they paid.',
             ],
         },
@@ -108,7 +108,7 @@ export const PRIVACY_POLICY = {
             title: 'અમે તમારી કઈ માહિતી રાખીએ છીએ',
             body: ['ફક્ત એટલી જ માહિતી જે સભ્યો અને સંચાલકો એપમાં ઉમેરે છે:'],
             list: [
-                'ખાતું: તમારું નામ (અંગ્રેજી અને તમારી સ્થાનિક ભાષામાં), મોબાઇલ નંબર અને પાસવર્ડ (ફક્ત એક-તરફી હેશ તરીકે સંગ્રહિત, ક્યારેય વાંચી શકાતો નથી).',
+                'ખાતું: તમારું નામ (અંગ્રેજી અને તમારી સ્થાનિક ભાષામાં), મોબાઇલ નંબર (ભારતનો ન હોય તો દેશના કોડ સાથે), ભારત બહાર રહેતા હો તો તમારો દેશ, અને પાસવર્ડ (ફક્ત એક-તરફી હેશ તરીકે સંગ્રહિત, ક્યારેય વાંચી શકાતો નથી).',
                 'પ્રોફાઇલ: જન્મ તારીખ, જાતિ (પુરુષ / સ્ત્રી), બ્લડ ગ્રુપ અને રક્તદાન માટે તૈયાર છો કે નહીં, ગામ અને શહેર, જ્ઞાતિ / પેટા-જ્ઞાતિ, વૈવાહિક સ્થિતિ.',
                 'પરિવાર: ફેમિલી ટ્રી માટે તમે અથવા સંચાલક જે સગાંને તમારી સાથે જોડે (માતા-પિતા, જીવનસાથી, સંતાનો, ભાઈ-બહેન).',
                 'લગ્ન વિભાગ: ફક્ત જો તમારી પ્રોફાઇલ મૂકવામાં આવી હોય — તેમાં લખેલી વિગતો.',
@@ -126,7 +126,7 @@ export const PRIVACY_POLICY = {
         {
             title: 'માહિતી કોણ જોઈ શકે છે',
             body: [
-                'સમાજના સાઇન-ઇન કરેલા સભ્યો સભ્ય યાદી જોઈ શકે છે — સભ્યોનાં નામ, ગામ, મોબાઇલ નંબર અને જન્મ તારીખ, બ્લડ ગ્રુપ જેવી પ્રોફાઇલ વિગતો (જેથી સભ્યો એકબીજાનો સંપર્ક કરી શકે) — અને સંપર્ક નંબર સાથે રક્તદાતાઓની યાદી પણ. ફેમિલી ટ્રી દ્વારા ઉમેરાયેલા સગાંના ફોન નંબર, જન્મ તારીખ અને વૈવાહિક સ્થિતિ ફક્ત તેમના પરિવારને, તેમને ઉમેરનારને અને સભ્ય-સંચાલકોને જ દેખાય છે. સંચાલકો તેમની ભૂમિકા મુજબ જોઈ અને સુધારી શકે છે, અને દરેક ફેરફાર પ્રવૃત્તિ લોગમાં નોંધાય છે.',
+                'સમાજના સાઇન-ઇન કરેલા સભ્યો સભ્ય યાદી જોઈ શકે છે — સભ્યોનાં નામ, ગામ, મોબાઇલ નંબર અને જન્મ તારીખ, બ્લડ ગ્રુપ જેવી પ્રોફાઇલ વિગતો (જેથી સભ્યો એકબીજાનો સંપર્ક કરી શકે) — અને સંપર્ક નંબર સાથે રક્તદાતાઓની યાદી પણ. ફેમિલી ટ્રી દ્વારા ઉમેરાયેલા સગાંના ફોન નંબર, જન્મ તારીખ અને વૈવાહિક સ્થિતિ ફક્ત તેમના પરિવારને, તેમને ઉમેરનારને અને સભ્ય-સંચાલકોને જ દેખાય છે. મહિલાઓના ફોન નંબર યાદીઓમાં સંચાલકો સિવાય કોઈને દેખાતા નથી; તેમની પ્રોફાઇલ પર ફક્ત એવા સભ્યોને દેખાય છે જેમને સમાજના સંચાલકો સેટિંગ્સમાં મંજૂરી આપે (જેમ કે મહિલાઓ, નજીકના સગા કે સમાન ગામ). સંચાલકો તેમની ભૂમિકા મુજબ જોઈ અને સુધારી શકે છે, અને દરેક ફેરફાર પ્રવૃત્તિ લોગમાં નોંધાય છે.',
                 'ફાળા કે મંડળ માટે સંચાલકો જાહેર લિંક બનાવી શકે છે: એ લિંક ધરાવનાર કોઈપણ તેનો હિસાબ જોઈ શકે છે — દાતાનાં નામ અને રકમ (અનામી તરીકે નોંધાયેલ દાન સિવાય), ખર્ચ અને મંડળ માટે દરેક મીટિંગમાં કોણ આવ્યું અને કોણે કેટલું ભર્યું.',
             ],
         },

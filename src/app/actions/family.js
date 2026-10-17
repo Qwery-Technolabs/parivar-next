@@ -6,7 +6,7 @@ import { query, queryOne, setMeta, withTransaction } from '@/lib/db';
 import { canEditFamily, fillCastes, fillFatherNames, genderFor, getPerson, linkProblem, linkRelative, MARITAL_STATUSES, RELATIVE_KINDS } from '@/lib/family';
 import { date, id, oneOf, str, strOrNull } from '@/lib/forms';
 import { composeName, nameCase } from '@/lib/names';
-import { normalizePhone } from '@/lib/phone';
+import { normalizePhone, phonePassword } from '@/lib/phone';
 import { canAddRelativePhone } from '@/lib/relative-phone';
 import { applySurnameCastes } from '@/lib/surnames';
 import { forget } from '@/lib/memo';
@@ -96,7 +96,7 @@ export async function addRelative(prev, fd) {
                          :maidenMiddleLocal, :maidenSurnameLocal, :gender, :dob, :marital, :status, 'sabhyo', :by)`,
                 {
                     phone,
-                    hash: withLogin ? await hashPassword(phone) : null,
+                    hash: withLogin ? await hashPassword(phonePassword(phone)) : null,
                     fullName: composeName({ first, middle, surname }),
                     fullNameLocal: composeName(local) || null,
                     first,
