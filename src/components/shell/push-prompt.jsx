@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n/client';
-import { currentSubscription, enablePush, pushChoice, pushSupported, rememberPushChoice } from '@/lib/push-client';
+import {
+    currentSubscription,
+    deviceAsked,
+    enablePush,
+    markDeviceAsked,
+    pushChoice,
+    pushSupported,
+    rememberPushChoice,
+    warmServiceWorker,
+} from '@/lib/push-client';
 
 // Set by createSession (lib/auth.js) on every login / first sign-up; read once here, then cleared.
 const ASK_COOKIE = 'pv_push_ask';
@@ -16,12 +25,12 @@ function takeLoginMark() {
 }
 
 /**
- * After a login (or the first sign-up): ask for notifications on this device.
- *  - already said yes on this device (and the browser still allows it) → switched back on silently, no question;
- *  - otherwise a small card: Allow (the browser's own prompt — it needs a tap) / Not now;
- *  - "Not now" or the Settings switch turned off → not asked again here except at the next login;
- *  - blocked in the browser, or no browser support → nothing.
- * Also asks once, without a login, someone who was never asked on this device (signed in before this existed).
+ * After a login (or the first sign-up): notifications on this device?
+ *  - that person said yes here before (and the browser still allows it) → switched back on silently, no question;
+ *  - else, ONCE per phone / browser (ever — `pv-push-asked`): a small card, Allow (the browser's own prompt needs a
+ *    tap) / Not now. After that only Settings → Notifications turns it on;
+ *  - never without a login; nothing when blocked in the browser or unsupported.
+ * The service worker is registered as soon as the app opens, so Allow only has to subscribe and save.
  * One browser holds one subscription and the server keeps it for the person who saved it last — never two people.
  */
 export default function PushPrompt({ publicKey, userId }) {
@@ -31,19 +40,21 @@ export default function PushPrompt({ publicKey, userId }) {
 
     useEffect(() => {
         if (!publicKey || !pushSupported()) return;
+        // Ready before anyone taps Allow (installing the worker was most of the wait). Tiny: no offline caching.
+        warmServiceWorker();
         const login = takeLoginMark();
+        if (!login || Notification.permission === 'denied') return;
         let alive = true;
         (async () => {
-            if (Notification.permission === 'denied') return;
-            const choice = pushChoice(userId);
-            if (login && choice === 'yes' && Notification.permission === 'granted') {
+            if (pushChoice(userId) === 'yes' && Notification.permission === 'granted') {
                 // They allowed it before on this device: on again for them (the token is saved for THIS person).
                 await enablePush(publicKey).catch(() => {});
                 return;
             }
-            const sub = await currentSubscription();
-            const ask = login ? choice !== 'yes' || !sub : choice === null && !sub;
-            if (alive && ask) setShow(true);
+            if (deviceAsked() || (await currentSubscription())) return;
+            if (!alive) return;
+            markDeviceAsked();
+            setShow(true);
         })();
         return () => {
             alive = false;
@@ -54,15 +65,17 @@ export default function PushPrompt({ publicKey, userId }) {
 
     async function allow() {
         setBusy(true);
+        // The browser's question first; the card goes as soon as it is answered — saving the token happens behind.
+        const permission = await Notification.requestPermission().catch(() => 'default');
+        setShow(false);
+        setBusy(false);
+        if (permission !== 'granted') return rememberPushChoice(userId, false);
         try {
             const next = await enablePush(publicKey);
             rememberPushChoice(userId, next === 'on');
             if (next === 'on') toast.success(t('push.enabled'));
-            setShow(false);
         } catch {
             toast.error(t('push.failed'));
-        } finally {
-            setBusy(false);
         }
     }
 

@@ -1,6 +1,7 @@
 import 'server-only';
 import { inList, query, queryOne } from './db';
 import { categoryOf } from './notification-prefs';
+import { after } from 'next/server';
 import { pushToUsers } from './push';
 
 /**
@@ -50,8 +51,14 @@ export async function notifyMany(userIds, { type, data = {}, link = null, actorI
             });
             await query(`INSERT INTO users_notifications (user_id, type, data, link, actor_id) VALUES ${values.join(', ')}`, params);
         }
-        // Browser push goes out after the rows exist, and does not hold up the caller.
-        pushToUsers(ids, { type, data, link }).catch(() => {});
+        // Browser push goes out after the rows exist and AFTER the response is sent (next/server after()), so the
+        // action that caused it never waits on the push service. Outside a request (the reminder loop) it just runs.
+        const send = () => pushToUsers(ids, { type, data, link }).catch(() => {});
+        try {
+            after(send);
+        } catch {
+            send();
+        }
         return ids.length;
     } catch (err) {
         console.error('notify failed', type, err.message);

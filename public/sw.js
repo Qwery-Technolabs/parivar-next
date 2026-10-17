@@ -16,7 +16,8 @@ self.addEventListener('push', (event) => {
             body: data.body || '',
             // The Samaj logo (Settings → General), like the favicon; falls back to favicon.ico.
             icon: data.icon || '/api/app-icon?size=192',
-            badge: data.badge || '/api/app-icon?size=32',
+            // One-colour Samaj logo (Android shows only its shape — a coloured square would be a blank white box).
+            badge: data.badge || '/api/app-icon?badge=1',
             tag: data.tag, // same tag replaces the previous notification instead of stacking
             data: { link: data.link || '/notifications' },
         }),

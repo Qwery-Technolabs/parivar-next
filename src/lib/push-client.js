@@ -31,6 +31,19 @@ const store = (fn) => {
         return null;
     }
 };
+// The after-login card is shown once per phone / browser, whoever signs in.
+const ASKED_KEY = 'pv-push-asked';
+export const deviceAsked = () => Boolean(store((s) => s.getItem(ASKED_KEY)));
+export const markDeviceAsked = () => store((s) => s.setItem(ASKED_KEY, '1'));
+
+/** Register the service worker early (idle time), so turning notifications on later is quick. */
+export function warmServiceWorker() {
+    if (!pushSupported()) return;
+    const go = () => registration().catch(() => {});
+    if ('requestIdleCallback' in window) window.requestIdleCallback(go, { timeout: 4000 });
+    else setTimeout(go, 1500);
+}
+
 export const pushChoice = (uid) => store((s) => (s.getItem(okKey(uid)) ? 'yes' : s.getItem(noKey(uid)) ? 'no' : null));
 export function rememberPushChoice(uid, yes) {
     store((s) => {

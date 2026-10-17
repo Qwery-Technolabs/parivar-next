@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ICON_SIZES, readAppIcon } from '@/lib/app-icons';
+import { ICON_SIZES, readAppBadge, readAppIcon } from '@/lib/app-icons';
 
 const WEEK = 60 * 60 * 24 * 7;
 
@@ -10,7 +10,8 @@ const WEEK = 60 * 60 * 24 * 7;
 export async function GET(request) {
     const params = new URL(request.url).searchParams;
     const size = Number(params.get('size')) || 192;
-    const png = ICON_SIZES.includes(size) ? await readAppIcon(size) : null;
+    // ?badge=1: the small one-colour Samaj logo for notifications (lib/app-icons.js readAppBadge).
+    const png = params.get('badge') ? await readAppBadge().catch(() => null) : ICON_SIZES.includes(size) ? await readAppIcon(size) : null;
     if (!png) {
         const res = NextResponse.redirect(new URL('/favicon.ico', request.url));
         res.headers.set('Cache-Control', `public, max-age=${WEEK}`);

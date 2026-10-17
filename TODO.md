@@ -452,3 +452,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Profile ⋮ → Notification devices; Members filter / bell for notifications on (admins)
 - [x] Push for new fundraise / Mandal, contributions received, group removed / team role, new Mandal meeting
 - [x] Multi-choice settings as a select2-style multi-select
+- [x] Push prompt once per phone (after login); faster token save; batched push DB writes; Samaj badge icon

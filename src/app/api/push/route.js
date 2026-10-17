@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getCurrentUser, PUSH_COOKIE } from '@/lib/auth';
 import { query } from '@/lib/db';
@@ -41,7 +41,8 @@ export async function POST(request) {
         path: '/',
         maxAge: 400 * 24 * 60 * 60,
     });
-    if (body?.test) await pushToUsers([user.id], { type: 'push.test', data: {}, link: '/settings?section=notifications' });
+    // The test notification is sent after this reply — turning it on does not wait for the push service.
+    if (body?.test) after(() => pushToUsers([user.id], { type: 'push.test', data: {}, link: '/settings?section=notifications' }).catch(() => {}));
     return NextResponse.json({ ok: true });
 }
 

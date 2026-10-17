@@ -140,8 +140,17 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     account moves it (created_at restarts, last_used_at cleared); many tokens per person (each device). last_used_at =
     last notification that reached it. /api/push sets the `pv_push` cookie (endpoint hash); Log out unsubscribes the
     browser (lib/push-client disablePush) AND destroySession deletes that token server-side. createSession sets
-    `pv_push_ask` → PushPrompt (shell) after a login: already said yes on this device + browser allowed → on again
-    silently; else a card Allow / Not now (also once for people never asked here). Browser code: lib/push-client.js only.
+    `pv_push_ask` → PushPrompt (shell) after a login ONLY: that person said yes on this device + browser allowed → on
+    again silently; else the Allow / Not now card ONCE per phone/browser ever (localStorage `pv-push-asked`), then only
+    Settings. The service worker is registered at idle on app open (warmServiceWorker) so Allow is quick; the card
+    closes once the browser answers and the token saves behind it. Browser code: lib/push-client.js only.
+  - **Performance**: notifyMany sends push in next/server `after()` (falls back to direct outside a request); /api/push's
+    test push too. lib/push `deliver`: waves of 50 sends, then ONE UPDATE last_used_at + ONE DELETE of gone tokens
+    (404/410) per batch — never a statement per device.
+  - **Icons**: payload icon = /api/app-icon?size=192&v=, badge = /api/app-icon?badge=1&v= — a white silhouette of the
+    logo's glyph on transparent (readAppBadge, sharp, cut from the saved 512 icon, cached per process). Android paints
+    only the badge's shape; a coloured square would be a white box. The site name / URL line in a notification is the
+    browser's: an installed app (WebAPK) shows the app name, a browser tab shows the domain — not settable from code.
   - Event notices (bell + push): fundraise.new / fundraise.mandal (on create, not drafts, to campaignViewerIds —
     the audience rules), fundraise.received / fundraise.pledged (the registered donor: contribution added, marked
     paid, paid at a Mandal meeting), fundraise.mandal_meeting / _collect (new Mandal schedule → its members),

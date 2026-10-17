@@ -26,28 +26,49 @@ export function vapidPublicKey() {
 
 export const endpointHash = (endpoint) => createHash('sha256').update(endpoint).digest('hex');
 
-/** Send one payload per subscription row (payloadOf(row) → object); counts what got through. Gone tokens (404/410) are deleted. */
+// Sends at once (open sockets to the push service); a village-wide notice goes out in waves of this size.
+const WAVE = 50;
+
+/**
+ * Send one payload per subscription row (payloadOf(row) → object); returns how many got through. Database work is
+ * batched: ONE "last notification" update for every delivered token and ONE delete for the gone ones (404/410 —
+ * permission revoked, browser cleared), never a statement per device.
+ */
 async function deliver(subs, payloadOf) {
-    let sent = 0;
-    await Promise.all(
-        subs.map(async (s) => {
-            try {
-                await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payloadOf(s)), {
-                    TTL: 60 * 60 * 12,
-                });
-                sent++;
-                await query('UPDATE users_push_subscriptions SET last_used_at = NOW() WHERE id = :id', { id: s.id });
-            } catch (err) {
-                // Gone: the person revoked permission or cleared the browser — stop trying.
-                if (err.statusCode === 404 || err.statusCode === 410) {
-                    await query('DELETE FROM users_push_subscriptions WHERE id = :id', { id: s.id });
-                } else {
-                    console.error('push failed', err.statusCode, err.body?.slice?.(0, 120));
+    const ok = [];
+    const gone = [];
+    for (let i = 0; i < subs.length; i += WAVE) {
+        await Promise.all(
+            subs.slice(i, i + WAVE).map(async (s) => {
+                try {
+                    await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payloadOf(s)), {
+                        TTL: 60 * 60 * 12,
+                        urgency: 'normal',
+                        timeout: 10000,
+                    });
+                    ok.push(s.id);
+                } catch (err) {
+                    if (err.statusCode === 404 || err.statusCode === 410) gone.push(s.id);
+                    else console.error('push failed', err.statusCode, err.body?.slice?.(0, 120));
                 }
-            }
-        }),
-    );
-    return sent;
+            }),
+        );
+    }
+    if (ok.length) {
+        const l = inList(ok, 'ok');
+        await query(`UPDATE users_push_subscriptions SET last_used_at = NOW() WHERE id IN (${l.sql})`, l.params);
+    }
+    if (gone.length) {
+        const l = inList(gone, 'gone');
+        await query(`DELETE FROM users_push_subscriptions WHERE id IN (${l.sql})`, l.params);
+    }
+    return ok.length;
+}
+
+/** The Samaj logo for a notification: the big icon, and the small monochrome badge (Android's status bar). */
+function samajIcons(general) {
+    const v = general.logo_version ? `&v=${general.logo_version}` : '';
+    return { icon: `/api/app-icon?size=192${v}`, badge: `/api/app-icon?badge=1${v}` };
 }
 
 async function subscriptionsOf(userIds) {
@@ -71,7 +92,9 @@ export async function pushToUsers(userIds, n) {
     if (!userIds.length || !ready()) return 0;
     try {
         const subs = await subscriptionsOf(userIds);
+        if (!subs.length) return 0;
         const general = await getSettings('admin').catch(() => ({}));
+        const icons = samajIcons(general);
         return await deliver(subs, (s) => {
             const dict = DICTS[s.language] ?? gu;
             const t = (key, vars) => translate(dict, key, vars);
@@ -85,6 +108,7 @@ export async function pushToUsers(userIds, n) {
                 body: notificationText(n, t, s.language),
                 link: n.link || '/notifications',
                 tag: `${n.type}:${n.link ?? ''}`, // same thing twice replaces, not stacks
+                ...icons,
             };
         });
     } catch (err) {
@@ -106,7 +130,9 @@ export async function pushMessage(userIds, { title, body, link = null }) {
     const people = new Set(subs.map((s) => s.user_id)).size;
     if (!ready()) return { people, devices: subs.length, sent: 0 };
     const tag = `custom:${Date.now()}`; // each message stays (never replaces the previous one)
-    const sent = await deliver(subs, () => ({ title, body, link: link || '/', tag }));
+    const icons = samajIcons(await getSettings('admin').catch(() => ({})));
+    const payload = { title, body, link: link || '/', tag, ...icons };
+    const sent = await deliver(subs, () => payload);
     return { people, devices: subs.length, sent };
 }
 

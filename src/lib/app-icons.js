@@ -53,3 +53,36 @@ export async function readAppIcon(size) {
         return null;
     }
 }
+
+let badgeCache = null; // { key, png } — per server process; a new logo has new bytes, so a new key
+
+/**
+ * The notification badge (Android status bar / notification header): it must be a one-colour shape on a clear
+ * background — Android paints only its outline — so the Samaj logo's GLYPH (icon / letters / emoji) is cut out of its
+ * coloured square: every pixel unlike the square's colour becomes white, the rest transparent. 96×96 PNG.
+ * Made from the stored 512 icon, so no new save is needed. null when no logo has been saved.
+ */
+export async function readAppBadge() {
+    const src = await readAppIcon(512);
+    if (!src) return null;
+    const key = `${src.length}:${src.subarray(-32).toString('hex')}`;
+    if (badgeCache?.key === key) return badgeCache.png;
+    const { default: sharp } = await import('sharp');
+    const { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const { width: w, height: h } = info;
+    // The square's colour: top middle, inside the rounded shape and outside the glyph.
+    const at = (Math.round(h * 0.06) * w + Math.round(w / 2)) * 4;
+    const [r0, g0, b0] = [data[at], data[at + 1], data[at + 2]];
+    for (let i = 0; i < data.length; i += 4) {
+        const d = Math.abs(data[i] - r0) + Math.abs(data[i + 1] - g0) + Math.abs(data[i + 2] - b0);
+        const strength = Math.min(1, Math.max(0, (d - 40) / 90)); // soft edge, no jaggies
+        data[i + 3] = Math.round(data[i + 3] * strength);
+        data[i] = data[i + 1] = data[i + 2] = 255;
+    }
+    const png = await sharp(data, { raw: { width: w, height: h, channels: 4 } })
+        .resize(96, 96)
+        .png()
+        .toBuffer();
+    badgeCache = { key, png };
+    return png;
+}
