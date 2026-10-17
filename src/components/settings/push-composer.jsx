@@ -59,7 +59,7 @@ export default function PushComposer({ stats, groups }) {
             </div>
             <Card title={t('push.admin.compose')}>
                 <p className="mb-3 text-xs text-ink-gray">{t('push.admin.hint')}</p>
-                <form action={action} className="space-y-3">
+                <form key={formKey} action={action} className="space-y-3">
                     <Field label={t('push.admin.title')} error={err('title')} required hint={`${title.length}/${TITLE_MAX}`}>
                         <input
                             name="title"
@@ -77,6 +77,16 @@ export default function PushComposer({ stats, groups }) {
                             onChange={(e) => setBody(e.target.value)}
                             maxLength={BODY_MAX}
                             className={`${textArea(!!err('body'))} w-full`}
+                        />
+                    </Field>
+                    <Field label={t('push.admin.link')} hint={t('push.admin.linkHint')} error={err('link')}>
+                        <input
+                            name="link"
+                            type="text"
+                            inputMode="url"
+                            maxLength={500}
+                            placeholder="/fundraise/12"
+                            className={`${textInput(!!err('link'))} w-full`}
                         />
                     </Field>
                     {/* A div, not Field's <label> (it would pass a click on its text to the first button). */}

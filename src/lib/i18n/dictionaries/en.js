@@ -1775,11 +1775,15 @@ const en = {
         },
     },
     push: {
+        opening: 'Opening…',
         promptTitle: 'Turn on notifications?',
         promptText: 'Hear about meetings, fundraises, contributions and your groups — even when the app is closed.',
         allow: 'Allow',
         notNow: 'Not now',
         admin: {
+            link: 'Open page (optional)',
+            linkHint: 'Where a tap on it opens — a page of this app, e.g. /fundraise/12, or its address copied from the browser. Empty: home.',
+            linkInvalid: 'Use a page of this app (e.g. /fundraise/12).',
             people: 'People with notifications on',
             devices: 'Devices',
             compose: 'New push notification',

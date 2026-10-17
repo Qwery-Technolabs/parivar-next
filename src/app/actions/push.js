@@ -1,4 +1,5 @@
 'use server';
+import { headers } from 'next/headers';
 import { audit } from '@/lib/audit';
 import { getCurrentUser } from '@/lib/auth';
 import { inList, query, queryOne } from '@/lib/db';
@@ -8,11 +9,30 @@ import { canManageMemberPush, canManageSettings } from '@/lib/roles';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 const PUSH_TARGETS = ['all', 'groups', 'members'];
+/**
+ * The optional "Open page" of a message: a page of THIS app — "/fundraise/12", or the full address copied from the
+ * browser (its path is kept). Empty → null (the home page). Another site → false (refused).
+ */
+async function appLink(raw) {
+    const v = String(raw ?? '')
+        .trim()
+        .slice(0, 500);
+    if (!v) return null;
+    const host = (await headers()).get('host') ?? 'localhost';
+    try {
+        const u = new URL(v.startsWith('/') && !v.startsWith('//') ? v : /^https?:\/\//i.test(v) ? v : `/${v}`, `https://${host}`);
+        if (u.host !== host) return false;
+        return (u.pathname + u.search + u.hash).slice(0, 300);
+    } catch {
+        return false;
+    }
+}
+
 const ids = (fd, name) => [...new Set(fd.getAll(name).map(Number))].filter((n) => Number.isInteger(n) && n > 0).slice(0, 500);
 
 /**
  * Settings → Samaj → Push notification: an admin's own message to people's devices — push only, no bell copy.
- * Fields: title, body, target (all | groups | members), group_ids[], member_ids[]; for ONE member also devices
+ * Fields: title, body, link (optional page to open), target (all | groups | members), group_ids[], member_ids[]; for ONE member also devices
  * (all | selected) + device_ids[].
  * Only active members with notifications turned on are reached; the result says how many.
  */
@@ -34,6 +54,8 @@ export async function sendPushMessage(prev, fd) {
     const someDevices = target === 'members' && memberIds.length === 1 && fd.get('devices') === 'selected';
     const deviceIds = someDevices ? ids(fd, 'device_ids') : null;
     if (someDevices && !deviceIds.length) fieldErrors.devices = 'push.devices.pickDevices';
+    const link = await appLink(fd.get('link'));
+    if (link === false) fieldErrors.link = 'push.admin.linkInvalid';
     if (Object.keys(fieldErrors).length) return { fieldErrors };
 
     // Only people who have a device turned on (and are active) — everyone else could not receive it anyway.
@@ -50,7 +72,7 @@ export async function sendPushMessage(prev, fd) {
     }
     const people = (await query(sql, params)).map((r) => r.user_id);
     if (!people.length) return { error: 'push.admin.nobody' };
-    const r = await pushMessage(people, { title, body, deviceIds });
+    const r = await pushMessage(people, { title, body, deviceIds, link });
     await audit(actor.id, 'push.send', 'settings', null, { title, target, groups: groupIds.length || undefined, people: r.people, sent: r.sent });
     return { ok: true, message: 'push.admin.sent', vars: { sent: r.sent, devices: r.devices, people: r.people } };
 }

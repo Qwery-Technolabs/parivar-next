@@ -271,6 +271,9 @@ function SendToMember({ userId, devices, onSent }) {
                     className={`${textArea(!!err('body'))} w-full`}
                 />
             </Field>
+            <Field label={t('push.admin.link')} hint={t('push.admin.linkHint')} error={err('link')}>
+                <input name="link" type="text" inputMode="url" maxLength={500} placeholder="/fundraise/12" className={`${textInput(!!err('link'))} w-full`} />
+            </Field>
             <div className="flex justify-end">
                 <SubmitButton icon={Send} pending={pending || (several && mode === 'selected' && picked.size === 0)} pendingText={t('push.admin.sending')}>
                     {t('push.admin.send')}

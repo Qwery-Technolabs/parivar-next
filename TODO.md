@@ -459,3 +459,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Notification devices pop-up: Devices / Send tabs, send to all or chosen devices
 - [x] Mandal sheet: ticking Came fills pending + current amount
 - [x] Mandal team: only members of the Mandal's group (picker + server)
+- [x] Notification tap opens its page in place (no reload) + Opening… pill; optional Open page link on sends

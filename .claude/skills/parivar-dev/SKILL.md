@@ -587,3 +587,7 @@ in the reply. Code and skills must never disagree.
 - **Mandal team = its group's members**: AddTeamMemberButton `groupId` → MemberPicker search `?group=<id>` (api/members/search
   filters admin_group_members); saveTeamMember refuses a NEW person not in campaign.group_id (mandal.errors.teamGroupMember).
   Plain fundraises: anyone, as before.
+- **Notification tap** (public/sw.js): only app links (else home). App open → focus its window, post `pv-open` →
+  PushNavigator (shell) answers and `router.push`es (no reload) with a mini "Opening…" pill until the route changes;
+  no answer in 800 ms → `navigate`; app closed → `openWindow`. Admin / member messages take an optional
+  "Open page" link (`appLink`: an in-app path or a pasted address of this host; another site is refused; empty = home).
