@@ -108,8 +108,8 @@ export default async function MemberPage({ params }) {
     // this profile themselves (e.g. a relative from their family tree) sees "Added by you"; nobody else sees it.
     const addedByMe = Boolean(member.created_by) && member.created_by === user.id && member.id !== user.id;
     const seesAddedBy = atLeast(user.role, 'sub_admin');
-    // Notification devices (push tokens): sub-admins and up, and the member themself.
-    const seesPush = user.id === memberId || canManageMemberPush(user.role);
+    // Notification devices (push tokens) and the bell badge: sub-admins and up only (members use Settings → Notifications).
+    const seesPush = canManageMemberPush(user.role);
     const [seeFamily, addedBy, canAddPhone, contactOk, pushCount] = await Promise.all([
         canSeeFamily(user, member),
         seesAddedBy && !addedByMe && member.created_by && member.created_by !== member.id

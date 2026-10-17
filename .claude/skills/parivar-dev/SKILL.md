@@ -141,8 +141,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     last notification that reached it. /api/push sets the `pv_push` cookie (endpoint hash); Log out unsubscribes the
     browser (lib/push-client disablePush) AND destroySession deletes that token server-side. createSession sets
     `pv_push_ask` → PushPrompt (shell) after a login ONLY: that person said yes on this device + browser allowed → on
-    again silently; else the Allow / Not now card ONCE per phone/browser ever (localStorage `pv-push-asked`), then only
-    Settings. The service worker is registered at idle on app open (warmServiceWorker) so Allow is quick; the card
+    again silently; else, while this phone/browser has no notifications, the Allow / Not now card on any page at most
+    once every 7 days (localStorage `pv-push-asked` = last shown). The service worker is registered at idle on app open (warmServiceWorker) so Allow is quick; the card
     closes once the browser answers and the token saves behind it. Browser code: lib/push-client.js only.
   - **Performance**: notifyMany sends push in next/server `after()` (falls back to direct outside a request); /api/push's
     test push too. lib/push `deliver`: waves of 50 sends, then ONE UPDATE last_used_at + ONE DELETE of gone tokens
@@ -157,7 +157,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     group.member / admin / sub_admin, group.removed, group.team (new task roles).
   - **Admin push** (Settings → Samaj → Push notification, administrators): Title, Description, Target (Everyone /
     Groups / Selected members) → `sendPushMessage` → lib/push `pushMessage` — push ONLY, no bell copy; only active
-    people with a token. Profile: a green bell badge on the avatar's bottom-right (navy ring) when on (admins + self); ⋮ → Notification devices: each token, turned on / last notification, for administrators two tabs — Devices · Send notification (title + description; more than one device: All devices (default) or Choose → device_ids),
+    people with a token. Profile: a green bell badge on the avatar's bottom-right (navy ring) when on (sub-admins and up only); ⋮ → Notification devices: each token, turned on / last notification, for administrators two tabs — Devices · Send notification (title + description; more than one device: All devices (default) or Choose → device_ids),
     remove. Members filter `?push=on|off` + a light-green bell square in the row's end cluster (before the home pin). Member-level
     push (list bell + filter, profile bell, ⋮ → Notification devices, sending to one member): sub-admins and up
     (`canManageMemberPush`); everyone / groups sending: administrators (`canManageSettings`).

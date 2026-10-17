@@ -55,8 +55,8 @@ export async function sendPushMessage(prev, fd) {
     return { ok: true, message: 'push.admin.sent', vars: { sent: r.sent, devices: r.devices, people: r.people } };
 }
 
-/** May this viewer see / remove this member's notification devices? Sub-admins and up, and the member themself. */
-const canSeeDevices = (actor, userId) => Boolean(actor) && (actor.id === userId || canManageMemberPush(actor.role));
+/** May this viewer see / remove a member's notification devices? Sub-admins and up only. */
+const canSeeDevices = (actor) => Boolean(actor) && canManageMemberPush(actor.role);
 
 /** A member's devices for the profile's ⋮ → Notification devices pop-up (loaded when it opens). */
 export async function loadPushDevices(userId) {

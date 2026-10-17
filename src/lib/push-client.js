@@ -31,10 +31,11 @@ const store = (fn) => {
         return null;
     }
 };
-// The after-login card is shown once per phone / browser, whoever signs in.
-const ASKED_KEY = 'pv-push-asked';
-export const deviceAsked = () => Boolean(store((s) => s.getItem(ASKED_KEY)));
-export const markDeviceAsked = () => store((s) => s.setItem(ASKED_KEY, '1'));
+// The "Turn on notifications?" card: on a phone / browser without notifications, at most once every 7 days.
+const ASKED_KEY = 'pv-push-asked'; // when it was last shown here (ms)
+const ASK_EVERY = 7 * 24 * 60 * 60 * 1000;
+export const askDue = () => Date.now() - (Number(store((s) => s.getItem(ASKED_KEY))) || 0) >= ASK_EVERY;
+export const markAsked = () => store((s) => s.setItem(ASKED_KEY, String(Date.now())));
 
 /** Register the service worker early (idle time), so turning notifications on later is quick. */
 export function warmServiceWorker() {

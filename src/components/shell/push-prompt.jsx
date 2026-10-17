@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n/client';
 import {
     currentSubscription,
-    deviceAsked,
+    askDue,
     enablePush,
-    markDeviceAsked,
+    markAsked,
     pushChoice,
     pushSupported,
     rememberPushChoice,
@@ -27,9 +27,9 @@ function takeLoginMark() {
 /**
  * After a login (or the first sign-up): notifications on this device?
  *  - that person said yes here before (and the browser still allows it) → switched back on silently, no question;
- *  - else, ONCE per phone / browser (ever — `pv-push-asked`): a small card, Allow (the browser's own prompt needs a
- *    tap) / Not now. After that only Settings → Notifications turns it on;
- *  - never without a login; nothing when blocked in the browser or unsupported.
+ *  - else, while this phone / browser has no notifications: a small card, Allow (the browser's own prompt needs a tap)
+ *    / Not now — on any page, at most once every 7 days (`pv-push-asked` = when it was last shown);
+ *  - nothing when notifications are already on, blocked in the browser, or unsupported.
  * The service worker is registered as soon as the app opens, so Allow only has to subscribe and save.
  * One browser holds one subscription and the server keeps it for the person who saved it last — never two people.
  */
@@ -43,17 +43,18 @@ export default function PushPrompt({ publicKey, userId }) {
         // Ready before anyone taps Allow (installing the worker was most of the wait). Tiny: no offline caching.
         warmServiceWorker();
         const login = takeLoginMark();
-        if (!login || Notification.permission === 'denied') return;
+        if (Notification.permission === 'denied') return;
         let alive = true;
         (async () => {
-            if (pushChoice(userId) === 'yes' && Notification.permission === 'granted') {
+            if (login && pushChoice(userId) === 'yes' && Notification.permission === 'granted') {
                 // They allowed it before on this device: on again for them (the token is saved for THIS person).
                 await enablePush(publicKey).catch(() => {});
                 return;
             }
-            if (deviceAsked() || (await currentSubscription())) return;
+            // Not turned on here: ask again, but not more than once a week.
+            if (!askDue() || (await currentSubscription())) return;
             if (!alive) return;
-            markDeviceAsked();
+            markAsked();
             setShow(true);
         })();
         return () => {
