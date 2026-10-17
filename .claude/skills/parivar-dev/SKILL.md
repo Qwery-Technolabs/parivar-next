@@ -77,7 +77,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   Decided (user, Oct 2026): a group's creator gets NO danger rights unless they are a leader — keep it leaders only.
 - **Login phone**: only its owner changes it (actions/profile.js, needs their password). Whoever added a relative may
   edit that relative's profile but never their mobile number once the relative signs in (decided, Oct 2026).
-- **Adding a phone to a relative who has none** (= a login): Settings → General → Members, `relative_phone_by` (multi):
+- **Settings → Permissions** (admin section, KeyRound): who-may-do-what settings of every module in ONE form —
+  lib/settings.js PERMISSION_GROUPS [[admin, signup], [admin, members], [fundraise, sharing]]; fields post as
+  `<module>.<key>` with module `*` (actions/settings.js saves each module in one transaction). General / Fundraise skip
+  those groups (isPermissionGroup). A new permission setting: give it one of those groups (or add a pair).
+- **Adding a phone to a relative who has none** (= a login): Settings → Permissions → Members, `relative_phone_by` (multi):
   admins (sub-admin+) · added_by (who added them; for a new relative the adder) · close (≤ 4 family steps from that
   relative, a new one counting one step past the person) · anyone (whoever may edit that family). Super admins always.
   lib/relative-phone.js `canAddRelativePhone` — checked in actions (members basic tab, family addRelative →
@@ -219,9 +223,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   married (widowed / divorced) woman that is her maiden father's name + maiden surname, never her husband's. Changing
   the marital status (single ↔ married name form) keeps what was typed (`carry`: father's name / surname ↔ maiden parts).
 - **Members list sort + data filter** (lib/members.js): ?sort= MEMBER_SORTS (name default, name_desc, newest / oldest
-  by created_at, age_young / age_old with no-birth-date last) — not counted as a filter; ?data= MEMBER_DATA (has_address,
-  has_pin, has_phone, no_phone, no_surname, no_middle, no_dob, no_caste, no_alt_phone) — fixed SQL picked from the map,
-  never the raw param. Both sit in the filter panel's first section "Sort & data".
+  by created_at, age_young / age_old with no-birth-date last) — not counted as a filter; ?data= MEMBER_DATA, built
+  from MEMBER_DETAILS (phone, alt_phone, address, pin, city, village, dob, caste, surname, middle — each one "is filled"
+  SQL): has_<detail> and no_<detail> (its NOT). The panel shows them in two optgroups, Has / Missing (DATA_DETAILS in
+  members-toolbar.jsx sets the order). Fixed SQL picked from the map, never the raw param. Both sit in the filter panel's first section "Sort & data".
 - **Home pins / Nearby Homes** (/nearby, nav Miscellaneous: My family tree · Nearby homes · Members): users_listmeta home_lat / home_lng, set on ANY existing
   profile (women too; theirs are saved but not shown on the map yet) — member edit → Details → the map-pin button beside the address (components/members/home-pin-button.jsx,
   actions/home.js `setHomeLocation`, canEditUser; saved on its own). The map shows active MEN only (never a woman's

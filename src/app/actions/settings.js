@@ -7,13 +7,32 @@ import { setMeta, withTransaction } from '@/lib/db';
 import { NOTIFY_CATEGORIES } from '@/lib/notification-prefs';
 import { sanitizeAvatar } from '@/lib/group-avatar';
 import { canManageSettings } from '@/lib/roles';
-import { coerceSetting, saveSettings, SETTINGS } from '@/lib/settings';
+import { coerceSetting, isPermissionGroup, saveSettings, SETTINGS } from '@/lib/settings';
 
 /** Save one module's settings. Fields are `<key>`; unknown keys are ignored by coerceSetting. */
 export async function saveModuleSettings(prev, fd) {
     const user = await getCurrentUser();
     if (!user || !canManageSettings(user.role)) return { error: 'common.forbidden' };
     const mod = String(fd.get('module') ?? '');
+    // Settings → Permissions: keys of several modules in one form, posted as `<module>.<key>`.
+    if (mod === '*') {
+        const saved = [];
+        await withTransaction(async (q) => {
+            for (const [m, spec] of Object.entries(SETTINGS)) {
+                const values = {};
+                for (const [key, def] of Object.entries(spec.keys)) {
+                    const name = `${m}.${key}`;
+                    if (!isPermissionGroup(m, def.group) || !fd.has(name)) continue;
+                    values[key] = coerceSetting(m, key, def.type === 'multi' ? fd.getAll(name) : fd.get(name));
+                    saved.push(name);
+                }
+                if (Object.keys(values).length) await saveSettings(m, values, q);
+            }
+        });
+        await audit(user.id, 'settings.update', 'settings', null, { module: 'permissions', keys: saved });
+        revalidatePath('/', 'layout');
+        return { ok: true, message: 'common.saved' };
+    }
     const spec = SETTINGS[mod];
     if (!spec) return { error: 'common.error' };
 

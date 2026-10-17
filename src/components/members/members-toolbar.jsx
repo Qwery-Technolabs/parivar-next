@@ -9,6 +9,9 @@ import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 import { useDebouncedCallback } from '@/components/ui/use-debounce';
 
+// The details of the "Has / missing" filter, in the order shown (keys of lib/members.js MEMBER_DETAILS).
+const DATA_DETAILS = ['phone', 'alt_phone', 'address', 'pin', 'city', 'village', 'dob', 'caste', 'surname', 'middle'];
+
 /**
  * design-system.md §5 "combining several controls" + §6 draft panel: one <form> so the search
  * and the filter button wrap as a unit; type → narrow → go.
@@ -157,10 +160,15 @@ function FiltersPanel({ filters, activeCount, villages, cities, roles, castes, s
             <Field label={t('members.hasData')}>
                 <select value={draft.data} onChange={(e) => set('data', e.target.value)} className={`${selectInput()} w-full`}>
                     <option value="">{t('common.any')}</option>
-                    {['has_address', 'has_pin', 'has_phone', 'no_phone', 'no_surname', 'no_middle', 'no_dob', 'no_caste', 'no_alt_phone'].map((k) => (
-                        <option key={k} value={k}>
-                            {t(`members.dataFilter.${k}`)}
-                        </option>
+                    {/* Every detail twice: under Has and under Missing (lib/members.js MEMBER_DETAILS). */}
+                    {['has', 'no'].map((side) => (
+                        <optgroup key={side} label={t(`members.dataFilter.${side}`)}>
+                            {DATA_DETAILS.map((d) => (
+                                <option key={d} value={`${side}_${d}`}>
+                                    {t(`members.dataFilter.${side}_${d}`)}
+                                </option>
+                            ))}
+                        </optgroup>
                     ))}
                 </select>
             </Field>

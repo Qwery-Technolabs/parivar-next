@@ -63,6 +63,17 @@ export const SETTINGS = {
     },
 };
 
+/**
+ * Groups shown together under Settings → Permissions (who may do what) instead of their module's own section:
+ * [module, group]. Their keys post as `<module>.<key>` with module '*' (actions/settings.js).
+ */
+export const PERMISSION_GROUPS = [
+    ['admin', 'signup'],
+    ['admin', 'members'],
+    ['fundraise', 'sharing'],
+];
+export const isPermissionGroup = (mod, group) => PERMISSION_GROUPS.some(([m, g]) => m === mod && g === group);
+
 function decode(def, raw) {
     if (raw == null) return def.default;
     try {

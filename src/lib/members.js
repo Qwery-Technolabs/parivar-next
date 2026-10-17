@@ -23,18 +23,28 @@ export const MEMBER_SORTS = {
 
 const metaFilled = (key) => `EXISTS (SELECT 1 FROM users_listmeta dm WHERE dm.user_id = u.id AND dm.meta_key = '${key}' AND dm.meta_value <> '')`;
 const blank = (col) => `(${col} IS NULL OR ${col} = '')`;
-/** ?data= of the Members list: has / is missing one piece of data (finding profiles to complete). */
-export const MEMBER_DATA = {
-    has_address: metaFilled('address'),
-    has_pin: metaFilled('home_lat'),
-    has_phone: `NOT ${blank('u.phone')}`,
-    no_phone: blank('u.phone'),
-    no_surname: blank('u.surname'),
-    no_middle: blank('u.middle_name'),
-    no_dob: 'u.dob IS NULL',
-    no_caste: 'u.caste_id IS NULL',
-    no_alt_phone: `NOT ${metaFilled('alt_phone')}`,
+/**
+ * ?data= of the Members list — finding profiles to complete: `has_<detail>` / `no_<detail>` for each detail below
+ * (SQL "is filled" per detail; the "missing" one is its NOT). The panel lists them in two groups, Has and Missing.
+ */
+export const MEMBER_DETAILS = {
+    address: metaFilled('address'),
+    pin: metaFilled('home_lat'),
+    city: `NOT ${blank('u.city')}`,
+    village: `NOT ${blank('u.village')}`,
+    phone: `NOT ${blank('u.phone')}`,
+    alt_phone: metaFilled('alt_phone'),
+    dob: 'u.dob IS NOT NULL',
+    caste: 'u.caste_id IS NOT NULL',
+    surname: `NOT ${blank('u.surname')}`,
+    middle: `NOT ${blank('u.middle_name')}`,
 };
+export const MEMBER_DATA = Object.fromEntries(
+    Object.entries(MEMBER_DETAILS).flatMap(([k, sql]) => [
+        [`has_${k}`, sql],
+        [`no_${k}`, `NOT (${sql})`],
+    ]),
+);
 
 /**
  * Parse the directory's URL params once, so the page and the filter control cannot

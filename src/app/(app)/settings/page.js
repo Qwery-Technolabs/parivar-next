@@ -11,6 +11,7 @@ import {
     SlidersHorizontal,
     UserCircle,
     History,
+    KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { setLocalLanguage } from '@/app/actions/profile';
@@ -28,7 +29,7 @@ import { LOCAL_LANGUAGES } from '@/lib/local-language';
 import { formatPhone } from '@/lib/phone';
 import { canManageSettings, canViewAudit, canInviteMembers } from '@/lib/roles';
 import { vapidPublicKey } from '@/lib/push';
-import { getSettings, SETTINGS } from '@/lib/settings';
+import { getSettings, isPermissionGroup, PERMISSION_GROUPS, SETTINGS } from '@/lib/settings';
 import AuditLog from '@/components/audit/audit-log';
 import MemberEditTabs from '@/components/members/member-edit-tabs';
 import { casteOptions } from '@/lib/castes';
@@ -57,6 +58,8 @@ const SECTIONS = [
     { key: 'language', group: 'personal', icon: Languages },
     { key: 'notifications', group: 'personal', icon: BellRing },
     { key: 'general', group: 'admin', icon: SlidersHorizontal, module: 'admin', admin: true },
+    // Who may do what (Sign-up, Members, Fundraise sharing) — one form across modules (lib/settings PERMISSION_GROUPS).
+    { key: 'permissions', group: 'admin', icon: KeyRound, admin: true },
     { key: 'fundraise', group: 'admin', icon: HandCoins, module: 'fundraise', admin: true },
     // App-wide sending switches (blood donors, new events) — under Samaj, not the personal Notifications.
     { key: 'alerts', group: 'admin', icon: Megaphone, admin: true },
@@ -143,6 +146,7 @@ export default async function SettingsPage({ searchParams }) {
                     {current.key === 'alerts' && <AdminNotifySection />}
                     {current.key === 'language' && <LanguageSection t={t} locale={locale} />}
                     {current.module && <ModuleSection module={current.module} title={t(`settings.sections.${current.key}.title`)} t={t} />}
+                    {current.key === 'permissions' && <PermissionsSection title={t('settings.sections.permissions.title')} t={t} />}
                 </div>
             </div>
         </div>
@@ -243,6 +247,37 @@ async function LanguageSection({ t, locale }) {
     );
 }
 
+/** One registry setting as a SettingsForm field (`name`: the posted field name, default its key). */
+function settingField(mod, key, def, value, t, name = key) {
+    const hintKey = `settings.hints.${mod}_${key}`;
+    const hint = t(hintKey);
+    return {
+        key: name,
+        type: def.type,
+        value,
+        label: t(`settings.keys.${mod}_${key}`),
+        hint: hint === hintKey ? undefined : hint,
+        group: def.group ?? null,
+        groupTitle: def.group ? t(`settings.formGroups.${def.group}`) : null,
+        options: def.options?.map((o) => ({
+            value: o,
+            label: def.labels?.[o] ?? (def.optionKey ? t(`${def.optionKey}.${o}`) : t(`lang.${o}`)),
+        })),
+    };
+}
+
+/** Settings → Permissions: the permission groups of every module in ONE form (posted as `<module>.<key>`, module '*'). */
+async function PermissionsSection({ title, t }) {
+    const mods = [...new Set(PERMISSION_GROUPS.map(([m]) => m))];
+    const all = Object.fromEntries(await Promise.all(mods.map(async (m) => [m, await getSettings(m)])));
+    const fields = PERMISSION_GROUPS.flatMap(([m, g]) =>
+        Object.entries(SETTINGS[m].keys)
+            .filter(([, def]) => def.group === g && !def.hidden)
+            .map(([key, def]) => settingField(m, key, def, all[m][key], t, `${m}.${key}`)),
+    );
+    return <SettingsForm module="*" title={title} fields={fields} />;
+}
+
 async function ModuleSection({ module: mod, title, t }) {
     const values = await getSettings(mod);
     return (
@@ -265,25 +300,10 @@ async function ModuleSection({ module: mod, title, t }) {
                           },
                       ]
                     : []),
+                // Permission groups (Sign-up, Members, Sharing) live under Settings → Permissions instead.
                 ...Object.entries(SETTINGS[mod].keys)
-                    .filter(([, def]) => !def.hidden)
-                    .map(([key, def]) => {
-                        const hintKey = `settings.hints.${mod}_${key}`;
-                        const hint = t(hintKey);
-                        return {
-                            key,
-                            type: def.type,
-                            value: values[key],
-                            label: t(`settings.keys.${mod}_${key}`),
-                            hint: hint === hintKey ? undefined : hint,
-                            group: def.group ?? null,
-                            groupTitle: def.group ? t(`settings.formGroups.${def.group}`) : null,
-                            options: def.options?.map((o) => ({
-                                value: o,
-                                label: def.labels?.[o] ?? (def.optionKey ? t(`${def.optionKey}.${o}`) : t(`lang.${o}`)),
-                            })),
-                        };
-                    }),
+                    .filter(([, def]) => !def.hidden && !isPermissionGroup(mod, def.group))
+                    .map(([key, def]) => settingField(mod, key, def, values[key], t)),
             ]}
         />
     );

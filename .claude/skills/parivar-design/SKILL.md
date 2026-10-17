@@ -224,6 +224,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **Late on a profile**: a white "Late" chip beside the role chip, never a word in front of the name.
 - **Bottom bar** also shows on /blood (BOTTOM_ALSO; no tab highlighted there).
 - **Family tree names**: weight 500 (font-medium), not semibold.
+- **Settings → Permissions**: Sign-up, Members and Sharing together in one card (one Save), right after General.
 - **Multi-choice setting** (Settings form, type 'multi'): tick chips — bordered pills with a checkbox; ticked = navy
   border on the accent tint, medium weight. One row, wrapping.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
