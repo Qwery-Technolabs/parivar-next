@@ -389,3 +389,5 @@ in the reply. Code and skills must never disagree.
   the last line says "“X” is new — it will be added when you save" (it then shows up in the list for everyone).
 - **Cancel in a dialog footer**: white outlined button left of the primary one (e.g. home-pin picker: Remove ·
   Cancel · Save location).
+- **Meeting minutes text**: 12px (text-xs, leading-relaxed) — components/meetings/meeting-minutes.jsx, shared by group,
+  fundraise and Mandal meetings.

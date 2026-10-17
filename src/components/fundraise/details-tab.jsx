@@ -83,7 +83,16 @@ export default function DetailsTab({
                 <section id="team" className="scroll-mt-4">
                     <Card
                         title={t('fundraise.tabs.team')}
-                        actions={perms.manage && <AddTeamMemberButton campaignId={campaign.id} exclude={team.map((m) => m.user_id)} />}
+                        actions={
+                            perms.manage && (
+                                <AddTeamMemberButton
+                                    campaignId={campaign.id}
+                                    exclude={team.map((m) => m.user_id)}
+                                    // A Mandal's team: only its group's members.
+                                    groupId={campaign.kind === 'mandal' ? campaign.group_id : null}
+                                />
+                            )
+                        }
                     >
                         {/* My role on this fundraise (the header shows it only from sm up). */}
                         {perms.teamRole && (

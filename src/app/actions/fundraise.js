@@ -1112,6 +1112,11 @@ export async function saveTeamMember(prev, fd) {
     const before = (await query('SELECT member_role FROM fundraise_members WHERE campaign_id = :campaignId AND user_id = :userId', { campaignId, userId })).map(
         (r) => r.member_role,
     );
+    // A Mandal's team: only members of the Mandal's group (someone new joins the group first).
+    if (campaign.kind === 'mandal' && !before.length) {
+        const inGroup = await queryOne('SELECT 1 AS ok FROM admin_group_members WHERE group_id = :g AND user_id = :userId', { g: campaign.group_id, userId });
+        if (!inGroup) return { fieldErrors: { user_id: 'mandal.errors.teamGroupMember' } };
+    }
     const added = roles.filter((r) => !before.includes(r));
     const removed = before.filter((r) => !roles.includes(r));
     if (!added.length && !removed.length) return { ok: true, message: 'fundraise.teamSaved' };

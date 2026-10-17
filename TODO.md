@@ -458,3 +458,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Surname suggestions from the community's surnames on every surname box (new ones allowed)
 - [x] Notification devices pop-up: Devices / Send tabs, send to all or chosen devices
 - [x] Mandal sheet: ticking Came fills pending + current amount
+- [x] Mandal team: only members of the Mandal's group (picker + server)

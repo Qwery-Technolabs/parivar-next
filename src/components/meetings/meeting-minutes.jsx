@@ -74,7 +74,7 @@ export default function MeetingMinutes({ campaignId, eventId, count, addButton =
                     {rows?.map((u) => (
                         <div key={u.id} className="flex items-start gap-2 rounded-md bg-surface-login px-2.5 py-1.5">
                             <div className="min-w-0 flex-1">
-                                <p className="whitespace-pre-line break-words text-[13px] leading-relaxed text-ink">{u.body}</p>
+                                <p className="whitespace-pre-line break-words text-xs leading-relaxed text-ink">{u.body}</p>
                                 <p className="text-[11px] text-ink-gray">{(locale !== 'en' && u.author_local) || u.author}</p>
                             </div>
                             {u.canChange && (

@@ -54,7 +54,10 @@ function RoleChecks({ initial, error }) {
         <Field label={t('fundraise.teamRolesLabel')} hint={t('fundraise.teamRolesHint')} error={error} required>
             <div className="grid gap-1.5 sm:grid-cols-2">
                 {ROLES.map((r) => (
-                    <label key={r} className="flex cursor-pointer items-start gap-2 rounded-md border border-surface-border px-2.5 py-2 text-sm hover:bg-accent/50">
+                    <label
+                        key={r}
+                        className="flex cursor-pointer items-start gap-2 rounded-md border border-surface-border px-2.5 py-2 text-sm hover:bg-accent/50"
+                    >
                         <input
                             type="checkbox"
                             name="member_roles"
@@ -163,8 +166,11 @@ function TeamRow({ campaignId, m, canManage, locale, creatorId }) {
     );
 }
 
-/** "Add to team" — sits in the Team card's header (details-tab.jsx). Pick a member, tick their roles. */
-export function AddTeamMemberButton({ campaignId, exclude }) {
+/**
+ * "Add to team" — sits in the Team card's header (details-tab.jsx). Pick a member, tick their roles.
+ * `groupId` (a Mandal): the picker offers only that group's members — a Mandal's team comes from its group.
+ */
+export function AddTeamMemberButton({ campaignId, exclude, groupId = null }) {
     const { t } = useT();
     return (
         <FormDialog
@@ -175,15 +181,24 @@ export function AddTeamMemberButton({ campaignId, exclude }) {
             submitLabel={t('common.add')}
             width="sm:max-w-lg"
             trigger={({ open }) => (
-                <button type="button" onClick={open} className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium">
+                <button
+                    type="button"
+                    onClick={open}
+                    className="btn-secondary inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium"
+                >
                     <UserPlus className="size-3.5" /> {t('fundraise.addTeamMember')}
                 </button>
             )}
         >
             {({ fieldError }) => (
                 <>
-                    <Field label={t('members.fullName')} error={fieldError('user_id')} required>
-                        <MemberPicker name="user_id" exclude={exclude} hasError={!!fieldError('user_id')} />
+                    <Field label={t('members.fullName')} error={fieldError('user_id')} hint={groupId ? t('mandal.teamFromGroup') : undefined} required>
+                        <MemberPicker
+                            name="user_id"
+                            exclude={exclude}
+                            hasError={!!fieldError('user_id')}
+                            search={groupId ? { group: String(groupId) } : null}
+                        />
                     </Field>
                     <RoleChecks initial={['collector']} error={fieldError('member_roles')} />
                 </>

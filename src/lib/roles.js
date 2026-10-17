@@ -57,6 +57,13 @@ export const canClearHistory = (role) => atLeast(role, 'sub_admin');
 /** Invite people by phone number from the Members page (first password = their number). */
 export const canInviteMembers = (role) => atLeast(role, 'sub_admin');
 
+/**
+ * One member's notifications (sub-admins and up): who has them on (Members list bell + filter, the profile's bell),
+ * the profile's ⋮ → Notification devices, and sending a notification to that member. Sending to everyone / groups
+ * (Settings → Samaj → Push notification) stays with canManageSettings.
+ */
+export const canManageMemberPush = (role) => atLeast(role, 'sub_admin');
+
 /** Edit app-wide and module settings. */
 export const canManageSettings = (role) => atLeast(role, 'administrator');
 

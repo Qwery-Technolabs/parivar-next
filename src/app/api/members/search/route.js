@@ -6,6 +6,7 @@ import { canManageMembers } from '@/lib/roles';
 // Options source for the member Combobox. Signed-in users only; returns at most 20.
 //   ?surname=… — only that surname (family tree: father / brother / son come from the same line)
 //   ?family=1  — include late (deceased) members, who can still be linked as relatives
+//   ?group=<id> — only that group's members (a Mandal's team comes from the Mandal's group)
 // Phone numbers of relatives added from a family tree are private: shown to member managers only.
 export async function GET(request) {
     const user = await getCurrentUser();
@@ -17,6 +18,11 @@ export async function GET(request) {
     const digits = q.replace(/\D/g, '');
     const params = { like: `%${q}%` };
     let where = sp.get('family') === '1' ? "u.status IN ('active', 'deceased')" : "u.status = 'active'";
+    const group = Number(sp.get('group')) || 0;
+    if (group > 0) {
+        where += ' AND EXISTS (SELECT 1 FROM admin_group_members gm WHERE gm.group_id = :group AND gm.user_id = u.id)';
+        params.group = group;
+    }
     if (surname) {
         where += ' AND (u.surname = :surname OR u.surname_local = :surname)';
         params.surname = surname;

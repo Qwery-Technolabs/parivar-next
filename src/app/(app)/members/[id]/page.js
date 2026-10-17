@@ -21,7 +21,7 @@ import { birthName, isMarriedWoman } from '@/lib/names';
 import AddressActions from '@/components/members/address-actions';
 import { canSeeFamily, getRelatives, relationPath } from '@/lib/family';
 import { countryName, formatPhone, waNumber } from '@/lib/phone';
-import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast, canManageSettings } from '@/lib/roles';
+import { canEditUser, canInviteMembers, canManageAllFundraises, canResetPassword, canDeleteMember, atLeast, canManageMemberPush } from '@/lib/roles';
 import { deleteMember, setMemberArchived } from '@/app/actions/members';
 
 export async function generateMetadata({ params }) {
@@ -108,8 +108,8 @@ export default async function MemberPage({ params }) {
     // this profile themselves (e.g. a relative from their family tree) sees "Added by you"; nobody else sees it.
     const addedByMe = Boolean(member.created_by) && member.created_by === user.id && member.id !== user.id;
     const seesAddedBy = atLeast(user.role, 'sub_admin');
-    // Notification devices (push tokens): administrators and the member themself.
-    const seesPush = user.id === memberId || canManageSettings(user.role);
+    // Notification devices (push tokens): sub-admins and up, and the member themself.
+    const seesPush = user.id === memberId || canManageMemberPush(user.role);
     const [seeFamily, addedBy, canAddPhone, contactOk, pushCount] = await Promise.all([
         canSeeFamily(user, member),
         seesAddedBy && !addedByMe && member.created_by && member.created_by !== member.id
@@ -260,7 +260,7 @@ export default async function MemberPage({ params }) {
                                     },
                             ]}
                         >
-                            {seesPush && <PushDevicesDialog userId={member.id} menuKey="push-devices" canSend={canManageSettings(user.role)} />}
+                            {seesPush && <PushDevicesDialog userId={member.id} menuKey="push-devices" canSend={canManageMemberPush(user.role)} />}
                         </PageMenu>
                     </div>
                 </div>

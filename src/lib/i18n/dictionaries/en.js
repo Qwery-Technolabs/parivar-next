@@ -382,6 +382,7 @@ const en = {
         call: 'Call',
     },
     mandal: {
+        teamFromGroup: 'Only members of the Mandal’s group.',
         tab: 'Mandal',
         badge: 'Mandal',
         new: 'New Mandal',
@@ -498,6 +499,7 @@ const en = {
         memberRemoved: 'Removed from the Mandal.',
         sheetSaved: 'Attendance and payments saved.',
         errors: {
+            teamGroupMember: 'Only members of the Mandal’s group can be on its team — add them to the group first.',
             amount: 'Enter a valid amount.',
             group: 'A Mandal belongs to a group — choose one.',
             members: 'Choose at least one person.',

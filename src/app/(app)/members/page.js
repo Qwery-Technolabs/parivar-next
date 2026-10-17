@@ -26,6 +26,7 @@ import {
     canResetPassword,
     canManageMembers,
     canManageSettings,
+    canManageMemberPush,
     ROLES,
     canDeleteMember,
     assignableRoles,
@@ -49,8 +50,8 @@ export default async function MembersPage({ searchParams }) {
     // Archived members are for administrators (and up) only — anyone else asking for them sees active members.
     const seesArchived = atLeast(user.role, 'administrator');
     if (filters.status === 'archived' && !seesArchived) filters.status = 'active';
-    // Who turned notifications on: administrators (Settings → Samaj → Push notification) only.
-    const seesPush = canManageSettings(user.role);
+    // Who turned notifications on: sub-admins and up (lib/roles canManageMemberPush).
+    const seesPush = canManageMemberPush(user.role);
     if (!seesPush) filters.push = '';
     // "Added by": app admins / sub-admins filter by anyone; a member only by themselves.
     const filtersAnyCreator = atLeast(user.role, 'sub_admin');

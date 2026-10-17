@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { inList, query, queryOne } from '@/lib/db';
 import { str } from '@/lib/forms';
 import { pushDevices, pushMessage } from '@/lib/push';
-import { canManageSettings } from '@/lib/roles';
+import { canManageMemberPush, canManageSettings } from '@/lib/roles';
 
 const FORBIDDEN = { error: 'common.forbidden' };
 const PUSH_TARGETS = ['all', 'groups', 'members'];
@@ -18,10 +18,11 @@ const ids = (fd, name) => [...new Set(fd.getAll(name).map(Number))].filter((n) =
  */
 export async function sendPushMessage(prev, fd) {
     const actor = await getCurrentUser();
-    if (!actor || !canManageSettings(actor.role)) return FORBIDDEN;
     const title = str(fd, 'title', 80);
     const body = str(fd, 'body', 300);
     const target = PUSH_TARGETS.includes(String(fd.get('target'))) ? String(fd.get('target')) : 'all';
+    // Everyone / groups: administrators (Settings). Chosen members (e.g. one member's profile): sub-admins too.
+    if (!actor || !(canManageSettings(actor.role) || (target === 'members' && canManageMemberPush(actor.role)))) return FORBIDDEN;
     const groupIds = ids(fd, 'group_ids');
     const memberIds = ids(fd, 'member_ids');
     const fieldErrors = {};
@@ -54,8 +55,8 @@ export async function sendPushMessage(prev, fd) {
     return { ok: true, message: 'push.admin.sent', vars: { sent: r.sent, devices: r.devices, people: r.people } };
 }
 
-/** May this viewer see / remove this member's notification devices? Admins (Settings), and the member themself. */
-const canSeeDevices = (actor, userId) => Boolean(actor) && (actor.id === userId || canManageSettings(actor.role));
+/** May this viewer see / remove this member's notification devices? Sub-admins and up, and the member themself. */
+const canSeeDevices = (actor, userId) => Boolean(actor) && (actor.id === userId || canManageMemberPush(actor.role));
 
 /** A member's devices for the profile's ⋮ → Notification devices pop-up (loaded when it opens). */
 export async function loadPushDevices(userId) {
