@@ -94,13 +94,13 @@ export async function revokeUserSessions(userId, keepCurrent = false) {
  * Cached per request.
  * must_change_password: set for people added by phone number (their first password is the
  * number itself) until they choose their own — the app layout sends them to /set-password.
- * @returns {Promise<null | { id: number, phone: string, full_name: string, full_name_local: string|null, role: string, language: string, local_language: string|null, must_change_password: string|null }>}
+ * @returns {Promise<null | { id: number, phone: string, full_name: string, full_name_local: string|null, role: string, language: string, gender: string|null, local_language: string|null, must_change_password: string|null }>}
  */
 export const getCurrentUser = cache(async () => {
     const token = (await cookies()).get(SESSION_COOKIE)?.value;
     if (!token) return null;
     return queryOne(
-        `SELECT u.id, u.phone, u.full_name, u.full_name_local, u.role, u.language,
+        `SELECT u.id, u.phone, u.full_name, u.full_name_local, u.role, u.language, u.gender,
                 (SELECT m.meta_value FROM users_listmeta m WHERE m.user_id = u.id AND m.meta_key = 'local_language') AS local_language,
                 (SELECT m.meta_value FROM users_listmeta m WHERE m.user_id = u.id AND m.meta_key = 'must_change_password') AS must_change_password
            FROM users_sessions s JOIN users_list u ON u.id = s.user_id

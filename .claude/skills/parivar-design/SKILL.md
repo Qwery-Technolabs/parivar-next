@@ -391,3 +391,12 @@ in the reply. Code and skills must never disagree.
   Cancel · Save location).
 - **Meeting minutes text**: 12px (text-xs, leading-relaxed) — components/meetings/meeting-minutes.jsx, shared by group,
   fundraise and Mandal meetings.
+- **SwitchBox** (components/ui/switch-box.jsx): an optional part of a form behind a switch ("Open a specific page on
+  tap?", "Send to a specific audience?", "Only some devices?") — bordered box, fields show (and post) only while on;
+  two side by side in `grid sm:grid-cols-2`. Used by both push send forms.
+- **MultiSelect extras**: `summary(n)` → "2 selected" in the box instead of chips; `bulk` → Select all · Deselect all
+  (on the shown options); `inline` → the list opens in the flow (inside dialogs); options may carry `sub` (grey line).
+- **Clickable count boxes** (Settings → Push notification): People with notifications on / Devices open a list
+  dialog (People ⇄ Devices tabs, search, device-type and got-a-notification filters; rows open the profile).
+- **Nearby Homes filters**: page ⋮ → Filters (dialog: My family tree switch, city, native village, surname, age
+  from–to; Clear / Cancel / Apply) + "Clear filters" item; active filters as chips above the map (× removes one).

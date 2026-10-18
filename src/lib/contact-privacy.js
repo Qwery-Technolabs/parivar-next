@@ -4,22 +4,25 @@ import { age } from './format';
 import { atLeast } from './roles';
 import { getSettings } from './settings';
 
-// Women's contact numbers — Settings → Permissions → "Women's contact numbers" (admin settings):
+// Contact numbers: women see everyone's, men see every man's. The ONE restriction is a man seeing a woman's number —
+// Settings → Permissions → "Women's contact numbers" (admin settings):
 //   female_phone_viewers  WHO may see a woman's number (any of):
-//     women · same_surname · close (≤ CLOSE family steps) · married · over35 · same_village · same_city · everyone
+//     same_surname · close (≤ CLOSE family steps) · married · over35 · same_village · same_city · everyone
 //   female_phone_shown    WHOSE numbers may be shown (any of):
 //     over30 · married · daughter / sister / aunt (in the viewer's close family, ≤ CLOSE steps) · everyone
-// A number shows when the viewer passes the first AND the woman the second. Always: app admins (sub-admin and up)
-// see every number, an admin woman's number is always shown, and everyone sees their own.
-// It applies on the member PROFILE only; in lists (Members, group Members, Blood donors) a woman's number is shown
-// to admins only (hideWomenPhones).
+// A number shows when the viewer passes the first AND the woman the second. Always: women viewers, app admins
+// (sub-admin and up), an admin woman's number, and everyone's own. It applies on the member PROFILE only; in lists
+// (Members, group Members, Blood donors, search) a woman's number is shown to women and admins only (hideWomenPhones).
+// Where someone was added from (a family tree or not) no longer hides contact details.
 
 export const CLOSE = 5;
-export const FEMALE_VIEWER_OPTIONS = ['women', 'same_surname', 'close', 'married', 'over35', 'same_village', 'same_city', 'everyone'];
+export const FEMALE_VIEWER_OPTIONS = ['same_surname', 'close', 'married', 'over35', 'same_village', 'same_city', 'everyone'];
 export const FEMALE_SHOWN_OPTIONS = ['over30', 'married', 'daughter', 'sister', 'aunt', 'everyone'];
 
 const MARRIED = ['married', 'widowed', 'divorced'];
 const isAdmin = (role) => atLeast(role, 'sub_admin');
+/** Sees every number without the settings: women, admins (sub-admin and up). */
+export const seesAllNumbers = (viewer) => Boolean(viewer) && (viewer.gender === 'female' || isAdmin(viewer.role));
 
 /** Her place in the viewer's family from the viewer → her steps: daughter / sister / aunt (father's or mother's sister, or a parent's brother's wife). */
 function kinOf(steps) {
@@ -41,7 +44,7 @@ function kinOf(steps) {
  */
 export async function canSeeContact(viewer, person, relation = null) {
     if (!viewer || !person) return false;
-    if (person.gender !== 'female' || viewer.id === person.id || isAdmin(viewer.role) || isAdmin(person.role)) return true;
+    if (person.gender !== 'female' || viewer.id === person.id || seesAllNumbers(viewer) || isAdmin(person.role)) return true;
     const s = await getSettings('admin');
     const who = new Set(s.female_phone_viewers);
     const whose = new Set(s.female_phone_shown);
@@ -64,7 +67,6 @@ export async function canSeeContact(viewer, person, relation = null) {
     const same = (a, b) => Boolean(a && b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase());
     const myAge = me.dob ? age(me.dob) : null;
     return (
-        (who.has('women') && me.gender === 'female') ||
         (who.has('same_surname') && (same(me.surname, person.surname) || same(me.surname, person.maiden_surname))) ||
         (who.has('married') && MARRIED.includes(me.marital_status)) ||
         (who.has('over35') && myAge != null && myAge > 35) ||
@@ -73,8 +75,8 @@ export async function canSeeContact(viewer, person, relation = null) {
     );
 }
 
-/** In lists: a woman's number only for admins (and herself) — others open her profile, where canSeeContact decides. */
+/** In lists: a woman's number only for women, admins (and herself) — men open her profile, where canSeeContact decides. */
 export function hideWomenPhones(rows, viewer) {
-    if (isAdmin(viewer?.role)) return rows;
+    if (seesAllNumbers(viewer)) return rows;
     return rows.map((r) => (r.gender === 'female' && r.id !== viewer?.id ? { ...r, phone: null } : r));
 }

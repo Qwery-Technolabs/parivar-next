@@ -6,40 +6,13 @@ import { deletePushDevice, loadPushDevices, sendPushMessage } from '@/app/action
 import { MenuOpener } from '@/components/shell/page-menu';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Field, textArea, textInput } from '@/components/ui/field';
+import MultiSelect from '@/components/ui/multi-select';
 import SubmitButton from '@/components/ui/submit-button';
+import SwitchBox from '@/components/ui/switch-box';
+import { deviceName, isPhone } from '@/lib/device-name';
 import { date, time } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
 
-/** "Chrome · Android" from a user agent — enough to tell one's devices apart. */
-function deviceName(ua = '') {
-    const s = String(ua ?? '');
-    const browser = /SamsungBrowser/.test(s)
-        ? 'Samsung Internet'
-        : /Edg\//.test(s)
-          ? 'Edge'
-          : /OPR\//.test(s)
-            ? 'Opera'
-            : /Firefox\//.test(s)
-              ? 'Firefox'
-              : /Chrome\//.test(s)
-                ? 'Chrome'
-                : /Safari\//.test(s)
-                  ? 'Safari'
-                  : null;
-    const os = /iPhone|iPad/.test(s)
-        ? 'iPhone / iPad'
-        : /Android/.test(s)
-          ? 'Android'
-          : /Windows/.test(s)
-            ? 'Windows'
-            : /Mac OS X/.test(s)
-              ? 'Mac'
-              : /Linux/.test(s)
-                ? 'Linux'
-                : null;
-    return [browser, os].filter(Boolean).join(' · ') || '—';
-}
-const isPhone = (ua) => /Android|iPhone|iPad|Mobile/.test(String(ua ?? ''));
 // DATETIME arrives as 'YYYY-MM-DD HH:MM:SS' (app timezone).
 const when = (v, locale) => (v ? `${date(v, locale)}, ${time(String(v).slice(11, 16))}` : null);
 
@@ -188,15 +161,15 @@ function DeviceText({ d, locale, t }) {
 }
 
 /**
- * Title + Description → this member's devices (sendPushMessage, target 'members'). More than one device: All devices
- * (default) or Choose — tick the ones to reach. Clears and refreshes on success.
+ * Title + Description → this member's devices (sendPushMessage, target 'members'). Optional, behind switches: a page to
+ * open on tap; only some devices (more than one) — off = every device. Clears and refreshes on success.
  */
 function SendToMember({ userId, devices, onSent }) {
     const { t, locale } = useT();
     const [title, setTitle] = useState('');
     const [body, setBody] = useState('');
-    const [mode, setMode] = useState('all');
-    const [picked, setPicked] = useState(() => new Set(devices.map((d) => d.id)));
+    const [withLink, setWithLink] = useState(false);
+    const [someDevices, setSomeDevices] = useState(false);
     const [state, action, pending] = useActionState(async (prev, fd) => {
         const res = await sendPushMessage(prev, fd);
         if (res?.ok) {
@@ -209,55 +182,10 @@ function SendToMember({ userId, devices, onSent }) {
     }, null);
     const err = (name) => (state?.fieldErrors?.[name] ? t(state.fieldErrors[name]) : null);
     const several = devices.length > 1;
-    const toggle = (id) =>
-        setPicked((s) => {
-            const n = new Set(s);
-            n.has(id) ? n.delete(id) : n.add(id);
-            return n;
-        });
     return (
         <form action={action} className="space-y-3">
             <input type="hidden" name="target" value="members" />
             <input type="hidden" name="member_ids" value={userId} />
-            <input type="hidden" name="devices" value={several ? mode : 'all'} />
-            {several && (
-                // Not Field (a <label>): it would pass a click on its text to the first button.
-                <div>
-                    <span className="mb-1 block text-xs font-medium text-ink-gray">{t('push.devices.sendTo')}</span>
-                    <div className="inline-flex rounded-md bg-surface-bggray/70 p-0.5">
-                        {['all', 'selected'].map((m) => (
-                            <button
-                                key={m}
-                                type="button"
-                                onClick={() => setMode(m)}
-                                className={`h-8 shrink-0 rounded px-3 text-xs font-medium ${mode === m ? 'seg-active shadow-sm' : 'text-ink-gray hover:text-brand-navy'}`}
-                            >
-                                {m === 'all' ? t('push.devices.allDevices', { count: devices.length }) : t('push.devices.chooseDevices')}
-                            </button>
-                        ))}
-                    </div>
-                    {mode === 'selected' && (
-                        <ul className="mt-2 divide-y divide-surface-border rounded-md border border-surface-border">
-                            {devices.map((d) => (
-                                <li key={d.id}>
-                                    <label className="flex cursor-pointer items-start gap-3 px-3 py-2 hover:bg-accent">
-                                        <input
-                                            type="checkbox"
-                                            name="device_ids"
-                                            value={d.id}
-                                            checked={picked.has(d.id)}
-                                            onChange={() => toggle(d.id)}
-                                            className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand-orange-strong)]"
-                                        />
-                                        <DeviceText d={d} locale={locale} t={t} />
-                                    </label>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {err('devices') && <p className="mt-1 text-xs font-medium text-destructive">{err('devices')}</p>}
-                </div>
-            )}
             <Field label={t('push.admin.title')} error={err('title')} required>
                 <input name="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} className={`${textInput(!!err('title'))} w-full`} />
             </Field>
@@ -271,11 +199,49 @@ function SendToMember({ userId, devices, onSent }) {
                     className={`${textArea(!!err('body'))} w-full`}
                 />
             </Field>
-            <Field label={t('push.admin.link')} hint={t('push.admin.linkHint')} error={err('link')}>
-                <input name="link" type="text" inputMode="url" maxLength={500} placeholder="/fundraise/12" className={`${textInput(!!err('link'))} w-full`} />
-            </Field>
+            {/* Optional parts, each behind its switch, side by side: a page to open on tap; only some devices. */}
+            <div className={`grid gap-3 ${several ? 'sm:grid-cols-2' : ''}`}>
+                <SwitchBox label={t('push.admin.linkSwitch')} hint={t('push.admin.linkOff')} on={withLink} onChange={setWithLink}>
+                    <input
+                        name="link"
+                        type="text"
+                        inputMode="url"
+                        maxLength={500}
+                        placeholder="/fundraise/12"
+                        aria-label={t('push.admin.link')}
+                        className={`${textInput(!!err('link'))} w-full`}
+                    />
+                    {err('link') ? (
+                        <p className="text-xs font-medium text-destructive">{err('link')}</p>
+                    ) : (
+                        <p className="text-xs text-ink-gray">{t('push.admin.linkHint')}</p>
+                    )}
+                </SwitchBox>
+                {several && (
+                    <SwitchBox
+                        label={t('push.devices.someSwitch')}
+                        hint={t('push.devices.allDevices', { count: devices.length })}
+                        on={someDevices}
+                        onChange={setSomeDevices}
+                    >
+                        {/* Searchable; "2 selected" in the box. Off = every device. */}
+                        <MultiSelect
+                            name="device_ids"
+                            inline
+                            summary={(n) => t('push.devices.selected', { count: n })}
+                            options={devices.map((d) => ({
+                                value: String(d.id),
+                                label: deviceName(d.user_agent),
+                                sub: `${t('push.devices.lastSent')}: ${when(d.last_used_at, locale) ?? t('push.devices.never')}`,
+                            }))}
+                            placeholder={t('push.devices.chooseDevices')}
+                        />
+                        {err('devices') && <p className="text-xs font-medium text-destructive">{err('devices')}</p>}
+                    </SwitchBox>
+                )}
+            </div>
             <div className="flex justify-end">
-                <SubmitButton icon={Send} pending={pending || (several && mode === 'selected' && picked.size === 0)} pendingText={t('push.admin.sending')}>
+                <SubmitButton icon={Send} pending={pending} pendingText={t('push.admin.sending')}>
                     {t('push.admin.send')}
                 </SubmitButton>
             </div>

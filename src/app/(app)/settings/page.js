@@ -26,7 +26,7 @@ import { localized } from '@/lib/i18n/config';
 import SettingsForm from '@/components/settings/settings-form';
 import { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
-import { queryOne, getMeta } from '@/lib/db';
+import { query, queryOne, getMeta } from '@/lib/db';
 import { date } from '@/lib/format';
 import { getLocalLanguage, getT } from '@/lib/i18n/server';
 import { LOCAL_LANGUAGES } from '@/lib/local-language';
@@ -366,17 +366,43 @@ async function AdminNotifySection() {
 
 /** Settings → Samaj → Push notification: who can be reached (active people / devices with it on) + the form. */
 async function PushSection({ locale }) {
-    const [stats, groups] = await Promise.all([
+    const [stats, groups, people, devices] = await Promise.all([
         queryOne(
             `SELECT COUNT(*) AS devices, COUNT(DISTINCT s.user_id) AS people
                FROM users_push_subscriptions s JOIN users_list u ON u.id = s.user_id WHERE u.status = 'active'`,
         ),
         listGroups(),
+        // "Selected members": only those who can receive it — active, with a device turned on.
+        query(
+            `SELECT u.id, u.full_name, u.full_name_local, u.village, COUNT(*) AS devices
+               FROM users_push_subscriptions s JOIN users_list u ON u.id = s.user_id
+              WHERE u.status = 'active' GROUP BY u.id ORDER BY u.full_name`,
+        ),
+        // The two count boxes open these lists (people / devices).
+        query(
+            `SELECT s.id, s.user_id, s.user_agent, s.created_at, s.last_used_at, u.full_name, u.full_name_local, u.village
+               FROM users_push_subscriptions s JOIN users_list u ON u.id = s.user_id
+              WHERE u.status = 'active' ORDER BY u.full_name, s.created_at`,
+        ),
     ]);
     return (
         <PushComposer
             stats={{ people: Number(stats.people), devices: Number(stats.devices) }}
             groups={groups.filter((g) => g.status === 'active').map((g) => ({ value: String(g.id), label: localized(g, 'name', locale) }))}
+            devices={devices.map((d) => ({
+                id: d.id,
+                user_id: d.user_id,
+                name: localized(d, 'full_name', locale),
+                village: d.village,
+                user_agent: d.user_agent,
+                created_at: d.created_at ? String(d.created_at) : null,
+                last_used_at: d.last_used_at ? String(d.last_used_at) : null,
+            }))}
+            people={people.map((p) => ({
+                value: String(p.id),
+                label: localized(p, 'full_name', locale),
+                sub: [p.village, `📱 ${p.devices}`].filter(Boolean).join(' · '),
+            }))}
         />
     );
 }

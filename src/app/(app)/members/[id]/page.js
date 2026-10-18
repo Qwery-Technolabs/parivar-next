@@ -129,12 +129,14 @@ export default async function MemberPage({ params }) {
     const m = member.meta;
     // A relative added from a family tree: phone numbers, email, birth date and marital status are for the family only.
     const privateDetails = m.added_via === 'family' && !seeFamily;
+    // Contact details (mobile, alternate mobile, email) never depend on where someone was added from: only a man seeing
+    // a woman's number is limited (canSeeContact — Settings). Birth date / marital status stay family-only.
     const isMe = user.id === member.id;
     const late = member.status === 'deceased';
     const maiden = isMarriedWoman(member) ? birthName(member, locale !== 'en') : null;
     // How this person is to the viewer, in one word (Kaka, Bhabhi …) when there is one.
     const kin = relation ? kinTerm(relation.steps) : null;
-    const phone = !privateDetails && !late && contactOk ? member.phone : null;
+    const phone = !late && contactOk ? member.phone : null;
     const callable = Boolean(phone) && !isMe;
     // The home pin (set with the map picker on the edit page): a Directions button (Google Maps) to that exact spot.
     const pin = m.home_lat && m.home_lng ? `${m.home_lat},${m.home_lng}` : null;
@@ -368,7 +370,7 @@ export default async function MemberPage({ params }) {
                             {
                                 key: 'alt',
                                 label: t('members.altPhone'),
-                                value: !privateDetails && contactOk && m.alt_phone && (
+                                value: contactOk && m.alt_phone && (
                                     <a href={`tel:${m.alt_phone}`} className="text-primary tabular-nums hover:underline">
                                         {m.alt_phone}
                                     </a>
@@ -377,7 +379,7 @@ export default async function MemberPage({ params }) {
                             {
                                 key: 'email',
                                 label: t('members.email'),
-                                value: !privateDetails && m.email && (
+                                value: m.email && (
                                     <a href={`mailto:${m.email}`} className="text-primary hover:underline">
                                         {m.email}
                                     </a>

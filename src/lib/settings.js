@@ -43,7 +43,8 @@ export const SETTINGS = {
             female_phone_viewers: {
                 type: 'multi',
                 default: ['everyone'],
-                options: ['women', 'same_surname', 'close', 'married', 'over35', 'same_village', 'same_city', 'everyone'],
+                // Women always see every number; these are for men viewers.
+                options: ['same_surname', 'close', 'married', 'over35', 'same_village', 'same_city', 'everyone'],
                 optionKey: 'settings.femaleViewers',
                 group: 'privacy',
             },

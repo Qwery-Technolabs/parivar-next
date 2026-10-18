@@ -1,5 +1,5 @@
 'use client';
-import { Archive, ArchiveRestore, BellRing, CheckCheck, GitFork, Link2Off, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
+import { Archive, ArchiveRestore, BellRing, CheckCheck, Filter, X, GitFork, Link2Off, Network, Pencil, Smartphone, Tags, Trash2, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Fragment, createContext, useContext, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
@@ -28,6 +28,8 @@ const MENU_ICONS = {
     archive: Archive,
     'archive-restore': ArchiveRestore,
     bell: BellRing,
+    filter: Filter,
+    x: X,
     'check-check': CheckCheck,
     'git-fork': GitFork,
     network: Network,

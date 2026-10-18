@@ -13,6 +13,7 @@ import Pagination from '@/components/ui/pagination';
 import { EmptyRow, TableShell, Td, Th, THead, Tr } from '@/components/ui/table';
 import { adminGroupIds } from '@/lib/access';
 import { requireUser } from '@/lib/auth';
+import { seesAllNumbers } from '@/lib/contact-privacy';
 import { casteOptions } from '@/lib/castes';
 import { age } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
@@ -46,7 +47,7 @@ export default async function MembersPage({ searchParams }) {
     const { t, locale } = await getT();
     const filters = resolveMemberFilters(sp);
     // Phone search finds women's numbers for admins only (lib/contact-privacy.js).
-    filters.phoneWomen = atLeast(user.role, 'sub_admin');
+    filters.phoneWomen = seesAllNumbers(user);
     // Archived members are for administrators (and up) only — anyone else asking for them sees active members.
     const seesArchived = atLeast(user.role, 'administrator');
     if (filters.status === 'archived' && !seesArchived) filters.status = 'active';
@@ -73,8 +74,9 @@ export default async function MembersPage({ searchParams }) {
         manage ? null : familyIds(user.id),
     ]);
     // A woman's number: admins (and herself) only in the list — others open her profile (lib/contact-privacy.js).
-    const womanOk = (m) => m.gender !== 'female' || atLeast(user.role, 'sub_admin') || m.id === user.id;
-    const phoneShown = (m) => Boolean(m.phone) && womanOk(m) && (m.added_via !== 'family' || manage || m.created_by === user.id || family.has(m.id));
+    const womanOk = (m) => m.gender !== 'female' || seesAllNumbers(user) || m.id === user.id;
+    // Women see every number, men every man's; a woman's number in this list: women and admins (lib/contact-privacy).
+    const phoneShown = (m) => Boolean(m.phone) && womanOk(m);
     // Row selection serves bulk group actions and the bulk password reset (sub-admin and up).
     const canBulkReset = canInviteMembers(user.role);
     // Who has never signed in is admin information (invites still pending).

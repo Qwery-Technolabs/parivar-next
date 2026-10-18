@@ -81,12 +81,14 @@ function km(a, b) {
  * distance and Directions (Google Maps) in a panel floating INSIDE the map — right side on sm+, a bottom sheet on a
  * phone — like Google Maps' results list. It can be closed (the map is then fully visible) and reopened from a chip.
  * `focusId` (?focus=<id>, e.g. the pin button on the Members list): open centred on that home with its card open.
- * @param {{ count: number, start?: {lat:number,lng:number,zoom:number}|null, bounds?: number[][]|null, seed?: any[], focusId?: number|null, meId?: number|null }} props
+ * `filters` (Nearby ⋮ → Filters): sent with each area request; the page remounts this map when they change.
+ * @param {{ count: number, start?: {lat:number,lng:number,zoom:number}|null, bounds?: number[][]|null, seed?: any[], focusId?: number|null, meId?: number|null, filters?: object|null }} props
  */
-export default function NearbyHomes({ count, start = null, bounds = null, seed = [], focusId = null, meId = null }) {
+export default function NearbyHomes({ count, start = null, bounds = null, seed = [], focusId = null, meId = null, filters = null }) {
     const { t } = useT();
     // Every home fetched so far (id -> home), starting with the focused one and my own.
     const [loaded, setLoaded] = useState(() => new Map(seed.map((h) => [h.id, h])));
+    const filterKey = filters ? JSON.stringify(filters) : '';
     const homes = useMemo(() => [...loaded.values()], [loaded]);
     const [loading, setLoading] = useState(false);
     const covered = useRef(null); // the last box fetched { s, w, n, e, full }
@@ -108,7 +110,8 @@ export default function NearbyHomes({ count, start = null, bounds = null, seed =
         };
         const id = ++seq.current;
         setLoading(true);
-        fetchCached(`homes:${box.s}:${box.w}:${box.n}:${box.e}`, () => loadHomesInArea(box))
+        // The page's filters (⋮ → Filters) go with every area; they are part of the cache key.
+        fetchCached(`homes:${filterKey}:${box.s}:${box.w}:${box.n}:${box.e}`, () => loadHomesInArea(box, filters))
             .then((res) => {
                 if (id !== seq.current) return;
                 setLoading(false);

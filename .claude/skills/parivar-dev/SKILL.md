@@ -78,6 +78,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Group team = members first**: saveGroupTeam refuses someone not in admin_group_members (groups.errors.memberFirst)
   — it never adds them to the group any more; "Add to team" picks only from the group's members not on the team
   (AddGroupTeamButton `candidates`, local Combobox). Outsiders are added on the Members tab first.
+- **Contact numbers — the one rule**: women see EVERY number; men see every man's; the only limit is a man seeing a
+  woman's number (Settings → Permissions → Women's contact numbers; `seesAllNumbers(viewer)` = woman or sub-admin+).
+  Where someone was added from (family tree) never hides contact details (mobile, alternate, email) — only birth date
+  and marital status stay family-only. Lists / search / donors / group members: a woman's number for women + admins
+  (hideWomenPhones; search also won't match her number for men). getCurrentUser carries `gender`.
 - **Women's contact numbers** (lib/contact-privacy.js; Settings → Permissions → "Women's contact numbers", admin
   multi settings female_phone_viewers = WHO: women · same_surname (hers or her maiden surname) · close (≤ 5 steps) ·
   married · over35 · same_village · same_city · everyone; female_phone_shown = WHOSE: over30 · married · daughter /
@@ -591,3 +596,9 @@ in the reply. Code and skills must never disagree.
   PushNavigator (shell) answers and `router.push`es (no reload) with a mini "Opening…" pill until the route changes;
   no answer in 800 ms → `navigate`; app closed → `openWindow`. Admin / member messages take an optional
   "Open page" link (`appLink`: an in-app path or a pasted address of this host; another site is refused; empty = home).
+- **Nearby filters**: URL params family / city / village / surname / age_min / age_max → lib/homes
+  `resolveHomeFilters` + `filterSql` (summary, homeOf, homesInArea); the map sends them with every area request
+  (loadHomesInArea(box, filters), part of the cache key) and is remounted when they change; "family" = familyIds of
+  the CALLER. URL built by lib/home-filters `homeFiltersHref` (pure).
+- **Push sends**: the composer's members choice lists only active people with a token (MultiSelect, bulk); a member's
+  Send tab posts device_ids only when "Only some devices?" is on (off = all). lib/device-name: deviceName / isPhone.

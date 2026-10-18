@@ -32,8 +32,8 @@ const ids = (fd, name) => [...new Set(fd.getAll(name).map(Number))].filter((n) =
 
 /**
  * Settings → Samaj → Push notification: an admin's own message to people's devices — push only, no bell copy.
- * Fields: title, body, link (optional page to open), target (all | groups | members), group_ids[], member_ids[]; for ONE member also devices
- * (all | selected) + device_ids[].
+ * Fields: title, body, link (optional page to open), target (all | groups | members), group_ids[], member_ids[]; for ONE member also
+ * device_ids[] ('all' or the chosen device ids).
  * Only active members with notifications turned on are reached; the result says how many.
  */
 export async function sendPushMessage(prev, fd) {
@@ -50,8 +50,9 @@ export async function sendPushMessage(prev, fd) {
     if (!body) fieldErrors.body = 'common.required';
     if (target === 'groups' && !groupIds.length) fieldErrors.target = 'push.admin.pickGroups';
     if (target === 'members' && !memberIds.length) fieldErrors.target = 'push.admin.pickMembers';
-    // One member's chosen devices (profile ⋮ → Notification devices → Send): devices = 'selected' + device_ids[].
-    const someDevices = target === 'members' && memberIds.length === 1 && fd.get('devices') === 'selected';
+    // One member's chosen devices (profile ⋮ → Notification devices → Send): device_ids[] = 'all' or device ids.
+    const rawDevices = fd.has('device_ids') ? fd.getAll('device_ids').map(String).filter(Boolean) : null;
+    const someDevices = target === 'members' && memberIds.length === 1 && rawDevices !== null && !rawDevices.includes('all');
     const deviceIds = someDevices ? ids(fd, 'device_ids') : null;
     if (someDevices && !deviceIds.length) fieldErrors.devices = 'push.devices.pickDevices';
     const link = await appLink(fd.get('link'));

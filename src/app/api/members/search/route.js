@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
-import { canManageMembers } from '@/lib/roles';
+import { seesAllNumbers } from '@/lib/contact-privacy';
 
 // Options source for the member Combobox. Signed-in users only; returns at most 20.
 //   ?surname=… — only that surname (family tree: father / brother / son come from the same line)
 //   ?family=1  — include late (deceased) members, who can still be linked as relatives
 //   ?group=<id> — only that group's members (a Mandal's team comes from the Mandal's group)
-// Phone numbers of relatives added from a family tree are private: shown to member managers only.
+// A woman's number is in the results for women and admins only (lib/contact-privacy); men's for everyone.
 export async function GET(request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
+    const allNumbers = seesAllNumbers(user);
     const sp = request.nextUrl.searchParams;
     const q = (sp.get('q') || '').trim().slice(0, 60);
     const surname = (sp.get('surname') || '').trim().slice(0, 60);
@@ -30,21 +31,21 @@ export async function GET(request) {
     if (q) {
         where += ' AND (u.full_name LIKE :like OR u.full_name_local LIKE :like';
         if (digits.length >= 3) {
-            where += ' OR u.phone LIKE :phone';
+            // A man finds a woman by name, not by her number (unless he may see it — lib/contact-privacy).
+            where += allNumbers ? ' OR u.phone LIKE :phone' : " OR (u.phone LIKE :phone AND (u.gender IS NULL OR u.gender <> 'female'))";
             params.phone = `%${digits}%`;
         }
         where += ')';
     }
     const rows = await query(
-        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.village, u.status,
-                (SELECT meta_value FROM users_listmeta m WHERE m.user_id = u.id AND m.meta_key = 'added_via') AS added_via
+        `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.gender, u.village, u.status
            FROM users_list u WHERE ${where} ORDER BY u.full_name LIMIT 20`,
         params,
     );
-    const manager = canManageMembers(user.role);
     return NextResponse.json(
         rows.map((r) => {
-            const phone = r.added_via === 'family' && !manager ? null : r.phone;
+            // Women see every number, men every man's; a woman's number: women and admins only (lib/contact-privacy).
+            const phone = r.gender === 'female' && !allNumbers && r.id !== user.id ? null : r.phone;
             return {
                 value: String(r.id),
                 label: r.full_name,
