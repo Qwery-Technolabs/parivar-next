@@ -10,7 +10,8 @@ import { localized } from '@/lib/i18n/config';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 import { sp1 } from '@/lib/url';
 
-const ENTITIES = ['user', 'group', 'fundraise', 'blood', 'event', 'caste', 'settings'];
+// 'login' = sign-ins (lib/auth createSession).
+const ENTITIES = ['login', 'user', 'group', 'fundraise', 'blood', 'event', 'caste', 'settings'];
 
 /** `{"from":"sabhyo","to":"sub_admin"}` → "from: sabhyo · to: sub_admin". */
 function compact(detail) {
@@ -42,7 +43,9 @@ export default async function AuditLog({ sp, t, locale, canClear = false }) {
     const entity = ENTITIES.includes(sp1(sp.entity)) ? sp1(sp.entity) : '';
     const page = normalizePage(sp.page);
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
-    const q = String(sp1(sp.q) ?? '').trim().slice(0, 100);
+    const q = String(sp1(sp.q) ?? '')
+        .trim()
+        .slice(0, 100);
     // Filter by member: who did it (a.actor_id).
     const actorId = Number.parseInt(sp1(sp.actor), 10);
     const actor = Number.isInteger(actorId) && actorId > 0 ? actorId : null;
@@ -84,7 +87,7 @@ export default async function AuditLog({ sp, t, locale, canClear = false }) {
 
     const entityHref = (row) => {
         if (!row.entity_id) return null;
-        if (row.entity === 'user') return `/members/${row.entity_id}`;
+        if (row.entity === 'user' || row.entity === 'login') return `/members/${row.entity_id}`;
         if (row.entity === 'group') return `/groups/${row.entity_id}`;
         if (row.entity === 'fundraise') return `/fundraise/${row.entity_id}`;
         return null;

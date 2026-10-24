@@ -56,7 +56,7 @@ export async function createSession(userId, { remember = false } = {}) {
     // updated_at stays: it marks real changes to the person (the family tree's saved copy follows it).
     await query('UPDATE users_list SET last_login_at = NOW(), updated_at = updated_at WHERE id = :uid', { uid: userId });
     // Each sign-in in the activity log (members list ⋮ → Activity history), with the device it came from.
-    await audit(userId, 'auth.login', 'user', userId, { device: deviceName(ua), remember: remember || undefined });
+    await audit(userId, 'auth.login', 'login', userId, { device: deviceName(ua), remember: remember || undefined });
     (await cookies()).set(SESSION_COOKIE, token, {
         httpOnly: true,
         sameSite: 'lax',

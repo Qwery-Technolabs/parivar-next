@@ -57,7 +57,7 @@ export const SETTINGS = {
                 group: 'privacy',
             },
             // Very big family trees open folded (lib/family.js familyTreeData) — Settings → Family tree.
-            tree_fold_above: { type: 'number', default: 1000, min: 100, max: 100000, group: 'familyTree' }, // people in a tree before it folds
+            tree_fold_above: { type: 'number', default: 1000, min: 50, max: 100000, group: 'familyTree' }, // people in a tree before it folds
             tree_open_generations: { type: 'number', default: 7, min: 1, max: 50, group: 'familyTree' }, // open from the top, then "See family"
             tree_branch_generations: { type: 'number', default: 10, min: 1, max: 50, group: 'familyTree' }, // one "See family" opens this deep
             tree_up_generations: { type: 'number', default: 15, min: 1, max: 100, group: 'familyTree' }, // ancestors above the person, then "See father"

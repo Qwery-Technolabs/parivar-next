@@ -25,6 +25,7 @@ import PushComposer from '@/components/settings/push-composer';
 import { listGroups } from '@/lib/groups';
 import { localized } from '@/lib/i18n/config';
 import SettingsForm from '@/components/settings/settings-form';
+import TreeFoldHelp from '@/components/settings/tree-fold-help';
 import { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
 import { query, queryOne, getMeta } from '@/lib/db';
@@ -43,7 +44,6 @@ import { AdminNotifySettings, NotificationPrefs } from '@/components/settings/no
 import { NOTIFY_CATEGORIES, parseOff } from '@/lib/notification-prefs';
 import LanguageSelect from '@/components/settings/language-select';
 import AboutSection from '@/components/settings/about-section';
-import AuditDangerZone from '@/components/audit/audit-danger-zone';
 import { sp1 } from '@/lib/url';
 import { LinkIconSpinner } from '@/components/ui/link-spinner';
 
@@ -141,8 +141,6 @@ export default async function SettingsPage({ searchParams }) {
                     )}
                     {current.key === 'about' && <AboutSection t={t} locale={locale} />}
                     {current.key === 'audit' && <AuditLog sp={sp} t={t} locale={locale} canClear={isAdmin} />}
-                    {/* Administrators: clear everything, or one member's history. */}
-                    {current.key === 'audit' && isAdmin && <AuditDangerZone />}
                     {current.key === 'security' && <SecuritySection userId={user.id} t={t} />}
                     {current.key === 'notifications' && (
                         // My notifications: this device and the kinds I want. App-wide sending is under Samaj → Alerts.
@@ -302,7 +300,13 @@ async function GroupSection({ module: mod, group, title, t }) {
     const fields = Object.entries(SETTINGS[mod].keys)
         .filter(([, def]) => def.group === group && !def.hidden)
         .map(([key, def]) => settingField(mod, key, def, values[key], t));
-    return <SettingsForm module={mod} title={title} fields={fields} />;
+    return (
+        <>
+            {/* Family tree: what the four numbers do (closed by default, above the form). */}
+            {group === 'familyTree' && <TreeFoldHelp values={values} t={t} />}
+            <SettingsForm module={mod} title={title} fields={fields} />
+        </>
+    );
 }
 
 async function ModuleSection({ module: mod, title, t }) {

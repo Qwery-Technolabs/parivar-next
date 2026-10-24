@@ -1364,16 +1364,6 @@ const en = {
         passwordChanged: 'Password changed. Other devices were logged out.',
     },
     audit: {
-        danger: {
-            title: 'Danger zone',
-            hint: 'Deleting activity cannot be undone. The clearing itself is recorded.',
-            clearAll: 'Clear all activity',
-            clearAllConfirm: 'Delete the whole activity log of every member? This cannot be undone.',
-            clearMember: 'Clear one member’s activity',
-            pickMember: 'Choose a member…',
-            clearMemberConfirm: 'Delete all activity history of this member? This cannot be undone.',
-            clear: 'Clear',
-        },
         member: 'Member',
         clear: { one: 'Clear this entry', other: 'Clear these {count} entries' },
         clearConfirm: {
@@ -1391,6 +1381,7 @@ const en = {
         detail: 'Detail',
         empty: 'No activity yet.',
         entities: {
+            login: 'Sign-in',
             caste: 'Caste',
             settings: 'Settings',
             user: 'Member',
@@ -1624,6 +1615,17 @@ const en = {
         castesLink: 'Castes & sub-castes',
         castesHint: 'Castes members can choose',
         onePerLine: 'One per line',
+        treeHelp: {
+            title: 'How folding works',
+            intro: 'Very big family trees open folded, so they load fast and stay easy to read. Counting starts from the person whose tree is opened.',
+            size: 'Fold a tree with more than {size} people — smaller trees always show everyone, as before.',
+            up: 'Ancestors shown above the person: the tree starts {up} fathers above them. The top card has “See father” for the next ones, which come as one line with “See brothers” beside each.',
+            open: 'Generations open from the top: from that top card, {open} generations show in full. In the next one, anyone with a child shows “See family”.',
+            branch: 'Generations “See family” opens: one tap opens {branch} generations below that person; deeper than that it folds again.',
+            always: 'Always open: the line from the top card down to the person, and the person’s own family below them.',
+            example:
+                'With these values: a tree of more than {size} people starts {up} generations above the person, the first {open} generations from there are open, and each “See family” opens {branch} more.',
+        },
         reset: 'Reset',
         resetHint: 'Put the recommended value back (then Save)',
         savedNow: 'Now: {value}',
@@ -1847,7 +1849,9 @@ const en = {
         blockedText: 'They are switched off for this app in your phone or browser. Open its settings → Notifications → Allow, then come back.',
         remind: {
             button: 'Not turned on — remind them',
-            confirm: 'Remind {name} to turn on notifications? The next time they open the app, they will be asked again.',
+            title: 'Remind to turn on notifications?',
+            confirm: '{name} will be asked to allow notifications the next time they open the app.',
+            send: 'Send reminder',
             sent: '{name} will be asked to turn on notifications the next time they open the app.',
         },
         allow: 'Allow',

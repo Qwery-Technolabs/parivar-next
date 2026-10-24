@@ -241,8 +241,6 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   on → opens Notification devices (same pop-up as the profile ⋮); rose BellOff = not on (active member with a number)
   → asks, then sends a reminder. Row ⋮: View · Edit · Family tree · Activity history (History icon) · Archive / Delete —
   no "Add to group" there (bulk bar only).
-- **Danger zone** (Settings → Activity log, administrators): a red-bordered card under the log (destructive/5 head):
-  clear one member's history (MemberPicker + Clear) and clear all; each asks first.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.
@@ -253,6 +251,11 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **Family tree stays HTML** (nested lists + `.ftree` CSS connectors in globals.css), never a canvas: a canvas
   version (Oct 2026) looked faded / blurred, opened smaller and lost the figures when zoomed out — the user had it
   reverted. Speed comes from loading (see parivar-dev "Family tree loading") and from not re-rendering while zooming.
+- **Settings help strip** (e.g. Settings → Family tree, TreeFoldHelp): a slim white card above the form, a native
+  <details> closed by default — Info icon (orange) + title + chevron; open: intro, numbered items (navy number dots),
+  a grey "always" note and an example using the saved values. Explains without changing the form's look.
+- **Confirm pop-ups**: never window.confirm for new work — components/ui/confirm-dialog (centred card, tinted icon
+  circle, title, one line, Cancel · action; tone 'danger' = red). First user: members list → remind notifications.
 - **Family tree fold buttons** (very big families only): small white pills (rounded-full, border, 11px, icon + text) —
   "See family" under a folded card, "See brothers" beside a card on its left, "See father" above the top card; a
   spinner in the pill while that part loads; an opened branch folds back with a round ChevronUp on the card's bottom

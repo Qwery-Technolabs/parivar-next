@@ -415,9 +415,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   village — donors are needed where people live now.
 - **Members list → groups**: only the bulk bar has "Add to group" (as member; bulkAssignToGroup forces member_role =
   member) — the row ⋮ has Activity history instead (sub-admins and up = canViewAudit; MemberActivityDialog →
-  `loadMemberActivity`: the member's own audit rows as actor, 30 per page; administrators can clear them there or in
-  Settings → Activity log → Danger zone, both via `clearAuditLog('', '', memberId)`). Every sign-in is logged
-  (createSession → audit 'auth.login', detail { device }). Members sort also: `login_old` / `login_recent`
+  `loadMemberActivity`: the member's own audit rows as actor, 30 per page; administrators can clear them there (`clearAuditLog('', '', memberId)`) or in Settings → Activity log with
+  its filters (type / member / search → "Clear these N entries"; no separate danger zone). Every sign-in is logged
+  (createSession → audit 'auth.login', entity 'login' = the "Sign-in" type, detail { device }). Members sort also: `login_old` / `login_recent`
   (last sign-in; never signed in last). Group admins are made ONLY inside the group (its Members tab).
 - **Bulk edit members** (Members bulk bar → Bulk edit, `bulkEditMembers`, app admins / sub-admins = canManageMembers): rows of
   "what to change ▾ / value / ×" (+ Add a change; each field once): status, role, native village, current city, caste → sub-caste,

@@ -5,7 +5,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { canManageSettings, canViewAudit } from '@/lib/roles';
 
-const ENTITIES = ['user', 'group', 'fundraise', 'blood', 'event', 'caste', 'settings'];
+// 'login' = sign-ins (lib/auth createSession).
+const ENTITIES = ['login', 'user', 'group', 'fundraise', 'blood', 'event', 'caste', 'settings'];
 
 /**
  * Delete the activity-log entries matching a filter (type, member and/or search; none = all).
@@ -49,7 +50,7 @@ const ACTIVITY_PAGE = 30;
 /**
  * Members list ⋮ → Activity history: what this member did (actor) — sign-ins (auth.login) and every change they
  * made — newest first, 30 at a time (`before` = the last id shown, for “Show more”). Sub-admins and up, like the
- * Activity log in Settings. Administrators may clear it there (Danger zone) or in the pop-up.
+ * Activity log in Settings. Administrators may clear it there (filter by member) or in the pop-up.
  */
 export async function loadMemberActivity(userId, before = null) {
     const user = await getCurrentUser();
