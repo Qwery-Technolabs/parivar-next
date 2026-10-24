@@ -25,7 +25,6 @@ import PushComposer from '@/components/settings/push-composer';
 import { listGroups } from '@/lib/groups';
 import { localized } from '@/lib/i18n/config';
 import SettingsForm from '@/components/settings/settings-form';
-import TreeFoldHelp from '@/components/settings/tree-fold-help';
 import { BloodBadge } from '@/components/ui/badge';
 import { requireUser } from '@/lib/auth';
 import { query, queryOne, getMeta } from '@/lib/db';
@@ -265,12 +264,16 @@ async function LanguageSection({ t, locale }) {
 function settingField(mod, key, def, value, t, name = key) {
     const hintKey = `settings.hints.${mod}_${key}`;
     const hint = t(hintKey);
+    // The longer explanation behind the ⓘ beside the label (settings.info.<module>_<key>), with the saved value in it.
+    const infoKey = `settings.info.${mod}_${key}`;
+    const info = t(infoKey, { value, next: Number(value) + 1 });
     return {
         key: name,
         type: def.type,
         value,
         label: t(`settings.keys.${mod}_${key}`),
         hint: hint === hintKey ? undefined : hint,
+        info: info === infoKey ? undefined : info,
         group: def.group ?? null,
         groupTitle: def.group ? t(`settings.formGroups.${def.group}`) : null,
         // Numbers: the recommended value (the default) and the allowed range — shown with a Reset.
@@ -300,13 +303,7 @@ async function GroupSection({ module: mod, group, title, t }) {
     const fields = Object.entries(SETTINGS[mod].keys)
         .filter(([, def]) => def.group === group && !def.hidden)
         .map(([key, def]) => settingField(mod, key, def, values[key], t));
-    return (
-        <>
-            {/* Family tree: what the four numbers do (closed by default, above the form). */}
-            {group === 'familyTree' && <TreeFoldHelp values={values} t={t} />}
-            <SettingsForm module={mod} title={title} fields={fields} />
-        </>
-    );
+    return <SettingsForm module={mod} title={title} fields={fields} />;
 }
 
 async function ModuleSection({ module: mod, title, t }) {

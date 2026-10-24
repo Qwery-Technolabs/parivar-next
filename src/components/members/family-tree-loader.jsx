@@ -82,8 +82,8 @@ function withFathers(top, ups, get) {
  * Loads the tree in parts (api/family-tree): first only what shows by default; turning on "Married daughters" or
  * "Details" fetches that part once — the tree on screen stays until it arrives (a spinner by the switches).
  * Very big families come folded: "See family" (&branch=<id>), "See brothers" (&brothers=<id>) and "See father"
- * (&up=<id>) fetch that part once and open it in place; "Hide" folds a branch / brothers again (kept, so opening it
- * again is instant). After a switch, every opened part is fetched again for that switch — once.
+ * (&up=<id>) fetch that part once and open it in place. There is no Hide: an opened part stays open until the page is
+ * left (coming back starts folded again). After a switch, every opened part is fetched again for that switch — once.
  * `src`: the page's versioned address of this family's tree.
  */
 export default function FamilyTreeLoader({ src }) {
@@ -136,14 +136,14 @@ export default function FamilyTreeLoader({ src }) {
         };
     }, [parts, urlOf]);
 
-    /** A card's button: kind 'branch' / 'brothers' open ↔ fold; 'up' loads the fathers above (no folding back). */
+    /** A card's button: kind 'branch' / 'brothers' / 'up' opens that part (no folding back). */
     const onToggle = useCallback((kind, id) => {
         if (kind === 'up') return setUps((list) => (list.includes(id) ? list : [...list, id]));
         setOpen((s) => {
             const next = new Set(s);
             const k = `${kind}:${id}`;
-            if (next.has(k)) next.delete(k);
-            else next.add(k);
+            if (next.has(k)) return s;
+            next.add(k);
             return next;
         });
     }, []);

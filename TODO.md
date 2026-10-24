@@ -467,5 +467,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Very big family trees (over 1000) open folded: See family / See brothers / See father; numbers in Settings → Family tree (Now / Recommended / Reset)
 - [x] Notification prompt as a centred pop-up over a blurred page; members list bell → devices pop-up, red slashed bell → remind at next app open
 - [x] Members row ⋮: Activity history (sign-ins + changes, admins clear) instead of Add to group; Activity log type Sign-in; sort by last sign-in
+- [x] Family tree: no Hide (up arrow) after See family / See brothers — opened stays open until the page is left
 - [x] Remind notifications asks in the app's own pop-up (components/ui/confirm-dialog), not the browser confirm
-- [x] Settings → Family tree: "How folding works" help strip (closed by default) explaining the four numbers with the saved values
+- [x] Settings → Family tree: ⓘ beside each number label explains it (with the saved value and an example)

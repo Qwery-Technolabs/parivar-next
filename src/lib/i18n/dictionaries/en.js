@@ -676,7 +676,6 @@ const en = {
         seeFamily: 'See family',
         seeBrothers: 'See brothers',
         seeFather: 'See father',
-        hideBranch: 'Hide',
         focusPerson: 'Back to this person',
         marriedDaughters: 'Married daughters',
         fullName: 'Full name',
@@ -1615,17 +1614,6 @@ const en = {
         castesLink: 'Castes & sub-castes',
         castesHint: 'Castes members can choose',
         onePerLine: 'One per line',
-        treeHelp: {
-            title: 'How folding works',
-            intro: 'Very big family trees open folded, so they load fast and stay easy to read. Counting starts from the person whose tree is opened.',
-            size: 'Fold a tree with more than {size} people — smaller trees always show everyone, as before.',
-            up: 'Ancestors shown above the person: the tree starts {up} fathers above them. The top card has “See father” for the next ones, which come as one line with “See brothers” beside each.',
-            open: 'Generations open from the top: from that top card, {open} generations show in full. In the next one, anyone with a child shows “See family”.',
-            branch: 'Generations “See family” opens: one tap opens {branch} generations below that person; deeper than that it folds again.',
-            always: 'Always open: the line from the top card down to the person, and the person’s own family below them.',
-            example:
-                'With these values: a tree of more than {size} people starts {up} generations above the person, the first {open} generations from there are open, and each “See family” opens {branch} more.',
-        },
         reset: 'Reset',
         resetHint: 'Put the recommended value back (then Save)',
         savedNow: 'Now: {value}',
@@ -1658,6 +1646,16 @@ const en = {
             fundraise_expense_categories: 'Expense categories',
             blood_notify_donors: 'Notify compatible donors about new requirements',
             events_notify_new_event: 'Notify members about new events',
+        },
+        info: {
+            admin_tree_fold_above:
+                'The tree counts everyone in it. Up to {value} people, everyone shows, as before. More than {value}, it opens folded using the three numbers below, so it stays fast and readable.\nExample: set to {value}, a tree of {next} or more people opens folded; one of {value} or fewer shows everyone.',
+            admin_tree_up_generations:
+                'How far above the opened person the tree starts: {value} fathers up. That top card shows “See father” to go higher; older fathers then come one per line, each with “See brothers”.\nExample: set to {value}, the tree starts at the person’s father’s father … {value} generations up.',
+            admin_tree_open_generations:
+                'Counted from the top card down, this many generations show in full. In the next generation, anyone with a child shows “See family” instead of their children. The line down to the person and their own family always stay open.\nExample: set to {value}, generations 1–{value} are open; generation {next} shows “See family”.',
+            admin_tree_branch_generations:
+                'One tap on “See family” opens this many generations below that card. Deeper than that it folds again, with its own “See family”.\nExample: set to {value}, one tap shows {value} generation(s) below — children, grandchildren …',
         },
         hints: {
             admin_tree_fold_above: 'Smaller trees always show everyone. Bigger ones open folded, so they stay fast.',

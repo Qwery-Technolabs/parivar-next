@@ -11,7 +11,7 @@ import { useT } from '@/lib/i18n/client';
 const OsmMap = dynamic(() => import('@/components/maps/osm-map'), {
     ssr: false,
     loading: () => (
-        <div className="flex h-72 items-center justify-center">
+        <div className="flex h-[min(370px,calc(100dvh-16rem))] items-center justify-center sm:h-[min(28rem,calc(100dvh-16rem))]">
             <Loader2 className="size-5 animate-spin text-ink-gray" />
         </div>
     ),
@@ -82,7 +82,13 @@ export default function HomePinButton({ userId, initial = null }) {
                             bottom-right). z-[1000] sits above Leaflet's panes/controls; it is a sibling of the map, so a
                             tap on it never reaches the map as a pin drop. */}
                         <div className="relative">
-                            <OsmMap pick={pick ?? null} onPick={(lat, lng) => setPick({ lat, lng })} focus={pick} className="h-72 sm:h-96" layerToggle />
+                            <OsmMap
+                                pick={pick ?? null}
+                                onPick={(lat, lng) => setPick({ lat, lng })}
+                                focus={pick}
+                                className="h-[min(370px,calc(100dvh-16rem))] sm:h-[min(28rem,calc(100dvh-16rem))]"
+                                layerToggle
+                            />
                             <button
                                 type="button"
                                 onClick={locate}

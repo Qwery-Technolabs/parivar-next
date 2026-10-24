@@ -1,5 +1,5 @@
 'use client';
-import { Building2, Languages, Lock, Network, Receipt, RotateCcw, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
+import { Building2, Info, Languages, Lock, Network, Receipt, RotateCcw, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
 import { startTransition, useActionState, useState } from 'react';
 import { toast } from 'sonner';
 import { saveModuleSettings } from '@/app/actions/settings';
@@ -8,6 +8,7 @@ import SubmitButton from '@/components/ui/submit-button';
 import BilingualName from '@/components/ui/bilingual-name';
 import FormPart from '@/components/ui/form-part';
 import Switch from '@/components/ui/switch';
+import { Popover } from '@/components/ui/popover';
 import AvatarPicker from '@/components/groups/avatar-picker';
 import { renderLogoPngs } from '@/lib/app-icon-canvas';
 import MultiSelect from '@/components/ui/multi-select';
@@ -36,18 +37,62 @@ function BoolSetting({ name, label, hint, initial }) {
 }
 
 /**
+ * The ⓘ beside a setting's label: tap → a small panel with the longer explanation (lines split on \n; a line that
+ * starts with "Example" / "ઉદાહરણ" is set apart in grey). The short hint under the field stays as it is.
+ */
+function InfoTip({ label, text }) {
+    const lines = text.split('\n');
+    return (
+        <Popover
+            align="left"
+            width="w-80"
+            role="dialog"
+            trigger={({ open, toggle, id }) => (
+                <button
+                    id={id}
+                    type="button"
+                    onClick={toggle}
+                    aria-expanded={open}
+                    aria-label={label}
+                    title={label}
+                    className={`inline-flex size-5 items-center justify-center rounded-full ${open ? 'text-brand-orange-strong' : 'text-ink-gray hover:text-primary'}`}
+                >
+                    <Info className="size-3.5" />
+                </button>
+            )}
+        >
+            <div className="space-y-2 px-3.5 py-2.5 text-xs leading-relaxed text-ink">
+                <p className="text-sm font-semibold text-primary">{label}</p>
+                {lines.map((l, i) =>
+                    /^(Example|ઉદાહરણ)/.test(l) ? (
+                        <p key={i} className="rounded-md bg-surface-bggray/70 px-2.5 py-2 text-ink-gray">
+                            {l}
+                        </p>
+                    ) : (
+                        <p key={i}>{l}</p>
+                    ),
+                )}
+            </div>
+        </Popover>
+    );
+}
+
+/**
  * A number setting with what is saved now, the recommended value, and Reset (puts the recommended value back — Save
  * stores it). A div, not Field's <label>: the Reset button inside a label would take the label's clicks.
  */
-function NumberSetting({ name, label, hint, initial, recommended, min, max }) {
+function NumberSetting({ name, label, hint, info, initial, recommended, min, max }) {
     const { t } = useT();
     const [value, setValue] = useState(String(initial));
     const id = `set-${name}`;
     return (
         <div className="min-w-0">
-            <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink-gray">
-                {label}
-            </label>
+            <div className="mb-1 flex items-center gap-1">
+                <label htmlFor={id} className="text-xs font-medium text-ink-gray">
+                    {label}
+                </label>
+                {info && <InfoTip label={label} text={info} />}
+            </div>
             <div className="flex items-center gap-2">
                 <input
                     id={id}
@@ -137,7 +182,17 @@ export default function SettingsForm({ module, title, fields }) {
                 <textarea name={f.key} rows={5} defaultValue={f.value.join('\n')} className={`${textArea()} w-full`} />
             </Field>
         ) : f.type === 'number' && f.recommended != null ? (
-            <NumberSetting key={f.key} name={f.key} label={f.label} hint={f.hint} initial={f.value} recommended={f.recommended} min={f.min} max={f.max} />
+            <NumberSetting
+                key={f.key}
+                name={f.key}
+                label={f.label}
+                hint={f.hint}
+                info={f.info}
+                initial={f.value}
+                recommended={f.recommended}
+                min={f.min}
+                max={f.max}
+            />
         ) : f.options ? (
             <Field key={f.key} label={f.label} hint={f.hint}>
                 <select name={f.key} defaultValue={f.value} className={`${selectInput()} w-full`}>

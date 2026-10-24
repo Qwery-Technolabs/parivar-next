@@ -214,6 +214,7 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   display-mode is standalone (fields excepted, for paste) and adds .pv-installed (-webkit-touch-callout: none on links and
   pictures). Text selection is NOT disabled. A normal browser tab keeps its menu.
 - **Home pin picker**: the chosen lat, lng sits on the button row, left, centred with Remove / Save (never a line below).
+  Map height: h-[min(370px,calc(100dvh-16rem))], sm:h-[min(28rem,…)] — big enough to tap and drag, never taller than the screen allows.
 - **Every ⋮ menu: a divider before destructive items** (archive, delete, cancel, remove — red or not). PageMenu does it
   by itself (groupOf: `group`, else 'danger' for a red item, else 'main' — a divider between blocks); hand-built
   KebabMenus put a <MenuSeparator /> before them. Never an archive / delete right under a safe item.
@@ -251,15 +252,16 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - **Family tree stays HTML** (nested lists + `.ftree` CSS connectors in globals.css), never a canvas: a canvas
   version (Oct 2026) looked faded / blurred, opened smaller and lost the figures when zoomed out — the user had it
   reverted. Speed comes from loading (see parivar-dev "Family tree loading") and from not re-rendering while zooming.
-- **Settings help strip** (e.g. Settings → Family tree, TreeFoldHelp): a slim white card above the form, a native
-  <details> closed by default — Info icon (orange) + title + chevron; open: intro, numbered items (navy number dots),
-  a grey "always" note and an example using the saved values. Explains without changing the form's look.
+- **Setting ⓘ** (settings-form InfoTip): a longer explanation sits behind a small grey Info icon beside the field
+  label (orange while open) → Popover (w-80, role dialog): bold label, short paragraphs, an "Example…" line in a grey
+  box. Text = settings.info.<module>_<key> with {value} (saved) / {next}; the one-line hint under the field stays.
+  Used by the Family tree numbers. No separate help strips above forms.
 - **Confirm pop-ups**: never window.confirm for new work — components/ui/confirm-dialog (centred card, tinted icon
   circle, title, one line, Cancel · action; tone 'danger' = red). First user: members list → remind notifications.
 - **Family tree fold buttons** (very big families only): small white pills (rounded-full, border, 11px, icon + text) —
   "See family" under a folded card, "See brothers" beside a card on its left, "See father" above the top card; a
-  spinner in the pill while that part loads; an opened branch folds back with a round ChevronUp on the card's bottom
-  edge, opened brothers with the same pill reading "Hide".
+  spinner in the pill while that part loads; a pill disappears once its part opens — no Hide / fold-back
+  button (leaving the page and coming back starts folded again).
 - **Family tree** (/members/[id]/tree): a real tree (`.ftree` CSS connectors in globals.css) from the oldest
   ancestor up the father's line down to the youngest descendant — couples boxed side by side (heart), children
   hanging below; the person has an orange ring; navy / rose top stripe = male / female; late = muted.

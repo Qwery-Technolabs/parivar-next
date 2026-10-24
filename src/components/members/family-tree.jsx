@@ -1,5 +1,5 @@
 'use client';
-import { ArrowUp, ChevronUp, Flower2, Focus, Loader2, Users } from 'lucide-react';
+import { ArrowUp, Flower2, Focus, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { memo, useEffect, useRef } from 'react';
 import Switch from '@/components/ui/switch';
@@ -141,11 +141,12 @@ const Branch = memo(function Branch({ node, rootId, showDetails, onToggle, top =
                 <FoldButton icon={ArrowUp} label={t('family.seeFather')} busy={node.upLoading} onClick={() => onToggle('up', node.id)} className="mb-2" />
             )}
             <div className="relative">
-                {/* Brothers not sent (an ancestor in a long line): beside the card, on its left. */}
-                {node.brothers && (
+                {/* Brothers not sent (an ancestor in a long line): beside the card, on its left. Gone once opened —
+                    no Hide; leaving the page and coming back folds it again. */}
+                {node.brothers && !node.brothersOpen && (
                     <FoldButton
-                        icon={node.brothersOpen ? ChevronUp : Users}
-                        label={node.brothersOpen ? t('family.hideBranch') : t('family.seeBrothers')}
+                        icon={Users}
+                        label={t('family.seeBrothers')}
                         busy={node.brothersLoading}
                         onClick={() => onToggle('brothers', node.id)}
                         className="absolute top-1/2 right-full mr-2 -translate-y-1/2"
@@ -163,18 +164,6 @@ const Branch = memo(function Branch({ node, rootId, showDetails, onToggle, top =
                         />
                     ))}
                 </div>
-                {/* An opened "See family": fold it again from the card's bottom edge. */}
-                {node.opened && (
-                    <button
-                        type="button"
-                        onClick={() => onToggle('branch', node.id)}
-                        aria-label={t('family.hideBranch')}
-                        title={t('family.hideBranch')}
-                        className="absolute -bottom-3 left-1/2 z-10 inline-flex size-6 -translate-x-1/2 items-center justify-center rounded-full border border-surface-border bg-white text-primary shadow-sm hover:bg-accent"
-                    >
-                        <ChevronUp className="size-3.5" />
-                    </button>
-                )}
             </div>
             {/* Children not sent (very big families): only a card with at least one child gets the button. */}
             {folds && (
