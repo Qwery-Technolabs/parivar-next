@@ -458,8 +458,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   grandparents, grandchildren, uncles (= kaka+foi+mama+masi), kaka, foi, mama, masi, nephews, cousins, inlaws; near and
   distant together) + `relof` (anyone may pick anyone; default the viewer). The page runs `relativeTerms(relof)` (one
   in-memory walk), sets `filters.onlyIds` (u.id IN, integers inlined), and each row shows its term under the name
-  (orange text-xs). The tag shows whenever ANY filter is on (relation to relof, else to the viewer; unnamed path → kin.relative).
-  The "Relatives of" MemberPicker keeps its label in the draft and is re-keyed only on open/clear (re-keying on pick lost the choice). Choosing a relation / person switches Registration to All (family-tree people are unregistered).
+  (orange text-xs). The tag shows whenever ANY filter or a search is on — phones too, same table (relation to relof, else to the viewer; unnamed path → kin.relative).
+  The "Relatives of" MemberPicker keeps its label in the draft and is re-keyed only on open/clear (re-keying on pick lost the choice).
+  It searches the whole app: /api/members/search?all=1 (active + inactive + late, never archived; 50 results). Choosing a relation / person switches Registration to All (family-tree people are unregistered).
 - **Members list default = registered only** (`last_login_at IS NOT NULL`); the Filters panel's Registration
   select (`reg=unregistered|all`) shows the rest (invited / family-tree people). Counts as an active filter.
 - **Meeting audience**: saved as events_listmeta `audience` = 'all' | 'selected'. 'all' = everyone, **including people who

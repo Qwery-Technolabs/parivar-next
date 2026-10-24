@@ -472,5 +472,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Relations: family map kept in memory (forget("family") on changes), profile chain reads only its people, blood line preferred
 - [x] Members filter → Relatives: Relation (any / parents / … / kaka / foi / mama / masi / cousins / in-laws, near + distant) of me or any picked member; relation shown under each name
 - [x] Relation tag under each name whenever any filter is on ("Relative" when unnamed); "Relatives of" picker takes the first pick
+- [x] Relation tag also on a search (phones); "Relatives of" searches the whole app (inactive + late too, 50 results)
 - [x] Remind notifications asks in the app's own pop-up (components/ui/confirm-dialog), not the browser confirm
 - [x] Settings → Family tree: ⓘ beside each number label explains it (with the saved value and an example)

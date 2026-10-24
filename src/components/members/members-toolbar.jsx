@@ -370,6 +370,8 @@ function FiltersPanel({
                     key={pickerKey}
                     defaultValue={draft.relof && draft.relof !== String(meId) ? { id: draft.relof, label: draft.relofLabel } : null}
                     placeholder={t('members.relOfMe')}
+                    // Anyone in the whole app (inactive and late too), not only active members.
+                    search={{ all: '1' }}
                     onPick={(opt) =>
                         setDraft((d) => ({
                             ...d,

@@ -3,9 +3,10 @@ import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { seesAllNumbers } from '@/lib/contact-privacy';
 
-// Options source for the member Combobox. Signed-in users only; returns at most 20.
+// Options source for the member Combobox. Signed-in users only; returns at most 20 (50 with ?all=1).
 //   ?surname=… — only that surname (family tree: father / brother / son come from the same line)
 //   ?family=1  — include late (deceased) members, who can still be linked as relatives
+//   ?all=1     — the whole app (active, inactive and late; never archived), up to 50 — Members "Relatives of"
 //   ?group=<id> — only that group's members (a Mandal's team comes from the Mandal's group)
 // A woman's number is in the results for women and admins only (lib/contact-privacy); men's for everyone.
 export async function GET(request) {
@@ -18,7 +19,12 @@ export async function GET(request) {
     const surname = (sp.get('surname') || '').trim().slice(0, 60);
     const digits = q.replace(/\D/g, '');
     const params = { like: `%${q}%` };
-    let where = sp.get('family') === '1' ? "u.status IN ('active', 'deceased')" : "u.status = 'active'";
+    const all = sp.get('all') === '1';
+    let where = all
+        ? "u.status IN ('active', 'inactive', 'deceased')"
+        : sp.get('family') === '1'
+          ? "u.status IN ('active', 'deceased')"
+          : "u.status = 'active'";
     const group = Number(sp.get('group')) || 0;
     if (group > 0) {
         where += ' AND EXISTS (SELECT 1 FROM admin_group_members gm WHERE gm.group_id = :group AND gm.user_id = u.id)';
@@ -39,7 +45,7 @@ export async function GET(request) {
     }
     const rows = await query(
         `SELECT u.id, u.full_name, u.full_name_local, u.phone, u.gender, u.village, u.status
-           FROM users_list u WHERE ${where} ORDER BY u.full_name LIMIT 20`,
+           FROM users_list u WHERE ${where} ORDER BY u.full_name LIMIT ${all ? 50 : 20}`,
         params,
     );
     return NextResponse.json(

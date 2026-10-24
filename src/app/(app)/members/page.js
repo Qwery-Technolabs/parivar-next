@@ -76,8 +76,8 @@ export default async function MembersPage({ searchParams }) {
 
     // Relation filter: everyone related to `relof` (anyone may pick anyone; default me) in the chosen group — one walk
     // over the in-memory family map (lib/family relativeTerms). Whenever any filter is on, each related row shows its
-    // relation tag (to `relof`, else to me).
-    const relOf = filters.rel || activeFilterCount(filters) ? (filters.relOf ?? user.id) : null;
+    // relation tag (to `relof`, else to me) — a search counts too (on phones the search box is the usual filter).
+    const relOf = filters.rel || filters.q || activeFilterCount(filters) ? (filters.relOf ?? user.id) : null;
     const [kin, relOfPerson] = relOf ? await Promise.all([relativeTerms(relOf), relOf === user.id ? null : getPerson(relOf)]) : [null, null];
     if (kin && filters.rel) filters.onlyIds = [...kin].filter(([, term]) => inKinGroup(term, filters.rel)).map(([id]) => id);
 
