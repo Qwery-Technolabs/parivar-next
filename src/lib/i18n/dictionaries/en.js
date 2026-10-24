@@ -593,6 +593,7 @@ const en = {
         },
     },
     kin: {
+        relative: 'Relative',
         genAbove: '{ord} generation above',
         genBelow: '{ord} generation below',
         tabFamily: 'Family',

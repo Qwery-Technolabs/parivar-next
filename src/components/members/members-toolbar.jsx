@@ -123,8 +123,11 @@ function FiltersPanel({
         push: filters.push ?? '',
         rel: filters.rel ?? '',
         relof: filters.relOf ? String(filters.relOf) : '',
+        relofLabel: relOfLabel,
     });
     const [draft, setDraft] = useState(initial);
+    // "Relatives of" picker: rebuilt only when the panel opens or is cleared (never on a pick — that lost the choice).
+    const [pickerKey, setPickerKey] = useState(0);
     // "Added by" choices (searchable): me first, then — for admins — everyone who added members, with counts.
     const byOptions = [
         ...(meId ? [{ value: String(meId), label: t('members.addedByMeOption') }] : []),
@@ -137,8 +140,12 @@ function FiltersPanel({
             activeCount={activeCount}
             disabled={disabled}
             phoneCols={2}
-            onOpen={() => setDraft(initial())}
-            onClear={() =>
+            onOpen={() => {
+                setDraft(initial());
+                setPickerKey((k) => k + 1);
+            }}
+            onClear={() => {
+                setPickerKey((k) => k + 1);
                 setDraft({
                     ...filters,
                     role: '',
@@ -161,8 +168,9 @@ function FiltersPanel({
                     push: '',
                     rel: '',
                     relof: '',
-                })
-            }
+                    relofLabel: '',
+                });
+            }}
             onApply={() =>
                 onApply({
                     role: draft.role,
@@ -359,13 +367,14 @@ function FiltersPanel({
             </Field>
             <Field label={t('members.relOf')}>
                 <MemberPicker
-                    key={draft.relof || 'me'}
-                    defaultValue={draft.relof && draft.relof !== String(meId) ? { id: draft.relof, label: relOfLabel } : null}
+                    key={pickerKey}
+                    defaultValue={draft.relof && draft.relof !== String(meId) ? { id: draft.relof, label: draft.relofLabel } : null}
                     placeholder={t('members.relOfMe')}
                     onPick={(opt) =>
                         setDraft((d) => ({
                             ...d,
                             relof: opt?.value ?? '',
+                            relofLabel: opt?.label ?? '',
                             rel: d.rel || (opt ? 'any' : ''),
                             reg: opt && d.reg === 'registered' ? 'all' : d.reg,
                         }))

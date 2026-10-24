@@ -75,10 +75,11 @@ export default async function MembersPage({ searchParams }) {
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
 
     // Relation filter: everyone related to `relof` (anyone may pick anyone; default me) in the chosen group — one walk
-    // over the in-memory family map; each row then shows its relation (lib/family relativeTerms).
-    const relOf = filters.rel ? (filters.relOf ?? user.id) : null;
+    // over the in-memory family map (lib/family relativeTerms). Whenever any filter is on, each related row shows its
+    // relation tag (to `relof`, else to me).
+    const relOf = filters.rel || activeFilterCount(filters) ? (filters.relOf ?? user.id) : null;
     const [kin, relOfPerson] = relOf ? await Promise.all([relativeTerms(relOf), relOf === user.id ? null : getPerson(relOf)]) : [null, null];
-    if (kin) filters.onlyIds = [...kin].filter(([, term]) => inKinGroup(term, filters.rel)).map(([id]) => id);
+    if (kin && filters.rel) filters.onlyIds = [...kin].filter(([, term]) => inKinGroup(term, filters.rel)).map(([id]) => id);
 
     const groupManager = canManageGroups(user.role);
     const manage = canManageMembers(user.role);
@@ -197,9 +198,11 @@ export default async function MembersPage({ searchParams }) {
                                         <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
                                             {primary}
                                         </Link>
-                                        {/* Relation filter on: how they are related (near and distant names alike). */}
-                                        {kin?.get(m.id) && (
-                                            <span className="block text-xs font-medium text-brand-orange-strong">{t(`kin.terms.${kin.get(m.id)}`)}</span>
+                                        {/* A filter on: how they are related (near and distant names alike; "Relative" when the path has no name). */}
+                                        {kin?.has(m.id) && (
+                                            <span className="block text-xs font-medium text-brand-orange-strong">
+                                                {kin.get(m.id) ? t(`kin.terms.${kin.get(m.id)}`) : t('kin.relative')}
+                                            </span>
                                         )}
                                         {/* Occupation: from sm up only — on phones the name alone. */}
                                         {m.position && <span className="hidden text-xs text-ink-gray sm:block">{m.position}</span>}

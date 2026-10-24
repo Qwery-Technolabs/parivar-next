@@ -587,6 +587,7 @@ const gu = {
         },
     },
     kin: {
+        relative: 'સગાં',
         genAbove: '{n} પેઢી ઉપર',
         genBelow: '{n} પેઢી નીચે',
         tabFamily: 'પરિવાર',
