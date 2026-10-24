@@ -3,7 +3,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { canSeeFamily, familyTreeData, getPerson } from '@/lib/family';
 
 // The family tree page's data (components/members/family-tree-loader.jsx), in parts (lib/family familyTreeData):
-//   ?married=1 — with married daughters' branches · ?details=1 — + birth date, marital status, relation names.
+//   ?married=1 — with married daughters' branches · ?details=1 — + birth date, marital status, relation names ·
+//   ?branch=<id> · ?brothers=<id> · ?up=<id> — the folded parts of a very big family (See family / brothers / father).
 // The page links it with ?v=<version of this family> (familyTreeMeta): each version is kept by the browser for good,
 // so opening the same tree again costs no request until a link or a person in that family changes.
 export async function GET(request, { params }) {
@@ -14,7 +15,14 @@ export async function GET(request, { params }) {
     if (!person) return NextResponse.json({ error: 'notFound' }, { status: 404 });
     const sp = request.nextUrl.searchParams;
     const family = await canSeeFamily(user, person);
-    const data = await familyTreeData(person, family, { married: sp.get('married') === '1', details: sp.get('details') === '1' });
+    const data = await familyTreeData(person, family, {
+        married: sp.get('married') === '1',
+        details: sp.get('details') === '1',
+        branch: Number(sp.get('branch')) || null,
+        brothers: Number(sp.get('brothers')) || null,
+        up: Number(sp.get('up')) || null,
+    });
+    if (!data) return NextResponse.json({ error: 'notFound' }, { status: 404 });
     return NextResponse.json(data, {
         // private: only this browser keeps it (what is in it depends on the viewer).
         headers: { 'Cache-Control': sp.get('v') ? 'private, max-age=31536000, immutable' : 'private, no-store', Vary: 'Cookie' },

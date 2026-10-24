@@ -9,7 +9,8 @@ import { DEFAULT_TIMEZONE, setAppTimeZone, TIMEZONES } from './timezone';
  * a key not listed here is never read or written, so the settings page and the code that
  * reads a setting cannot drift apart.
  *
- * type: 'bool' | 'text' | 'number' | 'list' (list = array of strings, edited one per line)
+ * type: 'bool' | 'text' | 'number' (clamped to min / max; the form shows the default as "Recommended", with Reset)
+ *       | 'list' (list = array of strings, edited one per line)
  *       | 'multi' (any of `options`, ticked as chips; `optionKey` = the i18n prefix of their labels)
  * group: the part of the Settings form it sits in (settings.formGroups.<group>, with an icon in SettingsForm)
  */
@@ -55,6 +56,11 @@ export const SETTINGS = {
                 optionKey: 'settings.femaleShown',
                 group: 'privacy',
             },
+            // Very big family trees open folded (lib/family.js familyTreeData) — Settings → Family tree.
+            tree_fold_above: { type: 'number', default: 1000, min: 100, max: 100000, group: 'familyTree' }, // people in a tree before it folds
+            tree_open_generations: { type: 'number', default: 7, min: 1, max: 50, group: 'familyTree' }, // open from the top, then "See family"
+            tree_branch_generations: { type: 'number', default: 10, min: 1, max: 50, group: 'familyTree' }, // one "See family" opens this deep
+            tree_up_generations: { type: 'number', default: 15, min: 1, max: 100, group: 'familyTree' }, // ancestors above the person, then "See father"
         },
     },
     fundraise: {
@@ -90,6 +96,8 @@ export const PERMISSION_GROUPS = [
     ['fundraise', 'sharing'],
 ];
 export const isPermissionGroup = (mod, group) => PERMISSION_GROUPS.some(([m, g]) => m === mod && g === group);
+/** Groups with a Settings section of their own (not drawn in their module's form): group → section key. */
+export const OWN_SECTION_GROUPS = { familyTree: 'familyTree' };
 
 function decode(def, raw) {
     if (raw == null) return def.default;

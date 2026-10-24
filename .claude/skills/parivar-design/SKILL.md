@@ -242,12 +242,14 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   Brothers, Sisters, Sons, Daughters (slot name once per group; name → that person's profile; Late badge; age ·
   marital; Unlink lives in the row's own ⋮ — PageMenu, red, asks first — never a loose icon). Header: "Family tree" (outline) + "+ Add" (icon-only on phones). Add popup: **relation
   first**, then New person | Pick from members; it **stays open** after each save (FormDialog `keepOpen`).
-- **Family tree is drawn on ONE canvas** (components/members/family-tree.jsx, Oct 2026 — the old `.ftree` nested lists are
-  gone): same look (couple cards, tiles, figures, white names, orange ring, flower = late, grey lines) at tree units =
-  CSS px; layout computed once per tree / switch; only what is on screen is painted, and only when something changes;
-  zoomed out the detail drops (≥0.45 full · ≥0.18 figures without text · below: plain tiles); zoom 3%–250%. Hover
-  (desktop) / long-press (phone) shows a navy bubble "name · relation · age"; tap opens the profile. History below.
-- **Family tree** (/members/[id]/tree): a real tree from the oldest
+- **Family tree stays HTML** (nested lists + `.ftree` CSS connectors in globals.css), never a canvas: a canvas
+  version (Oct 2026) looked faded / blurred, opened smaller and lost the figures when zoomed out — the user had it
+  reverted. Speed comes from loading (see parivar-dev "Family tree loading") and from not re-rendering while zooming.
+- **Family tree fold buttons** (very big families only): small white pills (rounded-full, border, 11px, icon + text) —
+  "See family" under a folded card, "See brothers" beside a card on its left, "See father" above the top card; a
+  spinner in the pill while that part loads; an opened branch folds back with a round ChevronUp on the card's bottom
+  edge, opened brothers with the same pill reading "Hide".
+- **Family tree** (/members/[id]/tree): a real tree (`.ftree` CSS connectors in globals.css) from the oldest
   ancestor up the father's line down to the youngest descendant — couples boxed side by side (heart), children
   hanging below; the person has an orange ring; navy / rose top stripe = male / female; late = muted.
   **Couples are ONE joined card — husband always left, wife right** (heart on the divider); each person a tile with a

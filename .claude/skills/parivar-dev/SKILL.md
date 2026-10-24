@@ -311,8 +311,23 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   kin — the costly relation walk runs only then), fetched when that switch is turned on; the loader keeps each part in
   memory and shows the current tree while one loads. Empty values are left out of the JSON. **Signing in must not
   touch users_list.updated_at** (`updated_at = updated_at` in createSession); anything else that writes a person
-  bumps it (the default ON UPDATE). The canvas: drawn on demand (rAF only after a change), canvas = box size × dpr ≤ 2,
-  visible-only painting, figures / gradients / text fits made once.
+  bumps it (the default ON UPDATE). The tree itself (HTML, not canvas — the user rejected a canvas
+  version): zoom is written straight onto the tree element (style.zoom, crisp) at most once per frame — never React
+  state, so a pinch never re-renders the cards; Branch is memo'd; the man / woman figures are hidden <symbol>s re-used
+  by every tile (<use href="#ft-man">).
+- **Very big family trees fold** (lib/family.js familyTreeData; numbers = admin settings `tree_*`, Settings → Samaj →
+  Family tree, each with Now / Recommended / Reset): a tree with more than tree_fold_above (1000) people opens at most
+  tree_up_generations (15) above the viewed person — top card "See father" (`&up=<id>`, the next ancestors as one line,
+  each with "See brothers" `&brothers=<id>`); from that top tree_open_generations (7) open, the next generation's cards
+  with a child get "See family" (`&branch=<id>`, tree_branch_generations (10) below, then folds again). The line to the
+  person and their own family always stay open. No counts up front — "has a child" comes from the in-memory links.
+  Server sends the decided shape (married-daughter rules too — Branch renders `node.children` as given); folded flags
+  `more` / `brothers` / `up`; the loader grafts opened parts (graft / withFathers) and refetches them per switch.
+  The fold settings are part of the tree's `v=` (a change refetches). `TREE_FOLD=size.open.branch.up` (env) overrides
+  them to try the folding locally on today's small families (e.g. `TREE_FOLD=50.2.2.1 npx next start`).
+- **Number settings** (lib/settings type 'number' with min / max): SettingsForm draws them with "Now: x · Recommended: y
+  · min–max" and a Reset button (puts the default back; Save stores it). A settings group with its own section:
+  OWN_SECTION_GROUPS + a SECTIONS entry with `groupOf: [module, group]` (GroupSection), kept out of the module's form.
 - **Full-screen canvases** (family tree, Nearby Homes map): `useFillHeight()` (components/ui/use-fill-height.js) on
   the canvas wrapper grows it to the bottom of #content (above the phone bar), measured live; keep a CSS
   h-[calc(100dvh-…)] for the first paint. Leaflet redraws on resize (ResizeObserver in osm-map).

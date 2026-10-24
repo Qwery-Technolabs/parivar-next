@@ -13,6 +13,7 @@ import {
     UserCircle,
     History,
     KeyRound,
+    Network,
 } from 'lucide-react';
 import Link from 'next/link';
 import { setLocalLanguage } from '@/app/actions/profile';
@@ -33,7 +34,7 @@ import { LOCAL_LANGUAGES } from '@/lib/local-language';
 import { formatPhone } from '@/lib/phone';
 import { canManageSettings, canViewAudit, canInviteMembers } from '@/lib/roles';
 import { vapidPublicKey } from '@/lib/push';
-import { getSettings, isPermissionGroup, PERMISSION_GROUPS, SETTINGS } from '@/lib/settings';
+import { getSettings, isPermissionGroup, PERMISSION_GROUPS, SETTINGS, OWN_SECTION_GROUPS } from '@/lib/settings';
 import AuditLog from '@/components/audit/audit-log';
 import MemberEditTabs from '@/components/members/member-edit-tabs';
 import { casteOptions } from '@/lib/castes';
@@ -69,6 +70,8 @@ const SECTIONS = [
     { key: 'alerts', group: 'admin', icon: Megaphone, admin: true },
     // An admin's own push message (title, description, who) to the devices that turned notifications on — no bell copy.
     { key: 'push', group: 'admin', icon: Send, admin: true },
+    // How very big family trees fold (admin_settings tree_*): current and recommended value, Reset.
+    { key: 'familyTree', group: 'admin', icon: Network, admin: true, groupOf: ['admin', 'familyTree'] },
     // Blood and Calendar had only their notify switches; those now live under Notifications.
     // Kept out of the sidebar: an internal record, shown here (sub-admins and up).
     { key: 'audit', group: 'admin', icon: History, audit: true },
@@ -153,6 +156,9 @@ export default async function SettingsPage({ searchParams }) {
                     {current.key === 'push' && <PushSection locale={locale} />}
                     {current.key === 'language' && <LanguageSection t={t} locale={locale} />}
                     {current.module && <ModuleSection module={current.module} title={t(`settings.sections.${current.key}.title`)} t={t} />}
+                    {current.groupOf && (
+                        <GroupSection module={current.groupOf[0]} group={current.groupOf[1]} title={t(`settings.sections.${current.key}.title`)} t={t} />
+                    )}
                     {current.key === 'permissions' && <PermissionsSection title={t('settings.sections.permissions.title')} t={t} />}
                 </div>
             </div>
@@ -266,6 +272,8 @@ function settingField(mod, key, def, value, t, name = key) {
         hint: hint === hintKey ? undefined : hint,
         group: def.group ?? null,
         groupTitle: def.group ? t(`settings.formGroups.${def.group}`) : null,
+        // Numbers: the recommended value (the default) and the allowed range — shown with a Reset.
+        ...(def.type === 'number' ? { recommended: def.default, min: def.min, max: def.max } : {}),
         options: def.options?.map((o) => ({
             value: o,
             label: def.labels?.[o] ?? (def.optionKey ? t(`${def.optionKey}.${o}`) : t(`lang.${o}`)),
@@ -283,6 +291,15 @@ async function PermissionsSection({ title, t }) {
             .map(([key, def]) => settingField(m, key, def, all[m][key], t, `${m}.${key}`)),
     );
     return <SettingsForm module="*" title={title} fields={fields} />;
+}
+
+/** A settings group with a section of its own (e.g. Family tree): only its keys, saved as that module. */
+async function GroupSection({ module: mod, group, title, t }) {
+    const values = await getSettings(mod);
+    const fields = Object.entries(SETTINGS[mod].keys)
+        .filter(([, def]) => def.group === group && !def.hidden)
+        .map(([key, def]) => settingField(mod, key, def, values[key], t));
+    return <SettingsForm module={mod} title={title} fields={fields} />;
 }
 
 async function ModuleSection({ module: mod, title, t }) {
@@ -307,9 +324,9 @@ async function ModuleSection({ module: mod, title, t }) {
                           },
                       ]
                     : []),
-                // Permission groups (Sign-up, Members, Sharing) live under Settings → Permissions instead.
+                // Permission groups (Sign-up, Members, Sharing) live under Settings → Permissions instead; Family tree has its own.
                 ...Object.entries(SETTINGS[mod].keys)
-                    .filter(([, def]) => !def.hidden && !isPermissionGroup(mod, def.group))
+                    .filter(([, def]) => !def.hidden && !isPermissionGroup(mod, def.group) && !OWN_SECTION_GROUPS[def.group])
                     .map(([key, def]) => settingField(mod, key, def, values[key], t)),
             ]}
         />

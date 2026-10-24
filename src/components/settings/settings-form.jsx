@@ -1,5 +1,5 @@
 'use client';
-import { Building2, Languages, Lock, Receipt, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
+import { Building2, Languages, Lock, Network, Receipt, RotateCcw, Save, Share2, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
 import { startTransition, useActionState, useState } from 'react';
 import { toast } from 'sonner';
 import { saveModuleSettings } from '@/app/actions/settings';
@@ -14,7 +14,16 @@ import MultiSelect from '@/components/ui/multi-select';
 import { useT } from '@/lib/i18n/client';
 
 // The icon before each group's title (lib/settings.js `group`).
-const GROUP_ICONS = { samaj: Building2, signup: UserPlus, language: Languages, members: Users, privacy: Lock, sharing: Share2, expenses: Receipt };
+const GROUP_ICONS = {
+    samaj: Building2,
+    signup: UserPlus,
+    language: Languages,
+    members: Users,
+    privacy: Lock,
+    sharing: Share2,
+    expenses: Receipt,
+    familyTree: Network,
+};
 
 function BoolSetting({ name, label, hint, initial }) {
     const [on, setOn] = useState(initial);
@@ -22,6 +31,50 @@ function BoolSetting({ name, label, hint, initial }) {
         <div>
             <Switch checked={on} onChange={setOn} name={name} label={label} />
             {hint && <p className="mt-1 text-xs text-ink-gray">{hint}</p>}
+        </div>
+    );
+}
+
+/**
+ * A number setting with what is saved now, the recommended value, and Reset (puts the recommended value back — Save
+ * stores it). A div, not Field's <label>: the Reset button inside a label would take the label's clicks.
+ */
+function NumberSetting({ name, label, hint, initial, recommended, min, max }) {
+    const { t } = useT();
+    const [value, setValue] = useState(String(initial));
+    const id = `set-${name}`;
+    return (
+        <div className="min-w-0">
+            <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink-gray">
+                {label}
+            </label>
+            <div className="flex items-center gap-2">
+                <input
+                    id={id}
+                    name={name}
+                    type="number"
+                    inputMode="numeric"
+                    min={min}
+                    max={max}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    className={`${textInput()} w-full`}
+                />
+                <button
+                    type="button"
+                    onClick={() => setValue(String(recommended))}
+                    disabled={Number(value) === recommended}
+                    title={t('settings.resetHint')}
+                    className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md border border-surface-border px-2.5 text-xs font-medium text-primary hover:bg-accent disabled:opacity-50"
+                >
+                    <RotateCcw className="size-3.5" /> {t('settings.reset')}
+                </button>
+            </div>
+            <p className="mt-1 text-xs text-ink-gray">
+                {t('settings.savedNow', { value: initial })} · {t('settings.recommended', { value: recommended })}
+                {min != null && max != null ? ` · ${t('settings.range', { min, max })}` : ''}
+            </p>
+            {hint && <p className="mt-0.5 text-xs text-ink-gray">{hint}</p>}
         </div>
     );
 }
@@ -83,6 +136,8 @@ export default function SettingsForm({ module, title, fields }) {
             <Field key={f.key} label={f.label} hint={f.hint ?? t('settings.onePerLine')} className="sm:col-span-2">
                 <textarea name={f.key} rows={5} defaultValue={f.value.join('\n')} className={`${textArea()} w-full`} />
             </Field>
+        ) : f.type === 'number' && f.recommended != null ? (
+            <NumberSetting key={f.key} name={f.key} label={f.label} hint={f.hint} initial={f.value} recommended={f.recommended} min={f.min} max={f.max} />
         ) : f.options ? (
             <Field key={f.key} label={f.label} hint={f.hint}>
                 <select name={f.key} defaultValue={f.value} className={`${selectInput()} w-full`}>

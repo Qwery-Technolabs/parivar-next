@@ -670,6 +670,10 @@ const en = {
     family: {
         change: 'Change',
         gestureHint: 'Drag to move · pinch to zoom',
+        seeFamily: 'See family',
+        seeBrothers: 'See brothers',
+        seeFather: 'See father',
+        hideBranch: 'Hide',
         focusPerson: 'Back to this person',
         marriedDaughters: 'Married daughters',
         fullName: 'Full name',
@@ -1523,6 +1527,7 @@ const en = {
             anyone: 'Anyone who can edit that family',
         },
         formGroups: {
+            familyTree: 'Very big family trees',
             privacy: "Women's contact numbers",
             members: 'Members',
             samaj: 'Samaj',
@@ -1590,6 +1595,7 @@ const en = {
             permissions: { title: 'Permissions', hint: 'Sign-up, members, sharing' },
             alerts: { title: 'Alerts', hint: 'Alerts sent to everyone' },
             push: { title: 'Push notification', hint: 'Send your own message to members’ phones' },
+            familyTree: { title: 'Family tree', hint: 'How very big family trees open' },
             fundraise: {
                 title: 'Fundraise',
                 hint: 'Public links, anonymous, categories',
@@ -1605,6 +1611,11 @@ const en = {
         castesLink: 'Castes & sub-castes',
         castesHint: 'Castes members can choose',
         onePerLine: 'One per line',
+        reset: 'Reset',
+        resetHint: 'Put the recommended value back (then Save)',
+        savedNow: 'Now: {value}',
+        recommended: 'Recommended: {value}',
+        range: '{min}–{max}',
         modules: {
             admin: 'General',
             fundraise: 'Fundraise',
@@ -1612,6 +1623,10 @@ const en = {
             events: 'Calendar',
         },
         keys: {
+            admin_tree_fold_above: 'Fold a tree with more than (people)',
+            admin_tree_open_generations: 'Generations open from the top',
+            admin_tree_branch_generations: 'Generations “See family” opens',
+            admin_tree_up_generations: 'Ancestors shown above the person',
             admin_local_language: 'Default local language for names',
             admin_samaj_name: 'Samaj name',
             admin_samaj_name_local: 'Samaj name ({lang})',
@@ -1630,6 +1645,10 @@ const en = {
             events_notify_new_event: 'Notify members about new events',
         },
         hints: {
+            admin_tree_fold_above: 'Smaller trees always show everyone. Bigger ones open folded, so they stay fast.',
+            admin_tree_open_generations: 'From the top card down; the next generation shows “See family” for anyone with a child.',
+            admin_tree_branch_generations: 'One tap on “See family” opens this many generations below that person, then folds again.',
+            admin_tree_up_generations: 'Fathers above the viewed person; the top card then shows “See father” for the next ones.',
             admin_allow_registration: 'Shows “Create an account” on login',
             admin_registration_approval: 'New accounts stay inactive until an admin activates them',
             admin_timezone: 'Used for dates, meetings, reminders',

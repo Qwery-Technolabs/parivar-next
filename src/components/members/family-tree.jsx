@@ -1,33 +1,48 @@
 'use client';
-import { Flower2, Focus } from 'lucide-react';
+import { ArrowUp, ChevronUp, Flower2, Focus, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import Switch from '@/components/ui/switch';
 import useFillHeight from '@/components/ui/use-fill-height';
 import { age } from '@/lib/format';
 import { useT } from '@/lib/i18n/client';
-import { birthName, MARRIED_LIKE } from '@/lib/names';
+import { birthName } from '@/lib/names';
 
-/** Avatar silhouettes: a man, and a woman (longer hair). White on the tile. */
+/**
+ * Avatar silhouettes: a man, and a woman (longer hair). White on the tile. Drawn ONCE as hidden <symbol>s
+ * (FigureDefs, in the tree); every tile and the legend re-use them — far fewer elements in a big tree.
+ */
+function FigureDefs() {
+    return (
+        <svg aria-hidden width="0" height="0" className="absolute">
+            <symbol id="ft-man" viewBox="0 0 64 64">
+                <circle cx="32" cy="23" r="11" fill="currentColor" />
+                <path d="M32 37c-11 0-19 6.5-19 15v4h38v-4c0-8.5-8-15-19-15z" fill="currentColor" />
+            </symbol>
+            <symbol id="ft-woman" viewBox="0 0 64 64">
+                {/* hair falling to the shoulders, behind the face */}
+                <path
+                    d="M32 9c-9 0-15 6.5-15 15.5 0 5 .8 9.5-2.5 14 3.5 1.2 7.5.6 10-1.2L32 38l7.5-.7c2.5 1.8 6.5 2.4 10 1.2-3.3-4.5-2.5-9-2.5-14C47 15.5 41 9 32 9z"
+                    fill="currentColor"
+                    opacity="0.85"
+                />
+                <circle cx="32" cy="24" r="10" fill="currentColor" />
+                <path d="M32 38c-11 0-19 6.5-19 15v3h38v-3c0-8.5-8-15-19-15z" fill="currentColor" />
+            </symbol>
+        </svg>
+    );
+}
 function ManIcon({ className = '' }) {
     return (
         <svg viewBox="0 0 64 64" aria-hidden className={className}>
-            <circle cx="32" cy="23" r="11" fill="currentColor" />
-            <path d="M32 37c-11 0-19 6.5-19 15v4h38v-4c0-8.5-8-15-19-15z" fill="currentColor" />
+            <use href="#ft-man" />
         </svg>
     );
 }
 function WomanIcon({ className = '' }) {
     return (
         <svg viewBox="0 0 64 64" aria-hidden className={className}>
-            {/* hair falling to the shoulders, behind the face */}
-            <path
-                d="M32 9c-9 0-15 6.5-15 15.5 0 5 .8 9.5-2.5 14 3.5 1.2 7.5.6 10-1.2L32 38l7.5-.7c2.5 1.8 6.5 2.4 10 1.2-3.3-4.5-2.5-9-2.5-14C47 15.5 41 9 32 9z"
-                fill="currentColor"
-                opacity="0.85"
-            />
-            <circle cx="32" cy="24" r="10" fill="currentColor" />
-            <path d="M32 38c-11 0-19 6.5-19 15v3h38v-3c0-8.5-8-15-19-15z" fill="currentColor" />
+            <use href="#ft-woman" />
         </svg>
     );
 }
@@ -91,42 +106,90 @@ function PersonTile({ p, isRoot, showDetails, leaf = false, birth = false }) {
  * A couple in one light card — husband always left, wife right — or a single person's card.
  * Children hang below from the middle of the card (lines in globals.css .ftree).
  */
-/** A daughter who has married (status married / widowed / divorced, or a recorded husband). */
-const marriedDaughter = (n) => n.gender === 'female' && (MARRIED_LIKE.includes(n.marital_status) || n.spouses.length > 0);
+/** A daughter who has married (married-like status or a recorded husband) — worked out by the server (`md`). */
+const marriedDaughter = (n) => Boolean(n.md);
 
-function Branch({ node, rootId, showDetails, hideMarried, top = false }) {
+// memo: a branch re-renders only when its own data or a switch changes (never while dragging or zooming).
+/** A small pill under / beside a card: See family · See brothers · See father (spinner while its part loads). */
+function FoldButton({ icon: Icon, label, busy, onClick, className = '' }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={busy}
+            className={`inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full border border-surface-border bg-white px-2.5 text-[11px] font-medium text-primary shadow-sm hover:bg-accent disabled:opacity-70 ${className}`}
+        >
+            {busy ? <Loader2 className="size-3 animate-spin" /> : <Icon className="size-3" />} {label}
+        </button>
+    );
+}
+
+const Branch = memo(function Branch({ node, rootId, showDetails, onToggle, top = false }) {
+    const { t } = useT();
     // A married daughter in her father's line (not the tree's top): she comes first, her husband beside her on the
-    // right. Her children show in HER own tree (she is the person viewed) and in her husband's tree (where she is his
-    // wife) — not in the rest of her father's family's trees.
+    // right. Which children show (married daughters, their branches, folded parts) is already decided by the server
+    // (lib/family familyTreeData) for the chosen switches.
     const outMarried = !top && marriedDaughter(node);
-    // "Married daughters" off: married daughters (and their branch) leave every chain — but never the person whose tree it is.
-    const kids = outMarried && node.id !== rootId ? [] : hideMarried ? node.children.filter((c) => c.id === rootId || !marriedDaughter(c)) : node.children;
+    const kids = node.children;
     const people = [node, ...node.spouses];
     const ordered = outMarried ? people : [...people.filter((p) => p.gender === 'male'), ...people.filter((p) => p.gender !== 'male')];
+    const folds = node.more && !node.opened;
     return (
         <li>
-            <div className="flex items-stretch gap-[3px] rounded-xl bg-white p-[3px] shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
-                {ordered.map((p) => (
-                    <PersonTile
-                        key={p.id}
-                        p={p}
-                        isRoot={p.id === rootId}
-                        showDetails={showDetails}
-                        leaf={p.id === node.id && node.spouses.length === 0 && kids.length === 0}
-                        birth={p.id === node.id}
+            {/* Top card with a known father above (very big families): load the next ancestors. */}
+            {node.up && (
+                <FoldButton icon={ArrowUp} label={t('family.seeFather')} busy={node.upLoading} onClick={() => onToggle('up', node.id)} className="mb-2" />
+            )}
+            <div className="relative">
+                {/* Brothers not sent (an ancestor in a long line): beside the card, on its left. */}
+                {node.brothers && (
+                    <FoldButton
+                        icon={node.brothersOpen ? ChevronUp : Users}
+                        label={node.brothersOpen ? t('family.hideBranch') : t('family.seeBrothers')}
+                        busy={node.brothersLoading}
+                        onClick={() => onToggle('brothers', node.id)}
+                        className="absolute top-1/2 right-full mr-2 -translate-y-1/2"
                     />
-                ))}
+                )}
+                <div className="flex items-stretch gap-[3px] rounded-xl bg-white p-[3px] shadow-[0_2px_8px_-3px_rgb(15_23_42/0.18)] ring-1 ring-slate-200">
+                    {ordered.map((p) => (
+                        <PersonTile
+                            key={p.id}
+                            p={p}
+                            isRoot={p.id === rootId}
+                            showDetails={showDetails}
+                            leaf={p.id === node.id && node.spouses.length === 0 && kids.length === 0 && !node.more}
+                            birth={p.id === node.id}
+                        />
+                    ))}
+                </div>
+                {/* An opened "See family": fold it again from the card's bottom edge. */}
+                {node.opened && (
+                    <button
+                        type="button"
+                        onClick={() => onToggle('branch', node.id)}
+                        aria-label={t('family.hideBranch')}
+                        title={t('family.hideBranch')}
+                        className="absolute -bottom-3 left-1/2 z-10 inline-flex size-6 -translate-x-1/2 items-center justify-center rounded-full border border-surface-border bg-white text-primary shadow-sm hover:bg-accent"
+                    >
+                        <ChevronUp className="size-3.5" />
+                    </button>
+                )}
             </div>
+            {/* Children not sent (very big families): only a card with at least one child gets the button. */}
+            {folds && (
+                <FoldButton icon={Users} label={t('family.seeFamily')} busy={node.loading} onClick={() => onToggle('branch', node.id)} className="mt-2" />
+            )}
             {kids.length > 0 && (
                 <ul>
                     {kids.map((c) => (
-                        <Branch key={c.id} node={c} rootId={rootId} showDetails={showDetails} hideMarried={hideMarried} />
+                        <Branch key={c.id} node={c} rootId={rootId} showDetails={showDetails} onToggle={onToggle} />
                     ))}
                 </ul>
             )}
         </li>
     );
-}
+});
 
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 1.8;
@@ -136,14 +199,16 @@ const MAX_ZOOM = 1.8;
  * Inside the box: drag to move around (a drag never opens a card), pinch with two fingers to
  * zoom — on a laptop, pinch the trackpad or Ctrl + scroll. The zoom stays centred under the
  * fingers / pointer. No zoom buttons.
+ * Zoom is written straight onto the tree (style.zoom — crisp, re-laid out by the browser), at most once per frame,
+ * never through React state — so pinching never re-renders the cards.
+ * The switches and the data parts come from family-tree-loader (`busy` while a switch's part downloads).
  */
-export default function FamilyTree({ tree }) {
+export default function FamilyTree({ tree, showDetails, showMarried, onDetails, onMarried, onToggle, busy = false }) {
     const { t } = useT();
-    const [showDetails, setShowDetails] = useState(false);
-    // Married daughters start hidden (only the person whose tree it is stays, even if she is one); the switch shows them.
-    const [showMarried, setShowMarried] = useState(false);
-    const [zoom, setZoom] = useState(1);
     const zoomRef = useRef(1);
+    const want = useRef(null); // { z, cx, cy } waiting for the next frame
+    const zoomFrame = useRef(0);
+    const inner = useRef(null);
     const box = useRef(null);
     // The canvas reaches the bottom edge of the page.
     const fill = useFillHeight();
@@ -151,21 +216,27 @@ export default function FamilyTree({ tree }) {
     const pointers = useRef(new Map());
     const pinch = useRef(null);
 
-    /** Zoom to `next`, keeping the point (cx, cy) — relative to the box — under the fingers. */
+    /** Zoom to `next`, keeping the point (cx, cy) — relative to the box — under the fingers. Applied once per frame. */
     const zoomTo = (next, cx, cy) => {
-        const el = box.current;
-        const z1 = zoomRef.current;
-        const z2 = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
-        if (!el || Math.abs(z2 - z1) < 0.001) return;
-        const left = (el.scrollLeft + cx) * (z2 / z1) - cx;
-        const top = (el.scrollTop + cy) * (z2 / z1) - cy;
-        zoomRef.current = z2;
-        setZoom(z2);
-        requestAnimationFrame(() => {
+        want.current = { z: Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next)), cx, cy };
+        if (zoomFrame.current) return;
+        zoomFrame.current = requestAnimationFrame(() => {
+            zoomFrame.current = 0;
+            const w = want.current;
+            want.current = null;
+            const el = box.current;
+            const z1 = zoomRef.current;
+            if (!w || !el || !inner.current || Math.abs(w.z - z1) < 0.001) return;
+            const left = (el.scrollLeft + w.cx) * (w.z / z1) - w.cx;
+            const top = (el.scrollTop + w.cy) * (w.z / z1) - w.cy;
+            zoomRef.current = w.z;
+            inner.current.style.zoom = String(w.z);
             el.scrollLeft = left;
             el.scrollTop = top;
         });
     };
+    /** The zoom about to be shown (a frame may be waiting). */
+    const nextZoom = () => want.current?.z ?? zoomRef.current;
     const local = (x, y) => {
         const r = box.current.getBoundingClientRect();
         return [x - r.left, y - r.top];
@@ -198,12 +269,15 @@ export default function FamilyTree({ tree }) {
             if (!e.ctrlKey) return;
             e.preventDefault();
             const r = el.getBoundingClientRect();
-            zoomTo(zoomRef.current * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top);
+            zoomTo(nextZoom() * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top);
         };
         el.addEventListener('wheel', onWheel, { passive: false });
-        return () => el.removeEventListener('wheel', onWheel);
+        return () => {
+            el.removeEventListener('wheel', onWheel);
+            cancelAnimationFrame(zoomFrame.current);
+            zoomFrame.current = 0;
+        };
         // zoomTo only reads refs; binding once is enough.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const onPointerDown = (e) => {
@@ -212,7 +286,7 @@ export default function FamilyTree({ tree }) {
         if (pointers.current.size === 2) {
             // Second finger down: switch from dragging to pinching.
             const [a, b] = [...pointers.current.values()];
-            pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom: zoomRef.current };
+            pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom: nextZoom() };
             drag.current = { ...(drag.current ?? {}), moved: true, pinching: true };
             return;
         }
@@ -259,6 +333,7 @@ export default function FamilyTree({ tree }) {
 
     return (
         <div>
+            <FigureDefs />
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="flex items-center gap-3 text-xs text-ink-gray">
                     <span className="inline-flex items-center gap-1">
@@ -270,8 +345,10 @@ export default function FamilyTree({ tree }) {
                     <span className="hidden sm:inline">· {t('family.gestureHint')}</span>
                 </p>
                 <div className="flex flex-wrap items-center gap-4">
-                    <Switch checked={showMarried} onChange={setShowMarried} label={t('family.marriedDaughters')} />
-                    <Switch checked={showDetails} onChange={setShowDetails} label={t('members.details')} />
+                    {/* A switch's part of the tree is fetched once — a spinner while it comes. */}
+                    {busy && <Loader2 aria-hidden className="size-4 animate-spin text-ink-gray" />}
+                    <Switch checked={showMarried} onChange={onMarried} label={t('family.marriedDaughters')} />
+                    <Switch checked={showDetails} onChange={onDetails} label={t('members.details')} />
                 </div>
             </div>
             <div ref={fill} className="relative h-[calc(100dvh-13rem)] min-h-80">
@@ -283,9 +360,10 @@ export default function FamilyTree({ tree }) {
                     onPointerCancel={onPointerEnd}
                     className="h-full cursor-grab touch-none overflow-auto overscroll-contain rounded-xl border border-surface-border bg-gray-100 shadow-inner select-none active:cursor-grabbing"
                 >
-                    <div className="ftree inline-block min-w-full p-6" style={{ zoom }}>
+                    {/* No React style here: the zoom is set on this element directly (zoomTo). */}
+                    <div ref={inner} className="ftree inline-block min-w-full p-6">
                         <ul>
-                            <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} hideMarried={!showMarried} top />
+                            <Branch node={tree.top} rootId={tree.rootId} showDetails={showDetails} onToggle={onToggle} top />
                         </ul>
                     </div>
                 </div>

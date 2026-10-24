@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { inList, query, queryOne } from './db';
 import { kinTerm as kinTermOf } from './kinship';
 import { composeName } from './names';
+import { getSettings } from './settings';
 import { canManageMembers } from './roles';
 
 // Family tree: people are users_list rows (a relative may have no phone and no login); links
@@ -242,16 +243,15 @@ export async function linkRelative(q, person, kind, relativeId) {
 }
 
 /**
- * The family line as a real tree: start from the oldest recorded ancestor up the father's line
- * (the mother's when no father is recorded), then every descendant below, generation by
- * generation — each person with their spouse(s), children under the couple; a visited set stops loops.
- * Walked in memory over the request's family links (allRelations), then ONE query for the people —
- * it used to be a query per generation up and three per generation down (≈ 40 round trips).
- * @returns {Promise<null | { rootId: number, top: object }>}  top = { ...person, spouses: [], children: [node] }
+ * The family line as a real tree, by id only (no people query): from the oldest recorded ancestor up the father's line
+ * (the mother's when no father is recorded), then every descendant below, generation by generation — each person with
+ * their spouse(s), children under the couple; a visited set stops loops. Walked in memory over the request's family
+ * links (allRelations) — it used to be a query per generation up and three per generation down (≈ 40 round trips).
+ * Shape = { id, spouses: [id], children: [Shape] }.
+ * @returns {Promise<{ top: object, shapes: Map<number, object>, placed: Set<number>, parentOf: Map<number, number> }>}
  */
-export async function getLineageTree(rootId, maxDepth = 20) {
-    const [root, rels] = await Promise.all([getPerson(rootId), allRelations()]);
-    if (!root) return null;
+async function lineageShape(rootId, maxDepth = 150) {
+    const rels = await allRelations();
     const push = (m, k, v) => (m.get(k) ?? m.set(k, []).get(k)).push(v);
     const parentsOf = new Map(); // child → [{ relative_id, relation }]
     const spousesOf = new Map(); // person → [spouse ids]
@@ -263,7 +263,7 @@ export async function getLineageTree(rootId, maxDepth = 20) {
         } else if (r.relation === 'spouse') push(spousesOf, r.user_id, r.relative_id);
     }
     // Up to the oldest ancestor.
-    let topId = root.id;
+    let topId = rootId;
     const upSeen = new Set([topId]);
     for (let i = 0; i < maxDepth; i++) {
         const parents = parentsOf.get(topId) ?? [];
@@ -273,20 +273,20 @@ export async function getLineageTree(rootId, maxDepth = 20) {
         topId = next;
     }
 
-    // The shape first, by id: { id, spouses: [id], children: [shape] }.
     const placed = new Set([topId]); // a person appears once (as a node or as a spouse)
     const shapes = new Map(); // id → shape
+    const parentOf = new Map(); // node id → the node it hangs under
     const top = { id: topId, spouses: [], children: [] };
     shapes.set(topId, top);
     let level = [topId];
     for (let depth = 0; depth < maxDepth && level.length; depth++) {
         const coupleOf = new Map(); // spouse id → the node they sit beside
-        for (const a of level)
-            for (const b of spousesOf.get(a) ?? []) {
-                if (placed.has(b)) continue;
-                placed.add(b);
-                shapes.get(a).spouses.push(b);
-                coupleOf.set(b, a);
+        for (const x of level)
+            for (const y of spousesOf.get(x) ?? []) {
+                if (placed.has(y)) continue;
+                placed.add(y);
+                shapes.get(x).spouses.push(y);
+                coupleOf.set(y, x);
             }
         // Children of anyone in a couple on this level go under that couple, in the order they were linked.
         const kids = [...level, ...coupleOf.keys()].flatMap((pid) => kidsOf.get(pid) ?? []).sort((x, y) => x.id - y.id);
@@ -298,26 +298,38 @@ export async function getLineageTree(rootId, maxDepth = 20) {
             if (!owner) continue;
             const shape = { id: child, spouses: [], children: [] };
             shapes.set(child, shape);
+            parentOf.set(child, owner.id);
             owner.children.push(shape);
             next.push(child);
         }
         level = next;
     }
+    return { top, shapes, placed, parentOf };
+}
 
-    // Then everyone in it, in one query; a link to a missing person is dropped.
-    const people = new Map([[root.id, root]]);
-    const ids = [...placed].filter((x) => !people.has(x));
-    if (ids.length) {
-        const l = inList(ids, 'p');
-        for (const r of await query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params)) people.set(r.id, r);
-    }
-    const build = (sh) => ({
-        ...people.get(sh.id),
-        spouses: sh.spouses.filter((x) => people.has(x)).map((x) => people.get(x)),
-        // Children left to right, eldest first — among those with a birth date; the rest keep their place.
-        children: byAge(sh.children.filter((c) => people.has(c.id)).map(build)),
-    });
-    return { rootId: root.id, top: build(top) };
+// Very big families open FOLDED — the numbers are admin settings (Settings → Family tree, admin_settings tree_*;
+// recommended in brackets), counted from the tree's person (the one viewed):
+//  - a tree with more than tree_fold_above people (1000) folds; smaller ones show everyone;
+//  - up: at most tree_up_generations (15) above them; the top card has "See father" (?up=<top id>) → the next ones, as
+//    ONE line (father → son), each with "See brothers" (?brothers=<id>) for that ancestor's brothers (folded cards);
+//  - down: from that top, tree_open_generations (7) are open; a person in the next generation is a card with "See
+//    family" when they have a child (?branch=<id>) → that branch down tree_branch_generations (10) below them, where it
+//    folds again;
+//  - the line from the top down to the tree's person always stays open, and so does their own family.
+// TREE_FOLD (env, "size.open.branch.up", e.g. 50.2.2.1) overrides them, to try the folding locally on a small family.
+/** The fold settings, as one short string for the tree's version (a change makes browsers fetch again). */
+export async function treeFoldSettings() {
+    const a = await getSettings('admin');
+    const [size, open, branch, up] = String(process.env.TREE_FOLD ?? '')
+        .split('.')
+        .map(Number);
+    const cfg = {
+        foldAbove: size || a.tree_fold_above,
+        open: open || a.tree_open_generations,
+        branch: branch || a.tree_branch_generations,
+        up: up || a.tree_up_generations,
+    };
+    return { ...cfg, key: `${cfg.foldAbove}.${cfg.open}.${cfg.branch}.${cfg.up}` };
 }
 
 /**
@@ -325,18 +337,117 @@ export async function getLineageTree(rootId, maxDepth = 20) {
  * first: names, gender, late or not, and `md` (a married daughter: married-like status — for those who may see this
  * family — or a recorded husband).
  *  - `married` false (the "Married daughters" switch off, the default): married daughters and their branch are left
- *    out (never the tree's person). A married daughter's own children are never sent (they are in her own tree).
+ *    out (never the line to the tree's person). A married daughter's own children are never sent (they are in her own
+ *    tree) — unless the line to the tree's person runs through her.
  *  - `details` true (the "Details" switch): + birth date, marital status (both only when the viewer may see this
  *    family, `family`) and how each is related to the tree's person (kin) — the costliest part, so only then.
+ *  - folded parts (very big families, see above): `branch` → { node } · `brothers` → { children } (the brother
+ *    itself as `{ id, keep: true }`) · `up` → { node } (a line of ancestors ending in `{ id: <up>, keep: true }`).
+ *    Card flags: `more` (children not sent), `brothers` (brothers not sent), `up` (a father above, not sent).
+ *    null when the asked person is not in this tree.
+ * Children are eldest first (birth date; people without one keep their place). Empty values are left out.
  */
-export async function familyTreeData(person, family, { married = false, details = false } = {}) {
-    const [tree, steps] = await Promise.all([getLineageTree(person.id), details ? relationStepsFrom(person.id) : null]);
-    const rootId = tree.rootId;
-    const md = (p) => p.gender === 'female' && ((family && MARRIED_LIKE.includes(p.marital_status)) || (p.spouses?.length ?? 0) > 0);
-    const slim = (p, top = false) => {
-        const kids = !top && md(p) && p.id !== rootId ? [] : (p.children ?? []).filter((c) => married || c.id === rootId || !md(c));
+export async function familyTreeData(person, family, { married = false, details = false, branch = null, brothers = null, up = null } = {}) {
+    const rootId = person.id;
+    const [s, steps, cfg] = await Promise.all([lineageShape(rootId), details ? relationStepsFrom(rootId) : null, treeFoldSettings()]);
+    const { open: OPEN_GENERATIONS, branch: BRANCH_GENERATIONS, up: UP_GENERATIONS } = cfg;
+    const big = s.placed.size > cfg.foldAbove;
+    // Generation of every node (the oldest ancestor = 1), and the line from the top down to the tree's person.
+    const gen = new Map();
+    const mark = (sh, g) => {
+        gen.set(sh.id, g);
+        for (const c of sh.children) mark(c, g + 1);
+    };
+    mark(s.top, 1);
+    const line = []; // the tree's person, their father, his father … up to the oldest
+    for (let x = rootId; x != null && !line.includes(x); x = s.parentOf.get(x)) line.push(x);
+    const path = new Set(line);
+    const viewTop = s.shapes.get(big ? line[Math.min(UP_GENERATIONS, line.length - 1)] : s.top.id) ?? s.top;
+
+    // Small family: everyone in full, one query. Folded: a few columns for everyone (order, married daughters), then
+    // the full row only for who is shown.
+    const people = new Map();
+    const read = async (ids, cols) => {
+        if (!ids.length) return;
+        const l = inList(ids, 'p');
+        for (const r of await query(`SELECT ${cols} FROM users_list u WHERE u.id IN (${l.sql})`, l.params)) people.set(r.id, r);
+    };
+    await read([...s.placed], big ? 'u.id, u.gender, u.marital_status, u.dob' : COLS);
+
+    const md = (id) => {
+        const p = people.get(id);
+        return (
+            p?.gender === 'female' && ((family && MARRIED_LIKE.includes(p.marital_status)) || (s.shapes.get(id)?.spouses.some((x) => people.has(x)) ?? false))
+        );
+    };
+    /** The children a node shows (married-daughter rules; the line to the tree's person always stays), eldest first. */
+    const childrenOf = (sh) => {
+        if (sh !== s.top && sh !== viewTop && md(sh.id) && !path.has(sh.id)) return [];
+        const kids = sh.children.filter((c) => people.has(c.id) && (married || path.has(c.id) || !md(c.id)));
+        return byAge(kids.map((c) => ({ sh: c, dob: people.get(c.id).dob }))).map((x) => x.sh);
+    };
+    const shown = new Set();
+    const couple = (sh) => {
+        const spouses = sh.spouses.filter((x) => people.has(x));
+        shown.add(sh.id);
+        for (const x of spouses) shown.add(x);
+        return spouses;
+    };
+    /** A card whose children are not sent. */
+    const folded = (sh) => ({ id: sh.id, spouses: couple(sh), children: [], more: childrenOf(sh).length > 0 });
+    const walk = (sh, stopGen) => {
+        const g = gen.get(sh.id);
+        // The tree's person: their own family opens 10 generations below them.
+        const stop = sh.id === rootId ? Math.max(stopGen, g + BRANCH_GENERATIONS) : stopGen;
+        if (big && !path.has(sh.id) && g >= stop) return folded(sh);
+        return { id: sh.id, spouses: couple(sh), children: childrenOf(sh).map((c) => walk(c, stop)), more: false };
+    };
+    const parentShape = (id) => s.shapes.get(s.parentOf.get(id));
+    /** Has brothers / sisters the tree would show (not sent yet)? */
+    const hasBrothers = (id) => {
+        const p = parentShape(id);
+        return Boolean(p) && childrenOf(p).some((c) => c.id !== id);
+    };
+
+    let result;
+    if (branch) {
+        const sh = s.shapes.get(Number(branch));
+        if (!sh) return null;
+        result = { node: walk(sh, gen.get(sh.id) + BRANCH_GENERATIONS) };
+    } else if (brothers) {
+        const p = parentShape(Number(brothers));
+        if (!p) return null;
+        result = { children: childrenOf(p).map((c) => (c.id === Number(brothers) ? { id: c.id, keep: true } : folded(c))) };
+    } else if (up) {
+        // The next ancestors above `up`, one line; each (and `up` itself) says whether it has brothers.
+        const at = line.indexOf(Number(up));
+        if (at < 0) return null;
+        const above = line.slice(at + 1, at + 1 + UP_GENERATIONS); // father, grandfather …
+        if (!above.length) return null;
+        let node = { id: Number(up), keep: true, brothers: hasBrothers(Number(up)) };
+        for (let i = 0; i < above.length; i++) {
+            const sh = s.shapes.get(above[i]);
+            const isTop = i === above.length - 1;
+            node = {
+                id: sh.id,
+                spouses: couple(sh),
+                children: [node],
+                brothers: !isTop && hasBrothers(sh.id),
+                up: isTop && s.parentOf.has(sh.id),
+            };
+        }
+        result = { node };
+    } else {
+        const top = walk(viewTop, gen.get(viewTop.id) + OPEN_GENERATIONS);
+        top.up = big && s.parentOf.has(viewTop.id);
+        result = { top };
+    }
+    if (big) await read([...shown], COLS);
+
+    const card = (id) => {
+        const p = people.get(id);
         const out = {
-            id: p.id,
+            id,
             full_name: p.full_name,
             full_name_local: p.full_name_local,
             first_name: p.first_name,
@@ -347,20 +458,28 @@ export async function familyTreeData(person, family, { married = false, details 
             maiden_surname_local: p.maiden_surname_local,
             gender: p.gender,
             status: p.status,
-            md: md(p),
-            spouses: (p.spouses ?? []).map((s) => slim(s)),
-            children: kids.map((c) => slim(c)),
         };
         if (details) {
             out.dob = family ? p.dob : null;
             out.marital_status = family ? p.marital_status : null;
-            out.kin = p.id === person.id ? null : (kinTermOf(steps.get(p.id)) ?? null);
+            out.kin = id === rootId ? null : (kinTermOf(steps.get(id)) ?? null);
         }
         // Empty values are left out (a smaller download); the tree reads a missing one as empty.
-        for (const k of Object.keys(out)) if (out[k] == null || out[k] === false) delete out[k];
+        for (const k of Object.keys(out)) if (out[k] == null) delete out[k];
         return out;
     };
-    return { rootId, top: slim(tree.top, true) };
+    const build = (n) => {
+        if (n.keep) return n.brothers ? { id: n.id, keep: true, brothers: true } : { id: n.id, keep: true };
+        const out = { ...card(n.id), spouses: n.spouses.map(card), children: n.children.map(build) };
+        if (md(n.id)) out.md = true;
+        if (n.more) out.more = true;
+        if (n.brothers) out.brothers = true;
+        if (n.up) out.up = true;
+        return out;
+    };
+    if (result.top) return { rootId, top: build(result.top) };
+    if (result.children) return { rootId, children: result.children.map(build) };
+    return { rootId, node: build(result.node) };
 }
 
 /**
