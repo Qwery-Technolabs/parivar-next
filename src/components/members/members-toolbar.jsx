@@ -178,7 +178,7 @@ function FiltersPanel({
             <FilterSection title={t('members.filterSections.sort')} />
             <Field label={t('members.sortBy')}>
                 <select value={draft.sort} onChange={(e) => set('sort', e.target.value)} className={`${selectInput()} w-full`}>
-                    {['name', 'name_desc', 'newest', 'oldest', 'age_young', 'age_old'].map((k) => (
+                    {['name', 'name_desc', 'newest', 'oldest', 'age_young', 'age_old', 'login_old', 'login_recent'].map((k) => (
                         <option key={k} value={k}>
                             {t(`members.sorts.${k}`)}
                         </option>

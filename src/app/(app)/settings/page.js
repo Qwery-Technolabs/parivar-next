@@ -43,6 +43,7 @@ import { AdminNotifySettings, NotificationPrefs } from '@/components/settings/no
 import { NOTIFY_CATEGORIES, parseOff } from '@/lib/notification-prefs';
 import LanguageSelect from '@/components/settings/language-select';
 import AboutSection from '@/components/settings/about-section';
+import AuditDangerZone from '@/components/audit/audit-danger-zone';
 import { sp1 } from '@/lib/url';
 import { LinkIconSpinner } from '@/components/ui/link-spinner';
 
@@ -140,6 +141,8 @@ export default async function SettingsPage({ searchParams }) {
                     )}
                     {current.key === 'about' && <AboutSection t={t} locale={locale} />}
                     {current.key === 'audit' && <AuditLog sp={sp} t={t} locale={locale} canClear={isAdmin} />}
+                    {/* Administrators: clear everything, or one member's history. */}
+                    {current.key === 'audit' && isAdmin && <AuditDangerZone />}
                     {current.key === 'security' && <SecuritySection userId={user.id} t={t} />}
                     {current.key === 'notifications' && (
                         // My notifications: this device and the kinds I want. App-wide sending is under Samaj → Alerts.

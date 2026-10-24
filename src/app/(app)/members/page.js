@@ -1,9 +1,10 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { LinkIconSpinner } from '@/components/ui/link-spinner';
-import { BellRing, Phone, MapPin } from 'lucide-react';
+import { Phone, MapPin } from 'lucide-react';
 import { BulkBar, BulkSelectProvider, RowCheck, SelectAll } from '@/components/members/bulk-select';
 import InviteMembersDialog from '@/components/members/invite-members-dialog';
+import MemberPushCell from '@/components/members/member-push-cell';
 import MemberRowActions from '@/components/members/member-row-actions';
 import MembersToolbar from '@/components/members/members-toolbar';
 import PageHeader from '@/components/shell/page-header';
@@ -28,6 +29,7 @@ import {
     canManageMembers,
     canManageSettings,
     canManageMemberPush,
+    canViewAudit,
     ROLES,
     canDeleteMember,
     assignableRoles,
@@ -53,6 +55,8 @@ export default async function MembersPage({ searchParams }) {
     if (filters.status === 'archived' && !seesArchived) filters.status = 'active';
     // Who turned notifications on: sub-admins and up (lib/roles canManageMemberPush).
     const seesPush = canManageMemberPush(user.role);
+    // Row ⋮ → Activity history (sign-ins and changes): those who may read the activity log.
+    const seesActivity = canViewAudit(user.role);
     if (!seesPush) filters.push = '';
     // "Added by": app admins / sub-admins filter by anyone; a member only by themselves.
     const filtersAnyCreator = atLeast(user.role, 'sub_admin');
@@ -233,17 +237,11 @@ export default async function MembersPage({ searchParams }) {
                                     <Td className="text-right">
                                         <span className="inline-flex items-center gap-1.5">
                                             {/* A pinned home: open Nearby Homes on it. */}
-                                            {/* Notifications on (a device token) — administrators see it: a status square at the row's end,
-                                                beside the home pin (not by the name, where it pushed the profession about). Not a button. */}
-                                            {seesPush && Boolean(m.has_push) && (
-                                                <span
-                                                    role="img"
-                                                    title={t('push.devices.on')}
-                                                    aria-label={t('push.devices.on')}
-                                                    className="inline-flex size-8 items-center justify-center rounded-md bg-emerald-50 text-emerald-700"
-                                                >
-                                                    <BellRing className="size-3.5" />
-                                                </span>
+                                            {/* Notifications (sub-admins and up), a square at the row's end beside the home pin: green bell =
+                                                on → Notification devices pop-up; red slashed bell = not on (an active member with a login
+                                                number) → remind them at their next app open. */}
+                                            {seesPush && (Boolean(m.has_push) || (m.status === 'active' && m.phone)) && (
+                                                <MemberPushCell member={{ id: m.id, name: primary }} on={Boolean(m.has_push)} />
                                             )}
                                             {Boolean(m.has_home) && (
                                                 <Link
@@ -261,8 +259,7 @@ export default async function MembersPage({ searchParams }) {
                                             <MemberRowActions
                                                 member={{ id: m.id, name: primary, archived: m.status === 'archived' }}
                                                 canEdit={canEditUser(user, m) || canResetPassword(user, m)}
-                                                groups={groupOptions}
-                                                canAssignGroups={groupOptions.length > 0}
+                                                canSeeActivity={seesActivity}
                                                 canDelete={canDeleteMember(user, m)}
                                             />
                                         </span>

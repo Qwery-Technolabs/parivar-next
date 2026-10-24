@@ -465,3 +465,5 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Push forms: switches for Open page / audience / devices; members list = people with notifications on; count boxes open searchable lists
 - [x] Family tree loads once: data in parts (married daughters / details on demand), kept by the browser per family version; zoom without re-rendering, shared figures (canvas version tried and reverted — looked worse)
 - [x] Very big family trees (over 1000) open folded: See family / See brothers / See father; numbers in Settings → Family tree (Now / Recommended / Reset)
+- [x] Notification prompt as a centred pop-up over a blurred page; members list bell → devices pop-up, red slashed bell → remind at next app open
+- [x] Members row ⋮: Activity history (sign-ins + changes, admins clear) instead of Add to group; Danger zone in Settings → Activity log; sort by last sign-in

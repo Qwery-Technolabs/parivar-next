@@ -2,6 +2,7 @@ const en = {
     app: { name: 'Parivar', tagline: 'Our family, together' },
     phone: { country: 'Country code' },
     common: {
+        ok: 'OK',
         selectAll: 'Select all',
         deselectAll: 'Deselect all',
         remove: 'Remove',
@@ -203,6 +204,8 @@ const en = {
             oldest: 'Oldest added first',
             age_young: 'Youngest first',
             age_old: 'Eldest first',
+            login_old: 'Last sign-in: longest ago first',
+            login_recent: 'Last sign-in: most recent first',
         },
         hasData: 'Has / missing',
         newSurname: '“{name}” is new — it will be added when you save.',
@@ -1361,6 +1364,16 @@ const en = {
         passwordChanged: 'Password changed. Other devices were logged out.',
     },
     audit: {
+        danger: {
+            title: 'Danger zone',
+            hint: 'Deleting activity cannot be undone. The clearing itself is recorded.',
+            clearAll: 'Clear all activity',
+            clearAllConfirm: 'Delete the whole activity log of every member? This cannot be undone.',
+            clearMember: 'Clear one member’s activity',
+            pickMember: 'Choose a member…',
+            clearMemberConfirm: 'Delete all activity history of this member? This cannot be undone.',
+            clear: 'Clear',
+        },
         member: 'Member',
         clear: { one: 'Clear this entry', other: 'Clear these {count} entries' },
         clearConfirm: {
@@ -1807,6 +1820,14 @@ const en = {
             attendees: 'Choose at least one person.',
         },
     },
+    activity: {
+        title: 'Activity history',
+        signedIn: 'Signed in',
+        empty: 'No activity recorded yet.',
+        more: 'Show more',
+        clear: 'Clear this history',
+        clearConfirm: 'Delete all activity history of {name}? This cannot be undone.',
+    },
     push: {
         reach: {
             open: 'Tap to see the list',
@@ -1822,6 +1843,13 @@ const en = {
         opening: 'Opening…',
         promptTitle: 'Turn on notifications?',
         promptText: 'Hear about meetings, fundraises, contributions and your groups — even when the app is closed.',
+        blockedTitle: 'Notifications are blocked',
+        blockedText: 'They are switched off for this app in your phone or browser. Open its settings → Notifications → Allow, then come back.',
+        remind: {
+            button: 'Not turned on — remind them',
+            confirm: 'Remind {name} to turn on notifications? The next time they open the app, they will be asked again.',
+            sent: '{name} will be asked to turn on notifications the next time they open the app.',
+        },
         allow: 'Allow',
         notNow: 'Not now',
         admin: {

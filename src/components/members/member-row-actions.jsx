@@ -1,16 +1,20 @@
 'use client';
-import { Archive, ArchiveRestore, Eye, GitFork, Pencil, Trash2, UserPlus } from 'lucide-react';
-import { useTransition } from 'react';
+import { Archive, ArchiveRestore, Eye, GitFork, History, Pencil, Trash2 } from 'lucide-react';
+import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { assignToGroup, deleteMember, setMemberArchived } from '@/app/actions/members';
-import { Field, selectInput } from '@/components/ui/field';
-import FormDialog from '@/components/ui/form-dialog';
+import { deleteMember, setMemberArchived } from '@/app/actions/members';
+import MemberActivityDialog from '@/components/members/member-activity-dialog';
 import { KebabMenu, MenuItem, MenuSeparator } from '@/components/ui/popover';
 import { useT } from '@/lib/i18n/client';
 
-export default function MemberRowActions({ member, canEdit, groups, canAssignGroups, canDelete = false }) {
+/**
+ * Members list, a row's ⋮: View · Edit · Family tree · Activity history (sub-admins and up — sign-ins and changes)
+ * · Archive / Restore / Delete. Adding to a group is the bulk action (tick rows), not here.
+ */
+export default function MemberRowActions({ member, canEdit, canSeeActivity = false, canDelete = false }) {
     const { t } = useT();
     const [deleting, startDelete] = useTransition();
+    const [activity, setActivity] = useState(false);
     // Archive ⇄ restore (super admins / administrators): the step before Delete.
     const archive = (close, on) => {
         close();
@@ -33,87 +37,59 @@ export default function MemberRowActions({ member, canEdit, groups, canAssignGro
     };
 
     return (
-        <FormDialog
-            // Adds as a member only; making someone a group admin happens inside the group.
-            title={t('members.addToGroup')}
-            description={member.name}
-            action={assignToGroup}
-            hidden={{ user_id: member.id }}
-            submitIcon={UserPlus}
-            submitLabel={t('members.addToGroup')}
-            width="sm:max-w-sm"
-            trigger={({ open }) => (
-                <KebabMenu label={t('common.more')}>
-                    {(close) => (
-                        <>
-                            <MenuItem icon={Eye} href={`/members/${member.id}`}>
-                                {t('common.view')}
+        <>
+            <KebabMenu label={t('common.more')}>
+                {(close) => (
+                    <>
+                        <MenuItem icon={Eye} href={`/members/${member.id}`}>
+                            {t('common.view')}
+                        </MenuItem>
+                        {canEdit && (
+                            <MenuItem icon={Pencil} href={`/members/${member.id}/edit`}>
+                                {t('common.edit')}
                             </MenuItem>
-                            {canEdit && (
-                                <MenuItem icon={Pencil} href={`/members/${member.id}/edit`}>
-                                    {t('common.edit')}
+                        )}
+                        <MenuItem icon={GitFork} href={`/members/${member.id}/tree`}>
+                            {t('members.familyTree')}
+                        </MenuItem>
+                        {canSeeActivity && (
+                            <>
+                                <MenuSeparator />
+                                <MenuItem
+                                    icon={History}
+                                    onClick={() => {
+                                        close();
+                                        setActivity(true);
+                                    }}
+                                >
+                                    {t('activity.title')}
                                 </MenuItem>
-                            )}
-                            <MenuItem icon={GitFork} href={`/members/${member.id}/tree`}>
-                                {t('members.familyTree')}
-                            </MenuItem>
-                            {canAssignGroups && (
-                                <>
-                                    <MenuSeparator />
-                                    <MenuItem
-                                        icon={UserPlus}
-                                        onClick={() => {
-                                            close();
-                                            open();
-                                        }}
-                                    >
-                                        {t('members.addToGroup')}
-                                    </MenuItem>
-                                </>
-                            )}
-                            {/* Two steps: Archive first; only an archived member offers Restore and Delete. */}
-                            {canDelete && (
-                                <>
-                                    <MenuSeparator />
-                                    {member.archived ? (
-                                        <>
-                                            <MenuItem icon={ArchiveRestore} disabled={deleting} onClick={() => archive(close, false)}>
-                                                {t('members.restore')}
-                                            </MenuItem>
-                                            <MenuItem icon={Trash2} danger disabled={deleting} onClick={() => remove(close)}>
-                                                {t('members.delete')}
-                                            </MenuItem>
-                                        </>
-                                    ) : (
-                                        <MenuItem icon={Archive} disabled={deleting} onClick={() => archive(close, true)}>
-                                            {t('members.archive')}
+                            </>
+                        )}
+                        {/* Two steps: Archive first; only an archived member offers Restore and Delete. */}
+                        {canDelete && (
+                            <>
+                                <MenuSeparator />
+                                {member.archived ? (
+                                    <>
+                                        <MenuItem icon={ArchiveRestore} disabled={deleting} onClick={() => archive(close, false)}>
+                                            {t('members.restore')}
                                         </MenuItem>
-                                    )}
-                                </>
-                            )}
-                        </>
-                    )}
-                </KebabMenu>
-            )}
-        >
-            {({ fieldError }) =>
-                groups.length === 0 ? (
-                    <p className="text-sm text-ink-gray">{t('members.noGroups')}</p>
-                ) : (
-                    <Field label={t('members.chooseGroup')} error={fieldError('group_id')} required>
-                        <select name="group_id" defaultValue="" required className={`${selectInput(!!fieldError('group_id'))} w-full`}>
-                            <option value="" disabled>
-                                {t('members.chooseGroup')}
-                            </option>
-                            {groups.map((g) => (
-                                <option key={g.value} value={g.value}>
-                                    {g.label}
-                                </option>
-                            ))}
-                        </select>
-                    </Field>
-                )
-            }
-        </FormDialog>
+                                        <MenuItem icon={Trash2} danger disabled={deleting} onClick={() => remove(close)}>
+                                            {t('members.delete')}
+                                        </MenuItem>
+                                    </>
+                                ) : (
+                                    <MenuItem icon={Archive} disabled={deleting} onClick={() => archive(close, true)}>
+                                        {t('members.archive')}
+                                    </MenuItem>
+                                )}
+                            </>
+                        )}
+                    </>
+                )}
+            </KebabMenu>
+            {canSeeActivity && <MemberActivityDialog member={member} open={activity} onOpenChange={setActivity} />}
+        </>
     );
 }

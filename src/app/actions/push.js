@@ -99,3 +99,31 @@ export async function deletePushDevice(deviceId) {
     await audit(actor.id, 'push.device.remove', 'user', row.user_id, { device: row.id });
     return { ok: true, message: 'push.devices.removed' };
 }
+
+/**
+ * Members list → the red slashed bell (no device turned on): remind this member — the next time they open the app,
+ * the "Turn on notifications?" pop-up shows again, even inside its 7 days. Sub-admins and up.
+ * Stored as users_listmeta push_remind (when it was asked); cleared once shown.
+ */
+export async function remindPush(userId) {
+    const actor = await getCurrentUser();
+    const uid = Number(userId);
+    if (!actor || !canManageMemberPush(actor.role) || !Number.isInteger(uid) || uid <= 0) return FORBIDDEN;
+    const person = await queryOne("SELECT id FROM users_list WHERE id = :uid AND status = 'active'", { uid });
+    if (!person) return { error: 'common.error' };
+    await query(
+        `INSERT INTO users_listmeta (user_id, meta_key, meta_value) VALUES (:uid, 'push_remind', :at)
+         ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)`,
+        { uid, at: String(Date.now()) },
+    );
+    await audit(actor.id, 'push.remind', 'user', uid, {});
+    return { ok: true, message: 'push.remind.sent' };
+}
+
+/** The app just opened without notifications: was this person reminded? Then true once (the reminder is used up). */
+export async function takePushReminder() {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    const r = await query("DELETE FROM users_listmeta WHERE user_id = :uid AND meta_key = 'push_remind'", { uid: user.id });
+    return r.affectedRows > 0;
+}

@@ -21,8 +21,9 @@ const when = (v, locale) => (v ? `${date(v, locale)}, ${time(String(v).slice(11,
  * was turned on and when a notification last reached it; remove one. Loaded when it opens, never with the page.
  * `canSend` (administrators): two tabs — Devices · Send notification (Title + Description, to all of this member's
  * devices or the chosen ones; push only, no bell copy).
+ * Opened from the profile ⋮ (`menuKey`, a PageMenu item) or by any button (`trigger(open)`, e.g. the members list bell).
  */
-export default function PushDevicesDialog({ userId, menuKey, canSend = false }) {
+export default function PushDevicesDialog({ userId, menuKey = null, trigger = null, canSend = false }) {
     const { t, locale } = useT();
     const [open, setOpen] = useState(false);
     const [devices, setDevices] = useState(null);
@@ -93,7 +94,7 @@ export default function PushDevicesDialog({ userId, menuKey, canSend = false }) 
 
     return (
         <>
-            <MenuOpener id={menuKey} open={show} />
+            {menuKey ? <MenuOpener id={menuKey} open={show} /> : trigger?.(show)}
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent focusPopup className="max-h-[92vh] overflow-y-auto bg-white sm:max-w-md">
                     <DialogHeader>

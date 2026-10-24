@@ -233,8 +233,16 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
   chosen options as accent chips with × in one box, a drop-down tick list (search past 6). "Everyone" / "Anyone" stands
   alone (picking it clears the rest). Never wrap buttons in Field's <label> (a click on the label text hits the
   first button) — use a div + label span.
-- **Push prompt**: after a login, a small white card above the bottom bar (bottom-right on desktop): orange bell
-  circle, title, one line, Allow (primary) / Not now (ghost), ×.
+- **Push prompt**: a pop-up in the MIDDLE of the screen over a dimmed, softly blurred page (bg-slate-900/40 +
+  backdrop-blur, z-60; tapping outside = Not now): white rounded-2xl card, centred orange bell circle, title, one line,
+  full-width Allow (primary) / Not now (ghost), ×. Blocked in the browser (after a reminder): rose BellOff circle,
+  "how to unblock" text, OK.
+- **Members list notification square** (row-end cluster, before the home pin, sub-admins and up): light-green bell =
+  on → opens Notification devices (same pop-up as the profile ⋮); rose BellOff = not on (active member with a number)
+  → asks, then sends a reminder. Row ⋮: View · Edit · Family tree · Activity history (History icon) · Archive / Delete —
+  no "Add to group" there (bulk bar only).
+- **Danger zone** (Settings → Activity log, administrators): a red-bordered card under the log (destructive/5 head):
+  clear one member's history (MemberPicker + Clear) and clear all; each asks first.
 - **Kebab on a navy card**: the glass variant (KebabMenu / PageMenu `glass`), never the white one.
 - **Dashboard stat boxes**: StatCard `color` = soft tint (border-*-100, bg-*-50/70, icon in a *-100 circle, coloured
   number) — Members navy (indigo tint), Open blood rose, Fundraise blue, Upcoming amber. Other StatCards stay white.

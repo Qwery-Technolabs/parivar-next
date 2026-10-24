@@ -147,7 +147,10 @@ implement it and record the rule here (or in parivar-design / parivar-db).
     browser (lib/push-client disablePush) AND destroySession deletes that token server-side. createSession sets
     `pv_push_ask` → PushPrompt (shell) after a login ONLY: that person said yes on this device + browser allowed → on
     again silently; else, while this phone/browser has no notifications, the Allow / Not now card on any page at most
-    once every 7 days (localStorage `pv-push-asked` = last shown). The service worker is registered at idle on app open (warmServiceWorker) so Allow is quick; the card
+    once every 7 days (localStorage `pv-push-asked` = last shown) — a centred modal over a blurred page. A
+    REMINDER (members list → red slashed bell → `remindPush`, users_listmeta `push_remind`) makes the next app open
+    ask again regardless of the 7 days (`takePushReminder` deletes it and answers once; called only when this device
+    has no subscription); when the browser has notifications blocked, the reminded pop-up explains how to unblock. The service worker is registered at idle on app open (warmServiceWorker) so Allow is quick; the card
     closes once the browser answers and the token saves behind it. Browser code: lib/push-client.js only.
   - **Performance**: notifyMany sends push in next/server `after()` (falls back to direct outside a request); /api/push's
     test push too. lib/push `deliver`: waves of 50 sends, then ONE UPDATE last_used_at + ONE DELETE of gone tokens
@@ -163,7 +166,8 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   - **Admin push** (Settings → Samaj → Push notification, administrators): Title, Description, Target (Everyone /
     Groups / Selected members) → `sendPushMessage` → lib/push `pushMessage` — push ONLY, no bell copy; only active
     people with a token. Profile: a green bell badge on the avatar's bottom-right (navy ring) when on (sub-admins and up only); ⋮ → Notification devices: each token, turned on / last notification, for administrators two tabs — Devices · Send notification (title + description; more than one device: All devices (default) or Choose → device_ids),
-    remove. Members filter `?push=on|off` + a light-green bell square in the row's end cluster (before the home pin). Member-level
+    remove. Members filter `?push=on|off` + the row-end square (before the home pin): green bell → PushDevicesDialog
+    (`trigger` prop instead of `menuKey`), red BellOff (active + has a phone) → remind (components/members/member-push-cell). Member-level
     push (list bell + filter, profile bell, ⋮ → Notification devices, sending to one member): sub-admins and up
     (`canManageMemberPush`); everyone / groups sending: administrators (`canManageSettings`).
 - **System chat notes**: `postSystemMessage` / `postMemberNote` (meeting scheduled, member added/removed).
@@ -409,8 +413,12 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   `getMeta(base, id)` returns ALL keys as an object (no key argument) — read `(await getMeta(…)).key`.
 - **Blood donors** (lib/blood.js listDonors, /blood?tab=donors): show and filter by CURRENT city (`?city=`), not native
   village — donors are needed where people live now.
-- **Members list → groups**: the row ⋮ and the bulk bar only "Add to group" (as member; assignToGroup /
-  bulkAssignToGroup force member_role = member). Group admins are made ONLY inside the group (its Members tab).
+- **Members list → groups**: only the bulk bar has "Add to group" (as member; bulkAssignToGroup forces member_role =
+  member) — the row ⋮ has Activity history instead (sub-admins and up = canViewAudit; MemberActivityDialog →
+  `loadMemberActivity`: the member's own audit rows as actor, 30 per page; administrators can clear them there or in
+  Settings → Activity log → Danger zone, both via `clearAuditLog('', '', memberId)`). Every sign-in is logged
+  (createSession → audit 'auth.login', detail { device }). Members sort also: `login_old` / `login_recent`
+  (last sign-in; never signed in last). Group admins are made ONLY inside the group (its Members tab).
 - **Bulk edit members** (Members bulk bar → Bulk edit, `bulkEditMembers`, app admins / sub-admins = canManageMembers): rows of
   "what to change ▾ / value / ×" (+ Add a change; each field once): status, role, native village, current city, caste → sub-caste,
   blood group, donor. Per person: canEditUser, role only via canChangeRole, never own role / status, non-active → sessions revoked;

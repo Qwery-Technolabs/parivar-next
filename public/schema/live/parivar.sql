@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS users_list (
     CONSTRAINT fk_users_subcaste FOREIGN KEY (subcaste_id) REFERENCES admin_castes (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Known keys: position, address, occupation, education, bio, alt_phone, email, local_language
+-- Known keys: position, address, occupation, education, bio, alt_phone, email, local_language, push_remind (members list → remind to turn on notifications)
 CREATE TABLE IF NOT EXISTS users_listmeta (
     meta_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id     INT UNSIGNED NOT NULL,

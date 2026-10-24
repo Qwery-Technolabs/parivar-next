@@ -20,6 +20,9 @@ export const MEMBER_SORTS = {
     oldest: 'u.created_at, u.id',
     age_young: 'u.dob IS NULL, u.dob DESC, u.full_name',
     age_old: 'u.dob IS NULL, u.dob, u.full_name',
+    // Last sign-in: longest ago first (never signed in at the end) / most recent first.
+    login_old: 'u.last_login_at IS NULL, u.last_login_at, u.full_name',
+    login_recent: 'u.last_login_at IS NULL, u.last_login_at DESC, u.full_name',
 };
 
 const metaFilled = (key) => `EXISTS (SELECT 1 FROM users_listmeta dm WHERE dm.user_id = u.id AND dm.meta_key = '${key}' AND dm.meta_value <> '')`;
