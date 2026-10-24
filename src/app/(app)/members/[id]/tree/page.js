@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
+import { preload } from 'react-dom';
 import FamilyTreeLoader from '@/components/members/family-tree-loader';
 import PageHeader from '@/components/shell/page-header';
 import { requireUser } from '@/lib/auth';
-import { canSeeFamily, getLineageTree, getPerson, relationStepsFrom } from '@/lib/family';
-import { kinTerm } from '@/lib/kinship';
+import { canSeeFamily, familyTreeMeta, getPerson } from '@/lib/family';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
 
@@ -14,40 +14,31 @@ export async function generateMetadata() {
 
 /**
  * The family line as a tree: from the oldest recorded ancestor (father's line) down to the
- * youngest descendant, with this person highlighted. Only their family (anyone connected in
- * the tree), whoever added them and member managers can open it.
+ * youngest descendant, with this person highlighted. Anyone signed in may view it; birth date (age)
+ * and marital status stay for those who may see this family (themselves, member managers, whoever
+ * added them, relatives).
+ * The page itself only checks access and the family's version; the tree comes from api/family-tree
+ * (?v=<version>), which the browser keeps — opening it again is instant and costs the server nothing.
  */
 export default async function FamilyTreePage({ params }) {
     const { id } = await params;
-    const user = await requireUser();
-    const person = await getPerson(Number(id) || 0);
+    const pid = Number(id) || 0;
+    const [user, person, meta, { t, locale }] = await Promise.all([requireUser(), getPerson(pid), familyTreeMeta(pid), getT()]);
     if (!person) notFound();
-    // Anyone signed in may view a family tree. Phone, birth date (age) and marital status stay for those
-    // who may see this family (themselves, member managers, whoever added them, relatives).
     const family = await canSeeFamily(user, person);
-    const [tree, steps, { t, locale }] = await Promise.all([getLineageTree(person.id), relationStepsFrom(person.id), getT()]);
-    // Each card says how that person is related to the tree's person (Father, Kaka, Bhabhi …).
-    const label = (p) => {
-        p.kin = p.id === person.id ? null : kinTerm(steps.get(p.id));
-        if (!family) {
-            p.dob = null;
-            p.phone = null;
-            p.marital_status = null; // "married" still shows from a recorded spouse
-        }
-        p.spouses?.forEach(label);
-        p.children?.forEach(label);
-    };
-    label(tree.top);
+    // What the viewer may see is part of the version, so a different viewer never gets someone else's copy.
+    const src = `/api/family-tree/${person.id}?v=${meta.version}${family ? 'f' : 'p'}`;
+    // Start downloading the tree with the page, before its script runs.
+    if (!meta.alone) preload(src, { as: 'fetch', crossOrigin: 'anonymous' });
     const name = localized(person, 'full_name', locale);
-    const alone = tree.top.id === person.id && tree.top.spouses.length === 0 && tree.top.children.length === 0;
 
     return (
         <div>
             <PageHeader title={t('members.familyTree')} subtitle={name} back={{ href: `/members/${person.id}`, label: name }} />
-            {alone ? (
+            {meta.alone ? (
                 <p className="rounded-lg border border-surface-border bg-white px-4 py-10 text-center text-sm text-ink-gray">{t('relations.empty')}</p>
             ) : (
-                <FamilyTreeLoader tree={tree} />
+                <FamilyTreeLoader src={src} />
             )}
         </div>
     );

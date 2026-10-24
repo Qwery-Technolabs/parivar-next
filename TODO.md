@@ -463,3 +463,4 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Contact numbers: women see all, men see all men's; only men→women limited by Settings
 - [x] Nearby Homes filters (family tree, city, village, surname, age) in the page menu
 - [x] Push forms: switches for Open page / audience / devices; members list = people with notifications on; count boxes open searchable lists
+- [x] Family tree on one canvas (only the visible part drawn, less detail zoomed out); data in parts (married daughters / details on demand), kept by the browser per family version

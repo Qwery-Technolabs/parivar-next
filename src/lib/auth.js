@@ -51,7 +51,8 @@ export async function createSession(userId, { remember = false } = {}) {
          VALUES (:h, :uid, DATE_ADD(NOW(), INTERVAL ${days} DAY), :ua)`,
         { h: sha256(token), uid: userId, ua },
     );
-    await query('UPDATE users_list SET last_login_at = NOW() WHERE id = :uid', { uid: userId });
+    // updated_at stays: it marks real changes to the person (the family tree's saved copy follows it).
+    await query('UPDATE users_list SET last_login_at = NOW(), updated_at = updated_at WHERE id = :uid', { uid: userId });
     (await cookies()).set(SESSION_COOKIE, token, {
         httpOnly: true,
         sameSite: 'lax',

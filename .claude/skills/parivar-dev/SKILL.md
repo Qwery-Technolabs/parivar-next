@@ -303,6 +303,16 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   list shows a pin button (has_home) before ⋮. The profile's address link uses the pin when set. Privacy policy +
   licences (Leaflet, OSM data, Esri) say so.
 - **Family tree focus**: a square Focus button (bottom-right of the canvas) scrolls back to the tree's person.
+- **Family tree loading** (built for thousands of people): the page only checks access + `familyTreeMeta` (version of
+  the family: its links' count / sum of ids + MAX(users_list.updated_at) and count of its people, plus 'f' / 'p' for
+  whether the viewer may see private details) and preloads `/api/family-tree/<id>?v=…`; the API (`familyTreeData`)
+  answers with `Cache-Control: private, max-age=1y, immutable` — the browser never asks twice for the same version.
+  Parts: base (married daughters' branches out, no dob / marital / kin) · `&married=1` · `&details=1` (+ dob, marital,
+  kin — the costly relation walk runs only then), fetched when that switch is turned on; the loader keeps each part in
+  memory and shows the current tree while one loads. Empty values are left out of the JSON. **Signing in must not
+  touch users_list.updated_at** (`updated_at = updated_at` in createSession); anything else that writes a person
+  bumps it (the default ON UPDATE). The canvas: drawn on demand (rAF only after a change), canvas = box size × dpr ≤ 2,
+  visible-only painting, figures / gradients / text fits made once.
 - **Full-screen canvases** (family tree, Nearby Homes map): `useFillHeight()` (components/ui/use-fill-height.js) on
   the canvas wrapper grows it to the bottom of #content (above the phone bar), measured live; keep a CSS
   h-[calc(100dvh-…)] for the first paint. Leaflet redraws on resize (ResizeObserver in osm-map).

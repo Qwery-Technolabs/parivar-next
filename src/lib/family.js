@@ -1,6 +1,8 @@
 import 'server-only';
+import { createHash } from 'crypto';
 import { cache } from 'react';
 import { inList, query, queryOne } from './db';
+import { kinTerm as kinTermOf } from './kinship';
 import { composeName } from './names';
 import { canManageMembers } from './roles';
 
@@ -21,8 +23,8 @@ export function genderFor(kind, personGender) {
     return ['father', 'brother', 'son'].includes(kind) ? 'male' : 'female';
 }
 
-/** How many links away the family search reaches; far more than any real family needs. */
-const MAX_PEOPLE = 2000;
+/** How many people the family search reaches (in memory, cheap); far more than any real family needs. */
+const MAX_PEOPLE = 20000;
 
 /**
  * Everyone connected to `userId` through any family link (parents, children, spouses,
@@ -316,6 +318,74 @@ export async function getLineageTree(rootId, maxDepth = 20) {
         children: byAge(sh.children.filter((c) => people.has(c.id)).map(build)),
     });
     return { rootId: root.id, top: build(top) };
+}
+
+/**
+ * The family tree page's data (api/family-tree), in parts so the first load is small — only what the tree shows at
+ * first: names, gender, late or not, and `md` (a married daughter: married-like status — for those who may see this
+ * family — or a recorded husband).
+ *  - `married` false (the "Married daughters" switch off, the default): married daughters and their branch are left
+ *    out (never the tree's person). A married daughter's own children are never sent (they are in her own tree).
+ *  - `details` true (the "Details" switch): + birth date, marital status (both only when the viewer may see this
+ *    family, `family`) and how each is related to the tree's person (kin) — the costliest part, so only then.
+ */
+export async function familyTreeData(person, family, { married = false, details = false } = {}) {
+    const [tree, steps] = await Promise.all([getLineageTree(person.id), details ? relationStepsFrom(person.id) : null]);
+    const rootId = tree.rootId;
+    const md = (p) => p.gender === 'female' && ((family && MARRIED_LIKE.includes(p.marital_status)) || (p.spouses?.length ?? 0) > 0);
+    const slim = (p, top = false) => {
+        const kids = !top && md(p) && p.id !== rootId ? [] : (p.children ?? []).filter((c) => married || c.id === rootId || !md(c));
+        const out = {
+            id: p.id,
+            full_name: p.full_name,
+            full_name_local: p.full_name_local,
+            first_name: p.first_name,
+            first_name_local: p.first_name_local,
+            maiden_middle_name: p.maiden_middle_name,
+            maiden_middle_name_local: p.maiden_middle_name_local,
+            maiden_surname: p.maiden_surname,
+            maiden_surname_local: p.maiden_surname_local,
+            gender: p.gender,
+            status: p.status,
+            md: md(p),
+            spouses: (p.spouses ?? []).map((s) => slim(s)),
+            children: kids.map((c) => slim(c)),
+        };
+        if (details) {
+            out.dob = family ? p.dob : null;
+            out.marital_status = family ? p.marital_status : null;
+            out.kin = p.id === person.id ? null : (kinTermOf(steps.get(p.id)) ?? null);
+        }
+        // Empty values are left out (a smaller download); the tree reads a missing one as empty.
+        for (const k of Object.keys(out)) if (out[k] == null || out[k] === false) delete out[k];
+        return out;
+    };
+    return { rootId, top: slim(tree.top, true) };
+}
+
+/**
+ * For the tree page, without building the tree: a short version of this family — it changes when a link in the family
+ * or anyone in it changes (users_list.updated_at; signing in does not touch it) — and whether the person has no line
+ * to draw (no parent, spouse or child). The page links the data as ?v=<version>, so the browser keeps it.
+ * @returns {Promise<{ version: string, alone: boolean }>}
+ */
+export async function familyTreeMeta(personId) {
+    const pid = Number(personId);
+    const ids = [...(await familyIds(pid))];
+    const inFamily = new Set(ids);
+    let n = 0;
+    let sum = 0;
+    let alone = true;
+    for (const r of await allRelations()) {
+        if (!inFamily.has(r.user_id)) continue;
+        n++;
+        sum += r.id;
+        if (r.relation !== 'sibling' && (r.user_id === pid || r.relative_id === pid)) alone = false;
+    }
+    const l = inList(ids, 'v');
+    const row = await queryOne(`SELECT MAX(updated_at) AS m, COUNT(*) AS c FROM users_list WHERE id IN (${l.sql})`, l.params);
+    const version = createHash('sha1').update(`${n}:${sum}:${row?.m}:${row?.c}`).digest('base64url').slice(0, 12);
+    return { version, alone };
 }
 
 /**
