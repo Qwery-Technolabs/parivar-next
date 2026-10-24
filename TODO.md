@@ -468,5 +468,8 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Notification prompt as a centred pop-up over a blurred page; members list bell → devices pop-up, red slashed bell → remind at next app open
 - [x] Members row ⋮: Activity history (sign-ins + changes, admins clear) instead of Add to group; Activity log type Sign-in; sort by last sign-in
 - [x] Family tree: no Hide (up arrow) after See family / See brothers — opened stays open until the page is left
+- [x] Members filter → Community: Surname is a searchable pick-list of surnames in use (with counts), not free text
+- [x] Relations: family map kept in memory (forget("family") on changes), profile chain reads only its people, blood line preferred
+- [x] Members filter → Relatives: Relation (any / parents / … / kaka / foi / mama / masi / cousins / in-laws, near + distant) of me or any picked member; relation shown under each name
 - [x] Remind notifications asks in the app's own pop-up (components/ui/confirm-dialog), not the browser confirm
 - [x] Settings → Family tree: ⓘ beside each number label explains it (with the saved value and an example)

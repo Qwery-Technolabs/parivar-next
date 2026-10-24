@@ -75,6 +75,70 @@ export const KIN_TERMS = {
     'husband.brother.wife': 'derani',
 };
 
+/**
+ * The members filter "Relation": groups of term keys, near and distant together ("Kaka" and "Kaka (distant)").
+ * 'any' = everyone connected; 'uncles' = the four uncle / aunt groups together.
+ */
+export const KIN_GROUPS = {
+    parents: ['father', 'mother'],
+    spouse: ['husband', 'wife'],
+    brothers: ['brother'],
+    sisters: ['sister'],
+    children: ['son', 'daughter'],
+    grandparents: [
+        'dada',
+        'dadi',
+        'nana',
+        'nani',
+        'pardada',
+        'pardadi',
+        'dada_bhai',
+        'dadi_bhai',
+        'foi_dadi',
+        'dada_far',
+        'dadi_far',
+        'nana_far',
+        'nani_far',
+        'pardada_far',
+        'pardadi_far',
+    ],
+    grandchildren: ['pautra', 'pautri', 'dohitra', 'dohitri', 'pautra_far', 'pautri_far', 'dohitra_far', 'dohitri_far'],
+    kaka: ['kaka', 'kaki', 'kaka_cousin', 'kaka_far', 'kaki_far'],
+    foi: ['foi', 'fuva', 'foi_cousin', 'foi_far', 'fuva_far'],
+    mama: ['mama', 'mami', 'mama_far', 'mami_far'],
+    masi: ['masi', 'masa', 'masi_far', 'masa_far'],
+    nephews: ['bhatrijo', 'bhatriji', 'bhanej', 'bhanej_f', 'bhatrijo_far', 'bhatriji_far', 'bhanej_far', 'bhanej_f_far'],
+    cousins: ['cousin_m', 'cousin_f', 'cousin2_m', 'cousin2_f', 'bhai_far', 'ben_far'],
+    inlaws: ['bhabhi', 'banevi', 'vahu', 'jamai', 'sasra', 'sasu', 'salo', 'sali', 'diyar', 'nanand', 'sadu', 'derani', 'bhabhi_far', 'banevi_far'],
+};
+const UNCLES = [...KIN_GROUPS.kaka, ...KIN_GROUPS.foi, ...KIN_GROUPS.mama, ...KIN_GROUPS.masi];
+/** The filter's choices, in the order shown. */
+export const KIN_FILTERS = [
+    'any',
+    'parents',
+    'spouse',
+    'brothers',
+    'sisters',
+    'children',
+    'grandparents',
+    'grandchildren',
+    'uncles',
+    'kaka',
+    'foi',
+    'mama',
+    'masi',
+    'nephews',
+    'cousins',
+    'inlaws',
+];
+
+/** Is a relative with this term in the chosen filter group? */
+export function inKinGroup(term, group) {
+    if (group === 'any') return true;
+    if (!term) return false;
+    return group === 'uncles' ? UNCLES.includes(term) : Boolean(KIN_GROUPS[group]?.includes(term));
+}
+
 const UP = { father: 1, mother: 1, son: -1, daughter: -1 };
 const MALE = new Set(['father', 'son', 'husband', 'brother']);
 const SPOUSE = new Set(['husband', 'wife']);
@@ -135,7 +199,14 @@ function farTerm(steps) {
 
 // A parent's spouse is a parent, a spouse's child is one's own child — families often link only
 // the father and his wife, so "father → wife" must still read "Mother".
-const MERGE = { 'father.wife': 'mother', 'mother.husband': 'father', 'wife.son': 'son', 'wife.daughter': 'daughter', 'husband.son': 'son', 'husband.daughter': 'daughter' };
+const MERGE = {
+    'father.wife': 'mother',
+    'mother.husband': 'father',
+    'wife.son': 'son',
+    'wife.daughter': 'daughter',
+    'husband.son': 'son',
+    'husband.daughter': 'daughter',
+};
 
 function normalize(steps) {
     const out = [];

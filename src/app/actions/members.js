@@ -136,7 +136,7 @@ export async function createMember(prev, fd) {
     });
     await audit(actor.id, 'user.create', 'user', newId, { role });
     revalidatePath('/members');
-    forget('places'); // cached lists (lib/memo)
+    forget('places', 'family'); // cached lists (lib/memo)
     return { ok: true, message: 'members.created', id: newId };
 }
 
@@ -235,7 +235,7 @@ export async function updateMemberSection(prev, fd) {
     await audit(actor.id, 'user.update', 'user', target.id, { section });
     revalidatePath('/members');
     revalidatePath(`/members/${target.id}`);
-    forget('places', 'castes'); // cached lists (lib/memo)
+    forget('places', 'castes', 'family'); // cached lists (lib/memo)
     return { ok: true, message, id: target.id };
 }
 
@@ -441,7 +441,7 @@ export async function deleteMember(userId, fromProfile = false) {
     if (!actor || !target || !canDeleteMember(actor, target)) return { error: 'common.forbidden' };
     if (target.status !== 'archived') return { error: 'members.archiveFirst' };
     await query('DELETE FROM users_list WHERE id = :id', { id: target.id });
-    forget('places', 'castes'); // cached lists (lib/memo)
+    forget('places', 'castes', 'family'); // cached lists (lib/memo)
     await audit(actor.id, 'user.delete', 'user', target.id, { name: target.full_name, phone: target.phone, role: target.role });
     revalidatePath('/members');
     if (fromProfile) redirect('/members');
@@ -541,7 +541,7 @@ export async function bulkEditMembers(prev, fd) {
         updated++;
     }
     if (!updated) return { error: 'members.bulkEdit.none' };
-    forget('places', 'castes'); // cached lists (lib/memo)
+    forget('places', 'castes', 'family'); // cached lists (lib/memo)
     revalidatePath('/members');
     return { ok: true, message: skipped ? 'members.bulkEdit.doneSkipped' : 'members.bulkEdit.done', vars: { updated, skipped } };
 }

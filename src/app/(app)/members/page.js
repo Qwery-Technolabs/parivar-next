@@ -19,7 +19,16 @@ import { casteOptions } from '@/lib/castes';
 import { age } from '@/lib/format';
 import { localized } from '@/lib/i18n/config';
 import { getT } from '@/lib/i18n/server';
-import { activeFilterCount, listCities, listGroupsBrief, listMembers, listVillages, resolveMemberFilters, listCreators } from '@/lib/members';
+import {
+    activeFilterCount,
+    listCities,
+    listGroupsBrief,
+    listMembers,
+    listSurnameOptions,
+    listVillages,
+    resolveMemberFilters,
+    listCreators,
+} from '@/lib/members';
 import { formatPhone } from '@/lib/phone';
 import {
     canEditUser,
@@ -35,7 +44,8 @@ import {
     assignableRoles,
     atLeast,
 } from '@/lib/roles';
-import { familyIds } from '@/lib/family';
+import { familyIds, getPerson, relativeTerms } from '@/lib/family';
+import { inKinGroup } from '@/lib/kinship';
 import { normalizePage, normalizePerPage, PER_PAGE_COOKIE } from '@/lib/tablePrefs';
 
 export async function generateMetadata() {
@@ -64,9 +74,15 @@ export default async function MembersPage({ searchParams }) {
     const page = normalizePage(sp.page);
     const perPage = normalizePerPage((await cookies()).get(PER_PAGE_COOKIE)?.value);
 
+    // Relation filter: everyone related to `relof` (anyone may pick anyone; default me) in the chosen group — one walk
+    // over the in-memory family map; each row then shows its relation (lib/family relativeTerms).
+    const relOf = filters.rel ? (filters.relOf ?? user.id) : null;
+    const [kin, relOfPerson] = relOf ? await Promise.all([relativeTerms(relOf), relOf === user.id ? null : getPerson(relOf)]) : [null, null];
+    if (kin) filters.onlyIds = [...kin].filter(([, term]) => inKinGroup(term, filters.rel)).map(([id]) => id);
+
     const groupManager = canManageGroups(user.role);
     const manage = canManageMembers(user.role);
-    const [{ total, rows }, villages, groups, ownGroups, castes, cities, creators, family] = await Promise.all([
+    const [{ total, rows }, villages, groups, ownGroups, castes, cities, creators, family, surnames] = await Promise.all([
         listMembers(filters, page, perPage),
         listVillages(),
         listGroupsBrief(),
@@ -76,6 +92,7 @@ export default async function MembersPage({ searchParams }) {
         filtersAnyCreator ? listCreators() : [],
         // Phone numbers of relatives added from a family tree: their family and member managers only.
         manage ? null : familyIds(user.id),
+        listSurnameOptions(),
     ]);
     // A woman's number: admins (and herself) only in the list — others open her profile (lib/contact-privacy.js).
     const womanOk = (m) => m.gender !== 'female' || seesAllNumbers(user) || m.id === user.id;
@@ -125,6 +142,8 @@ export default async function MembersPage({ searchParams }) {
                 activeCount={activeFilterCount(filters)}
                 villages={villages}
                 cities={cities}
+                surnames={surnames}
+                relOfLabel={relOfPerson ? localized(relOfPerson, 'full_name', locale) : ''}
                 castes={castes}
                 roles={ROLES.map((r) => ({ value: r, label: t(`roles.${r}`) }))}
                 seesArchived={seesArchived}
@@ -178,6 +197,10 @@ export default async function MembersPage({ searchParams }) {
                                         <Link href={`/members/${m.id}`} className="font-medium text-primary hover:underline">
                                             {primary}
                                         </Link>
+                                        {/* Relation filter on: how they are related (near and distant names alike). */}
+                                        {kin?.get(m.id) && (
+                                            <span className="block text-xs font-medium text-brand-orange-strong">{t(`kin.terms.${kin.get(m.id)}`)}</span>
+                                        )}
                                         {/* Occupation: from sm up only — on phones the name alone. */}
                                         {m.position && <span className="hidden text-xs text-ink-gray sm:block">{m.position}</span>}
                                         {m.status !== 'active' && (

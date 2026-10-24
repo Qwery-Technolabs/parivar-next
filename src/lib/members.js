@@ -3,6 +3,7 @@ import { getMeta, getMetaMany, inList, query, queryOne } from './db';
 import { BLOOD_DONORS_FOR, BLOOD_GROUPS, ROLES } from './roles';
 import { sp1 } from './url';
 import { memo } from './memo';
+import { KIN_FILTERS } from './kinship';
 
 // `position` is the person's current post (Talati, ward member, trustee…) — free text,
 // deliberately separate from the app role, which only decides permissions.
@@ -82,6 +83,9 @@ export function resolveMemberFilters(sp = {}) {
         data: pick(sp.data, Object.keys(MEMBER_DATA)),
         // Notifications turned on (a device token) or not — administrators only (the page drops it for others).
         push: pick(sp.push, ['on', 'off']),
+        // Relatives (lib/kinship KIN_FILTERS) of one person — `relof`, default the viewer (the page fills onlyIds).
+        rel: pick(sp.rel, KIN_FILTERS),
+        relOf: posInt(sp.relof),
     };
 }
 
@@ -110,6 +114,7 @@ export function activeFilterCount(f) {
         f.createdBy,
         f.data,
         f.push,
+        f.rel,
     ].filter(Boolean).length; // the sort order is not a filter
 }
 
@@ -152,6 +157,11 @@ function whereFor(f) {
     if (f.village) {
         where.push('u.village = :village');
         params.village = f.village;
+    }
+    // The Relation filter: the page's list of related ids (whole numbers only — written into the SQL as they are).
+    if (Array.isArray(f.onlyIds)) {
+        const ids = f.onlyIds.filter((id) => Number.isInteger(id) && id > 0);
+        where.push(ids.length ? `u.id IN (${ids.join(',')})` : '1 = 0');
     }
     if (f.surname) {
         where.push('(u.surname = :surname OR u.surname_local = :surname)');
@@ -251,6 +261,19 @@ async function loadVillages() {
           GROUP BY village ORDER BY village`,
     );
     return rows.map((r) => ({ value: r.village, label: r.village, count: r.n }));
+}
+
+/** Surnames in use with member counts (English, with its local spelling), for the filter's surname search — memoised. */
+export async function listSurnameOptions() {
+    return memo('places:surnames', loadSurnameOptions);
+}
+
+async function loadSurnameOptions() {
+    const rows = await query(
+        `SELECT surname, MAX(surname_local) AS local, COUNT(*) AS n FROM users_list WHERE surname IS NOT NULL AND surname <> ''
+          GROUP BY surname ORDER BY surname`,
+    );
+    return rows.map((r) => ({ value: r.surname, local: r.local ?? '', count: Number(r.n) }));
 }
 
 /** Current-residence cities with member counts, for the city filter and form suggestions. */

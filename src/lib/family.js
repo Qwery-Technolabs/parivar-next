@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { cache } from 'react';
 import { inList, query, queryOne } from './db';
 import { kinTerm as kinTermOf } from './kinship';
+import { memo, MEMO_TTL } from './memo';
 import { composeName } from './names';
 import { getSettings } from './settings';
 import { canManageMembers } from './roles';
@@ -28,26 +29,46 @@ export function genderFor(kind, personGender) {
 const MAX_PEOPLE = 20000;
 
 /**
+ * The family map: every family link in the app plus the gender of everyone linked — two small queries, kept in memory
+ * per server instance (lib/memo 'family:graph', shared, NOT cloned — read-only) and rebuilt after a link or a member
+ * changes (forget('family')) or after MEMO_TTL. Every walk — the connected family, relation paths, the tree, the
+ * members "Relation" filter — then runs in memory, so most pages read no relations at all.
+ */
+const familyMap = () => memo('family:graph', loadFamilyMap, MEMO_TTL, false);
+
+async function loadFamilyMap() {
+    const [rows, genders] = await Promise.all([
+        query('SELECT id, user_id, relative_id, relation FROM users_relations ORDER BY id'),
+        query('SELECT id, gender FROM users_list WHERE id IN (SELECT user_id FROM users_relations UNION SELECT relative_id FROM users_relations)'),
+    ]);
+    const push = (m, k, v) => (m.get(k) ?? m.set(k, []).get(k)).push(v);
+    const adj = new Map(); // anyone linked, both ways (the connected family)
+    const parents = new Map(); // child → [{ id, relation }]
+    const children = new Map(); // parent → [child ids]
+    const spouses = new Map();
+    const sibs = new Map(); // explicit sibling links
+    for (const r of rows) {
+        push(adj, r.user_id, r.relative_id);
+        push(adj, r.relative_id, r.user_id);
+        if (r.relation === 'father' || r.relation === 'mother') {
+            push(parents, r.user_id, { id: r.relative_id, relation: r.relation });
+            push(children, r.relative_id, r.user_id);
+        } else if (r.relation === 'spouse') push(spouses, r.user_id, r.relative_id);
+        else if (r.relation === 'sibling') push(sibs, r.user_id, r.relative_id);
+    }
+    return { rows, adj, parents, children, spouses, sibs, gender: new Map(genders.map((g) => [g.id, g.gender])) };
+}
+
+/** Every family link (from the family map) — read-only. */
+const allRelations = cache(async () => (await familyMap()).rows);
+
+/**
  * Everyone connected to `userId` through any family link (parents, children, spouses,
- * siblings — as far as it goes), including the person. One query per step outward.
- * Cached per request.
+ * siblings — as far as it goes), including the person. In memory over the family map; cached per request.
  * @returns {Promise<Set<number>>}
  */
-/**
- * Every family link in the app, read ONCE per request (one small query — a Samaj has a few
- * hundred links at most). The connected-family walk then runs in memory instead of one
- * database round trip per generation, which queued requests when several people were on.
- */
-const allRelations = cache(async () => query('SELECT id, user_id, relative_id, relation FROM users_relations ORDER BY id'));
-const allLinks = cache(async () => (await allRelations()).map((r) => ({ a: r.user_id, b: r.relative_id })));
-
 export const familyIds = cache(async (userId) => {
-    const adj = new Map();
-    const add = (x, y) => (adj.get(x) ?? adj.set(x, []).get(x)).push(y);
-    for (const { a, b } of await allLinks()) {
-        add(a, b);
-        add(b, a);
-    }
+    const { adj } = await familyMap();
     const start = Number(userId);
     const seen = new Set([start]);
     const stack = [start];
@@ -519,63 +540,46 @@ export function byAge(list) {
 
 // ── relation paths ("how are we related?") ────────────────────────────────────
 
-/**
- * Everyone connected to `startId` and how they link: parents, children, spouses and siblings
- * (explicit links plus children of the same parent). Two queries for the whole family.
- */
-async function familyGraph(startId) {
-    const ids = [...(await familyIds(startId))];
-    const l = inList(ids, 'k');
-    const inFamily = new Set(ids);
-    const [people, rows] = await Promise.all([
-        query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params),
-        // The links come from the request's cached list — no second query.
-        allRelations().then((all) => all.filter((r) => inFamily.has(r.user_id))),
-    ]);
-    const byId = new Map(people.map((p) => [p.id, p]));
-    const parents = new Map();
-    const children = new Map();
-    const spouses = new Map();
-    const sibs = new Map();
-    const push = (m, k, v) => m.set(k, [...(m.get(k) ?? []), v]);
-    for (const r of rows) {
-        if (r.relation === 'father' || r.relation === 'mother') {
-            push(parents, r.user_id, { id: r.relative_id, relation: r.relation });
-            push(children, r.relative_id, r.user_id);
-        } else if (r.relation === 'spouse') push(spouses, r.user_id, r.relative_id);
-        else if (r.relation === 'sibling') push(sibs, r.user_id, r.relative_id);
-    }
-    const g = (id) => byId.get(id)?.gender;
-    /** Neighbours of one person as [id, step] — step = how that neighbour relates to them. */
-    const next = (id) => {
-        const out = [];
-        for (const s of spouses.get(id) ?? []) out.push([s, g(s) === 'female' ? 'wife' : 'husband']);
-        for (const p of parents.get(id) ?? []) out.push([p.id, p.relation]);
-        const siblingIds = new Set(sibs.get(id) ?? []);
-        for (const p of parents.get(id) ?? []) for (const c of children.get(p.id) ?? []) if (c !== id) siblingIds.add(c);
-        for (const s of siblingIds) out.push([s, g(s) === 'female' ? 'sister' : 'brother']);
-        for (const c of children.get(id) ?? []) out.push([c, g(c) === 'female' ? 'daughter' : 'son']);
-        return out;
-    };
-    return { byId, next };
+/** Neighbours of one person on the family map as [id, step] — step = how that neighbour relates to them. */
+function kinNext(fm, id) {
+    const g = (x) => fm.gender.get(x);
+    const out = [];
+    for (const s of fm.spouses.get(id) ?? []) out.push([s, g(s) === 'female' ? 'wife' : 'husband']);
+    for (const p of fm.parents.get(id) ?? []) out.push([p.id, p.relation]);
+    // Siblings: explicit links plus every other child of a recorded parent.
+    const siblingIds = new Set(fm.sibs.get(id) ?? []);
+    for (const p of fm.parents.get(id) ?? []) for (const c of fm.children.get(p.id) ?? []) if (c !== id) siblingIds.add(c);
+    for (const s of siblingIds) out.push([s, g(s) === 'female' ? 'sister' : 'brother']);
+    for (const c of fm.children.get(id) ?? []) out.push([c, g(c) === 'female' ? 'daughter' : 'son']);
+    return out;
 }
 
-/** Breadth-first from `startId`: for every reachable person, the steps from start to them. */
-function pathsFrom(graph, startId) {
+const marriages = (path) => path.reduce((n, s) => n + (s === 'husband' || s === 'wife' ? 1 : 0), 0);
+
+/**
+ * Breadth-first from `startId` on the family map: for every reachable person, the steps from start to them (the
+ * shortest path). Two equally short paths: the one with fewer marriages wins — a cousin who is also an in-law reads
+ * "Cousin", not "Husband's …". `target`: stop once that person is reached.
+ */
+function pathsFrom(fm, startId, target = null) {
     const steps = new Map([[startId, []]]);
     const via = new Map([[startId, null]]);
     let level = [startId];
-    while (level.length) {
-        const nextLevel = [];
+    while (level.length && steps.size < MAX_PEOPLE && !(target != null && steps.has(target))) {
+        const found = new Map(); // id → { path, from } — the best way found at this level
         for (const id of level) {
-            for (const [n, step] of graph.next(id)) {
+            for (const [n, step] of kinNext(fm, id)) {
                 if (steps.has(n)) continue;
-                steps.set(n, [...steps.get(id), step]);
-                via.set(n, id);
-                nextLevel.push(n);
+                const path = [...steps.get(id), step];
+                const had = found.get(n);
+                if (!had || marriages(path) < marriages(had.path)) found.set(n, { path, from: id });
             }
         }
-        level = nextLevel;
+        for (const [n, { path, from }] of found) {
+            steps.set(n, path);
+            via.set(n, from);
+        }
+        level = [...found.keys()];
     }
     return { steps, via };
 }
@@ -587,21 +591,35 @@ function pathsFrom(graph, startId) {
  * @returns {Promise<null | { chain: Array<{ person: object, step: string|null }>, steps: string[] }>}
  */
 export async function relationPath(fromId, toId) {
-    if (!fromId || !toId || fromId === toId) return null;
-    const graph = await familyGraph(fromId);
-    if (!graph.byId.has(toId)) return null;
-    const { steps, via } = pathsFrom(graph, fromId);
-    if (!steps.has(toId)) return null;
+    const from = Number(fromId);
+    const to = Number(toId);
+    if (!from || !to || from === to) return null;
+    const { steps, via } = pathsFrom(await familyMap(), from, to);
+    if (!steps.has(to)) return null;
     const ids = [];
-    for (let cur = toId; cur != null; cur = via.get(cur)) ids.unshift(cur);
-    const path = steps.get(toId);
-    return { chain: ids.map((id, i) => ({ person: graph.byId.get(id), step: i === 0 ? null : path[i - 1] })), steps: path };
+    for (let cur = to; cur != null; cur = via.get(cur)) ids.unshift(cur);
+    // Only the few people on the chain are read (not the whole family).
+    const l = inList(ids, 'k');
+    const byId = new Map((await query(`SELECT ${COLS} FROM users_list u WHERE u.id IN (${l.sql})`, l.params)).map((p) => [p.id, p]));
+    if (ids.some((id) => !byId.has(id))) return null;
+    const path = steps.get(to);
+    return { chain: ids.map((id, i) => ({ person: byId.get(id), step: i === 0 ? null : path[i - 1] })), steps: path };
 }
 
 /** For each person reachable from `rootId`: the steps from root to them (for tree labels). */
 export async function relationStepsFrom(rootId) {
-    const graph = await familyGraph(rootId);
-    return pathsFrom(graph, rootId).steps;
+    return pathsFrom(await familyMap(), Number(rootId)).steps;
+}
+
+/**
+ * Everyone related to `rootId` (not themselves) → their kinship term key (lib/kinship: 'kaka', 'masi_far' …, null when
+ * the path has no name). One walk over the family map, in memory — for the members "Relation" filter.
+ * @returns {Promise<Map<number, string|null>>}
+ */
+export async function relativeTerms(rootId) {
+    const out = new Map();
+    for (const [id, path] of pathsFrom(await familyMap(), Number(rootId)).steps) if (path.length) out.set(id, kinTermOf(path));
+    return out;
 }
 
 const MARRIED_LIKE = ['married', 'widowed', 'divorced'];

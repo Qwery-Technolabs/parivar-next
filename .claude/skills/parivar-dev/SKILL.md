@@ -188,8 +188,11 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   (wife/husband by gender), brother, sister, son, daughter; gender follows the slot. `linkRelative` keeps it
   consistent (father ⇄ mother spouses, siblings share parents, a child gets the only spouse as other parent,
   spouses → married). **Who sees / edits**: `canSeeFamily` = self, member managers, whoever added the person, or
-  anyone connected in the tree (`familyIds`: all links read in ONE query per request (`allLinks`, React cache), walked in
-  memory — never one query per generation; that queued requests with 4+ users). Children (tree, Family card) and siblings are
+  anyone connected in the tree (`familyIds`, walked in memory over the **family map** — never one query per generation).
+  **Family map** (lib/family `familyMap`): all users_relations rows + the gender of everyone linked, built once per
+  server instance (lib/memo 'family:graph', `clone=false` — read-only, never mutate) → adjacency, parents, children,
+  spouses, siblings. Every writer of links or members calls `forget('family')` (actions/family add/remove,
+  actions/members); otherwise MEMO_TTL. familyIds, relationPath, relationStepsFrom, relativeTerms, the tree all use it. Children (tree, Family card) and siblings are
   ordered by `byAge`: eldest first, left to right, among those with a birth date; people without one keep their added order.
   The tree opens centred on the person whose tree it is (their tile, aria-current, scrolled to the middle).
   Tree page switches: "Married daughters" (OFF by default — only the viewed person stays if she is one; off hides every married daughter — married/widowed/divorced or
@@ -448,7 +451,14 @@ implement it and record the rule here (or in parivar-design / parivar-db).
 - **Kinship** (lib/kinship.js, pure): steps father | mother | son | daughter | husband | wife | brother | sister;
   `KIN_TERMS` maps a path ('father.sister.husband' → 'fuva') to `kin.terms.*`. lib/family.js `relationPath(from, to)`
   (shortest chain, BFS over parents / children / spouses / siblings incl. shared-parent siblings) and
-  `relationStepsFrom(root)` (labels for the tree). Add new names to KIN_TERMS + both dictionaries.
+  `relationStepsFrom(root)` (labels for the tree). Equal-length paths: fewer marriages wins (blood line first).
+  relationPath reads only the chain's people (one tiny query). Add new names to KIN_TERMS + both dictionaries — and to
+  a `KIN_GROUPS` group.
+- **Members "Relation" filter** (`rel` = lib/kinship KIN_FILTERS: any, parents, spouse, brothers, sisters, children,
+  grandparents, grandchildren, uncles (= kaka+foi+mama+masi), kaka, foi, mama, masi, nephews, cousins, inlaws; near and
+  distant together) + `relof` (anyone may pick anyone; default the viewer). The page runs `relativeTerms(relof)` (one
+  in-memory walk), sets `filters.onlyIds` (u.id IN, integers inlined), and each row shows its term under the name
+  (orange text-xs). Choosing a relation / person switches Registration to All (family-tree people are unregistered).
 - **Members list default = registered only** (`last_login_at IS NOT NULL`); the Filters panel's Registration
   select (`reg=unregistered|all`) shows the rest (invited / family-tree people). Counts as an active filter.
 - **Meeting audience**: saved as events_listmeta `audience` = 'all' | 'selected'. 'all' = everyone, **including people who

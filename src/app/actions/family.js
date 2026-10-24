@@ -138,7 +138,7 @@ export async function addRelative(prev, fd) {
     });
     await audit(actor.id, 'user.relation.add', 'user', person.id, { relativeId, kind });
     refresh(person.id, relativeId);
-    forget('places'); // cached lists (lib/memo)
+    forget('places', 'family'); // cached lists + the family map (lib/memo)
     return { ok: true, message: 'family.added' };
 }
 
@@ -152,5 +152,6 @@ export async function removeRelative(personId, relativeId) {
     await withTransaction((q) => q('DELETE FROM users_relations WHERE (user_id = :a AND relative_id = :b) OR (user_id = :b AND relative_id = :a)', { a, b }));
     await audit(actor.id, 'user.relation.remove', 'user', a, { relativeId: b });
     refresh(a, b);
+    forget('family'); // the family map (lib/memo)
     return { ok: true, message: 'family.removed' };
 }

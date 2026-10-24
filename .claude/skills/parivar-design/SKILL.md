@@ -137,6 +137,9 @@ place* with a "‹ Back" row — never a side flyout (the portalled panel scroll
 - Money / amount inputs: type="number" inputMode="decimal" min="0" step="0.01" everywhere (contribution, expense, Mandal
   sheet + schedules, target, opening balance).
 - Dialog footer (FormDialog) is pinned flush to the bottom edge (sticky -bottom-4, no strip of content under it).
+- **Filter fields with many known values** (members filter: Added by, Surname): a Combobox searching a list the page
+  already has (no free text) — label "Name (count)", local spelling as hint; Surname searches surname only (English or
+  local), first 50 shown until typed (lib/members listSurnameOptions, memo places:surnames).
 - **Every picker list floats — everywhere** (`components/ui/floating-list.jsx`): Combobox, PickOrType, TagSelect and the
   Gujarati suggestions render their list through `<FloatingList anchorRef>` — portalled to <body>, position fixed under
   (or above, when more room) the input, z-[70], follows any scroll / resize; data-floating-list so FormDialog ignores

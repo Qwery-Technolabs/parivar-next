@@ -15,15 +15,18 @@ const store = (globalThis.__parivarMemo ??= new Map()); // key → { at, value: 
  * @param {string} key   '<area>:<variant>' — forget() clears by area prefix
  * @param {() => Promise<T>} load
  * @param {number} [ttl]
+ * @param {boolean} [clone]  false = hand out the cached value itself (big read-only structures, e.g. the family map —
+ *   callers must never change it)
  * @returns {Promise<T>}
  */
-export async function memo(key, load, ttl = MEMO_TTL) {
+export async function memo(key, load, ttl = MEMO_TTL, clone = true) {
+    const copy = (v) => (clone ? structuredClone(v) : v);
     const hit = store.get(key);
-    if (hit && Date.now() - hit.at < ttl) return structuredClone(await hit.value);
+    if (hit && Date.now() - hit.at < ttl) return copy(await hit.value);
     const value = load();
     store.set(key, { at: Date.now(), value });
     try {
-        return structuredClone(await value);
+        return copy(await value);
     } catch (err) {
         if (store.get(key)?.value === value) store.delete(key);
         throw err;

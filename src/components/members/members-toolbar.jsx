@@ -5,6 +5,8 @@ import { Field, selectInput, textInput } from '@/components/ui/field';
 import Switch from '@/components/ui/switch';
 import CasteSelect from './caste-select';
 import Combobox from '@/components/ui/combobox';
+import MemberPicker from '@/components/ui/member-picker';
+import { KIN_FILTERS } from '@/lib/kinship';
 import { useT } from '@/lib/i18n/client';
 import { BLOOD_GROUPS } from '@/lib/roles';
 import { useDebouncedCallback } from '@/components/ui/use-debounce';
@@ -21,6 +23,8 @@ export default function MembersToolbar({
     activeCount,
     villages,
     cities = [],
+    surnames = [],
+    relOfLabel = '',
     roles,
     castes,
     seesArchived = false,
@@ -69,6 +73,8 @@ export default function MembersToolbar({
                     activeCount={activeCount}
                     villages={villages}
                     cities={cities}
+                    surnames={surnames}
+                    relOfLabel={relOfLabel}
                     roles={roles}
                     castes={castes}
                     seesArchived={seesArchived}
@@ -92,6 +98,8 @@ function FiltersPanel({
     activeCount,
     villages,
     cities,
+    surnames,
+    relOfLabel,
     roles,
     castes,
     seesArchived = false,
@@ -113,6 +121,8 @@ function FiltersPanel({
         sort: filters.sort ?? 'name',
         data: filters.data ?? '',
         push: filters.push ?? '',
+        rel: filters.rel ?? '',
+        relof: filters.relOf ? String(filters.relOf) : '',
     });
     const [draft, setDraft] = useState(initial);
     // "Added by" choices (searchable): me first, then — for admins — everyone who added members, with counts.
@@ -149,6 +159,8 @@ function FiltersPanel({
                     sort: 'name',
                     data: '',
                     push: '',
+                    rel: '',
+                    relof: '',
                 })
             }
             onApply={() =>
@@ -171,6 +183,9 @@ function FiltersPanel({
                     sort: draft.sort === 'name' ? null : draft.sort,
                     data: draft.data || null,
                     push: (seesPush && draft.push) || null,
+                    // Someone picked without a relation: all their relatives.
+                    rel: draft.rel || (draft.relof ? 'any' : null),
+                    relof: draft.relof && draft.relof !== String(meId) ? draft.relof : null,
                 })
             }
         >
@@ -322,9 +337,58 @@ function FiltersPanel({
                     ))}
                 </select>
             </Field>
+            {/* Relatives of me (default) or of anyone picked; relatives added from a family tree are mostly not registered,
+                so choosing a relation shows everyone (All). */}
+            <FilterSection title={t('members.filterSections.relatives')} />
+            <Field label={t('members.relFilter')}>
+                <select
+                    value={draft.rel}
+                    onChange={(e) => {
+                        const rel = e.target.value;
+                        setDraft((d) => ({ ...d, rel, reg: rel && d.reg === 'registered' ? 'all' : d.reg }));
+                    }}
+                    className={`${selectInput()} w-full`}
+                >
+                    <option value="">{t('common.any')}</option>
+                    {KIN_FILTERS.map((k) => (
+                        <option key={k} value={k}>
+                            {t(`members.relGroups.${k}`)}
+                        </option>
+                    ))}
+                </select>
+            </Field>
+            <Field label={t('members.relOf')}>
+                <MemberPicker
+                    key={draft.relof || 'me'}
+                    defaultValue={draft.relof && draft.relof !== String(meId) ? { id: draft.relof, label: relOfLabel } : null}
+                    placeholder={t('members.relOfMe')}
+                    onPick={(opt) =>
+                        setDraft((d) => ({
+                            ...d,
+                            relof: opt?.value ?? '',
+                            rel: d.rel || (opt ? 'any' : ''),
+                            reg: opt && d.reg === 'registered' ? 'all' : d.reg,
+                        }))
+                    }
+                />
+            </Field>
             <FilterSection title={t('members.filterSections.community')} />
+            {/* Surname: picked from the surnames in use (searched by surname only, English or local spelling), with counts. */}
             <Field label={t('members.surname')} className="max-sm:col-span-2">
-                <input value={draft.surname ?? ''} onChange={(e) => set('surname', e.target.value)} className={`${textInput()} w-full`} />
+                <Combobox
+                    value={draft.surname ?? ''}
+                    valueLabel={draft.surname ?? ''}
+                    onSelect={(opt) => set('surname', opt?.value ?? '')}
+                    fetchOptions={async (q) => {
+                        const needle = q.trim().toLowerCase();
+                        const hit = needle
+                            ? surnames.filter((s) => s.value.toLowerCase().includes(needle) || s.local.toLowerCase().includes(needle))
+                            : surnames;
+                        return hit.slice(0, 50).map((s) => ({ value: s.value, label: `${s.value} (${s.count})`, hint: s.local || undefined }));
+                    }}
+                    placeholder={t('common.any')}
+                    emptyText={t('mandal.searchNone')}
+                />
             </Field>
             {castes.castes.length > 0 && (
                 <CasteSelect
