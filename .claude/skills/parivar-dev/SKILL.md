@@ -560,7 +560,7 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   knownLocations skips Mandals); right column: Who is in it, Sharing, Schedules (SchedulesEditor: rows in state,
   posted with the form as sch_*; writeMandalSchedules creates / updates / archives / deletes-if-no-money).
   Schedules (also on the Mandal tab, right card, with the money sheet): each = a Mandal meeting "<date> - Mandal" (saveMandalSchedule: date, place,
-  installment, meta held_by = who keeps that day's money; audience 'all'). Kebab: Edit; Archive (meta archived '1',
+  installment, meta held_by = who keeps that day's money, picked from the Mandal's GROUP's active people + its members — buildMandal keepers, not only the Mandal's members; audience 'all'). Kebab: Edit; Archive (meta archived '1',
   money in — sheet locked) or Delete (only while nothing received); archived → Restore. Income per schedule, expenses
   common (Money tab); "Who has the money" = schedule collections summed per held_by, minus common expenses = balance.
   Income = the schedule's "Attendance & money" sheet → contributions (Money tab, print, history). A "Latest Mandal" strip

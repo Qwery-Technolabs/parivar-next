@@ -474,5 +474,6 @@ Everything asked for, so nothing is forgotten. [x] = built, [ ] = pending.
 - [x] Relation tag under each name whenever any filter is on ("Relative" when unnamed); "Relatives of" picker takes the first pick
 - [x] Relation tag also on a search (phones); "Relatives of" searches the whole app (inactive + late too, 50 results)
 - [x] Mandal Holdings: money follows the schedule's keeper (changing the keeper on a schedule moved the badge but not the About card totals)
+- [x] Mandal schedule "Money kept by": chosen from the Mandal's group (66), not only its members (35)
 - [x] Remind notifications asks in the app's own pop-up (components/ui/confirm-dialog), not the browser confirm
 - [x] Settings → Family tree: ⓘ beside each number label explains it (with the saved value and an example)

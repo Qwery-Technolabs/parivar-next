@@ -10,7 +10,7 @@ import Switch from '@/components/ui/switch';
 import { useT } from '@/lib/i18n/client';
 
 /**
- * "Money kept by": type to search (English or Gujarati name) among the Mandal's members — plus the
+ * "Money kept by": type to search (English or Gujarati name) among the Mandal's group (and its members) — plus the
  * default keeper if they are not one. Clearable (= not set). Its own component so its state remounts
  * with the dialog's form.
  */
@@ -49,7 +49,7 @@ function KeeperField({ members, initial, fieldError }) {
  * New / edit one Mandal schedule ("21 Oct 2026 - Mandal"): date, place, whether money is collected
  * that day and how much per member (set HERE, not on the attendance sheet), and who keeps it — a new
  * schedule starts with `defaultKeeper` (the last schedule's keeper, else the treasurer).
- * `members`: [{ id, full_name, full_name_local }].
+ * `members`: the keeper choices — the Mandal's group's active people (+ its members): [{ id, full_name, full_name_local }].
  */
 export default function ScheduleDialog({ campaignId, schedule = null, members, defaultInstallment, defaultKeeper = null, today, trigger }) {
     const { t } = useT();

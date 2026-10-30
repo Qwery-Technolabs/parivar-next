@@ -38,7 +38,7 @@ export async function mandalAboutParts(props) {
 async function buildMandal({ campaign, user, today, t, locale, section, scheduleId = null, base = '' }) {
     const installment = Number(campaign.meta?.installment) || 0;
     // Everything at once (each wait is a round trip to the database); shared with the page header's total.
-    const [meetings, canRun, marks, members, treasurer, groupRows, moneyBy] = await Promise.all([
+    const [meetings, canRun, marks, members, treasurer, groupRows, moneyBy, keepers] = await Promise.all([
         mandalMeetingsOnce(campaign.id, installment),
         canRunMandal(user, campaign),
         allMarks(campaign.id),
@@ -54,6 +54,14 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
         // "Everyone in the group": group members come back on their own, so only people added by phone can be removed here.
         campaign.meta?.members_mode === 'all' ? query('SELECT user_id FROM admin_group_members WHERE group_id = :g', { g: campaign.group_id }) : [],
         section === 'money' ? scheduleMoney(campaign.id) : null,
+        // Schedule "Money kept by" choices: the Mandal's group's active people (+ its members), by name.
+        query(
+            `SELECT u.id, u.full_name, u.full_name_local FROM users_list u
+              WHERE u.status = 'active' AND (u.id IN (SELECT user_id FROM admin_group_members WHERE group_id = :g)
+                 OR u.id IN (SELECT user_id FROM fundraise_subscribers WHERE campaign_id = :c))
+              ORDER BY u.full_name`,
+            { g: campaign.group_id ?? 0, c: campaign.id },
+        ),
     ]);
     // Amount per person is set on each schedule; the latest one is the usual amount.
     const latest = meetings[0]?.installment || installment;
@@ -146,7 +154,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                 </>
             ) : (
                 canRun && (
-                    <ScheduleActions campaignId={campaign.id} schedule={e} received={got} members={plain} defaultInstallment={latest || ''} today={today} />
+                    <ScheduleActions campaignId={campaign.id} schedule={e} received={got} members={keepers} defaultInstallment={latest || ''} today={today} />
                 )
             )}
         </li>
@@ -214,7 +222,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                                                     ? {
                                                           campaignId: campaign.id,
                                                           schedule: r.e,
-                                                          members: plain,
+                                                          members: keepers,
                                                           defaultInstallment: latest || '',
                                                           today,
                                                       }
@@ -284,7 +292,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
                             ? {
                                   campaignId: campaign.id,
                                   schedule: chosen.e,
-                                  members: plain,
+                                  members: keepers,
                                   defaultInstallment: latest || '',
                                   today,
                               }
@@ -485,7 +493,7 @@ async function buildMandal({ campaign, user, today, t, locale, section, schedule
             bodyClass="max-h-[26rem] overflow-y-auto"
             actions={
                 canRun && (
-                    <ScheduleDialog campaignId={campaign.id} members={plain} defaultInstallment={latest || ''} defaultKeeper={defaultKeeper} today={today} />
+                    <ScheduleDialog campaignId={campaign.id} members={keepers} defaultInstallment={latest || ''} defaultKeeper={defaultKeeper} today={today} />
                 )
             }
         >
