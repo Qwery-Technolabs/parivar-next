@@ -538,7 +538,9 @@ implement it and record the rule here (or in parivar-design / parivar-db).
   only for those who run the sheet, while a schedule is open); expenses: meta event_id ("For schedule").
   Holdings card: About, under Team. Sheet payments save kept_by = the schedule's held_by, else the recorder, handed_over = the
   schedule's "Handed over to the treasurer" (events_listmeta handed_over='1', set in Edit schedule; saving it updates every
-  contribution of that schedule). Mandal money rows show no per-payment Kept by / badge (MoneyTab holdingPerRow=false); the
+  contribution of that schedule; so does a changed keeper — kept_by follows held_by, and a sheet / + Contribution save
+  writes the schedule's keeper, never COALESCE, when it names one). listHoldings reads the keeper as
+  COALESCE(schedule held_by, kept_by), so an older payment saved before a keeper change still counts for the right person. Mandal money rows show no per-payment Kept by / badge (MoneyTab holdingPerRow=false); the
   overview schedules table shows With treasurer / Not handed over per schedule that has money;
   money is ALWAYS taken against a schedule, never the Mandal as a whole), About (`section="about"` at its top: summary,
   Members in a fixed-height scrolling card beside Schedules — create / edit / archive, no money entry — then team, history;

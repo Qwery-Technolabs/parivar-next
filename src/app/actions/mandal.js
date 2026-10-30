@@ -143,6 +143,7 @@ export async function saveMandalMeeting(prev, fd) {
     // Who keeps this day's money: the schedule's money keeper (held_by), else whoever records it —
     // so the Savings tab's Holdings card can say who holds how much.
     const keeper = target?.holder?.id ?? actor.id;
+    const keeperSql = target?.holder ? ':keeper' : 'COALESCE(kept_by, :keeper)';
 
     const paidNow = []; // new payments, each member told after the save
     await withTransaction(async (q) => {
@@ -154,9 +155,10 @@ export async function saveMandalMeeting(prev, fd) {
                         'SELECT donor_name, amount, paid_on, mode, reference, is_anonymous, deleted_at FROM fundraise_contributions WHERE id = :id',
                         { id: contributionId },
                     );
-                    // A keeper set since (e.g. edited on the entry) stays; a missing one gets the schedule's.
+                    // The schedule's money keeper, when it names one (a Mandal has no per-payment keeper); else a
+                    // missing keeper becomes whoever records it.
                     await q(
-                        'UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = COALESCE(kept_by, :keeper), event_id = :ev, deleted_at = NULL, deleted_by = NULL WHERE id = :id',
+                        `UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = ${keeperSql}, event_id = :ev, deleted_at = NULL, deleted_by = NULL WHERE id = :id`,
                         {
                             amount: r.paid,
                             mode: r.mode,
@@ -325,6 +327,13 @@ export async function saveMandalSchedule(prev, fd) {
             c: campaign.id,
             ev: evId,
         });
+        // A changed money keeper moves the schedule's payments with it (the Holdings card reads kept_by).
+        if (heldBy)
+            await q('UPDATE fundraise_contributions SET kept_by = :k WHERE campaign_id = :c AND event_id = :ev AND deleted_at IS NULL', {
+                k: heldBy,
+                c: campaign.id,
+                ev: evId,
+            });
         return evId;
     });
     await audit(actor.id, eventId ? 'mandal.schedule.update' : 'mandal.schedule.create', 'fundraise', campaign.id, { event: saved, day, installment: amount });
@@ -499,6 +508,8 @@ export async function saveMandalContribution(prev, fd) {
         if (already) return { fieldErrors: { user_id: 'mandal.errors.alreadyPaid' } };
     }
     const keeper = target.holder?.id ?? actor.id;
+    // The schedule's keeper, when it names one (a Mandal has no per-payment keeper).
+    const keeperSql = target.holder ? ':keeper' : 'COALESCE(kept_by, :keeper)';
 
     await withTransaction(async (q) => {
         const [mark] = await q('SELECT contribution_id, present FROM fundraise_mandal_marks WHERE event_id = :e AND user_id = :u', {
@@ -515,7 +526,7 @@ export async function saveMandalContribution(prev, fd) {
                     },
                 );
                 await q(
-                    'UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = COALESCE(kept_by, :keeper), event_id = :ev, deleted_at = NULL, deleted_by = NULL WHERE id = :id',
+                    `UPDATE fundraise_contributions SET amount = :amount, mode = :mode, paid_on = :day, kept_by = ${keeperSql}, event_id = :ev, deleted_at = NULL, deleted_by = NULL WHERE id = :id`,
                     {
                         amount: paid,
                         mode,

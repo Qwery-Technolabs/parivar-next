@@ -306,11 +306,15 @@ export async function listExpenses(campaignId, { limit, offset = 0, eventId = nu
 const CONTRIB_KEY = `COALESCE(CONCAT('u:', user_id), CONCAT('n:', donor_name))`;
 const PUBLIC_KEY = `IF(is_anonymous = 1, 'anon', ${CONTRIB_KEY})`;
 
+// A payment's keeper: its Mandal schedule's money keeper when set, else its own kept_by (same text in SELECT and GROUP BY).
+const HOLDER_KEY = `COALESCE(CAST(hb.meta_value AS UNSIGNED), f.kept_by)`;
+
 /**
  * Holdings — where the fundraise's money is, per person (About tab, everyone who sees it).
  * The treasurer = the team's first treasurer, else its first admin, else the creator.
- *   income:  received contributions by who holds them now — the keeper (kept_by) until handed over;
- *            handed-over ones, and old ones with no keeper, are with the treasurer. Sums to "collected".
+ *   income:  received contributions by who holds them now — the keeper until handed over; handed-over
+ *            ones, and old ones with no keeper, are with the treasurer. Sums to "collected". A Mandal
+ *            payment's keeper is its schedule's money keeper (events_listmeta held_by), else kept_by.
  *   expense: expenses by who paid (meta paid_by; none = the treasurer, from the fund), with how much
  *            of it the treasurer still owes back (not repaid, paid by someone else). Sums to "spent".
  * Rows: { user_id, full_name, full_name_local, amount, entries, is_treasurer, handed (income: from
@@ -321,10 +325,11 @@ export async function listHoldings(campaign) {
     const [team, contribs, expenses] = await Promise.all([
         query(`SELECT user_id, member_role FROM fundraise_members WHERE campaign_id = :campaignId ORDER BY added_at, user_id`, { campaignId }),
         query(
-            `SELECT kept_by, handed_over, SUM(amount) AS amount, COUNT(*) AS entries
-               FROM fundraise_contributions
-              WHERE campaign_id = :campaignId AND deleted_at IS NULL AND mode <> 'unpaid'
-              GROUP BY kept_by, handed_over`,
+            `SELECT ${HOLDER_KEY} AS kept_by, f.handed_over, SUM(f.amount) AS amount, COUNT(*) AS entries
+               FROM fundraise_contributions f
+               LEFT JOIN events_listmeta hb ON hb.event_id = f.event_id AND hb.meta_key = 'held_by' AND hb.meta_value <> ''
+              WHERE f.campaign_id = :campaignId AND f.deleted_at IS NULL AND f.mode <> 'unpaid'
+              GROUP BY ${HOLDER_KEY}, f.handed_over`,
             { campaignId },
         ),
         query(
